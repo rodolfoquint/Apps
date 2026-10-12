@@ -71,7 +71,7 @@ def load_state(scene_id):
     p = state_path(scene_id)
     if p.exists():
         return json.loads(p.read_text())
-    return {"images": [], "videos": [], "selected_image": None, "selected_video": None}
+    return {"images": [], "videos": [], "selected_image": None, "selected_video": None, "pending": {}}
 
 
 def save_state(scene_id, state):
@@ -144,12 +144,19 @@ def spent_usd():
     return sum(json.loads(line)["usd"] for line in SPEND_LOG.read_text().splitlines() if line.strip())
 
 
+def in_flight_usd():
+    total = 0.0
+    for p in (OUT / "state").glob("*.json"):
+        total += sum(req["cost"] for req in json.loads(p.read_text()).get("pending", {}).values())
+    return total
+
+
 def check_budget(cost):
     budget = float(os.environ.get("HF_BUDGET_USD", "30"))
-    spent = spent_usd()
-    if spent + cost > budget:
-        die(f"budget stop: ${spent:.2f} spent + ${cost:.2f} would pass HF_BUDGET_USD=${budget:.2f}")
-    return spent
+    committed = spent_usd() + in_flight_usd()
+    if committed + cost > budget:
+        die(f"budget stop: ${committed:.2f} spent or in flight + ${cost:.2f} would pass "
+            f"HF_BUDGET_USD=${budget:.2f}")
 
 
 def record_spend(scene_id, kind, cost, request_id):
@@ -158,27 +165,59 @@ def record_spend(scene_id, kind, cost, request_id):
         f.write(json.dumps({"scene": scene_id, "kind": kind, "usd": cost, "request_id": request_id}) + "\n")
 
 
-def generate(model, body, poll_every):
-    submitted = call("POST", model, body, idempotency_key=str(uuid.uuid4()))
-    request_id = submitted["request_id"]
-    status_url = submitted.get("status_url") or f"{API}/requests/{request_id}/status"
-    print(f"  submitted {request_id}", flush=True)
+def run_request(scene_id, kind, model, body, cost, meta, poll_every):
+    """Submit one generation (or resume an interrupted one) and wait for it.
+
+    The request is saved as pending before polling, so if this process is
+    killed, running the same command again picks it up instead of paying twice.
+    Returns (result, pending); call finish() once the output is downloaded.
+    """
+    state = load_state(scene_id)
+    pending = state.setdefault("pending", {}).get(kind)
+    if pending:
+        print(f"  resuming request {pending['request_id']} from an earlier run "
+              "(its original settings apply)", flush=True)
+    else:
+        check_budget(cost)
+        submitted = call("POST", model, body, idempotency_key=str(uuid.uuid4()))
+        request_id = submitted["request_id"]
+        pending = {"request_id": request_id, "cost": cost, "meta": meta,
+                   "status_url": submitted.get("status_url") or f"{API}/requests/{request_id}/status"}
+        state["pending"][kind] = pending
+        save_state(scene_id, state)
+        print(f"  submitted {request_id}", flush=True)
+
     deadline = time.time() + 30 * 60
     last = None
     while True:
-        result = call("GET", status_url)
+        result = call("GET", pending["status_url"])
         status = result["status"]
         if status != last:
             print(f"  status: {status}", flush=True)
             last = status
         if status == "completed":
-            return result
+            return result, pending
         if status in ("failed", "nsfw", "canceled"):
-            die(f"request {request_id} ended as '{status}' ({result.get('error')}); "
+            state = load_state(scene_id)
+            state["pending"].pop(kind, None)
+            save_state(scene_id, state)
+            die(f"request {pending['request_id']} ended as '{status}' ({result.get('error')}); "
                 "failed and nsfw requests are not charged")
         if time.time() > deadline:
-            die(f"request {request_id} still '{status}' after 30 minutes")
+            die(f"request {pending['request_id']} still '{status}' after 30 minutes; "
+                "run the same command again to keep waiting")
         time.sleep(poll_every)
+
+
+def finish(scene_id, kind, pending, entry):
+    """Record a downloaded output as the newest attempt and select it."""
+    state = load_state(scene_id)
+    items, selected = ("images", "selected_image") if kind == "image" else ("videos", "selected_video")
+    state[items].append(entry)
+    state[selected] = entry["n"]
+    state["pending"].pop(kind, None)
+    save_state(scene_id, state)
+    record_spend(scene_id, kind, pending["cost"], pending["request_id"])
 
 
 def download(url, dest):
@@ -248,13 +287,11 @@ def cmd_image(args):
         print(json.dumps(body, indent=2, ensure_ascii=False))
         print(f"estimated ${cost:.3f}")
         return
-    check_budget(cost)
     print(f"{scene['id']}: generating image (${cost:.3f})", flush=True)
-    result = generate(IMAGE_MODEL, body, poll_every=4)
-    record_spend(scene["id"], "image", cost, result["request_id"])
+    result, pending = run_request(scene["id"], "image", IMAGE_MODEL, body, cost,
+                                  {"extra": args.extra, "seed": args.seed}, poll_every=4)
 
-    state = load_state(scene["id"])
-    n = len(state["images"]) + 1
+    n = len(load_state(scene["id"])["images"]) + 1
     url = result["images"][0]["url"]
     suffix = Path(url.split("?")[0]).suffix.lower() or ".png"
     raw = OUT / "images" / f"{scene['id']}-{n}{suffix}"
@@ -264,10 +301,8 @@ def cmd_image(args):
         dest = raw.with_suffix(".png")
         subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(raw), str(dest)], check=True)
         raw.unlink()
-    state["images"].append({"n": n, "file": str(dest.relative_to(OUT)), "url": url,
-                            "request_id": result["request_id"], "extra": args.extra, "seed": args.seed})
-    state["selected_image"] = n
-    save_state(scene["id"], state)
+    finish(scene["id"], "image", pending, {"n": n, "file": str(dest.relative_to(OUT)), "url": url,
+                                           "request_id": pending["request_id"], **pending["meta"]})
     print(f"saved {dest} (attempt {n}, now selected)")
 
 
@@ -295,19 +330,16 @@ def cmd_video(args):
         print(json.dumps(body, indent=2, ensure_ascii=False))
         print(f"estimated ${cost:.3f}")
         return
-    check_budget(cost)
     print(f"{scene['id']}: animating image {image['n']} (${cost:.3f}); this takes a few minutes", flush=True)
-    result = generate(VIDEO_MODEL, body, poll_every=10)
-    record_spend(scene["id"], "video", cost, result["request_id"])
+    result, pending = run_request(scene["id"], "video", VIDEO_MODEL, body, cost,
+                                  {"image": image["n"], "extra": args.extra}, poll_every=10)
 
-    n = len(state["videos"]) + 1
+    n = len(load_state(scene["id"])["videos"]) + 1
+    url = result["video"]["url"]
     dest = OUT / "videos" / f"{scene['id']}-{n}.mp4"
-    download(result["video"]["url"], dest)
-    state = load_state(scene["id"])
-    state["videos"].append({"n": n, "file": str(dest.relative_to(OUT)), "url": result["video"]["url"],
-                            "request_id": result["request_id"], "image": image["n"], "extra": args.extra})
-    state["selected_video"] = n
-    save_state(scene["id"], state)
+    download(url, dest)
+    finish(scene["id"], "video", pending, {"n": n, "file": str(dest.relative_to(OUT)), "url": url,
+                                           "request_id": pending["request_id"], **pending["meta"]})
     print(f"saved {dest} (attempt {n}, now selected)")
 
 
