@@ -487,6 +487,13 @@ def cmd_loop(args):
     subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(listing),
                     "-c", "copy", "-movflags", "+faststart", str(dest)], check=True)
     print(f"saved {dest} ({len(clips)} clips, {duration_of(dest):.0f}s)")
+    if args.preview:
+        # Small copy for sharing in chat or email; use the full-size files on the fan.
+        preview = OUT / "mexico_loop_preview.mp4"
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(dest), "-vf", "scale=540:540",
+                        "-c:v", "libx264", "-b:v", "750k", "-maxrate", "900k", "-bufsize", "1800k",
+                        "-preset", "slow", "-movflags", "+faststart", str(preview)], check=True)
+        print(f"saved {preview} ({preview.stat().st_size / 1e6:.1f} MB)")
 
 
 def cmd_sheet(args):
@@ -562,7 +569,9 @@ def main():
                    help="scale the picture to this fraction of the circle (default 0.9)")
     s.set_defaults(fn=cmd_fan)
 
-    sub.add_parser("loop").set_defaults(fn=cmd_loop)
+    s = sub.add_parser("loop")
+    s.add_argument("--preview", action="store_true", help="also write a small 540px preview copy")
+    s.set_defaults(fn=cmd_loop)
     sub.add_parser("sheet").set_defaults(fn=cmd_sheet)
     sub.add_parser("status").set_defaults(fn=cmd_status)
 

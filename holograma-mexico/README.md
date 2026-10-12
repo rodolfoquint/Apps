@@ -58,7 +58,7 @@ python3 generate.py video ajolote       # -> out/videos/ajolote-1.mp4
 python3 generate.py frames ajolote      # 3x3 frame sheet to check the motion and loop point
 python3 generate.py select-video ajolote 1   # go back to video attempt 1
 python3 generate.py fan                 # out/fan/NN-scene.mp4 for every finished scene (--fit 0.9 margin)
-python3 generate.py loop                # out/mexico_loop.mp4, everything in order
+python3 generate.py loop --preview      # out/mexico_loop.mp4, everything in order (+ a small 540px preview)
 python3 generate.py sheet               # out/contact_sheet.png of all chosen images
 python3 generate.py status
 ```
