@@ -5,7 +5,9 @@ Clips of Mexican culture and landmarks for a spinning LED hologram fan, made wit
 Each scene is made in two steps:
 
 1. **Image.** A still of the subject on pure black, from Qwen Image 3, 1536×1536.
-2. **Video.** Kling 3.0 Turbo animates that still into an 8-second 1080p clip, with a turntable turn, wings, a twirl and so on.
+2. **Video.** Kling O3 animates that still into a joyful 15-second clip: turntable turns, dancing, fireworks, confetti and so on. The still is passed as both the first and the last frame, so every clip loops seamlessly.
+
+The Sun Stone is a flat disc, so it skips AI video. It spins locally with ffmpeg: two exact full turns with a little bounce, at no cost (`"animate": "spin"` in `scenes.json`).
 
 Black pixels leave the fan's LEDs off, so the subject appears to float in the air.
 
@@ -14,13 +16,13 @@ Black pixels leave the fan's LEDs off, so the subject appears to float in the ai
 | # | id | Scene |
 |---|----|-------|
 | 1 | `papel-picado` | ¡Bienvenidos! Papel picado fluttering |
-| 2 | `piedra-del-sol` | Aztec Sun Stone, turning like a wheel |
-| 3 | `chichen-itza` | El Castillo with the equinox serpent of light |
-| 4 | `teotihuacan` | Pyramid of the Sun |
-| 5 | `cabeza-olmeca` | Olmec colossal head |
+| 2 | `piedra-del-sol` | Aztec Sun Stone, spinning like a wheel |
+| 3 | `chichen-itza` | El Castillo turning under fiesta fireworks |
+| 4 | `teotihuacan` | Pyramid of the Sun with hot-air balloons |
+| 5 | `cabeza-olmeca` | Olmec colossal head that smiles and winks |
 | 6 | `aguila-nopal` | Eagle on the nopal (founding of Tenochtitlan) |
 | 7 | `bellas-artes` | Palacio de Bellas Artes |
-| 8 | `angel-independencia` | Ángel de la Independencia |
+| 8 | `angel-independencia` | Ángel de la Independencia with red, white and green fireworks |
 | 9 | `mariposas-monarca` | Monarch butterflies spiraling |
 | 10 | `ajolote` | Axolotl |
 | 11 | `voladores` | Voladores de Papantla |
@@ -29,7 +31,7 @@ Black pixels leave the fan's LEDs off, so the subject appears to float in the ai
 | 14 | `mascara-lucha` | Lucha libre mask |
 | 15 | `sabores` | Corn, cacao, chile, avocado, tomato and vanilla orbiting |
 | 16 | `pinata` | Star piñata |
-| 17 | `catrina` | La Catrina with falling marigold petals |
+| 17 | `catrina` | La Catrina dancing among marigold petals |
 
 The prompts are in `scenes.json`. The shared style rules (`image_style`, `video_style`) enforce the pure-black, centered look. You can also paste a scene's prompts into the Higgsfield web app by hand: use `subject` + `image_style` for the image, then `motion` + `video_style` for the video.
 
@@ -60,7 +62,7 @@ python3 generate.py sheet               # out/contact_sheet.png of all chosen im
 python3 generate.py status
 ```
 
-- **Costs (October 2026 estimates):** about $0.08 per image and $0.95 per 8 s 1080p video, so one pass over all 17 scenes is about $17.50.
+- **Costs (October 2026 estimates):** about $0.08 per image and $1.43 per 15 s video, so one pass over all 17 scenes is about $24.
 - **Budget cap:** the script logs every charge in `out/spend.jsonl` and refuses to go past `HF_BUDGET_USD` (default $30).
 - **Failures:** failed or moderated requests aren't charged.
 - **Download promptly:** Higgsfield keeps outputs for at least 7 days. Everything is downloaded into `out/` right away, and `out/` is git-ignored.

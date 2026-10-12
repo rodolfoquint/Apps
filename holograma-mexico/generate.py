@@ -38,7 +38,7 @@ IMAGE_MODEL = "alibaba/qwen-image-3/text-to-image"
 # frame makes each clip loop seamlessly and pushes turntables to a full turn.
 VIDEO_MODEL = "kling-video/o3/first-last-frame"
 VIDEO_MODE = "pro"
-VIDEO_SECONDS = 8
+VIDEO_SECONDS = 15
 FAN_SIZE = 1080
 
 HERE = Path(__file__).resolve().parent
@@ -350,8 +350,8 @@ def cmd_video(args):
 
 
 def spin_video(scene_id, image, seconds):
-    """Turn a flat, round subject one full revolution locally (free, exact, loops),
-    with a cheerful bounce and shimmer twice per turn."""
+    """Spin a flat, round subject locally (free, exact, loops): one full turn
+    about every 7.5 s, with a cheerful bounce and shimmer twice per turn."""
     src = OUT / image["file"]
     # Find the subject's bounding box (low threshold so dim rims count) so it
     # spins around its own center, then leave room for the bounce.
@@ -360,14 +360,15 @@ def spin_video(scene_id, image, seconds):
                             "-frames:v", "1", "-f", "null", "-"], capture_output=True, text=True).stderr
     w, h, x, y = (int(v) for v in probe.rsplit("crop=", 1)[1].split()[0].split(":"))
     side = round(max(w, h) * 1.12 / 2) * 2
-    beat = seconds / 2
+    turns = max(1, round(seconds / 7.5))
+    beat = seconds / turns / 2
     n = len(load_state(scene_id)["videos"]) + 1
     dest = OUT / "videos" / f"{scene_id}-{n}.mp4"
     dest.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-loop", "1", "-framerate", "30", "-t", str(seconds),
                     "-i", str(src), "-vf",
                     f"crop={w}:{h}:{x}:{y},pad={side}:{side}:(ow-iw)/2:(oh-ih)/2:black,"
-                    f"rotate=2*PI*t/{seconds}:c=black,"
+                    f"rotate=2*PI*{turns}*t/{seconds}:c=black,"
                     # bounce: zoom in up to 6% and back, twice per turn
                     f"zoompan=z='1+0.06*pow(sin(PI*in_time/{beat}),2)':d=1:s={side}x{side}:fps=30"
                     f":x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2',"
@@ -377,7 +378,7 @@ def spin_video(scene_id, image, seconds):
     state["videos"].append({"n": n, "file": str(dest.relative_to(OUT)), "image": image["n"], "spin": True})
     state["selected_video"] = n
     save_state(scene_id, state)
-    print(f"saved {dest} (one full turn in {seconds}s, rendered locally at no cost; attempt {n}, now selected)")
+    print(f"saved {dest} ({turns} full turn(s) in {seconds}s, rendered locally at no cost; attempt {n}, now selected)")
 
 
 def duration_of(path):

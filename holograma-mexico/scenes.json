@@ -1,110 +1,110 @@
 {
   "image_style": "Isolated on a pure solid black background (#000000) with nothing else in frame: no ground, no floor, no pedestal, no cast shadow, no text, no border. Single subject centered, filling about 75% of a square frame with a little black space on every side. Vivid saturated colors, bright glowing rim light, high contrast, crisp detail, polished 3D render, like a hologram floating in darkness.",
   "image_negative": "background scenery, sky, clouds, floor, ground, horizon, table, pedestal, gradient background, grey background, white background, vignette, text, letters, words, watermark, logo, signature, frame, border, cropped subject, cut off edges, dull colors, low contrast, blurry, noisy",
-  "video_style": "The last frame matches the first frame so the clip loops seamlessly. The background stays pure solid black for the whole clip. The camera is locked off and static. Smooth, slow, continuous motion. The subject stays centered and fully in frame. No cuts, no text, no glowing effects, no new objects appear.",
+  "video_style": "Joyful, lively, playful Mexican fiesta energy with bright cheerful colors. The clip ends exactly on its first frame so it loops seamlessly. Apart from the fireworks, confetti, petals, balloons or bubbles named above, the background stays pure solid black. The camera stays static. The subject stays centered and fully in frame. No cuts, no text, nothing else appears.",
   "scenes": [
     {
       "id": "papel-picado",
       "title": "¡Bienvenidos! — Papel picado",
       "subject": "Several strings of Mexican papel picado banners hanging in gentle arcs: rectangular tissue-paper flags in hot pink, orange, turquoise, yellow, purple and green, each with intricate cut-out patterns of flowers, birds and skulls, glowing as if backlit",
-      "motion": "The papel picado banners flutter and sway gently in a soft breeze, the cut-out flags rippling."
+      "motion": "The papel picado banners flutter, bounce and dance merrily in a lively breeze while bright confetti swirls around them."
     },
     {
       "id": "piedra-del-sol",
       "title": "Piedra del Sol",
       "subject": "The Aztec Sun Stone (Piedra del Sol) seen straight on: a perfectly circular carved disc with the face of the sun god Tonatiuh in the center, tongue out, surrounded by the four Nahui Ollin panels and concentric rings of the twenty day signs and sun rays, rendered in glowing polished gold with warm amber light in the deep carvings",
-      "motion": "Spins one full turn in place like a wheel facing the camera (rendered locally from the still, not by AI).",
+      "motion": "Spins two full turns like a wheel facing the camera with a happy bounce and shimmer (rendered locally from the still, not by AI).",
       "animate": "spin"
     },
     {
       "id": "chichen-itza",
       "title": "Chichén Itzá — El Castillo",
       "subject": "El Castillo, the Temple of Kukulcán at Chichén Itzá: the Maya stepped pyramid with nine square terraces, a steep staircase on each of its four sides and a small temple on top, shown as a floating miniature on a thin cut-out slab of green grass, three-quarter view, warm golden sunset light on the limestone",
-      "motion": "The pyramid makes exactly one complete 360-degree turn on a turntable at a slow, constant speed and ends exactly where it started."
+      "motion": "The pyramid makes one complete 360-degree turn at a steady speed while colorful fireworks in red, green, white, pink and gold burst and sparkle in the darkness above it like a Mexican fiesta. The pyramid itself is not lit up or changed by the fireworks, and the fireworks fade away before the end."
     },
     {
       "id": "teotihuacan",
       "title": "Teotihuacán — Pirámide del Sol",
       "subject": "The Pyramid of the Sun at Teotihuacán: a massive stepped pyramid of rough grey-brown stone with five broad tiers and a long central staircase, shown as a floating miniature on a thin cut-out slab of earth with a short stretch of the Avenue of the Dead, lit by a warm orange sunrise glow",
-      "motion": "The pyramid makes exactly one complete 360-degree turn on a turntable at a slow, constant speed and ends exactly where it started."
+      "motion": "The pyramid makes one complete 360-degree turn at a steady speed while a few colorful hot-air balloons rise gently around it and drift away before the end."
     },
     {
       "id": "cabeza-olmeca",
       "title": "Cabeza colosal olmeca",
       "subject": "A colossal Olmec stone head: a giant basalt sculpture of a man's face with a broad flat nose, full lips and a close-fitting helmet with ear flaps, three-quarter view, the dark stone lit by strong teal and gold rim lights so every edge glows",
-      "motion": "The colossal head makes exactly one complete 360-degree turn on a turntable at a slow, constant speed and ends exactly where it started."
+      "motion": "The colossal head looks around curiously from side to side, breaks into a big friendly smile and gives a cheerful wink, then returns to its starting pose."
     },
     {
       "id": "aguila-nopal",
       "title": "El águila y el nopal",
       "subject": "The founding legend of Tenochtitlan: a golden eagle with wings half spread, perched on a prickly pear cactus (nopal) that grows from a rock, holding a rattlesnake in its beak and talons; bright green cactus paddles with red tuna fruits, the eagle's feathers glowing bronze and gold",
-      "motion": "The eagle slowly opens and beats its wings while gripping the snake, and the snake coils."
+      "motion": "The eagle proudly spreads its wings wide and flaps them triumphantly, the snake coils, and bright pink and yellow flowers bloom on the cactus."
     },
     {
       "id": "bellas-artes",
       "title": "Palacio de Bellas Artes",
       "subject": "The Palacio de Bellas Artes in Mexico City: its white marble Art Nouveau facade with arched windows and sculptures, crowned by the large central dome tiled in orange, yellow and gold, shown as a floating miniature on a thin cut-out slab of plaza, lit at night with warm golden floodlights",
-      "motion": "The building makes exactly one complete 360-degree turn on a turntable at a slow, constant speed and ends exactly where it started."
+      "motion": "The building makes one complete 360-degree turn at a steady speed while colorful confetti and streamers drift down around it and are gone before the end."
     },
     {
       "id": "angel-independencia",
       "title": "Ángel de la Independencia",
       "subject": "The Angel of Independence monument in Mexico City: a tall slender stone column on a stepped base with bronze statues, topped by a shining golden winged Victory statue holding a laurel wreath, shown whole as a floating miniature, the golden angel glowing brightly",
-      "motion": "The monument makes exactly one complete 360-degree turn on a turntable at a slow, constant speed and ends exactly where it started."
+      "motion": "The monument makes one complete 360-degree turn at a steady speed while red, white and green fireworks burst in the darkness around the golden angel like an Independence Day celebration, fading away before the end."
     },
     {
       "id": "mariposas-monarca",
       "title": "Mariposas monarca",
       "subject": "A swirling round cloud of dozens of bright orange-and-black monarch butterflies with white-spotted wing edges, wings open, glowing warm orange",
-      "motion": "The monarch butterflies flutter their wings and swirl together in a slow circular spiral around the center of the frame."
+      "motion": "The monarch butterflies flutter happily and swirl in a playful, bouncy spiral dance around the center of the frame."
     },
     {
       "id": "ajolote",
       "title": "Ajolote",
       "subject": "A cute pink axolotl (ajolote) floating as if underwater, with six feathery coral-red external gills, tiny black eyes, a gentle smile, little four-fingered legs and a long finned tail, soft glowing pink skin",
-      "motion": "The axolotl swims slowly in place, its feathery gills waving and its tail gently undulating."
+      "motion": "The axolotl wiggles happily, does a playful little twirl and waves a tiny hand with a big smile, its feathery gills waving, while a few small bubbles float up."
     },
     {
       "id": "voladores",
       "title": "Voladores de Papantla",
       "subject": "The Voladores de Papantla ritual: a tall wooden pole with a small square frame at the very top where a musician stands playing a flute and drum, and four performers in red pants and white shirts with colorful ribbons and conical headdresses hanging upside down from ropes, arms outstretched, flying around the pole",
-      "motion": "The four voladores fly slowly in wide circles around the pole on their ropes, ribbons streaming."
+      "motion": "The four voladores fly in joyful wide circles around the pole, ribbons streaming, while the musician on top dances and plays."
     },
     {
       "id": "folklorico",
       "title": "Ballet Folklórico",
       "subject": "A Ballet Folklórico dancer in a traditional Jalisco dress mid-twirl, holding a huge ruffled full-circle skirt out wide, the skirt in bright red, white and green with rows of colorful ribbons, hair in braids with ribbons, full body visible",
-      "motion": "The dancer spins slowly in place and the huge skirt flares out in a full circle, ribbons flowing."
+      "motion": "The dancer twirls joyfully with a big smile, swinging her huge skirt so it flares out in full colorful waves, ribbons flying."
     },
     {
       "id": "alebrije",
       "title": "Alebrije",
       "subject": "A fantastical Oaxacan alebrije creature, part jaguar and part dragon with small wings and a curled tail, carved wood painted with intricate patterns of dots, stripes, zigzags and flowers in hot pink, turquoise, yellow, orange and purple, full body visible",
-      "motion": "The alebrije makes exactly one complete 360-degree turn on a turntable at a slow, constant speed and ends exactly where it started."
+      "motion": "The alebrije dances playfully: it bounces, wiggles its tail, flaps its little wings and happily turns all the way around."
     },
     {
       "id": "mascara-lucha",
       "title": "Máscara de lucha libre",
       "subject": "A Mexican lucha libre wrestling mask in shiny gold and red fabric with flame designs around the eye and mouth openings and a white trim, worn on an invisible head so it keeps its full shape",
-      "motion": "The mask makes exactly one complete 360-degree turn on a turntable at a slow, constant speed and ends exactly where it started."
+      "motion": "The mask makes one complete 360-degree turn at a steady speed with a lively little bounce while colorful confetti bursts around it like a wrestling-ring entrance, gone before the end."
     },
     {
       "id": "sabores",
       "title": "Regalos de México al mundo",
       "subject": "Foods Mexico gave the world floating in a neat ring around an empty center: an ear of yellow corn, an open cacao pod showing its beans, a red chili pepper, a halved avocado with its pit, a ripe red tomato, and vanilla pods with a pale vanilla orchid flower",
-      "motion": "The foods orbit slowly in a circle around the center, each one gently turning."
+      "motion": "The foods dance in a happy circle around the center, bouncing and spinning playfully."
     },
     {
       "id": "pinata",
       "title": "Piñata",
       "subject": "A traditional Mexican seven-point star piñata: a round center with seven cone-shaped points, covered in layers of fringed tissue paper in hot pink, orange, yellow, turquoise and purple, with long colorful streamers hanging from each point",
-      "motion": "The piñata makes exactly one complete 360-degree turn on a turntable at a slow, constant speed and ends exactly where it started. Its streamers swing outward as it turns."
+      "motion": "The piñata swings back and forth merrily and spins, its colorful streamers flying, while confetti falls around it."
     },
     {
       "id": "catrina",
       "title": "La Catrina",
       "subject": "La Catrina, the elegant Day of the Dead skeleton lady, head and shoulders portrait: a white sugar-skull face decorated with colorful floral designs, wearing a large wide-brim hat adorned with feathers and bright orange cempasúchil marigold flowers, and a lace collar",
-      "motion": "La Catrina makes exactly one complete 360-degree turn on a turntable at a slow, constant speed and ends exactly where it started."
+      "motion": "La Catrina sways and dances joyfully with a big smile, her hat feathers bouncing, as orange marigold petals swirl around her."
     }
   ]
 }
