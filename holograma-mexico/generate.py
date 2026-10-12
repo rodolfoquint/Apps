@@ -9,7 +9,8 @@ you can pick the best one before spending money on the next step.
   python3 generate.py image  SCENE [--extra TEXT] [--seed N] [--dry-run]
   python3 generate.py select SCENE N                # use image attempt N for the video
   python3 generate.py video  SCENE [--extra TEXT] [--duration S] [--dry-run]
-  python3 generate.py frames SCENE                  # 2x2 contact sheet of the chosen video
+  python3 generate.py frames SCENE                  # 3x3 frame sheet of the chosen video
+  python3 generate.py select-video SCENE N          # use video attempt N
   python3 generate.py fan    [SCENE ...] [--size PX] # square, black-crushed, circle-masked clips
   python3 generate.py loop                          # join the fan clips into one playlist video
   python3 generate.py sheet                         # contact sheet of every chosen image
@@ -320,6 +321,17 @@ def cmd_select(args):
     print(f"{scene['id']}: image {args.n} selected")
 
 
+def cmd_select_video(args):
+    cfg = load_scenes()
+    _, scene = find_scene(cfg, args.scene)
+    state = load_state(scene["id"])
+    if not any(v["n"] == args.n for v in state["videos"]):
+        die(f"{scene['id']} has no video attempt {args.n}")
+    state["selected_video"] = args.n
+    save_state(scene["id"], state)
+    print(f"{scene['id']}: video {args.n} selected")
+
+
 def cmd_video(args):
     cfg = load_scenes()
     _, scene = find_scene(cfg, args.scene)
@@ -404,12 +416,22 @@ def cmd_frames(args):
         die(f"{scene['id']} has no video yet")
     dest = OUT / "frames" / f"{src.stem}.png"
     dest.parent.mkdir(parents=True, exist_ok=True)
-    fps = 4 / duration_of(src)
-    subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(src),
-                    "-vf", f"fps={fps:.5f},scale=512:512:force_original_aspect_ratio=decrease,"
-                           "pad=512:512:(ow-iw)/2:(oh-ih)/2,tile=2x2",
+    # 9 evenly spaced frames; the last one is taken just before the end so the
+    # loop point (first vs last frame) can be compared.
+    length = duration_of(src)
+    times = [i * (length - 0.1) / 8 for i in range(9)]
+    inputs = []
+    for t in times:
+        inputs += ["-ss", f"{t:.3f}", "-i", str(src)]
+    graph = "".join(f"[{i}:v]scale=400:400:force_original_aspect_ratio=decrease,"
+                    f"pad=400:400:(ow-iw)/2:(oh-ih)/2,trim=end_frame=1,setpts=PTS-STARTPTS[f{i}];"
+                    for i in range(9))
+    graph += "".join(f"[f{i}]" for i in range(9)) + "xstack=inputs=9:layout=" + "|".join(
+        f"{c * 400}_{r * 400}" for r in range(3) for c in range(3))
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-y", *inputs, "-filter_complex", graph,
                     "-frames:v", "1", str(dest)], check=True)
-    print(f"saved {dest} (4 frames from {src.name}, in time order left-to-right, top-to-bottom)")
+    print(f"saved {dest} (9 frames from {src.name} at "
+          f"{', '.join(f'{t:.1f}s' for t in times)}; left-to-right, top-to-bottom)")
 
 
 def circle_mask(size):
@@ -516,6 +538,11 @@ def main():
     s.add_argument("scene")
     s.add_argument("n", type=int)
     s.set_defaults(fn=cmd_select)
+
+    s = sub.add_parser("select-video")
+    s.add_argument("scene")
+    s.add_argument("n", type=int)
+    s.set_defaults(fn=cmd_select_video)
 
     s = sub.add_parser("video")
     s.add_argument("scene")
