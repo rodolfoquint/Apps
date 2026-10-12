@@ -399,9 +399,12 @@ def cmd_fan(args):
             continue
         dest = OUT / "fan" / f"{i:02d}-{scene['id']}.mp4"
         length = duration_of(src)
-        # Square crop, crush near-blacks to true black (LEDs off = transparent),
-        # mask outside the fan's circle, and fade in/out so clips chain cleanly.
-        graph = (f"[0:v]crop='min(iw,ih)':'min(iw,ih)',scale={args.size}:{args.size}:flags=lanczos,"
+        # Square crop, shrink by --fit so the subject sits inside the fan's circle,
+        # crush near-blacks to true black (LEDs off = transparent), mask outside
+        # the circle, and fade in/out so clips chain cleanly.
+        inner = round(args.size * args.fit / 2) * 2
+        graph = (f"[0:v]crop='min(iw,ih)':'min(iw,ih)',scale={inner}:{inner}:flags=lanczos,"
+                 f"pad={args.size}:{args.size}:(ow-iw)/2:(oh-ih)/2:black,"
                  f"colorlevels=rimin=0.06:gimin=0.06:bimin=0.06[v];"
                  f"[v][1:v]overlay=shortest=1,"
                  f"fade=t=in:st=0:d=0.4,fade=t=out:st={max(0.0, length - 0.5):.2f}:d=0.4,format=yuv420p")
@@ -489,6 +492,8 @@ def main():
     s = sub.add_parser("fan")
     s.add_argument("scenes", nargs="*")
     s.add_argument("--size", type=int, default=FAN_SIZE)
+    s.add_argument("--fit", type=float, default=0.9,
+                   help="scale the picture to this fraction of the circle (default 0.9)")
     s.set_defaults(fn=cmd_fan)
 
     sub.add_parser("loop").set_defaults(fn=cmd_loop)
