@@ -34,9 +34,11 @@ from pathlib import Path
 
 API = "https://api.higgsfield.ai"
 IMAGE_MODEL = "alibaba/qwen-image-3/text-to-image"
-VIDEO_MODEL = "kling-video/v3.0-turbo/image-to-video"
+# Kling O3 takes a required last frame; passing the still as both first and last
+# frame makes each clip loop seamlessly and pushes turntables to a full turn.
+VIDEO_MODEL = "kling-video/o3/first-last-frame"
+VIDEO_MODE = "pro"
 VIDEO_SECONDS = 8
-VIDEO_RESOLUTION = "1080p"
 FAN_SIZE = 1080
 
 HERE = Path(__file__).resolve().parent
@@ -261,8 +263,9 @@ def video_body(cfg, scene, image_url, extra=None, duration=VIDEO_SECONDS):
     if extra:
         parts.append(extra)
     parts.append(cfg["video_style"])
-    return {"prompt": " ".join(parts), "image_url": image_url,
-            "duration": duration, "resolution": VIDEO_RESOLUTION}
+    return {"prompt": " ".join(parts), "first_frame_url": image_url, "last_frame_url": image_url,
+            "duration": duration, "mode": VIDEO_MODE, "aspect_ratio": "1:1", "sound": "off",
+            "multi_shots": False}
 
 
 # ---------- commands
@@ -273,7 +276,7 @@ def cmd_estimate(args):
     img = estimate_usd(IMAGE_MODEL, image_body(cfg, scene))
     vid = estimate_usd(VIDEO_MODEL, video_body(cfg, scene, "https://example.com/frame.png"))
     n = len(cfg["scenes"])
-    print(f"image ${img:.3f} · {VIDEO_SECONDS}s {VIDEO_RESOLUTION} video ${vid:.3f}")
+    print(f"image ${img:.3f} · {VIDEO_SECONDS}s {VIDEO_MODE} video ${vid:.3f}")
     print(f"{n} scenes, one attempt each: ${n * (img + vid):.2f}")
     print(f"recorded spend so far: ${spent_usd():.2f}")
 
@@ -324,6 +327,9 @@ def cmd_video(args):
     if not state["selected_image"]:
         die(f"{scene['id']} has no image yet; run: generate.py image {scene['id']}")
     image = next(img for img in state["images"] if img["n"] == state["selected_image"])
+    if scene.get("animate") == "spin":
+        spin_video(scene["id"], image, args.duration)
+        return
     body = video_body(cfg, scene, image["url"], args.extra, args.duration)
     cost = estimate_usd(VIDEO_MODEL, body)
     if args.dry_run:
@@ -341,6 +347,37 @@ def cmd_video(args):
     finish(scene["id"], "video", pending, {"n": n, "file": str(dest.relative_to(OUT)), "url": url,
                                            "request_id": pending["request_id"], **pending["meta"]})
     print(f"saved {dest} (attempt {n}, now selected)")
+
+
+def spin_video(scene_id, image, seconds):
+    """Turn a flat, round subject one full revolution locally (free, exact, loops),
+    with a cheerful bounce and shimmer twice per turn."""
+    src = OUT / image["file"]
+    # Find the subject's bounding box (low threshold so dim rims count) so it
+    # spins around its own center, then leave room for the bounce.
+    probe = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(src),
+                            "-vf", "cropdetect=limit=6:round=2:reset=1:skip=0",
+                            "-frames:v", "1", "-f", "null", "-"], capture_output=True, text=True).stderr
+    w, h, x, y = (int(v) for v in probe.rsplit("crop=", 1)[1].split()[0].split(":"))
+    side = round(max(w, h) * 1.12 / 2) * 2
+    beat = seconds / 2
+    n = len(load_state(scene_id)["videos"]) + 1
+    dest = OUT / "videos" / f"{scene_id}-{n}.mp4"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-loop", "1", "-framerate", "30", "-t", str(seconds),
+                    "-i", str(src), "-vf",
+                    f"crop={w}:{h}:{x}:{y},pad={side}:{side}:(ow-iw)/2:(oh-ih)/2:black,"
+                    f"rotate=2*PI*t/{seconds}:c=black,"
+                    # bounce: zoom in up to 6% and back, twice per turn
+                    f"zoompan=z='1+0.06*pow(sin(PI*in_time/{beat}),2)':d=1:s={side}x{side}:fps=30"
+                    f":x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2',"
+                    f"eq=brightness='0.05*pow(sin(PI*t/{beat}),2)':eval=frame,format=yuv420p",
+                    "-c:v", "libx264", "-crf", "16", "-r", "30", str(dest)], check=True)
+    state = load_state(scene_id)
+    state["videos"].append({"n": n, "file": str(dest.relative_to(OUT)), "image": image["n"], "spin": True})
+    state["selected_video"] = n
+    save_state(scene_id, state)
+    print(f"saved {dest} (one full turn in {seconds}s, rendered locally at no cost; attempt {n}, now selected)")
 
 
 def duration_of(path):
