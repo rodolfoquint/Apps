@@ -480,7 +480,7 @@ def cmd_sheet(args):
     cols = 6
     rows = -(-len(files) // cols)
     listing = OUT / ".sheet.txt"
-    listing.write_text("".join(f"file '{f}'\nduration 1\n" for f in files) + f"file '{files[-1]}'\n")
+    listing.write_text("".join(f"file '{f}'\nduration 1\n" for f in files))
     dest = OUT / "contact_sheet.png"
     subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(listing),
                     "-vf", f"scale=320:320,tile={cols}x{rows}:padding=4:color=0x333333",
