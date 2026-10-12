@@ -22,10 +22,21 @@ hole **Ø17.5 mm**, tab **5 mm** thick. I took them from photos, so either:
 
 ### Print settings
 
-- Material: **PETG or ASA** (it's outdoors; PLA goes soft in sun).
+- Material: **white PLA**, to match the gate. PLA is fine because this gate
+  is in the shade. If a gate gets direct sun, use PETG or ASA instead, since
+  PLA softens at around 55 °C.
 - As laid out: flat top of the cap on the bed, shank up. No supports.
-- 0.2 mm layers, 3 walls, 30%+ infill.
-- Bright colour helps: you can see at a glance that all 4 are still there.
+- 0.2 mm layers, 3 walls, 40% infill.
+
+### Print with Codex
+
+Run this from a clone of the repo on the computer connected to the printer:
+
+```
+codex "In this repo, check out branch claude/laughing-archimedes-ua7u9a and slice gate-hole-plugs/stl/plugs_x4.stl (4 separate plugs, already oriented: flat cap on the bed, shank up; do not rotate or scale). Print it in WHITE PLA with: 0.4 mm nozzle, 0.2 mm layers, 3 walls, 4 top and 4 bottom layers, 40% gyroid infill, no supports, no brim, nozzle 210 C, bed 60 C. Use whatever slicer/printer tools are on this machine (Bambu Studio, OrcaSlicer, PrusaSlicer, Cura, OctoPrint or Moonraker). If the printer has several spools or an AMS, pick the white PLA one. Before starting, show me the estimated print time and filament use and wait for my OK."
+```
+
+To print one test plug first, swap `plugs_x4.stl` for `plug_single.stl`.
 
 ## Using the size gauge
 
