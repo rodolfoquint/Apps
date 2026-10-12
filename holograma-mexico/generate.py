@@ -448,6 +448,7 @@ def cmd_fan(args):
                  f"fade=t=in:st=0:d=0.4,fade=t=out:st={max(0.0, length - 0.5):.2f}:d=0.4,format=yuv420p")
         subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(src), "-loop", "1", "-i", str(mask),
                         "-filter_complex", graph, "-an", "-c:v", "libx264", "-crf", "18",
+                        "-maxrate", "10M", "-bufsize", "20M",
                         "-preset", "medium", "-r", "30", "-movflags", "+faststart", str(dest)], check=True)
         print(f"saved {dest}")
         made += 1
