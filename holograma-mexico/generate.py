@@ -102,17 +102,22 @@ def call(method, path, body=None, idempotency_key=None):
     if idempotency_key:
         headers["Idempotency-Key"] = idempotency_key
 
-    for attempt in range(10):
+    attempt = 0
+    busy_until = time.time() + 45 * 60
+    while attempt < 10:
         req = urllib.request.Request(url, data=data, headers=headers, method=method)
         try:
             with urllib.request.urlopen(req, timeout=60) as resp:
                 return json.load(resp)
         except urllib.error.HTTPError as e:
             text = e.read().decode(errors="replace")
-            if e.code == 400 and "concurrent" in text.lower():
-                print("  account concurrency limit reached, waiting 20s...", flush=True)
-                time.sleep(20 + random.uniform(0, 5))
+            # Hitting the account's concurrency limit is normal when several scenes run
+            # at once; wait for a slot without using up the error retries.
+            if e.code == 400 and "concurrent" in text.lower() and time.time() < busy_until:
+                print("  account concurrency limit reached, waiting 30s...", flush=True)
+                time.sleep(30 + random.uniform(0, 10))
                 continue
+            attempt += 1
             if e.code == 403:
                 die(f"Higgsfield refused the request (403, usually insufficient credits): {text}")
             if e.code in (423, 429) or e.code >= 500:
@@ -122,6 +127,7 @@ def call(method, path, body=None, idempotency_key=None):
                 continue
             die(f"HTTP {e.code} from {url}: {text}")
         except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+            attempt += 1
             wait = min(60, 2 ** attempt) + random.uniform(0, 2)
             print(f"  network error ({e}), retrying in {wait:.0f}s...", flush=True)
             time.sleep(wait)
