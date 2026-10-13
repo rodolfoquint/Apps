@@ -22,6 +22,7 @@ HF_BUDGET_USD (default 30) caps the total recorded spend across all runs.
 
 import argparse
 import json
+import math
 import os
 import random
 import subprocess
@@ -361,17 +362,33 @@ def cmd_video(args):
     print(f"saved {dest} (attempt {n}, now selected)")
 
 
+def subject_circle(src, grid=256, limit=12):
+    """Center and radius (in source pixels) of the smallest circle around the
+    subject's center that holds every non-black pixel."""
+    width, height = (int(v) for v in subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height",
+         "-of", "csv=p=0", str(src)], check=True, capture_output=True, text=True).stdout.strip().split(","))
+    raw = subprocess.run(["ffmpeg", "-loglevel", "error", "-i", str(src), "-vf",
+                          f"scale={grid}:{grid},format=gray", "-f", "rawvideo", "-"],
+                         check=True, capture_output=True).stdout
+    pts = [(i % grid, i // grid) for i, v in enumerate(raw) if v > limit]
+    if not pts:
+        die(f"{src} looks completely black")
+    cx = (min(x for x, _ in pts) + max(x for x, _ in pts) + 1) / 2
+    cy = (min(y for _, y in pts) + max(y for _, y in pts) + 1) / 2
+    r = max(math.hypot(x + 0.5 - cx, y + 0.5 - cy) for x, y in pts) + 1
+    return cx * width / grid, cy * height / grid, r * max(width, height) / grid
+
+
 def spin_video(scene_id, image, seconds):
-    """Spin a flat, round subject locally (free, exact, loops): one full turn
-    about every 7.5 s, with a cheerful bounce and shimmer twice per turn."""
+    """Spin a round-ish subject locally (free, exact, loops): one full turn
+    about every 7.5 s, with a cheerful bounce and color pulse twice per turn."""
     src = OUT / image["file"]
-    # Find the subject's bounding box (low threshold so dim rims count) so it
-    # spins around its own center, then leave room for the bounce.
-    probe = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(src),
-                            "-vf", "cropdetect=limit=6:round=2:reset=1:skip=0",
-                            "-frames:v", "1", "-f", "null", "-"], capture_output=True, text=True).stderr
-    w, h, x, y = (int(v) for v in probe.rsplit("crop=", 1)[1].split()[0].split(":"))
-    side = round(max(w, h) * 1.12 / 2) * 2
+    cx, cy, r = subject_circle(src)
+    # Square canvas around the subject's center, big enough that no part of it
+    # leaves the frame while turning, plus room for the 6% bounce.
+    side = round(2 * r * 1.08 / 2) * 2
+    pad = side
     turns = max(1, round(seconds / 7.5))
     beat = seconds / turns / 2
     n = len(load_state(scene_id)["videos"]) + 1
@@ -379,12 +396,14 @@ def spin_video(scene_id, image, seconds):
     dest.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-loop", "1", "-framerate", "30", "-t", str(seconds),
                     "-i", str(src), "-vf",
-                    f"crop={w}:{h}:{x}:{y},pad={side}:{side}:(ow-iw)/2:(oh-ih)/2:black,"
+                    f"pad=iw+{2 * pad}:ih+{2 * pad}:{pad}:{pad}:black,"
+                    f"crop={side}:{side}:{round(cx + pad - side / 2)}:{round(cy + pad - side / 2)},"
                     f"rotate=2*PI*{turns}*t/{seconds}:c=black,"
                     # bounce: zoom in up to 6% and back, twice per turn
                     f"zoompan=z='1+0.06*pow(sin(PI*in_time/{beat}),2)':d=1:s={side}x{side}:fps=30"
                     f":x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2',"
-                    f"eq=brightness='0.05*pow(sin(PI*t/{beat}),2)':eval=frame,format=yuv420p",
+                    # shimmer: colors get richer on each bounce; black has no color, so it stays black
+                    f"hue=s='1+0.35*pow(sin(PI*t/{beat}),2)',format=yuv420p",
                     "-c:v", "libx264", "-crf", "16", "-r", "30", str(dest)], check=True)
     state = load_state(scene_id)
     state["videos"].append({"n": n, "file": str(dest.relative_to(OUT)), "image": image["n"], "spin": True})
@@ -462,7 +481,7 @@ def cmd_fan(args):
         # Square crop, shrink by --fit so the subject sits inside the fan's circle,
         # crush near-blacks to true black (LEDs off = transparent), mask outside
         # the circle, and fade in/out so clips chain cleanly.
-        inner = round(args.size * args.fit / 2) * 2
+        inner = round(args.size * scene.get("fan_fit", args.fit) / 2) * 2
         graph = (f"[0:v]crop='min(iw,ih)':'min(iw,ih)',scale={inner}:{inner}:flags=lanczos,"
                  f"pad={args.size}:{args.size}:(ow-iw)/2:(oh-ih)/2:black,"
                  f"colorlevels=rimin=0.06:gimin=0.06:bimin=0.06[v];"

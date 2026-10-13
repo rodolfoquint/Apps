@@ -38,7 +38,8 @@
       "id": "aguila-nopal",
       "title": "El águila y el nopal",
       "subject": "The founding legend of Tenochtitlan: a golden eagle with wings half spread, perched on a prickly pear cactus (nopal) that grows from a rock, holding a rattlesnake in its beak and talons; bright green cactus paddles with red tuna fruits, the eagle's feathers glowing bronze and gold",
-      "motion": "The eagle proudly spreads its wings wide and flaps them triumphantly, the snake coils, and bright pink and yellow flowers bloom on the cactus."
+      "motion": "The eagle proudly spreads its wings wide and flaps them triumphantly, the snake coils, and bright pink and yellow flowers bloom on the cactus.",
+      "fan_fit": 1.0
     },
     {
       "id": "bellas-artes",
@@ -92,13 +93,15 @@
       "id": "sabores",
       "title": "Regalos de México al mundo",
       "subject": "Foods Mexico gave the world floating in a neat ring around an empty center: an ear of yellow corn, an open cacao pod showing its beans, a red chili pepper, a halved avocado with its pit, a ripe red tomato, and vanilla pods with a pale vanilla orchid flower",
-      "motion": "The foods dance in a happy circle around the center, bouncing and spinning playfully."
+      "motion": "The ring of foods spins round like a carousel with a happy bounce (rendered locally from the still, not by AI; the AI version morphed the foods).",
+      "animate": "spin"
     },
     {
       "id": "pinata",
       "title": "Piñata",
       "subject": "A traditional Mexican seven-point star piñata: a round center with seven cone-shaped points, covered in layers of fringed tissue paper in hot pink, orange, yellow, turquoise and purple, with long colorful streamers hanging from each point",
-      "motion": "The piñata swings back and forth merrily and spins, its colorful streamers flying, while confetti falls around it."
+      "motion": "The star piñata spins like a pinwheel with a happy bounce (rendered locally from the still, not by AI; the AI version bent its cones).",
+      "animate": "spin"
     },
     {
       "id": "catrina",

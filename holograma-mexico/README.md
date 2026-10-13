@@ -7,7 +7,7 @@ Each scene is made in two steps:
 1. **Image.** A still of the subject on pure black, from Qwen Image 3, 1536×1536.
 2. **Video.** Kling O3 animates that still into a joyful 15-second clip: turntable turns, dancing, fireworks, confetti and so on. The still is passed as both the first and the last frame, so every clip loops seamlessly.
 
-The Sun Stone is a flat disc, so it skips AI video. It spins locally with ffmpeg: two exact full turns with a little bounce, at no cost (`"animate": "spin"` in `scenes.json`).
+Three round subjects skip AI video: the Sun Stone, the ring of foods and the star piñata (`"animate": "spin"` in `scenes.json`). Each spins locally with ffmpeg, making two exact full turns with a bounce and a color pulse, at no cost. For the foods and the piñata, the AI clips morphed the subject (a chili split in two, the piñata's cones bent), so the local spin replaced them.
 
 Black pixels leave the fan's LEDs off, so the subject appears to float in the air.
 
@@ -29,8 +29,8 @@ Black pixels leave the fan's LEDs off, so the subject appears to float in the ai
 | 12 | `folklorico` | Ballet Folklórico skirt twirl |
 | 13 | `alebrije` | Alebrije |
 | 14 | `mascara-lucha` | Lucha libre mask |
-| 15 | `sabores` | Corn, cacao, chile, avocado, tomato and vanilla orbiting |
-| 16 | `pinata` | Star piñata |
+| 15 | `sabores` | Corn, cacao, chile, avocado, tomato and vanilla spinning like a carousel |
+| 16 | `pinata` | Star piñata spinning like a pinwheel |
 | 17 | `catrina` | La Catrina dancing among marigold petals |
 
 The prompts are in `scenes.json`. The shared style rules (`image_style`, `video_style`) enforce the pure-black, centered look. You can also paste a scene's prompts into the Higgsfield web app by hand: use `subject` + `image_style` for the image, then `motion` + `video_style` for the video.
@@ -75,7 +75,7 @@ python3 generate.py status
 - Masks everything outside the fan's circle.
 - Adds short fades so the clips chain smoothly in a playlist.
 
-If your fan's app expects a specific resolution (for example 720 or 1024), use `--size`.
+If your fan's app expects a specific resolution (for example 720 or 1024), use `--size`. A scene can set its own `fan_fit` in `scenes.json`. The eagle uses 1.0 so its wing tips leave at the rim of the circle instead of being cut flat.
 
 ## At the fair
 
