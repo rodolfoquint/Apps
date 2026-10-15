@@ -639,9 +639,19 @@ def build_sections(p: Params, skin, verbose: bool = False) -> Sections:
         # extend the field outward (legs under the lobes) at the same pitch
         while bradii[-1] < 32.0:
             bradii.append(bradii[-1] + (b_last - r_first) / kb)
+        # plus radial spokes about P: with arcs alone the slicer can lay the roof's first-layer strands almost
+        # tangent to the arcs, running ~28 mm between two of them unsupported (SLICER check, layer 8.6).  Spokes
+        # every rib_band_spoke_deg turn the field into a web, so a strand in any direction meets a rib within
+        # ~r * spoke pitch (<= 5.6 mm at r 32 for 10 deg).
+        spokes = []
+        for a in np.arange(0.0, 360.0, p.rib_band_spoke_deg):
+            t = math.radians(a)
+            d = np.array([math.cos(t), math.sin(t)])
+            spokes.append(g2.stadium(tuple(P + d * r_first), tuple(P + d * bradii[-1]), p.rib_w))
         S["ribs_band2d"] = g2.drop_small(g2.opening(
             g2.intersect(g2.union([g2.difference(g2.circle(P, r + p.rib_w / 2, g2.TOL_DECO),
-                                                 g2.circle(P, r - p.rib_w / 2, g2.TOL_DECO)) for r in bradii]),
+                                                 g2.circle(P, r - p.rib_w / 2, g2.TOL_DECO)) for r in bradii]
+                                  + spokes),
                          bclip), 0.5, 0.01), 0.3)
         S["crown"]["band_rib_radii"] = [round(float(r), 3) for r in bradii]
         S["ribs_back2d"] = g2.union([S["ribs_back2d"], S["crown_sill2d"]])

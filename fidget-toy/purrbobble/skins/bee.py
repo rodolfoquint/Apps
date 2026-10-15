@@ -87,6 +87,10 @@ class BeeSkin(Skin):
     ant_r1, ant_a1 = 23.1, 31.5      # ball centre (68.5 deg about P: >= 12 mm from the exposed crown wall, V12)
     ant_ball_d = 8.0                 # (SPEC)
     root_fillet = 2.0                # concave antenna root (makes the root > 8 wide)
+    ant_base_r = 14.72               # tapered base on the head circle = the kitty ear base (r 14.72, 14..54 deg)
+    ant_base_angles = (14.0, 54.0)
+    ant_taper_r, ant_taper_a = 22.0, 32.0    # base tapers up into the stalk just below the ball (cap at the crown
+    #                                          notch >= facemid_open + 0.3, so no collar is needed, like the kitty)
     neck_fillet = 1.0                # stalk / ball junction
 
     # ---- face features (relative to C_h)
@@ -131,7 +135,19 @@ class BeeSkin(Skin):
         return _pol(C_h, self.ant_r1, s * self.ant_a1)
 
     def stalk2d(self, C_h, s):
-        return g2.stadium(_pol(C_h, self.ant_r0, s * self.ant_a0), self.ball_centre(C_h, s), self.ant_w, TOL)
+        stalk = g2.stadium(_pol(C_h, self.ant_r0, s * self.ant_a0), self.ball_centre(C_h, s), self.ant_w, TOL)
+        # Tapered antenna base (fix round 2, V12 / sharp points): like the kitty's ear it sits on the head circle
+        # from ant_base_angles[0] out to ant_base_angles[1], so beyond the crown edge the head is one cap + antenna
+        # blob that meets the crown edge only where the head circle crosses it.  (A bare stalk left a notch
+        # between its outer side and the head circle right at the crown edge: a 2-4 mm squeeze and a knife edge.)
+        a0, a1 = (s * a for a in self.ant_base_angles)
+        tri = g2.poly([tuple(_pol(C_h, self.ant_base_r, a0)), tuple(_pol(C_h, self.ant_base_r, a1)),
+                       tuple(_pol(C_h, self.ant_taper_r, s * self.ant_taper_a))])
+        if s < 0:
+            tri = g2.poly([tuple(_pol(C_h, self.ant_base_r, a1)), tuple(_pol(C_h, self.ant_base_r, a0)),
+                           tuple(_pol(C_h, self.ant_taper_r, s * self.ant_taper_a))])
+        base = g2.grow(g2.grow(tri, 2.6, TOL), -0.6, TOL)          # = the kitty ear's rounding
+        return g2.union([stalk, base])
 
     def face2d(self, C_h, p) -> CrossSection:
         head = g2.circle(C_h, self.face_r, 0.005)

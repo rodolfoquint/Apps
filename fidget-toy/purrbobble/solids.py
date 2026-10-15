@@ -13,6 +13,7 @@ Fillets are approximated by stepped insets (SPEC 2.7 allows this): ``stepped_top
 from __future__ import annotations
 
 import math
+import sys
 from typing import Iterable
 
 import numpy as np
@@ -42,9 +43,14 @@ def finish(m: Manifold, p: Params, name: str) -> Manifold:
         m = m.simplify(p.mesh_simplify)
     parts = m.decompose()
     if len(parts) > 1:
-        # boolean round-off can leave zero-volume sliver shells (< 1e-3 mm^3): drop them
-        keep = [q for q in parts if abs(q.volume()) > 1e-3]
-        if len(keep) < len(parts):
+        # Boolean round-off leaves zero-volume sliver shells, and overlapping cuts can isolate tiny crumbs
+        # (e.g. ~1 mm^3 between the crown recess steps and the tongue cut in the deep variant).  A detached
+        # crumb would print as loose debris inside the mechanism, so drop anything under min_crumb_mm3.
+        keep = [q for q in parts if abs(q.volume()) > p.min_crumb_mm3]
+        dropped = [round(abs(q.volume()), 3) for q in parts if abs(q.volume()) <= p.min_crumb_mm3]
+        if dropped and any(v > 1e-3 for v in dropped):
+            print(f"[{name}] dropped detached crumbs (mm^3): {dropped}", file=sys.stderr)
+        if keep and len(keep) < len(parts):
             m = keep[0] if len(keep) == 1 else Manifold.compose(keep)
     return check_solid(m, name)
 

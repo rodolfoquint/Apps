@@ -4,7 +4,8 @@ A friendly little robot peeking out of a round porthole, hugging a big orange ge
 
 Face2D (head frame, relative to C_h = P + (0, 11)):
 
-* Head: a rounded "gumdrop" square 28.4 wide, top at C_h + 15 with r 7 corners (as the SPEC), and a U-shaped
+* Head: a dome-topped "tin robot" head 28.4 wide (fix round 2: the dome replaced the SPEC's r 7 square top, whose
+  straight sides squeezed against the crown edge, V12), top at C_h + 15, and a U-shaped
   jaw (bottom corners r 11).  The chin is placed from the ball, 1.95 above the rim (y = R_u + 1.95), so the
   face <-> ball rim gap is 1.45-1.95 over the swing in every variant (V6 1.4-2.0, V12 < 2 mm).
 * Antenna: stadium 6 wide from C_h + (0, 14) to C_h + (0, 19) with a D8 ball at C_h + (0, 20.5) (SPEC).
@@ -91,8 +92,8 @@ class RobotSkin(Skin):
     bolt_xy, bolt_r = (15.2, 1.0), 3.6   # inside the crown edge (r_P <= 22.97 < 23.05): no island beyond it (V12)
     face_close = 1.5
 
-    visor_wh = (22.0, 10.0)    # SPEC 24 x 9 (r 4.5); stadium sized for the narrower head and the D7 eyes
-    visor_y = 3.5
+    visor_wh = (21.0, 9.0)     # SPEC 24 x 9 (r 4.5); sized for the dome-topped head (>= 3 mm inside it) and D7 eyes
+    visor_y = 2.5
     visor_depth = 0.5
     eye_d, eye_x, eye_bezel = 7.0, 5.6, 0.4
     hl_d, hl_dxy, hl_depth = 2.0, (1.2, 1.2), 0.4
@@ -109,7 +110,16 @@ class RobotSkin(Skin):
         # the chin is placed from the ball (O), not from C_h, so the face <-> ball rim gap is the same in every
         # variant (deep / shallow move P and C_h by -+0.24)
         y0 = p.O[1] + p.R_u + self.chin_gap
-        return _gumdrop(cx, self.head_half_w, y0, cy + self.head_top, self.head_r_top, self.head_r_bot)
+        # Dome top (fix round 2, V12): a half-disc of the head's own half width, tangent to the straight sides and
+        # topping out at C_h + head_top.  Like the kitty's head circle it crosses the crown edge at a shallow angle
+        # and stays nearly concentric with it beyond, so the swing never opens and closes a gap there.  (The square
+        # top's straight sides left the crown edge at ~38 deg off radial: a 3.2-5.6 mm squeeze, V12.pinch_00.)
+        yc = cy + self.head_top - self.head_half_w
+        jaw = _gumdrop(cx, self.head_half_w, y0, yc + self.head_r_bot, self.head_r_bot, self.head_r_bot)
+        sides = g2.poly([(cx - self.head_half_w, y0 + self.head_r_bot), (cx + self.head_half_w, y0 + self.head_r_bot),
+                         (cx + self.head_half_w, yc), (cx - self.head_half_w, yc)])
+        dome = g2.circle((cx, yc), self.head_half_w, 0.005)
+        return g2.union([jaw, sides, dome])
 
     def face2d(self, C_h, p) -> CrossSection:
         cx, cy = C_h

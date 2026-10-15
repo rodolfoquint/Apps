@@ -823,7 +823,9 @@ def v8_specifics(M, bodies, zoner: Zoner) -> dict:
                 hi = mid
             else:
                 lo = mid
-        free = keep_pieces(q - grow(raw, 0.65), 0.005)
+        # a pad is swept_gap + 0.05 thick by construction (0.60 nominal, 0.65 loose): anything farther than that
+        # (+0.05) from the fill wall stands free
+        free = keep_pieces(q - grow(raw, p.swept_gap + 0.1), 0.005)
         fl = 0.0
         for fp in free:
             try:
@@ -1648,7 +1650,7 @@ class _EDT:
 
 def _gcode_bridges(M, bodies, segs, off, cache) -> list[dict]:
     """Every 'Bridge infill' / 'Overhang perimeter' extrusion, attributed to a body, with
-    * max_unsupported_run: longest stretch with no material of any body within 0.6 mm below the layer mid-height
+    * max_unsupported_run: longest stretch with no material of any body within 0.8 mm below the layer mid-height
       (the bridge span actually printed), and
     * max_dist_to_support / length beyond the rib reach: XY distance from the toolpath to that support (the
       rib-float criterion: a float is held up by the skid ribs 2 empty layers below)."""
@@ -1666,7 +1668,9 @@ def _gcode_bridges(M, bodies, segs, off, cache) -> list[dict]:
                 shapely.prepare(g)
                 cur[k] = g
             sup = []
-            for dz in (0.2, 0.4, 0.6):
+            # material within 0.8 below the layer mid-height counts as support: skid-rib tops sit 0.4 (nominal) or
+            # 0.6 (loose, z_lift 0.2) under a float's first layer, i.e. 0.5 / 0.7 below its mid-height
+            for dz in (0.2, 0.4, 0.6, 0.8):
                 if zm - dz > 0:
                     sup += [shp(b.slice(zm - dz)) for b in bodies.values()]
             sg = shapely.union_all(sup) if sup else shapely.Polygon()

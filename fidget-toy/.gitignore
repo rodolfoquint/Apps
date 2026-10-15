@@ -1,3 +1,7 @@
 __pycache__/
 *.pyc
 renders/**/_tmp/
+# Raw meshes are rebuilt in seconds with `python3 -m purrbobble.build --all`; the 3MF per skin is committed.
+stl/**/*.stl
+# Per-job logs of verification/run_all.py
+verification/reports/run_all/

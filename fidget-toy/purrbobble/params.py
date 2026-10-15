@@ -90,6 +90,7 @@ class Params:
     z_groove: float = 5.3           # band groove rib top under the skirt (0.40 below the skirt: the skirt bridges
                                     # the leg channels and floats on this rib); groove floor rib_h lower (4.7)
     rib_band_pitch: float = 4.2     # band-top ribs (head) under the crown roof
+    rib_band_spoke_deg: float = 10.0    # radial spokes about P joining the band-top arcs into a web
     face_jowls: bool = False        # front-layer cheeks down to the ball rim (core2d.face_jowls); not needed
                                     # once the front layer clears the ball top
     face_ball_gap: float = 1.45     # jowl edge >= 1.45 from the ball rim at every pose (V6 1.4-2.0)
@@ -106,6 +107,7 @@ class Params:
     eps_stack: float = 0.002        # stacked slabs: the covered section is shrunk by this much so walls of
                                     # different slabs never coincide (avoids T-junction pinches); 2 um
     mesh_simplify: float = 1e-5     # final Manifold.simplify tolerance (merges sub-micron slivers)
+    min_crumb_mm3: float = 5.0      # detached pieces smaller than this are dropped from a body (finish())
     stop_pad_r: float = 3.0         # pad = ... intersected with disc(Rot(M_i), 3.0)
     stop_pad_min_contact: float = 4.0   # each pad must meet the leg flank over >= 4 mm at the banking pose
 

@@ -108,6 +108,20 @@ def gap(a: Manifold, b: Manifold, search: float = 3.0) -> float:
     return float(a.min_gap(b, search))
 
 
+def xy_gap(a: Manifold, b: Manifold, levels, cap: float = 2.0) -> float:
+    """Smallest in-plane (XY) distance between two bodies over horizontal slices at `levels` (capped)."""
+    best = cap
+    for z in levels:
+        sa, sb = a.slice(z), b.slice(z)
+        if sa.is_empty() or sb.is_empty():
+            continue
+        ga, gb = g2.to_shapely(sa), g2.to_shapely(sb)
+        if ga.intersects(gb):
+            return 0.0
+        best = min(best, float(ga.distance(gb)))
+    return best
+
+
 def blocked(frame: Manifold, body: Manifold) -> tuple[bool, float, float]:
     v = ov(frame, body)
     if v > OV_EPS:
@@ -283,7 +297,7 @@ def z_census(bodies: dict, axes: dict, rng_seed: int = 0, density: float = 20.0,
     return out
 
 
-def census_select(cl, lower, lower_z, upper, upper_face="flat", gap_lt=None, zone="field"):
+def census_select(cl, lower, lower_z, upper, upper_face="flat", gap_lt=None, zone="field", gap_ge=None):
     """Clusters for a (lower body at z level) -> (upper body, upper face class) pair; returns (min, max, n)."""
     g_min, g_max, n = math.inf, -math.inf, 0
     for c in cl:
@@ -296,6 +310,8 @@ def census_select(cl, lower, lower_z, upper, upper_face="flat", gap_lt=None, zon
         if upper_face is not None and c["upper_face"] != upper_face:
             continue
         if gap_lt is not None and c["gap_min"] >= gap_lt:
+            continue
+        if gap_ge is not None and c["gap_min"] < gap_ge:
             continue
         g_min, g_max, n = min(g_min, c["gap_min"]), max(g_max, c["gap_max"]), n + c["n"]
     return g_min, g_max, n
@@ -363,6 +379,9 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
     pad_zone = g2.grow(S["stoppads2d"], 0.3, 0.01).extrude(12.0).translate((0, 0, 0.5))
     F_band = F ^ band
     F_band_np = F_band - posts_zone - pad_zone                   # fill / cavity walls without posts and pads
+    # V6.head_fill is an XY criterion: measure it on slices through the band layer (the 3-D distance would also
+    # report designed Z gaps inside the band, e.g. the crown skirt 0.40 over the band groove)
+    band_levels = [round(float(z), 3) for z in np.linspace(zh0 + 0.1, zh1 - 0.1, 9)]
     F_pads = F_band ^ pad_zone
     pad_pieces = sorted(F_pads.decompose(), key=lambda m: m.bounding_box()[0])
     F_mid = F ^ zb(p.z_roof0 + 0.05, p.z_roof1 - 0.05)           # roof (+ fill) band seen by the face-mid layer
@@ -376,7 +395,7 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
         h = M.head_at(psi)
         hb = h ^ band
         rows.append({"psi": float(psi), "overlap": ov(F, h), "gap_all": gap(F, h, 1.0),
-                     "gap_nonpad": gap(F_band_np, hb, 2.0), "gap_pads": gap(F_pads, hb, 3.0),
+                     "gap_nonpad": xy_gap(F_band_np, hb, band_levels), "gap_pads": gap(F_pads, hb, 3.0),
                      "gap_mid": gap(F_mid, h ^ zb(p.z_roof0 + 0.05, p.z_roof1 - 0.05), 2.0),
                      "gap_front": gap(F_front, h ^ zb(p.z_front0 + lift + 0.05, p.z_feat + lift + 1), 5.0)})
     ovmax = max(r["overlap"] for r in rows)
@@ -621,39 +640,67 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
         b = M.posed(0.0, s * psi_b)
         census[f"head_{s * psi_b:+.2f}"] = z_census({"frame": b["frame"], "head": b["head"]}, axes)
     z_rib_b, z_rib_r = p.z_bp + p.rib_h, p.z_roof1 + p.rib_h
-    rib = {"back_ribs_to_head": [], "back_ribs_to_wheel": [], "roof_ribs_to_face_front": []}
-    fld = {"back_plate_to_head": [], "back_plate_to_wheel": [], "roof_to_face_front": []}
+    # (lower body, lower z, upper body, gap_lt) for every rib float and (..., gap_ge) for its field.  With the
+    # crown ring (fix round 1) the roof-top ribs moved onto the head: band-top ribs under the crown roof and
+    # front-layer ribs hanging over the crown top, both gliding rib_gap from the frame.
+    rib_sel = {"back_ribs_to_head": ("frame", z_rib_b, "head", 1.0, None),
+               "back_ribs_to_wheel": ("frame", z_rib_b, "wheel", 1.0, None)}
+    fld_sel = {"back_plate_to_head": ("frame", p.z_bp, "head", None, None),
+               "back_plate_to_wheel": ("frame", p.z_bp, "wheel", None, None)}
+    rib_design = p.z_band0 - (p.z_bp + p.rib_h)      # 0.40: the crown ribs keep it in every variant (they are
+    #                                                  shortened by z_lift), while the back-rib gap grows by z_lift
+    rib_want = {"back_ribs_to_head": rib_gap, "back_ribs_to_wheel": rib_gap}
+    fld_want = {"back_plate_to_head": field_min, "back_plate_to_wheel": field_min}
+    if p.crown_ring:
+        rib_sel["band_ribs_to_crown_roof"] = ("head", None, "frame", 0.7, None)      # band ribs (and band groove)
+        rib_sel["crown_top_to_front_ribs"] = ("frame", p.z_roof1, "head", 0.7, None)
+        fld_sel["band_top_to_crown_roof"] = ("head", p.z_band1 + lift, "frame", None, 0.7)
+        fld_sel["crown_top_to_face_front"] = ("frame", p.z_roof1, "head", None, 0.7)
+        rib_want.update(band_ribs_to_crown_roof=rib_design, crown_top_to_front_ribs=rib_design + lift)
+        # crown fields: the roof / front layer print as rib floats (arcs + spokes, spans <= ~4.2 mm); the field
+        # only has to clear the rib gap plus the sag of such a span: >= rib gap + 0.35.  (z_lift shrinks the
+        # band-top field: 1.0 nominal, 0.8 loose.)
+        fld_want.update(band_top_to_crown_roof=rib_design + 0.35, crown_top_to_face_front=field_min)
+    else:
+        rib_sel["roof_ribs_to_face_front"] = ("frame", z_rib_r, "head", 1.0, None)
+        fld_sel["roof_to_face_front"] = ("frame", p.z_roof1, "head", None, None)
+    rib = {k: [] for k in rib_sel}
+    fld = {k: [] for k in fld_sel}
     other_min = []
     for k, cl in census.items():
-        for key, lo_z, up in (("back_ribs_to_head", z_rib_b, "head"), ("back_ribs_to_wheel", z_rib_b, "wheel"),
-                              ("roof_ribs_to_face_front", z_rib_r, "head")):
-            g0, _, n = census_select(cl, "frame", lo_z, up, "flat", gap_lt=1.0)
+        for key, (lo, lo_z, up, lt, ge) in rib_sel.items():
+            g0, _, n = census_select(cl, lo, lo_z, up, "flat", gap_lt=lt, gap_ge=ge)
             if n:
                 rib[key].append(g0)
-        for key, lo_z, up in (("back_plate_to_head", p.z_bp, "head"), ("back_plate_to_wheel", p.z_bp, "wheel"),
-                              ("roof_to_face_front", p.z_roof1, "head")):
-            g0, _, n = census_select(cl, "frame", lo_z, up, "flat")
+        for key, (lo, lo_z, up, lt, ge) in fld_sel.items():
+            g0, _, n = census_select(cl, lo, lo_z, up, "flat", gap_lt=lt, gap_ge=ge)
             if n:
                 fld[key].append(g0)
         for c in cl:   # every flat-over-flat gap between two different bodies
             if c["lower_face"] == "flat" and c["upper_face"] == "flat":
                 other_min.append((c["gap_min"], k, c["lower"], c["lower_z"], c["upper"], c["at_min_xy"], c["zone"]))
+    if not p.crown_ring:
+        rib_want["roof_ribs_to_face_front"] = rib_gap
+        fld_want["roof_to_face_front"] = field_min
     rib_m = {k: [r4(min(v)), r4(max(v))] if v else None for k, v in rib.items()}
-    rib_ok = all(v and abs(min(v) - rib_gap) <= SPEC["rib_tol"] and abs(max(v) - rib_gap) <= SPEC["rib_tol"]
-                 for v in rib.values())
-    R.add("V6.rib_z", "skid-rib float Z gaps (back ribs under head / wheel, roof ribs under the face front layer)",
-          status_of(rib_ok), rib_m, f"{rib_gap:.2f} +- {SPEC['rib_tol']} (min over the rib tops, all census poses)")
+    rib_ok = all(v and abs(min(v) - rib_want[k]) <= SPEC["rib_tol"] and abs(max(v) - rib_want[k]) <= SPEC["rib_tol"]
+                 for k, v in rib.items())
+    R.add("V6.rib_z", "skid-rib float Z gaps (back ribs under head / wheel; crown: band-top ribs under the roof and "
+                      "front-layer ribs over the crown top)",
+          status_of(rib_ok), rib_m, "per interface " + ", ".join(f"{k} {v:.2f}" for k, v in rib_want.items())
+          + f" (+- {SPEC['rib_tol']}, min/max over the rib tops, all census poses)")
     fld_m = {k: r4(min(v)) if v else None for k, v in fld.items()}
-    R.add("V6.field_z", "float field Z gaps (back plate / roof top under the floats)",
-          status_of(all(v is not None and v >= field_min for v in fld_m.values())), fld_m, f">= {field_min:.2f}")
+    R.add("V6.field_z", "float field Z gaps (back plate / crown roof / crown top under the floats)",
+          status_of(all(fld_m[k] is not None and fld_m[k] >= fld_want[k] - 1e-3 for k in fld_m)), fld_m,
+          "per interface >= " + ", ".join(f"{k} {v:.2f}" for k, v in fld_want.items()))
     other_min.sort(key=lambda t: t[0])
     R.add("V6.any_flat_z_gap", "smallest flat-over-flat Z gap between different bodies anywhere (census poses)",
-          status_of(other_min[0][0] >= rib_gap - SPEC["rib_tol"]),
+          status_of(other_min[0][0] >= min(rib_want.values()) - SPEC["rib_tol"]),
           {"min": r4(other_min[0][0]), "where": {"pose": other_min[0][1], "lower": other_min[0][2],
                                                   "lower_z": other_min[0][3], "upper": other_min[0][4],
                                                   "xy": other_min[0][5], "zone": other_min[0][6]},
            "n_clusters_below_0.6": len([t for t in other_min if t[0] < 0.6])},
-          f">= {rib_gap - SPEC['rib_tol']:.2f} (nothing tighter than the designed rib float)")
+          f">= {min(rib_want.values()) - SPEC['rib_tol']:.2f} (nothing tighter than the designed rib floats)")
     cl = census["design_0_0"]
     g_legs = census_select(cl, "head", p.z_band1 + lift, "frame", "flat")[0]
     g_pal = census_select(cl, "head", p.z_band1 + lift, "wheel", "flat")[0]

@@ -66,6 +66,8 @@ PA_HARD = 90.0 - math.degrees(math.atan(0.35)) - 8.0   # 62.7
 V3_CAP, V3_TOL = 0.6, 0.02
 V4_MIN_RPS, V4_MAX_RATIO, V4_MIN_SWING, V4_F_TOL = 0.15, 2.2, 8.0, 0.25
 J_FINGER = 3.0e-6            # SPEC 2.4(b): J_w = 4e-6 "finger included"; bare wheel ~1e-6 -> finger ~3e-6
+FRAME_SHELL_MM = 1.2           # as-printed frame: 3 perimeters (~1.2 mm) and 5 x 0.2 top/bottom layers
+FRAME_INFILL = 0.20            # SPEC 6: frame 20% gyroid
 TOL_CORNERS = [(-0.4, 0.2), (-0.4, -0.2), (0.4, 0.2), (0.4, -0.2)]
 # SPEC 2.4 verified performance table: T -> (rev/s lo, hi), (f_head lo, hi), (swing lo, hi)
 SPEC_TABLE = {1: ((0.61, 0.74), (5.1, 5.1), (16, 17)), 2: ((1.05, 1.14), (7.7, 9.0), (18, 20)),
@@ -269,12 +271,21 @@ def mass_properties(M) -> dict:
     w["J_O_kgm2"] = w["I_com_zz_kgm2"] + w["mass_g"] * 1e-3 * (wc[0] ** 2 + wc[1] ** 2) * 1e-6
     w["com_offset_mm"] = float(math.hypot(wc[0], wc[1]))
     total = sum(res[k]["mass_g"] for k in res)
+    # SPEC 2.6 / 6 budget the toy as printed: head and wheel 100% infill, frame 3 perimeters + 5 top/bottom
+    # layers + 20% gyroid.  Estimate the frame as a ~1.2 mm shell over its surface plus 20% of the core.
+    fr = manifold_to_trimesh(M.frame)
+    shell = min(float(fr.volume), float(fr.area) * FRAME_SHELL_MM)
+    frame_printed_g = (shell + FRAME_INFILL * (float(fr.volume) - shell)) * RHO_PLA * 1e-3 * 1e3
+    printed = h["mass_g"] + w["mass_g"] + frame_printed_g
+    res["frame"]["printed_mass_g_est"] = float(frame_printed_g)
     checks = {
         "I_h": {"measured": h["I_P_kgm2"], "criterion": "4.0e-6 <= I_h <= 8.0e-6 kg m^2",
                 "pass": bool(4.0e-6 <= h["I_P_kgm2"] <= 8.0e-6)},
         "com_above_P": {"measured": float(dy), "criterion": "8 <= COM_y - P_y <= 14 mm", "pass": bool(8.0 <= dy <= 14.0)},
-        "total_mass": {"measured": float(total), "criterion": "total <= 45 g (all three bodies SOLID PLA: upper bound)",
-                       "pass": bool(total <= 45.0)},
+        "total_mass": {"measured": float(printed),
+                       "criterion": f"as printed <= 45 g (head + wheel solid, frame {FRAME_SHELL_MM} mm shell + "
+                                    f"{FRAME_INFILL:.0%} infill; all-solid upper bound {total:.1f} g for reference)",
+                       "pass": bool(printed <= 45.0)},
         "bodies_watertight": {"measured": {k: res[k]["watertight"] for k in res}, "criterion": "all watertight",
                               "pass": all(res[k]["watertight"] for k in res)},
     }
