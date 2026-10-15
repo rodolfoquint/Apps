@@ -1,0 +1,6 @@
+I 2e-06 {'T': 3, 'dir': 1, 'freq_Hz': np.float64(14.1), 'swing_pp': 21.5, 'wheel_rps': 1.85, 'impacts_s': 67, 'bank_hits_s': 0, 'Fmax': 9.4}
+I 2e-06 {'T': 20, 'dir': 1, 'freq_Hz': np.float64(65.4), 'swing_pp': 23.6, 'wheel_rps': 5.29, 'impacts_s': 177, 'bank_hits_s': 0, 'Fmax': 25.2}
+I 8e-06 {'T': 3, 'dir': 1, 'freq_Hz': np.float64(7.7), 'swing_pp': 16.7, 'wheel_rps': 1.01, 'impacts_s': 37, 'bank_hits_s': 0, 'Fmax': 10.0}
+I 8e-06 {'T': 20, 'dir': 1, 'freq_Hz': np.float64(21.8), 'swing_pp': 15.0, 'wheel_rps': 2.8, 'impacts_s': 88, 'bank_hits_s': 0, 'Fmax': 26.3}
+I 1.6e-05 {'T': 3, 'dir': 1, 'freq_Hz': np.float64(9.0), 'swing_pp': 12.8, 'wheel_rps': 1.01, 'impacts_s': 35, 'bank_hits_s': 0, 'Fmax': 8.5}
+I 1.6e-05 {'T': 20, 'dir': 1, 'freq_Hz': np.float64(20.5), 'swing_pp': 13.0, 'wheel_rps': 2.62, 'impacts_s': 85, 'bank_hits_s': 0, 'Fmax': 22.4}

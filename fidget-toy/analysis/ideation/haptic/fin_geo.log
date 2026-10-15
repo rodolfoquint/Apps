@@ -1,0 +1,3 @@
+A [ 0.         30.61017461] pins(world) [[np.float64(-16.08), np.float64(10.75)], [np.float64(16.08), np.float64(10.75)]] ra 25.558462018088306
+static {'D': np.float64(30.61), 'ra': 25.56, 'hub_gap': np.float64(12.74), 'print_clear': 1.58, 'jams': 0, 'swing_pp': 5.6, 'worst_pressure_angle': np.float64(57.7), 'ok': True}
+wheel area mm2 613.9412931301518 root radius 11.127999999999998

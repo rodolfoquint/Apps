@@ -1,0 +1,5 @@
+{'T': 1, 'dir': 1, 'freq_Hz': np.float64(6.4), 'swing_pp': 19.7, 'wheel_rps': 0.77, 'impacts_s': 30, 'bank_hits_s': 0, 'Fmax': 4.9}
+{'T': 2, 'dir': 1, 'freq_Hz': np.float64(12.8), 'swing_pp': 19.1, 'wheel_rps': 1.0, 'impacts_s': 38, 'bank_hits_s': 0, 'Fmax': 7.0}
+{'T': 5, 'dir': 1, 'freq_Hz': np.float64(18.0), 'swing_pp': 20.2, 'wheel_rps': 1.61, 'impacts_s': 60, 'bank_hits_s': 0, 'Fmax': 11.5}
+{'T': 10, 'dir': 1, 'freq_Hz': np.float64(25.6), 'swing_pp': 20.3, 'wheel_rps': 2.28, 'impacts_s': 88, 'bank_hits_s': 0, 'Fmax': 17.6}
+{'T': 40, 'dir': 1, 'freq_Hz': np.float64(51.3), 'swing_pp': 22.5, 'wheel_rps': 4.98, 'impacts_s': 175, 'bank_hits_s': 2, 'Fmax': 36.2}
