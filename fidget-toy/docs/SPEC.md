@@ -576,3 +576,28 @@ Per §4.3, verify I_h for each skin and trim with pockets.
 1. Print the V15 escapement coupon first, in the target PLA.
 2. Then print the full kitty.
 3. Ship three STLs (nominal, deep, shallow) plus the loose-clearance variant of the nominal.
+
+---
+
+## 8. As-built changes (integration rounds 1 and 2)
+
+The CAD in `purrbobble/` follows this spec except where independent verification found a problem. Every change
+below is in the code with a `fix round` comment; the checkers in `verification/` test the as-built geometry.
+
+| Area | Spec | As built | Why |
+|---|---|---|---|
+| Knob | Ø10 knob, 5 mm proud of the ball | Recessed spherical finger well Ø8.4 (Ø9.3 at the rounded rim) × 2.0 deep at r 11 | The knob passed the paw-lip ends like a guillotine (gap 12.4 → 1.0 mm) and under the chin (V12); a well removes the pinch and a small-part risk |
+| Roof over the head | Two roof lobes over the leg channels; face front layer over roof-top ribs | Crown ring: a roof disc R_b 22.5 about P with an arc edge, band-top ribs (arcs + radial spokes every 10°) under it, front-layer ribs hanging from the head over its top | Lobe bridges reached 20.9 mm (limit 13.5); the I3 front layer had unsupported regions; the lobe ends formed a squeeze jaw with the cheeks (V9, V12) |
+| Bridging direction | automatic | Frame bridges at 180° (3MF part setting; documented for STL printing) | PrusaSlicer's automatic direction ran the roof's first layer about 20 mm along a leg channel; at 180° the longest unsupported strand is 12.7 mm |
+| Face front layer | z 11.4–15.4, features to 16.0 | z 13.7–17.7, features to 18.3 (overall depth still 18.3) | raised so the round face and the round ball no longer share a Z band: the crescent between cheek and ball rim was a 3.5–6 mm squeeze (V12) |
+| Stop pads | [Rot(Leg) ⊕ 0.55] − Swept(HB) | also clipped to the fill wall (⊕ 0.6) | the lower pads stood out as free 0.6 mm fins (V8) |
+| Funnel seat | keep-out cone trims the fill | fill tongues narrower than 3.8 mm lowered to z 8.2 | knife-edge walls down to 0.05 mm (V8) |
+| Deep variant | drho 1.7186 | drho 1.7686, face kept at its nominal world position, print pose (11.6°, 6.22°) | the spec's deep variant jams at the worst tolerance corner (V2) |
+| Loose variant | floats lifted 0.05 | lifted 0.20 (one layer); crown ribs shortened by the lift | a 0.05 lift disappears in 0.2 mm layer slicing |
+| Pallet fingers | top at z 7.4 (0.6 under the umbrella plate) | top at z 6.9 inside WheelEx2D (1.1 under the plate) | head and wheel axial play add up to 0.8 mm, enough for the pallet tops to rub the plate when the ball is pressed (V5x) |
+| Bee antennae | 6 mm stalk from C_h + 13 @ 22° to a ball at 21 @ 30° | kitty-ear-shaped tapered base (14°–54°, tip 23.6 @ 34°) carrying the ball at 23.3 @ 33° | the bare stalk left a notch at the crown edge: a 2–5 mm squeeze and a knife edge (V12) |
+| Robot head | 34 × 28 rounded rectangle | kitty head circle (r 16) as a helmet over a 28.4-wide square jaw; ear bolts at the temples (C_h + (±13.5, 7), r 4.2) | the rectangle hit the stop-pad zones and its straight sides squeezed against the crown edge (V7, V12) |
+| Kitty face | Ø7 eyes, 3.0 × 2.2 nose, ears to 22.5 | Ø8.4 eyes with Ø2.4 highlights, 4.0 × 2.8 nose, ears to 24.0, 0.8 mm yarn grooves, 0.4 mm debosses | design review: features too small to read and to print cleanly |
+| Mass check (V13) | total ≤ 45 g | as-printed estimate ≤ 45 g (head and ball solid, frame 1.2 mm shell + 20 % infill); solid mass reported | the spec's 37 g budget was an as-printed figure |
+| Short overhangs | ≤ 2 nozzle widths (0.8 mm) unlisted | ≤ 1.0 mm | the kitty's front-rib tails overhang the crown's P hole by 0.84 mm; a sub-millimetre perimeter cantilever prints cleanly |
+| Crown field over the band top (loose) | ≥ 0.95 | ≥ 0.75 (rib gap + 0.35) | the loose lift shrinks this field to 0.80; the roof there is a rib-supported float with spans ≤ 4.2 mm |

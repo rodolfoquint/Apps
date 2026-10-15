@@ -5,3 +5,5 @@ renders/**/_tmp/
 stl/**/*.stl
 # Per-job logs of verification/run_all.py
 verification/reports/run_all/
+# Viewer meshes are regenerated with `python3 tools/export_web.py`
+web/models/*.glb

@@ -1,0 +1,212 @@
+{
+ "skin": "kitty",
+ "variant": "nominal",
+ "pose": {
+  "phi": 12.0,
+  "psi": 5.96
+ },
+ "D": 24.70975553421278,
+ "P": [
+  0.0,
+  24.70975553421278
+ ],
+ "pallets": [
+  [
+   -12.982732820414402,
+   8.674784732414674
+  ],
+  [
+   12.982732820414402,
+   8.674784732414674
+  ]
+ ],
+ "info": {
+  "t_sections_s": 3.85,
+  "t_solids_s": 8.2,
+  "skin_contract": {
+   "warnings": [
+    "B_i only 1.32 mm inside Face2D (contract 3.0)",
+    "disc(P, 7.5) not inside Face2D (24.1 mm^2 outside); hub collar z 7.4-8.4 added",
+    "Face2D has 9.1 mm^2 narrower than 6.0 mm"
+   ],
+   "leg_B_margin": [
+    1.324,
+    1.324
+   ],
+   "hub_disc_outside_area": 24.128,
+   "narrower_than_6mm_area": 9.137,
+   "crown_collar": {
+    "applied": false,
+    "pieces_beyond": 1,
+    "bad_rays": 0,
+    "thin_cap_at_notch_deg": [],
+    "range_deg": [
+     56.53,
+     123.47
+    ]
+   },
+   "stop_pad_area_ratio": 0.867,
+   "stop_pad_contact_mm": [
+    4.93,
+    5.97,
+    5.97,
+    4.93
+   ]
+  },
+  "face_features": [
+   "eye_L",
+   "eye_highlight_L",
+   "blush_L",
+   "inner_ear_L",
+   "eye_R",
+   "eye_highlight_R",
+   "blush_R",
+   "inner_ear_R",
+   "nose",
+   "mouth"
+  ]
+ },
+ "sections": {
+  "overall_W": 52.82,
+  "overall_H": 84.31,
+  "backdrop_bounds": [
+   -26.41,
+   -22.49,
+   26.41,
+   61.81
+  ],
+  "i3_area": 639.7,
+  "headband_area": 1249.1,
+  "faceup_area": 959.9,
+  "facemid_area": 320.2,
+  "fill_area": 944.8,
+  "roof_area": 1811.5,
+  "fill_slivers_removed_area": 8.72,
+  "stoppads_area": 13.68,
+  "max_bridge_width": 15.0,
+  "n_bridge_pieces": 1
+ },
+ "bodies": {
+  "frame": {
+   "volume_mm3": 19234.2,
+   "mass_solid_g": 23.85,
+   "triangles": 155064,
+   "bbox": [
+    -26.409,
+    -22.494,
+    0.0,
+    26.409,
+    61.812,
+    16.0
+   ],
+   "size": [
+    52.82,
+    84.31,
+    16.0
+   ]
+  },
+  "wheel": {
+   "volume_mm3": 6116.8,
+   "mass_solid_g": 7.58,
+   "triangles": 14336,
+   "bbox": [
+    -17.996,
+    -17.996,
+    3.0,
+    17.996,
+    17.996,
+    13.3
+   ],
+   "size": [
+    35.99,
+    35.99,
+    10.3
+   ]
+  },
+  "head": {
+   "volume_mm3": 11344.5,
+   "mass_solid_g": 14.07,
+   "triangles": 28416,
+   "bbox": [
+    -19.512,
+    5.269,
+    3.0,
+    22.221,
+    58.827,
+    18.3
+   ],
+   "size": [
+    41.73,
+    53.56,
+    15.3
+   ]
+  }
+ },
+ "overall_size": [
+  52.82,
+  84.31,
+  18.3
+ ],
+ "print_pose_check": {
+  "bodies": {
+   "frame": {
+    "components": 1,
+    "genus": 3,
+    "volume_mm3": 19234.19,
+    "status": "Error.NoError"
+   },
+   "wheel": {
+    "components": 1,
+    "genus": 0,
+    "volume_mm3": 6116.78,
+    "status": "Error.NoError"
+   },
+   "head": {
+    "components": 1,
+    "genus": 1,
+    "volume_mm3": 11344.47,
+    "status": "Error.NoError"
+   }
+  },
+  "pairs": [
+   {
+    "a": "frame",
+    "b": "wheel",
+    "overlap_mm3": 0.0,
+    "min_gap": 0.3500276189429935
+   },
+   {
+    "a": "frame",
+    "b": "head",
+    "overlap_mm3": 0.0,
+    "min_gap": 0.3500194891453687
+   },
+   {
+    "a": "wheel",
+    "b": "head",
+    "overlap_mm3": 0.0,
+    "min_gap": 1.0999999999999996
+   }
+  ],
+  "global_min_gap": 0.3500194891453687
+ },
+ "stl_triangles": 197816,
+ "files": [
+  "stl/kitty/purrbobble_kitty_nominal.stl",
+  "stl/kitty/purrbobble_kitty_nominal_frame.stl",
+  "stl/kitty/purrbobble_kitty_nominal_wheel.stl",
+  "stl/kitty/purrbobble_kitty_nominal_head.stl",
+  "stl/kitty/purrbobble_kitty_nominal.3mf"
+ ],
+ "renders": [
+  "renders/kitty/purrbobble_kitty_nominal_face.png",
+  "renders/kitty/purrbobble_kitty_nominal_three_quarter.png",
+  "renders/kitty/purrbobble_kitty_nominal_iso.png",
+  "renders/kitty/purrbobble_kitty_nominal_top_down.png",
+  "renders/kitty/purrbobble_kitty_nominal_back.png",
+  "renders/kitty/purrbobble_kitty_nominal_section_x0.png",
+  "renders/kitty/purrbobble_kitty_nominal_section_z5.png"
+ ],
+ "time_build_export_s": 17.31,
+ "time_total_s": 25.68
+}

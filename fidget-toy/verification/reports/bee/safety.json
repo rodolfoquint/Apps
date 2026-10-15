@@ -1,0 +1,4769 @@
+{
+ "skin": "bee",
+ "variant": "nominal",
+ "probe_radius_mm": 2.0,
+ "fast": false,
+ "criteria": {
+  "cyl_d": 31.7,
+  "cyl_depth_short": 25.4,
+  "cyl_depth_long": 57.1,
+  "wheel_min_width": 35.5,
+  "head_min_width": 38.0,
+  "root_long": 8.0,
+  "root_short": 5.0,
+  "load_N": 50.0,
+  "stress_max": 10.0,
+  "pinch_const": 0.1,
+  "pinch_lo": 2.0,
+  "pinch_hi": 12.0,
+  "edge_r_ext": 1.5,
+  "edge_r_min": 1.0,
+  "sharp_fail": 0.15,
+  "sharp_warn": 0.2,
+  "feat_raise_min": 0.6,
+  "feat_line_min": 0.8,
+  "feat_deboss_min": 0.4
+ },
+ "P": [
+  0.0,
+  24.70975553421278
+ ],
+ "V10": {
+  "bodies": {
+   "frame": {
+    "min_enclosing_d": 62.02,
+    "axis": [
+     -0.1434,
+     -0.9897,
+     0.0005
+    ],
+    "length_along_axis": 86.225,
+    "fits_short_cylinder": false,
+    "fits_long_cylinder": false,
+    "plan_min_caliper_width": 61.11,
+    "plan_perp_width": 86.222
+   },
+   "wheel": {
+    "min_enclosing_d": 35.995,
+    "axis": [
+     -0.8621,
+     0.5067,
+     0.0
+    ],
+    "length_along_axis": 35.99,
+    "fits_short_cylinder": false,
+    "fits_long_cylinder": false,
+    "plan_min_caliper_width": 35.99,
+    "plan_perp_width": 35.99
+   },
+   "head": {
+    "min_enclosing_d": 42.074,
+    "axis": [
+     -0.0747,
+     0.9915,
+     0.107
+    ],
+    "length_along_axis": 55.628,
+    "fits_short_cylinder": false,
+    "fits_long_cylinder": false,
+    "plan_min_caliper_width": 41.755,
+    "plan_perp_width": 54.999
+   }
+  },
+  "protrusions": [
+   {
+    "name": "frame tower@(-23.2,7.7)",
+    "kind": "vertical",
+    "body": "frame",
+    "root_dims_mm": [
+     23.41,
+     11.8
+    ],
+    "root_ok": true,
+    "length_mm": 5.55,
+    "load_N": 50.0,
+    "sigma_max_MPa": 3.4,
+    "stress_ok": true,
+    "worst_station": {
+     "z": 12.2,
+     "area_mm2": 65.08,
+     "dims_mm": [
+      7.7,
+      12.12
+     ],
+     "moment_Nmm": 190.0,
+     "sigma_MPa": 3.398
+    },
+    "fragment_if_snapped": {
+     "volume_mm3": 535.8,
+     "min_enclosing_d": 12.117,
+     "length_along_axis": 24.19,
+     "fits_small_parts_cylinder": true
+    },
+    "stations": [
+     {
+      "z": 10.45,
+      "area_mm2": 170.94,
+      "dims_mm": [
+       11.8,
+       23.41
+      ],
+      "moment_Nmm": 277.5,
+      "sigma_MPa": 1.483
+     },
+     {
+      "z": 10.7,
+      "area_mm2": 170.94,
+      "dims_mm": [
+       11.8,
+       23.41
+      ],
+      "moment_Nmm": 265.0,
+      "sigma_MPa": 1.417
+     },
+     {
+      "z": 10.95,
+      "area_mm2": 170.94,
+      "dims_mm": [
+       11.8,
+       23.41
+      ],
+      "moment_Nmm": 252.5,
+      "sigma_MPa": 1.35
+     },
+     {
+      "z": 11.2,
+      "area_mm2": 170.54,
+      "dims_mm": [
+       11.78,
+       23.4
+      ],
+      "moment_Nmm": 240.0,
+      "sigma_MPa": 1.288
+     },
+     {
+      "z": 11.45,
+      "area_mm2": 170.54,
+      "dims_mm": [
+       11.78,
+       23.4
+      ],
+      "moment_Nmm": 227.5,
+      "sigma_MPa": 1.221
+     },
+     {
+      "z": 11.7,
+      "area_mm2": 155.34,
+      "dims_mm": [
+       11.62,
+       23.34
+      ],
+      "moment_Nmm": 215.0,
+      "sigma_MPa": 1.292
+     },
+     {
+      "z": 11.95,
+      "area_mm2": 146.62,
+      "dims_mm": [
+       11.21,
+       23.16
+      ],
+      "moment_Nmm": 202.5,
+      "sigma_MPa": 1.359
+     },
+     {
+      "z": 12.2,
+      "area_mm2": 65.08,
+      "dims_mm": [
+       7.7,
+       12.12
+      ],
+      "moment_Nmm": 190.0,
+      "sigma_MPa": 3.398
+     },
+     {
+      "z": 12.45,
+      "area_mm2": 65.08,
+      "dims_mm": [
+       7.7,
+       12.12
+      ],
+      "moment_Nmm": 177.5,
+      "sigma_MPa": 3.174
+     },
+     {
+      "z": 12.7,
+      "area_mm2": 65.08,
+      "dims_mm": [
+       7.7,
+       12.12
+      ],
+      "moment_Nmm": 165.0,
+      "sigma_MPa": 2.951
+     },
+     {
+      "z": 12.95,
+      "area_mm2": 65.08,
+      "dims_mm": [
+       7.7,
+       12.12
+      ],
+      "moment_Nmm": 152.5,
+      "sigma_MPa": 2.727
+     },
+     {
+      "z": 13.2,
+      "area_mm2": 66.22,
+      "dims_mm": [
+       7.8,
+       12.12
+      ],
+      "moment_Nmm": 140.0,
+      "sigma_MPa": 2.431
+     },
+     {
+      "z": 13.45,
+      "area_mm2": 69.03,
+      "dims_mm": [
+       8.03,
+       12.12
+      ],
+      "moment_Nmm": 127.5,
+      "sigma_MPa": 2.062
+     },
+     {
+      "z": 13.7,
+      "area_mm2": 71.77,
+      "dims_mm": [
+       8.25,
+       12.12
+      ],
+      "moment_Nmm": 115.0,
+      "sigma_MPa": 1.731
+     },
+     {
+      "z": 13.95,
+      "area_mm2": 74.45,
+      "dims_mm": [
+       8.46,
+       12.12
+      ],
+      "moment_Nmm": 102.5,
+      "sigma_MPa": 1.437
+     },
+     {
+      "z": 14.2,
+      "area_mm2": 77.01,
+      "dims_mm": [
+       8.65,
+       12.12
+      ],
+      "moment_Nmm": 90.0,
+      "sigma_MPa": 1.174
+     },
+     {
+      "z": 14.45,
+      "area_mm2": 79.44,
+      "dims_mm": [
+       8.82,
+       12.12
+      ],
+      "moment_Nmm": 77.5,
+      "sigma_MPa": 0.94
+     },
+     {
+      "z": 14.7,
+      "area_mm2": 81.63,
+      "dims_mm": [
+       8.91,
+       12.12
+      ],
+      "moment_Nmm": 65.0,
+      "sigma_MPa": 0.749
+     },
+     {
+      "z": 14.95,
+      "area_mm2": 81.63,
+      "dims_mm": [
+       8.91,
+       12.12
+      ],
+      "moment_Nmm": 52.5,
+      "sigma_MPa": 0.605
+     }
+    ],
+    "notes": "part standing on the body top (paw ...), 50 N at its top; stress direction: interlayer (Z) tension"
+   },
+   {
+    "name": "frame tower@(23.2,7.7)",
+    "kind": "vertical",
+    "body": "frame",
+    "root_dims_mm": [
+     23.41,
+     11.8
+    ],
+    "root_ok": true,
+    "length_mm": 5.55,
+    "load_N": 50.0,
+    "sigma_max_MPa": 3.4,
+    "stress_ok": true,
+    "worst_station": {
+     "z": 12.2,
+     "area_mm2": 65.08,
+     "dims_mm": [
+      7.7,
+      12.12
+     ],
+     "moment_Nmm": 190.0,
+     "sigma_MPa": 3.398
+    },
+    "fragment_if_snapped": {
+     "volume_mm3": 535.8,
+     "min_enclosing_d": 12.121,
+     "length_along_axis": 24.193,
+     "fits_small_parts_cylinder": true
+    },
+    "stations": [
+     {
+      "z": 10.45,
+      "area_mm2": 170.93,
+      "dims_mm": [
+       11.8,
+       23.41
+      ],
+      "moment_Nmm": 277.5,
+      "sigma_MPa": 1.484
+     },
+     {
+      "z": 10.7,
+      "area_mm2": 170.93,
+      "dims_mm": [
+       11.8,
+       23.41
+      ],
+      "moment_Nmm": 265.0,
+      "sigma_MPa": 1.417
+     },
+     {
+      "z": 10.95,
+      "area_mm2": 170.93,
+      "dims_mm": [
+       11.8,
+       23.41
+      ],
+      "moment_Nmm": 252.5,
+      "sigma_MPa": 1.35
+     },
+     {
+      "z": 11.2,
+      "area_mm2": 170.54,
+      "dims_mm": [
+       11.78,
+       23.41
+      ],
+      "moment_Nmm": 240.0,
+      "sigma_MPa": 1.288
+     },
+     {
+      "z": 11.45,
+      "area_mm2": 170.54,
+      "dims_mm": [
+       11.78,
+       23.41
+      ],
+      "moment_Nmm": 227.5,
+      "sigma_MPa": 1.221
+     },
+     {
+      "z": 11.7,
+      "area_mm2": 155.33,
+      "dims_mm": [
+       11.62,
+       23.34
+      ],
+      "moment_Nmm": 215.0,
+      "sigma_MPa": 1.292
+     },
+     {
+      "z": 11.95,
+      "area_mm2": 146.61,
+      "dims_mm": [
+       11.22,
+       23.16
+      ],
+      "moment_Nmm": 202.5,
+      "sigma_MPa": 1.36
+     },
+     {
+      "z": 12.2,
+      "area_mm2": 65.08,
+      "dims_mm": [
+       7.7,
+       12.12
+      ],
+      "moment_Nmm": 190.0,
+      "sigma_MPa": 3.398
+     },
+     {
+      "z": 12.45,
+      "area_mm2": 65.08,
+      "dims_mm": [
+       7.7,
+       12.12
+      ],
+      "moment_Nmm": 177.5,
+      "sigma_MPa": 3.175
+     },
+     {
+      "z": 12.7,
+      "area_mm2": 65.08,
+      "dims_mm": [
+       7.7,
+       12.12
+      ],
+      "moment_Nmm": 165.0,
+      "sigma_MPa": 2.951
+     },
+     {
+      "z": 12.95,
+      "area_mm2": 65.08,
+      "dims_mm": [
+       7.7,
+       12.12
+      ],
+      "moment_Nmm": 152.5,
+      "sigma_MPa": 2.728
+     },
+     {
+      "z": 13.2,
+      "area_mm2": 66.22,
+      "dims_mm": [
+       7.8,
+       12.12
+      ],
+      "moment_Nmm": 140.0,
+      "sigma_MPa": 2.431
+     },
+     {
+      "z": 13.45,
+      "area_mm2": 69.02,
+      "dims_mm": [
+       8.03,
+       12.12
+      ],
+      "moment_Nmm": 127.5,
+      "sigma_MPa": 2.06
+     },
+     {
+      "z": 13.7,
+      "area_mm2": 71.77,
+      "dims_mm": [
+       8.25,
+       12.12
+      ],
+      "moment_Nmm": 115.0,
+      "sigma_MPa": 1.731
+     },
+     {
+      "z": 13.95,
+      "area_mm2": 74.44,
+      "dims_mm": [
+       8.46,
+       12.12
+      ],
+      "moment_Nmm": 102.5,
+      "sigma_MPa": 1.438
+     },
+     {
+      "z": 14.2,
+      "area_mm2": 77.01,
+      "dims_mm": [
+       8.65,
+       12.12
+      ],
+      "moment_Nmm": 90.0,
+      "sigma_MPa": 1.176
+     },
+     {
+      "z": 14.45,
+      "area_mm2": 79.44,
+      "dims_mm": [
+       8.82,
+       12.12
+      ],
+      "moment_Nmm": 77.5,
+      "sigma_MPa": 0.94
+     },
+     {
+      "z": 14.7,
+      "area_mm2": 81.62,
+      "dims_mm": [
+       8.91,
+       12.12
+      ],
+      "moment_Nmm": 65.0,
+      "sigma_MPa": 0.75
+     },
+     {
+      "z": 14.95,
+      "area_mm2": 81.62,
+      "dims_mm": [
+       8.91,
+       12.12
+      ],
+      "moment_Nmm": 52.5,
+      "sigma_MPa": 0.605
+     }
+    ],
+    "notes": "part standing on the body top (paw ...), 50 N at its top; stress direction: interlayer (Z) tension"
+   },
+   {
+    "name": "post O",
+    "kind": "vertical",
+    "body": "frame",
+    "root_dims_mm": [
+     9.61,
+     9.61
+    ],
+    "root_ok": true,
+    "length_mm": 5.58,
+    "load_N": 50.0,
+    "sigma_max_MPa": 4.71,
+    "stress_ok": true,
+    "worst_station": {
+     "z": 2.77,
+     "area_mm2": 50.96,
+     "dims_mm": [
+      8.05,
+      8.05
+     ],
+     "moment_Nmm": 241.5,
+     "sigma_MPa": 4.709
+    },
+    "fragment_if_snapped": {
+     "volume_mm3": 298.3,
+     "min_enclosing_d": 9.617,
+     "length_along_axis": 5.603,
+     "fits_small_parts_cylinder": true
+    },
+    "stations": [
+     {
+      "z": 2.02,
+      "area_mm2": 72.54,
+      "dims_mm": [
+       9.61,
+       9.61
+      ],
+      "moment_Nmm": 279.0,
+      "sigma_MPa": 3.203
+     },
+     {
+      "z": 2.27,
+      "area_mm2": 58.59,
+      "dims_mm": [
+       8.63,
+       8.63
+      ],
+      "moment_Nmm": 266.5,
+      "sigma_MPa": 4.216
+     },
+     {
+      "z": 2.52,
+      "area_mm2": 53.38,
+      "dims_mm": [
+       8.24,
+       8.24
+      ],
+      "moment_Nmm": 254.0,
+      "sigma_MPa": 4.62
+     },
+     {
+      "z": 2.77,
+      "area_mm2": 50.96,
+      "dims_mm": [
+       8.05,
+       8.05
+      ],
+      "moment_Nmm": 241.5,
+      "sigma_MPa": 4.709
+     },
+     {
+      "z": 3.02,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 229.0,
+      "sigma_MPa": 4.567
+     },
+     {
+      "z": 3.27,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 216.5,
+      "sigma_MPa": 4.318
+     },
+     {
+      "z": 3.52,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 204.0,
+      "sigma_MPa": 4.069
+     },
+     {
+      "z": 3.77,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 191.5,
+      "sigma_MPa": 3.819
+     },
+     {
+      "z": 4.02,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 179.0,
+      "sigma_MPa": 3.57
+     },
+     {
+      "z": 4.27,
+      "area_mm2": 51.97,
+      "dims_mm": [
+       8.13,
+       8.13
+      ],
+      "moment_Nmm": 166.5,
+      "sigma_MPa": 3.152
+     },
+     {
+      "z": 4.52,
+      "area_mm2": 58.56,
+      "dims_mm": [
+       8.63,
+       8.63
+      ],
+      "moment_Nmm": 154.0,
+      "sigma_MPa": 2.438
+     },
+     {
+      "z": 4.77,
+      "area_mm2": 65.53,
+      "dims_mm": [
+       9.13,
+       9.13
+      ],
+      "moment_Nmm": 141.5,
+      "sigma_MPa": 1.892
+     },
+     {
+      "z": 5.02,
+      "area_mm2": 71.69,
+      "dims_mm": [
+       9.55,
+       9.55
+      ],
+      "moment_Nmm": 129.0,
+      "sigma_MPa": 1.508
+     },
+     {
+      "z": 5.27,
+      "area_mm2": 64.39,
+      "dims_mm": [
+       9.05,
+       9.05
+      ],
+      "moment_Nmm": 116.5,
+      "sigma_MPa": 1.6
+     },
+     {
+      "z": 5.52,
+      "area_mm2": 57.48,
+      "dims_mm": [
+       8.55,
+       8.55
+      ],
+      "moment_Nmm": 104.0,
+      "sigma_MPa": 1.693
+     },
+     {
+      "z": 5.77,
+      "area_mm2": 50.96,
+      "dims_mm": [
+       8.05,
+       8.05
+      ],
+      "moment_Nmm": 91.5,
+      "sigma_MPa": 1.785
+     },
+     {
+      "z": 6.02,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 79.0,
+      "sigma_MPa": 1.576
+     },
+     {
+      "z": 6.27,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 66.5,
+      "sigma_MPa": 1.326
+     },
+     {
+      "z": 6.52,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 54.0,
+      "sigma_MPa": 1.077
+     }
+    ],
+    "notes": "hidden; 50 N side yank on the moving body applied at the post top; stress direction: interlayer (Z) tension"
+   },
+   {
+    "name": "post P",
+    "kind": "vertical",
+    "body": "frame",
+    "root_dims_mm": [
+     9.61,
+     9.61
+    ],
+    "root_ok": true,
+    "length_mm": 5.58,
+    "load_N": 50.0,
+    "sigma_max_MPa": 4.71,
+    "stress_ok": true,
+    "worst_station": {
+     "z": 2.77,
+     "area_mm2": 50.96,
+     "dims_mm": [
+      8.05,
+      8.05
+     ],
+     "moment_Nmm": 241.5,
+     "sigma_MPa": 4.709
+    },
+    "fragment_if_snapped": {
+     "volume_mm3": 298.3,
+     "min_enclosing_d": 9.617,
+     "length_along_axis": 5.603,
+     "fits_small_parts_cylinder": true
+    },
+    "stations": [
+     {
+      "z": 2.02,
+      "area_mm2": 72.54,
+      "dims_mm": [
+       9.61,
+       9.61
+      ],
+      "moment_Nmm": 279.0,
+      "sigma_MPa": 3.203
+     },
+     {
+      "z": 2.27,
+      "area_mm2": 58.59,
+      "dims_mm": [
+       8.63,
+       8.63
+      ],
+      "moment_Nmm": 266.5,
+      "sigma_MPa": 4.216
+     },
+     {
+      "z": 2.52,
+      "area_mm2": 53.38,
+      "dims_mm": [
+       8.24,
+       8.24
+      ],
+      "moment_Nmm": 254.0,
+      "sigma_MPa": 4.62
+     },
+     {
+      "z": 2.77,
+      "area_mm2": 50.96,
+      "dims_mm": [
+       8.05,
+       8.05
+      ],
+      "moment_Nmm": 241.5,
+      "sigma_MPa": 4.709
+     },
+     {
+      "z": 3.02,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 229.0,
+      "sigma_MPa": 4.567
+     },
+     {
+      "z": 3.27,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 216.5,
+      "sigma_MPa": 4.318
+     },
+     {
+      "z": 3.52,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 204.0,
+      "sigma_MPa": 4.069
+     },
+     {
+      "z": 3.77,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 191.5,
+      "sigma_MPa": 3.819
+     },
+     {
+      "z": 4.02,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 179.0,
+      "sigma_MPa": 3.57
+     },
+     {
+      "z": 4.27,
+      "area_mm2": 51.97,
+      "dims_mm": [
+       8.13,
+       8.13
+      ],
+      "moment_Nmm": 166.5,
+      "sigma_MPa": 3.152
+     },
+     {
+      "z": 4.52,
+      "area_mm2": 58.56,
+      "dims_mm": [
+       8.63,
+       8.63
+      ],
+      "moment_Nmm": 154.0,
+      "sigma_MPa": 2.438
+     },
+     {
+      "z": 4.77,
+      "area_mm2": 65.53,
+      "dims_mm": [
+       9.13,
+       9.13
+      ],
+      "moment_Nmm": 141.5,
+      "sigma_MPa": 1.892
+     },
+     {
+      "z": 5.02,
+      "area_mm2": 71.69,
+      "dims_mm": [
+       9.55,
+       9.55
+      ],
+      "moment_Nmm": 129.0,
+      "sigma_MPa": 1.508
+     },
+     {
+      "z": 5.27,
+      "area_mm2": 64.39,
+      "dims_mm": [
+       9.05,
+       9.05
+      ],
+      "moment_Nmm": 116.5,
+      "sigma_MPa": 1.6
+     },
+     {
+      "z": 5.52,
+      "area_mm2": 57.48,
+      "dims_mm": [
+       8.55,
+       8.55
+      ],
+      "moment_Nmm": 104.0,
+      "sigma_MPa": 1.693
+     },
+     {
+      "z": 5.77,
+      "area_mm2": 50.96,
+      "dims_mm": [
+       8.05,
+       8.05
+      ],
+      "moment_Nmm": 91.5,
+      "sigma_MPa": 1.785
+     },
+     {
+      "z": 6.02,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 79.0,
+      "sigma_MPa": 1.576
+     },
+     {
+      "z": 6.27,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 66.5,
+      "sigma_MPa": 1.326
+     },
+     {
+      "z": 6.52,
+      "area_mm2": 50.2,
+      "dims_mm": [
+       7.99,
+       7.99
+      ],
+      "moment_Nmm": 54.0,
+      "sigma_MPa": 1.077
+     }
+    ],
+    "notes": "hidden; 50 N side yank on the moving body applied at the post top; stress direction: interlayer (Z) tension"
+   },
+   {
+    "name": "head lobe@(-0.0,18.8)",
+    "kind": "in-plane",
+    "body": "head",
+    "hidden": true,
+    "hidden_fraction": 1.0,
+    "notes": "inside the frame body footprint (not graspable)"
+   },
+   {
+    "name": "head lobe@(15.0,15.9)",
+    "kind": "in-plane",
+    "body": "head",
+    "hidden": true,
+    "hidden_fraction": 1.0,
+    "notes": "inside the frame body footprint (not graspable)"
+   },
+   {
+    "name": "head lobe@(-15.0,15.9)",
+    "kind": "in-plane",
+    "body": "head",
+    "hidden": true,
+    "hidden_fraction": 1.0,
+    "notes": "inside the frame body footprint (not graspable)"
+   },
+   {
+    "name": "head lobe@(11.6,53.0)",
+    "kind": "in-plane",
+    "body": "head",
+    "root_dims_mm": [
+     14.7,
+     12.88
+    ],
+    "root_ok": true,
+    "length_mm": 12.97,
+    "load_N": 50.0,
+    "sigma_max_MPa": 2.59,
+    "stress_ok": true,
+    "worst_station": {
+     "s": 6.48,
+     "area_mm2": 111.84,
+     "dims_mm": [
+      7.68,
+      14.7
+     ],
+     "moment_Nmm": 324.2,
+     "sigma_MPa": 2.592
+    },
+    "fragment_if_snapped": {
+     "volume_mm3": 1560.0,
+     "min_enclosing_d": 16.177,
+     "length_along_axis": 15.3,
+     "fits_small_parts_cylinder": true
+    },
+    "stations": [
+     {
+      "s": 0.0,
+      "area_mm2": 184.78,
+      "dims_mm": [
+       12.88,
+       14.7
+      ],
+      "moment_Nmm": 648.4,
+      "sigma_MPa": 2.241
+     },
+     {
+      "s": 1.3,
+      "area_mm2": 177.66,
+      "dims_mm": [
+       12.16,
+       14.7
+      ],
+      "moment_Nmm": 583.6,
+      "sigma_MPa": 2.121
+     },
+     {
+      "s": 2.59,
+      "area_mm2": 166.75,
+      "dims_mm": [
+       11.42,
+       14.7
+      ],
+      "moment_Nmm": 518.7,
+      "sigma_MPa": 2.089
+     },
+     {
+      "s": 3.89,
+      "area_mm2": 147.23,
+      "dims_mm": [
+       10.09,
+       14.7
+      ],
+      "moment_Nmm": 453.9,
+      "sigma_MPa": 2.247
+     },
+     {
+      "s": 5.19,
+      "area_mm2": 127.52,
+      "dims_mm": [
+       8.75,
+       14.7
+      ],
+      "moment_Nmm": 389.1,
+      "sigma_MPa": 2.465
+     },
+     {
+      "s": 6.48,
+      "area_mm2": 111.84,
+      "dims_mm": [
+       7.68,
+       14.7
+      ],
+      "moment_Nmm": 324.2,
+      "sigma_MPa": 2.592
+     },
+     {
+      "s": 7.78,
+      "area_mm2": 112.49,
+      "dims_mm": [
+       7.65,
+       15.15
+      ],
+      "moment_Nmm": 259.4,
+      "sigma_MPa": 2.076
+     },
+     {
+      "s": 9.08,
+      "area_mm2": 118.2,
+      "dims_mm": [
+       7.99,
+       15.3
+      ],
+      "moment_Nmm": 194.5,
+      "sigma_MPa": 1.433
+     },
+     {
+      "s": 10.37,
+      "area_mm2": 109.72,
+      "dims_mm": [
+       7.48,
+       15.08
+      ],
+      "moment_Nmm": 129.7,
+      "sigma_MPa": 1.083
+     }
+    ],
+    "notes": "root chord 12.88 mm from (2.44,51.71) to (12.75,44.00), tip (15.10,58.44); bending stress lies in the layer plane (in-layer, strong direction)"
+   },
+   {
+    "name": "head lobe@(-11.6,53.0)",
+    "kind": "in-plane",
+    "body": "head",
+    "root_dims_mm": [
+     14.7,
+     12.92
+    ],
+    "root_ok": true,
+    "length_mm": 13.0,
+    "load_N": 50.0,
+    "sigma_max_MPa": 2.6,
+    "stress_ok": true,
+    "worst_station": {
+     "s": 6.5,
+     "area_mm2": 111.92,
+     "dims_mm": [
+      7.69,
+      14.7
+     ],
+     "moment_Nmm": 324.9,
+     "sigma_MPa": 2.595
+    },
+    "fragment_if_snapped": {
+     "volume_mm3": 1560.6,
+     "min_enclosing_d": 16.214,
+     "length_along_axis": 15.3,
+     "fits_small_parts_cylinder": true
+    },
+    "stations": [
+     {
+      "s": 0.0,
+      "area_mm2": 185.28,
+      "dims_mm": [
+       12.92,
+       14.7
+      ],
+      "moment_Nmm": 649.8,
+      "sigma_MPa": 2.237
+     },
+     {
+      "s": 1.3,
+      "area_mm2": 177.87,
+      "dims_mm": [
+       12.18,
+       14.7
+      ],
+      "moment_Nmm": 584.9,
+      "sigma_MPa": 2.123
+     },
+     {
+      "s": 2.6,
+      "area_mm2": 167.0,
+      "dims_mm": [
+       11.44,
+       14.7
+      ],
+      "moment_Nmm": 519.9,
+      "sigma_MPa": 2.088
+     },
+     {
+      "s": 3.9,
+      "area_mm2": 147.45,
+      "dims_mm": [
+       10.11,
+       14.7
+      ],
+      "moment_Nmm": 454.9,
+      "sigma_MPa": 2.246
+     },
+     {
+      "s": 5.2,
+      "area_mm2": 127.71,
+      "dims_mm": [
+       8.77,
+       14.7
+      ],
+      "moment_Nmm": 389.9,
+      "sigma_MPa": 2.464
+     },
+     {
+      "s": 6.5,
+      "area_mm2": 111.92,
+      "dims_mm": [
+       7.69,
+       14.7
+      ],
+      "moment_Nmm": 324.9,
+      "sigma_MPa": 2.595
+     },
+     {
+      "s": 7.8,
+      "area_mm2": 112.36,
+      "dims_mm": [
+       7.64,
+       15.14
+      ],
+      "moment_Nmm": 259.9,
+      "sigma_MPa": 2.085
+     },
+     {
+      "s": 9.1,
+      "area_mm2": 118.23,
+      "dims_mm": [
+       7.99,
+       15.3
+      ],
+      "moment_Nmm": 195.0,
+      "sigma_MPa": 1.436
+     },
+     {
+      "s": 10.4,
+      "area_mm2": 109.79,
+      "dims_mm": [
+       7.48,
+       15.09
+      ],
+      "moment_Nmm": 130.0,
+      "sigma_MPa": 1.084
+     }
+    ],
+    "notes": "root chord 12.92 mm from (-2.38,51.70) to (-12.75,44.00), tip (-15.10,58.44); bending stress lies in the layer plane (in-layer, strong direction)"
+   },
+   {
+    "name": "frame lobe@(-22.5,-15.6)",
+    "kind": "in-plane",
+    "body": "frame",
+    "root_dims_mm": [
+     12.0,
+     10.14
+    ],
+    "root_ok": true,
+    "length_mm": 9.86,
+    "load_N": 50.0,
+    "sigma_max_MPa": 3.41,
+    "stress_ok": true,
+    "worst_station": {
+     "s": 0.0,
+     "area_mm2": 115.52,
+     "dims_mm": [
+      10.14,
+      12.0
+     ],
+     "moment_Nmm": 493.0,
+     "sigma_MPa": 3.409
+    },
+    "fragment_if_snapped": {
+     "volume_mm3": 882.2,
+     "min_enclosing_d": 12.74,
+     "length_along_axis": 12.0,
+     "fits_small_parts_cylinder": true
+    },
+    "stations": [
+     {
+      "s": 0.0,
+      "area_mm2": 115.52,
+      "dims_mm": [
+       10.14,
+       12.0
+      ],
+      "moment_Nmm": 493.0,
+      "sigma_MPa": 3.409
+     },
+     {
+      "s": 0.99,
+      "area_mm2": 111.28,
+      "dims_mm": [
+       9.7,
+       12.0
+      ],
+      "moment_Nmm": 443.7,
+      "sigma_MPa": 3.231
+     },
+     {
+      "s": 1.97,
+      "area_mm2": 114.44,
+      "dims_mm": [
+       9.82,
+       12.0
+      ],
+      "moment_Nmm": 394.4,
+      "sigma_MPa": 2.781
+     },
+     {
+      "s": 2.96,
+      "area_mm2": 117.28,
+      "dims_mm": [
+       9.98,
+       12.0
+      ],
+      "moment_Nmm": 345.1,
+      "sigma_MPa": 2.308
+     },
+     {
+      "s": 3.94,
+      "area_mm2": 114.82,
+      "dims_mm": [
+       9.91,
+       12.0
+      ],
+      "moment_Nmm": 295.8,
+      "sigma_MPa": 2.077
+     },
+     {
+      "s": 4.93,
+      "area_mm2": 110.18,
+      "dims_mm": [
+       9.6,
+       12.0
+      ],
+      "moment_Nmm": 246.5,
+      "sigma_MPa": 1.826
+     },
+     {
+      "s": 5.92,
+      "area_mm2": 104.95,
+      "dims_mm": [
+       9.02,
+       12.0
+      ],
+      "moment_Nmm": 197.2,
+      "sigma_MPa": 1.591
+     },
+     {
+      "s": 6.9,
+      "area_mm2": 95.69,
+      "dims_mm": [
+       8.14,
+       12.0
+      ],
+      "moment_Nmm": 147.9,
+      "sigma_MPa": 1.384
+     },
+     {
+      "s": 7.89,
+      "area_mm2": 79.38,
+      "dims_mm": [
+       6.8,
+       12.0
+      ],
+      "moment_Nmm": 98.6,
+      "sigma_MPa": 1.291
+     }
+    ],
+    "notes": "root chord 10.03 mm from (-15.00,-16.99) to (-20.84,-8.84), tip (-26.95,-17.23); bending stress lies in the layer plane (in-layer, strong direction)"
+   },
+   {
+    "name": "frame lobe@(29.5,8.9)",
+    "kind": "in-plane",
+    "body": "frame",
+    "root_dims_mm": [
+     12.0,
+     5.9
+    ],
+    "root_ok": true,
+    "length_mm": 1.84,
+    "load_N": 50.0,
+    "sigma_max_MPa": 1.67,
+    "stress_ok": true,
+    "worst_station": {
+     "s": 0.18,
+     "area_mm2": 62.47,
+     "dims_mm": [
+      5.47,
+      12.0
+     ],
+     "moment_Nmm": 83.0,
+     "sigma_MPa": 1.674
+    },
+    "fragment_if_snapped": {
+     "volume_mm3": 83.0,
+     "min_enclosing_d": 5.896,
+     "length_along_axis": 12.0,
+     "fits_small_parts_cylinder": true
+    },
+    "stations": [
+     {
+      "s": 0.0,
+      "area_mm2": 66.82,
+      "dims_mm": [
+       5.9,
+       12.0
+      ],
+      "moment_Nmm": 92.2,
+      "sigma_MPa": 1.647
+     },
+     {
+      "s": 0.18,
+      "area_mm2": 62.47,
+      "dims_mm": [
+       5.47,
+       12.0
+      ],
+      "moment_Nmm": 83.0,
+      "sigma_MPa": 1.674
+     },
+     {
+      "s": 0.37,
+      "area_mm2": 58.71,
+      "dims_mm": [
+       5.11,
+       12.0
+      ],
+      "moment_Nmm": 73.8,
+      "sigma_MPa": 1.672
+     },
+     {
+      "s": 0.55,
+      "area_mm2": 55.63,
+      "dims_mm": [
+       4.82,
+       12.0
+      ],
+      "moment_Nmm": 64.5,
+      "sigma_MPa": 1.643
+     },
+     {
+      "s": 0.74,
+      "area_mm2": 52.06,
+      "dims_mm": [
+       4.52,
+       12.0
+      ],
+      "moment_Nmm": 55.3,
+      "sigma_MPa": 1.601
+     },
+     {
+      "s": 0.92,
+      "area_mm2": 48.4,
+      "dims_mm": [
+       4.23,
+       12.0
+      ],
+      "moment_Nmm": 46.1,
+      "sigma_MPa": 1.539
+     },
+     {
+      "s": 1.11,
+      "area_mm2": 43.88,
+      "dims_mm": [
+       3.86,
+       12.0
+      ],
+      "moment_Nmm": 36.9,
+      "sigma_MPa": 1.495
+     },
+     {
+      "s": 1.29,
+      "area_mm2": 38.47,
+      "dims_mm": [
+       3.46,
+       12.0
+      ],
+      "moment_Nmm": 27.7,
+      "sigma_MPa": 1.462
+     },
+     {
+      "s": 1.48,
+      "area_mm2": 31.33,
+      "dims_mm": [
+       2.93,
+       12.0
+      ],
+      "moment_Nmm": 18.4,
+      "sigma_MPa": 1.446
+     }
+    ],
+    "notes": "root chord 5.74 mm from (30.01,11.93) to (27.13,6.97), tip (30.23,8.64); bending stress lies in the layer plane (in-layer, strong direction)"
+   },
+   {
+    "name": "frame lobe@(-29.5,8.9)",
+    "kind": "in-plane",
+    "body": "frame",
+    "root_dims_mm": [
+     12.0,
+     5.9
+    ],
+    "root_ok": true,
+    "length_mm": 1.84,
+    "load_N": 50.0,
+    "sigma_max_MPa": 1.68,
+    "stress_ok": true,
+    "worst_station": {
+     "s": 0.18,
+     "area_mm2": 62.31,
+     "dims_mm": [
+      5.46,
+      12.0
+     ],
+     "moment_Nmm": 82.8,
+     "sigma_MPa": 1.679
+    },
+    "fragment_if_snapped": {
+     "volume_mm3": 82.8,
+     "min_enclosing_d": 5.896,
+     "length_along_axis": 12.0,
+     "fits_small_parts_cylinder": true
+    },
+    "stations": [
+     {
+      "s": 0.0,
+      "area_mm2": 66.73,
+      "dims_mm": [
+       5.9,
+       12.0
+      ],
+      "moment_Nmm": 92.0,
+      "sigma_MPa": 1.65
+     },
+     {
+      "s": 0.18,
+      "area_mm2": 62.31,
+      "dims_mm": [
+       5.46,
+       12.0
+      ],
+      "moment_Nmm": 82.8,
+      "sigma_MPa": 1.679
+     },
+     {
+      "s": 0.37,
+      "area_mm2": 58.84,
+      "dims_mm": [
+       5.13,
+       12.0
+      ],
+      "moment_Nmm": 73.6,
+      "sigma_MPa": 1.662
+     },
+     {
+      "s": 0.55,
+      "area_mm2": 55.72,
+      "dims_mm": [
+       4.83,
+       12.0
+      ],
+      "moment_Nmm": 64.4,
+      "sigma_MPa": 1.635
+     },
+     {
+      "s": 0.74,
+      "area_mm2": 52.11,
+      "dims_mm": [
+       4.53,
+       12.0
+      ],
+      "moment_Nmm": 55.2,
+      "sigma_MPa": 1.594
+     },
+     {
+      "s": 0.92,
+      "area_mm2": 48.28,
+      "dims_mm": [
+       4.22,
+       12.0
+      ],
+      "moment_Nmm": 46.0,
+      "sigma_MPa": 1.543
+     },
+     {
+      "s": 1.1,
+      "area_mm2": 43.97,
+      "dims_mm": [
+       3.87,
+       12.0
+      ],
+      "moment_Nmm": 36.8,
+      "sigma_MPa": 1.483
+     },
+     {
+      "s": 1.29,
+      "area_mm2": 38.45,
+      "dims_mm": [
+       3.44,
+       12.0
+      ],
+      "moment_Nmm": 27.6,
+      "sigma_MPa": 1.453
+     },
+     {
+      "s": 1.47,
+      "area_mm2": 31.12,
+      "dims_mm": [
+       2.92,
+       12.0
+      ],
+      "moment_Nmm": 18.4,
+      "sigma_MPa": 1.461
+     }
+    ],
+    "notes": "root chord 5.73 mm from (-30.00,11.99) to (-27.19,6.99), tip (-30.24,8.66); bending stress lies in the layer plane (in-layer, strong direction)"
+   }
+  ],
+  "panels": [
+   {
+    "area_mm2": 920.2,
+    "far_point": [
+     -14.58,
+     61.01
+    ],
+    "cantilever_L_mm": 16.62,
+    "support_point": [
+     -8.24,
+     45.64
+    ],
+    "width_mm": 74.69,
+    "w_eff_mm": 33.24,
+    "thickness_mm": 1.98,
+    "load_N": 50.0,
+    "sigma_MPa": 38.5,
+    "fraction_under_head": 0.321,
+    "islands_on_panel": []
+   }
+  ],
+  "low_reliefs_on_body_top": [
+   {
+    "centre": [
+     -20.7,
+     -14.6
+    ],
+    "height_mm": 1.55,
+    "volume_mm3": 137.0
+   }
+  ]
+ },
+ "V12": {
+  "series": {
+   "head_phi90": {
+    "mover": "head",
+    "fixed_pose": [
+     90.0,
+     0.0
+    ],
+    "n_poses": 41,
+    "exposed_gap_cells": 60735,
+    "candidates": 31029
+   },
+   "head_phi270": {
+    "mover": "head",
+    "fixed_pose": [
+     270.0,
+     0.0
+    ],
+    "n_poses": 41,
+    "exposed_gap_cells": 61248,
+    "candidates": 30874
+   },
+   "wheel_psi-12.42": {
+    "mover": "wheel",
+    "fixed_pose": [
+     0.0,
+     -12.42
+    ],
+    "n_poses": 72,
+    "exposed_gap_cells": 13957,
+    "candidates": 12249
+   },
+   "wheel_psi+0.00": {
+    "mover": "wheel",
+    "fixed_pose": [
+     0.0,
+     0.0
+    ],
+    "n_poses": 72,
+    "exposed_gap_cells": 14277,
+    "candidates": 12578
+   },
+   "wheel_psi+12.42": {
+    "mover": "wheel",
+    "fixed_pose": [
+     0.0,
+     12.42
+    ],
+    "n_poses": 72,
+    "exposed_gap_cells": 13963,
+    "candidates": 12316
+   }
+  },
+  "clusters": [
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 84,
+    "n_cells_shear": 1,
+    "n_cells_squeeze": 1,
+    "severity": "high",
+    "kind": "finger-size opening (>= 4 mm) closes below 2 mm (shear / crush)",
+    "z_range": [
+     7.75,
+     10.25
+    ],
+    "xy_centroid": [
+     10.67,
+     44.95
+    ],
+    "xy_bbox": [
+     9.42,
+     43.76,
+     12.42,
+     45.76
+    ],
+    "worst_cell": [
+     12.17,
+     43.76
+    ],
+    "worst_z": 8.75,
+    "gap_min_at_worst_cell": 1.906,
+    "gap_max_at_worst_cell": 4.954,
+    "gap_min": 1.472,
+    "gap_max": 4.954,
+    "pose_at_gap_min": [
+     90.0,
+     4.35
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     12.42
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 84,
+    "n_cells_shear": 1,
+    "n_cells_squeeze": 1,
+    "severity": "high",
+    "kind": "finger-size opening (>= 4 mm) closes below 2 mm (shear / crush)",
+    "z_range": [
+     7.75,
+     10.25
+    ],
+    "xy_centroid": [
+     10.67,
+     44.95
+    ],
+    "xy_bbox": [
+     9.42,
+     43.76,
+     12.42,
+     45.76
+    ],
+    "worst_cell": [
+     12.17,
+     43.76
+    ],
+    "worst_z": 8.75,
+    "gap_min_at_worst_cell": 1.906,
+    "gap_max_at_worst_cell": 4.954,
+    "gap_min": 1.472,
+    "gap_max": 4.954,
+    "pose_at_gap_min": [
+     270.0,
+     4.35
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     12.42
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     7.75,
+     7.75
+    ],
+    "xy_centroid": [
+     13.17,
+     44.01
+    ],
+    "xy_bbox": [
+     13.17,
+     44.01,
+     13.17,
+     44.01
+    ],
+    "worst_cell": [
+     13.17,
+     44.01
+    ],
+    "worst_z": 7.75,
+    "gap_min_at_worst_cell": 1.858,
+    "gap_max_at_worst_cell": 2.596,
+    "gap_min": 1.858,
+    "gap_max": 2.596,
+    "pose_at_gap_min": [
+     90.0,
+     1.24
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     3.11
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     7.75,
+     7.75
+    ],
+    "xy_centroid": [
+     13.17,
+     44.01
+    ],
+    "xy_bbox": [
+     13.17,
+     44.01,
+     13.17,
+     44.01
+    ],
+    "worst_cell": [
+     13.17,
+     44.01
+    ],
+    "worst_z": 7.75,
+    "gap_min_at_worst_cell": 1.858,
+    "gap_max_at_worst_cell": 2.596,
+    "gap_min": 1.858,
+    "gap_max": 2.596,
+    "pose_at_gap_min": [
+     270.0,
+     1.24
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     3.11
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     9.25,
+     9.25
+    ],
+    "xy_centroid": [
+     15.67,
+     42.01
+    ],
+    "xy_bbox": [
+     15.67,
+     42.01,
+     15.67,
+     42.01
+    ],
+    "worst_cell": [
+     15.67,
+     42.01
+    ],
+    "worst_z": 9.25,
+    "gap_min_at_worst_cell": 1.996,
+    "gap_max_at_worst_cell": 2.736,
+    "gap_min": 1.996,
+    "gap_max": 2.736,
+    "pose_at_gap_min": [
+     90.0,
+     -6.21
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     -4.35
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     9.25,
+     9.25
+    ],
+    "xy_centroid": [
+     15.67,
+     42.01
+    ],
+    "xy_bbox": [
+     15.67,
+     42.01,
+     15.67,
+     42.01
+    ],
+    "worst_cell": [
+     15.67,
+     42.01
+    ],
+    "worst_z": 9.25,
+    "gap_min_at_worst_cell": 1.996,
+    "gap_max_at_worst_cell": 2.736,
+    "gap_min": 1.996,
+    "gap_max": 2.736,
+    "pose_at_gap_min": [
+     270.0,
+     -6.21
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     -4.35
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     10.25,
+     10.25
+    ],
+    "xy_centroid": [
+     17.42,
+     40.01
+    ],
+    "xy_bbox": [
+     17.42,
+     40.01,
+     17.42,
+     40.01
+    ],
+    "worst_cell": [
+     17.42,
+     40.01
+    ],
+    "worst_z": 10.25,
+    "gap_min_at_worst_cell": 2.024,
+    "gap_max_at_worst_cell": 2.262,
+    "gap_min": 2.024,
+    "gap_max": 2.262,
+    "pose_at_gap_min": [
+     90.0,
+     -12.42
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     -11.8
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     10.25,
+     10.25
+    ],
+    "xy_centroid": [
+     17.42,
+     40.01
+    ],
+    "xy_bbox": [
+     17.42,
+     40.01,
+     17.42,
+     40.01
+    ],
+    "worst_cell": [
+     17.42,
+     40.01
+    ],
+    "worst_z": 10.25,
+    "gap_min_at_worst_cell": 2.024,
+    "gap_max_at_worst_cell": 2.262,
+    "gap_min": 2.024,
+    "gap_max": 2.262,
+    "pose_at_gap_min": [
+     270.0,
+     -12.42
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     -11.8
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     8.25,
+     8.25
+    ],
+    "xy_centroid": [
+     13.42,
+     43.51
+    ],
+    "xy_bbox": [
+     13.42,
+     43.51,
+     13.42,
+     43.51
+    ],
+    "worst_cell": [
+     13.42,
+     43.51
+    ],
+    "worst_z": 8.25,
+    "gap_min_at_worst_cell": 2.138,
+    "gap_max_at_worst_cell": 2.374,
+    "gap_min": 2.138,
+    "gap_max": 2.374,
+    "pose_at_gap_min": [
+     90.0,
+     1.24
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     1.86
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     8.25,
+     8.25
+    ],
+    "xy_centroid": [
+     13.42,
+     43.51
+    ],
+    "xy_bbox": [
+     13.42,
+     43.51,
+     13.42,
+     43.51
+    ],
+    "worst_cell": [
+     13.42,
+     43.51
+    ],
+    "worst_z": 8.25,
+    "gap_min_at_worst_cell": 2.138,
+    "gap_max_at_worst_cell": 2.374,
+    "gap_min": 2.138,
+    "gap_max": 2.374,
+    "pose_at_gap_min": [
+     270.0,
+     1.24
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     1.86
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 3,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     7.75,
+     8.25
+    ],
+    "xy_centroid": [
+     17.58,
+     39.09
+    ],
+    "xy_bbox": [
+     17.42,
+     39.01,
+     17.67,
+     39.26
+    ],
+    "worst_cell": [
+     17.42,
+     39.26
+    ],
+    "worst_z": 7.75,
+    "gap_min_at_worst_cell": 2.24,
+    "gap_max_at_worst_cell": 2.701,
+    "gap_min": 2.24,
+    "gap_max": 3.06,
+    "pose_at_gap_min": [
+     90.0,
+     -12.42
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     -11.18
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 3,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     7.75,
+     8.25
+    ],
+    "xy_centroid": [
+     17.58,
+     39.09
+    ],
+    "xy_bbox": [
+     17.42,
+     39.01,
+     17.67,
+     39.26
+    ],
+    "worst_cell": [
+     17.42,
+     39.26
+    ],
+    "worst_z": 7.75,
+    "gap_min_at_worst_cell": 2.24,
+    "gap_max_at_worst_cell": 2.701,
+    "gap_min": 2.24,
+    "gap_max": 3.06,
+    "pose_at_gap_min": [
+     270.0,
+     -12.42
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     -11.18
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 5,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     9.75,
+     10.25
+    ],
+    "xy_centroid": [
+     17.77,
+     38.81
+    ],
+    "xy_bbox": [
+     17.42,
+     38.26,
+     18.17,
+     39.26
+    ],
+    "worst_cell": [
+     17.42,
+     39.26
+    ],
+    "worst_z": 9.75,
+    "gap_min_at_worst_cell": 2.241,
+    "gap_max_at_worst_cell": 2.933,
+    "gap_min": 2.241,
+    "gap_max": 4.466,
+    "pose_at_gap_min": [
+     90.0,
+     -12.42
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     -10.56
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 5,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     9.75,
+     10.25
+    ],
+    "xy_centroid": [
+     17.77,
+     38.81
+    ],
+    "xy_bbox": [
+     17.42,
+     38.26,
+     18.17,
+     39.26
+    ],
+    "worst_cell": [
+     17.42,
+     39.26
+    ],
+    "worst_z": 9.75,
+    "gap_min_at_worst_cell": 2.241,
+    "gap_max_at_worst_cell": 2.933,
+    "gap_min": 2.241,
+    "gap_max": 4.466,
+    "pose_at_gap_min": [
+     270.0,
+     -12.42
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     -10.56
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     9.75,
+     9.75
+    ],
+    "xy_centroid": [
+     -17.33,
+     39.51
+    ],
+    "xy_bbox": [
+     -17.33,
+     39.51,
+     -17.33,
+     39.51
+    ],
+    "worst_cell": [
+     -17.33,
+     39.51
+    ],
+    "worst_z": 9.75,
+    "gap_min_at_worst_cell": 2.299,
+    "gap_max_at_worst_cell": 3.239,
+    "gap_min": 2.299,
+    "gap_max": 3.239,
+    "pose_at_gap_min": [
+     90.0,
+     11.8
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     9.31
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     9.75,
+     9.75
+    ],
+    "xy_centroid": [
+     -17.33,
+     39.51
+    ],
+    "xy_bbox": [
+     -17.33,
+     39.51,
+     -17.33,
+     39.51
+    ],
+    "worst_cell": [
+     -17.33,
+     39.51
+    ],
+    "worst_z": 9.75,
+    "gap_min_at_worst_cell": 2.299,
+    "gap_max_at_worst_cell": 3.239,
+    "gap_min": 2.299,
+    "gap_max": 3.239,
+    "pose_at_gap_min": [
+     270.0,
+     11.8
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     9.31
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     8.25,
+     8.25
+    ],
+    "xy_centroid": [
+     16.92,
+     40.26
+    ],
+    "xy_bbox": [
+     16.92,
+     40.26,
+     16.92,
+     40.26
+    ],
+    "worst_cell": [
+     16.92,
+     40.26
+    ],
+    "worst_z": 8.25,
+    "gap_min_at_worst_cell": 2.567,
+    "gap_max_at_worst_cell": 2.806,
+    "gap_min": 2.567,
+    "gap_max": 2.806,
+    "pose_at_gap_min": [
+     90.0,
+     -9.31
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     -8.69
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     8.25,
+     8.25
+    ],
+    "xy_centroid": [
+     16.92,
+     40.26
+    ],
+    "xy_bbox": [
+     16.92,
+     40.26,
+     16.92,
+     40.26
+    ],
+    "worst_cell": [
+     16.92,
+     40.26
+    ],
+    "worst_z": 8.25,
+    "gap_min_at_worst_cell": 2.567,
+    "gap_max_at_worst_cell": 2.806,
+    "gap_min": 2.567,
+    "gap_max": 2.806,
+    "pose_at_gap_min": [
+     270.0,
+     -9.31
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     -8.69
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 4,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     8.25,
+     8.25
+    ],
+    "xy_centroid": [
+     14.29,
+     42.38
+    ],
+    "xy_bbox": [
+     13.92,
+     42.01,
+     14.67,
+     42.76
+    ],
+    "worst_cell": [
+     13.92,
+     42.76
+    ],
+    "worst_z": 8.25,
+    "gap_min_at_worst_cell": 2.737,
+    "gap_max_at_worst_cell": 2.972,
+    "gap_min": 2.737,
+    "gap_max": 3.91,
+    "pose_at_gap_min": [
+     90.0,
+     1.24
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     1.86
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 4,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     8.25,
+     8.25
+    ],
+    "xy_centroid": [
+     14.29,
+     42.38
+    ],
+    "xy_bbox": [
+     13.92,
+     42.01,
+     14.67,
+     42.76
+    ],
+    "worst_cell": [
+     13.92,
+     42.76
+    ],
+    "worst_z": 8.25,
+    "gap_min_at_worst_cell": 2.737,
+    "gap_max_at_worst_cell": 2.972,
+    "gap_min": 2.737,
+    "gap_max": 3.91,
+    "pose_at_gap_min": [
+     270.0,
+     1.24
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     1.86
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 2,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     9.75,
+     9.75
+    ],
+    "xy_centroid": [
+     14.04,
+     42.63
+    ],
+    "xy_bbox": [
+     13.92,
+     42.51,
+     14.17,
+     42.76
+    ],
+    "worst_cell": [
+     13.92,
+     42.76
+    ],
+    "worst_z": 9.75,
+    "gap_min_at_worst_cell": 2.738,
+    "gap_max_at_worst_cell": 2.973,
+    "gap_min": 2.738,
+    "gap_max": 3.282,
+    "pose_at_gap_min": [
+     90.0,
+     1.24
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     1.86
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 2,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     9.75,
+     9.75
+    ],
+    "xy_centroid": [
+     14.04,
+     42.63
+    ],
+    "xy_bbox": [
+     13.92,
+     42.51,
+     14.17,
+     42.76
+    ],
+    "worst_cell": [
+     13.92,
+     42.76
+    ],
+    "worst_z": 9.75,
+    "gap_min_at_worst_cell": 2.738,
+    "gap_max_at_worst_cell": 2.973,
+    "gap_min": 2.738,
+    "gap_max": 3.282,
+    "pose_at_gap_min": [
+     270.0,
+     1.24
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     1.86
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 2,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     9.75,
+     10.25
+    ],
+    "xy_centroid": [
+     15.42,
+     41.26
+    ],
+    "xy_bbox": [
+     15.42,
+     41.26,
+     15.42,
+     41.26
+    ],
+    "worst_cell": [
+     15.42,
+     41.26
+    ],
+    "worst_z": 9.75,
+    "gap_min_at_worst_cell": 2.993,
+    "gap_max_at_worst_cell": 3.226,
+    "gap_min": 2.993,
+    "gap_max": 4.667,
+    "pose_at_gap_min": [
+     90.0,
+     -3.11
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     -2.48
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 2,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     9.75,
+     10.25
+    ],
+    "xy_centroid": [
+     15.42,
+     41.26
+    ],
+    "xy_bbox": [
+     15.42,
+     41.26,
+     15.42,
+     41.26
+    ],
+    "worst_cell": [
+     15.42,
+     41.26
+    ],
+    "worst_z": 9.75,
+    "gap_min_at_worst_cell": 2.993,
+    "gap_max_at_worst_cell": 3.226,
+    "gap_min": 2.993,
+    "gap_max": 4.667,
+    "pose_at_gap_min": [
+     270.0,
+     -3.11
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     -2.48
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     10.25,
+     10.25
+    ],
+    "xy_centroid": [
+     14.92,
+     41.76
+    ],
+    "xy_bbox": [
+     14.92,
+     41.76,
+     14.92,
+     41.76
+    ],
+    "worst_cell": [
+     14.92,
+     41.76
+    ],
+    "worst_z": 10.25,
+    "gap_min_at_worst_cell": 3.764,
+    "gap_max_at_worst_cell": 4.004,
+    "gap_min": 3.764,
+    "gap_max": 4.004,
+    "pose_at_gap_min": [
+     90.0,
+     0.62
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     1.24
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     10.25,
+     10.25
+    ],
+    "xy_centroid": [
+     14.92,
+     41.76
+    ],
+    "xy_bbox": [
+     14.92,
+     41.76,
+     14.92,
+     41.76
+    ],
+    "worst_cell": [
+     14.92,
+     41.76
+    ],
+    "worst_z": 10.25,
+    "gap_min_at_worst_cell": 3.764,
+    "gap_max_at_worst_cell": 4.004,
+    "gap_min": 3.764,
+    "gap_max": 4.004,
+    "pose_at_gap_min": [
+     270.0,
+     0.62
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     1.24
+    ]
+   }
+  ],
+  "n_groups": 3,
+  "edges": {
+   "corners": {
+    "frame": [],
+    "wheel": [],
+    "head": []
+   },
+   "sharp": {
+    "frame": {
+     "stats": {
+      "sharp_edges": 38627,
+      "acute_edges": 39,
+      "candidates": 465,
+      "exposed_candidates": 123
+     },
+     "points": [
+      {
+       "at": [
+        -19.04,
+        45.58,
+        2.6
+       ],
+       "ball_fraction": 0.195
+      },
+      {
+       "at": [
+        17.19,
+        41.9,
+        2.6
+       ],
+       "ball_fraction": 0.202
+      },
+      {
+       "at": [
+        -21.55,
+        49.26,
+        2.6
+       ],
+       "ball_fraction": 0.203
+      },
+      {
+       "at": [
+        -2.21,
+        57.3,
+        2.6
+       ],
+       "ball_fraction": 0.204
+      },
+      {
+       "at": [
+        20.89,
+        -4.19,
+        10.4
+       ],
+       "ball_fraction": 0.256
+      },
+      {
+       "at": [
+        18.32,
+        -3.23,
+        13.1
+       ],
+       "ball_fraction": 0.313
+      },
+      {
+       "at": [
+        19.69,
+        7.46,
+        16.0
+       ],
+       "ball_fraction": 0.316
+      },
+      {
+       "at": [
+        -22.44,
+        26.25,
+        10.07
+       ],
+       "ball_fraction": 0.324
+      },
+      {
+       "at": [
+        -21.01,
+        -4.21,
+        10.07
+       ],
+       "ball_fraction": 0.329
+      },
+      {
+       "at": [
+        21.01,
+        -4.21,
+        10.07
+       ],
+       "ball_fraction": 0.332
+      },
+      {
+       "at": [
+        -21.0,
+        -4.21,
+        10.07
+       ],
+       "ball_fraction": 0.335
+      },
+      {
+       "at": [
+        25.49,
+        19.13,
+        10.4
+       ],
+       "ball_fraction": 0.337
+      },
+      {
+       "at": [
+        18.91,
+        7.65,
+        16.0
+       ],
+       "ball_fraction": 0.342
+      },
+      {
+       "at": [
+        -20.25,
+        -2.49,
+        16.0
+       ],
+       "ball_fraction": 0.343
+      },
+      {
+       "at": [
+        -18.91,
+        7.65,
+        16.0
+       ],
+       "ball_fraction": 0.343
+      },
+      {
+       "at": [
+        20.25,
+        -2.49,
+        16.0
+       ],
+       "ball_fraction": 0.343
+      },
+      {
+       "at": [
+        -24.17,
+        -12.03,
+        12.0
+       ],
+       "ball_fraction": 0.345
+      },
+      {
+       "at": [
+        -20.88,
+        -9.13,
+        10.4
+       ],
+       "ball_fraction": 0.345
+      },
+      {
+       "at": [
+        -21.98,
+        -18.78,
+        12.0
+       ],
+       "ball_fraction": 0.346
+      },
+      {
+       "at": [
+        -16.38,
+        -16.59,
+        12.0
+       ],
+       "ball_fraction": 0.347
+      },
+      {
+       "at": [
+        -18.35,
+        -10.51,
+        12.0
+       ],
+       "ball_fraction": 0.35
+      },
+      {
+       "at": [
+        -23.28,
+        0.14,
+        16.0
+       ],
+       "ball_fraction": 0.361
+      },
+      {
+       "at": [
+        23.28,
+        0.14,
+        16.0
+       ],
+       "ball_fraction": 0.361
+      },
+      {
+       "at": [
+        -19.94,
+        -18.57,
+        12.0
+       ],
+       "ball_fraction": 0.369
+      },
+      {
+       "at": [
+        -22.52,
+        5.89,
+        16.0
+       ],
+       "ball_fraction": 0.37
+      }
+     ]
+    },
+    "wheel": {
+     "stats": {
+      "sharp_edges": 1851,
+      "acute_edges": 0,
+      "candidates": 2,
+      "exposed_candidates": 2
+     },
+     "points": [
+      {
+       "at": [
+        10.28,
+        -7.47,
+        13.3
+       ],
+       "ball_fraction": 0.367
+      },
+      {
+       "at": [
+        10.28,
+        7.47,
+        13.3
+       ],
+       "ball_fraction": 0.367
+      }
+     ]
+    },
+    "head": {
+     "stats": {
+      "sharp_edges": 10271,
+      "acute_edges": 2,
+      "candidates": 437,
+      "exposed_candidates": 36
+     },
+     "points": [
+      {
+       "at": [
+        15.07,
+        39.97,
+        5.3
+       ],
+       "ball_fraction": 0.167
+      },
+      {
+       "at": [
+        -14.21,
+        42.83,
+        4.7
+       ],
+       "ball_fraction": 0.227
+      },
+      {
+       "at": [
+        14.21,
+        42.83,
+        4.7
+       ],
+       "ball_fraction": 0.227
+      },
+      {
+       "at": [
+        -14.51,
+        42.45,
+        4.7
+       ],
+       "ball_fraction": 0.228
+      },
+      {
+       "at": [
+        -14.51,
+        42.45,
+        13.7
+       ],
+       "ball_fraction": 0.228
+      },
+      {
+       "at": [
+        -14.21,
+        42.83,
+        13.7
+       ],
+       "ball_fraction": 0.228
+      },
+      {
+       "at": [
+        14.21,
+        42.83,
+        13.7
+       ],
+       "ball_fraction": 0.228
+      },
+      {
+       "at": [
+        14.51,
+        42.45,
+        4.7
+       ],
+       "ball_fraction": 0.228
+      },
+      {
+       "at": [
+        14.51,
+        42.45,
+        13.7
+       ],
+       "ball_fraction": 0.228
+      },
+      {
+       "at": [
+        -14.49,
+        52.72,
+        17.7
+       ],
+       "ball_fraction": 0.371
+      },
+      {
+       "at": [
+        14.5,
+        42.44,
+        16.45
+       ],
+       "ball_fraction": 0.396
+      },
+      {
+       "at": [
+        -14.93,
+        52.28,
+        17.2
+       ],
+       "ball_fraction": 0.405
+      },
+      {
+       "at": [
+        -15.03,
+        52.17,
+        16.95
+       ],
+       "ball_fraction": 0.422
+      },
+      {
+       "at": [
+        -14.21,
+        42.83,
+        16.2
+       ],
+       "ball_fraction": 0.423
+      },
+      {
+       "at": [
+        14.21,
+        42.83,
+        16.2
+       ],
+       "ball_fraction": 0.423
+      },
+      {
+       "at": [
+        -14.51,
+        42.45,
+        16.2
+       ],
+       "ball_fraction": 0.424
+      },
+      {
+       "at": [
+        -13.99,
+        45.88,
+        16.2
+       ],
+       "ball_fraction": 0.424
+      },
+      {
+       "at": [
+        14.15,
+        46.31,
+        16.2
+       ],
+       "ball_fraction": 0.424
+      },
+      {
+       "at": [
+        14.51,
+        42.45,
+        16.2
+       ],
+       "ball_fraction": 0.424
+      },
+      {
+       "at": [
+        -14.15,
+        46.31,
+        16.2
+       ],
+       "ball_fraction": 0.425
+      },
+      {
+       "at": [
+        13.99,
+        45.88,
+        16.2
+       ],
+       "ball_fraction": 0.425
+      },
+      {
+       "at": [
+        -14.0,
+        45.88,
+        7.4
+       ],
+       "ball_fraction": 0.453
+      },
+      {
+       "at": [
+        -14.15,
+        46.31,
+        4.7
+       ],
+       "ball_fraction": 0.455
+      },
+      {
+       "at": [
+        -14.15,
+        46.31,
+        7.4
+       ],
+       "ball_fraction": 0.455
+      },
+      {
+       "at": [
+        14.0,
+        45.88,
+        4.7
+       ],
+       "ball_fraction": 0.455
+      }
+     ]
+    }
+   }
+  }
+ },
+ "design_review": {
+  "features": [
+   {
+    "surface": "face top",
+    "type": "deboss",
+    "z_surface": 17.7,
+    "centroid": [
+     0.0,
+     27.9
+    ],
+    "area_mm2": 9.17,
+    "width_mm": 1.102,
+    "stroke_width_mm": 0.995,
+    "depth_mm": 0.5
+   },
+   {
+    "surface": "face top",
+    "type": "deboss",
+    "z_surface": 17.7,
+    "centroid": [
+     -7.6,
+     27.41
+    ],
+    "area_mm2": 6.87,
+    "width_mm": 2.197,
+    "stroke_width_mm": 1.383,
+    "depth_mm": 0.5
+   },
+   {
+    "surface": "face top",
+    "type": "deboss",
+    "z_surface": 17.7,
+    "centroid": [
+     7.6,
+     27.41
+    ],
+    "area_mm2": 6.87,
+    "width_mm": 2.197,
+    "stroke_width_mm": 1.383,
+    "depth_mm": 0.5
+   },
+   {
+    "surface": "face top",
+    "type": "raised",
+    "z_surface": 17.7,
+    "centroid": [
+     -6.8,
+     33.31
+    ],
+    "area_mm2": 48.79,
+    "width_mm": 7.865,
+    "stroke_width_mm": 3.932,
+    "bbox_mm": [
+     7.91,
+     7.91
+    ],
+    "height_mm": 0.6
+   },
+   {
+    "surface": "face top",
+    "type": "raised",
+    "z_surface": 17.7,
+    "centroid": [
+     6.8,
+     33.31
+    ],
+    "area_mm2": 48.79,
+    "width_mm": 7.865,
+    "stroke_width_mm": 3.932,
+    "bbox_mm": [
+     7.91,
+     7.91
+    ],
+    "height_mm": 0.6
+   },
+   {
+    "surface": "face top",
+    "type": "raised",
+    "z_surface": 17.7,
+    "centroid": [
+     -12.69,
+     55.25
+    ],
+    "area_mm2": 15.27,
+    "width_mm": 4.391,
+    "stroke_width_mm": 2.196,
+    "bbox_mm": [
+     4.45,
+     4.45
+    ],
+    "height_mm": 0.6
+   },
+   {
+    "surface": "face top",
+    "type": "raised",
+    "z_surface": 17.7,
+    "centroid": [
+     12.69,
+     55.25
+    ],
+    "area_mm2": 15.27,
+    "width_mm": 4.391,
+    "stroke_width_mm": 2.196,
+    "bbox_mm": [
+     4.45,
+     4.45
+    ],
+    "height_mm": 0.6
+   },
+   {
+    "surface": "paw tops",
+    "type": "deboss",
+    "z_surface": 16.0,
+    "centroid": [
+     19.41,
+     2.56
+    ],
+    "area_mm2": 13.31,
+    "width_mm": 1.4,
+    "stroke_width_mm": 1.208,
+    "depth_mm": 0.4
+   },
+   {
+    "surface": "paw tops",
+    "type": "deboss",
+    "z_surface": 16.0,
+    "centroid": [
+     22.18,
+     2.92
+    ],
+    "area_mm2": 9.43,
+    "width_mm": 1.4,
+    "stroke_width_mm": 1.145,
+    "depth_mm": 0.4
+   },
+   {
+    "surface": "paw tops",
+    "type": "deboss",
+    "z_surface": 16.0,
+    "centroid": [
+     -19.41,
+     2.56
+    ],
+    "area_mm2": 13.31,
+    "width_mm": 1.4,
+    "stroke_width_mm": 1.208,
+    "depth_mm": 0.4
+   },
+   {
+    "surface": "paw tops",
+    "type": "deboss",
+    "z_surface": 16.0,
+    "centroid": [
+     -22.18,
+     2.92
+    ],
+    "area_mm2": 9.43,
+    "width_mm": 1.4,
+    "stroke_width_mm": 1.145,
+    "depth_mm": 0.4
+   },
+   {
+    "surface": "decor top",
+    "type": "deboss",
+    "z_surface": 12.0,
+    "centroid": [
+     -18.35,
+     -13.87
+    ],
+    "area_mm2": 14.36,
+    "width_mm": 2.0,
+    "stroke_width_mm": 1.563,
+    "depth_mm": 0.5
+   },
+   {
+    "surface": "decor top",
+    "type": "deboss",
+    "z_surface": 12.0,
+    "centroid": [
+     -22.1,
+     -15.09
+    ],
+    "area_mm2": 15.23,
+    "width_mm": 2.0,
+    "stroke_width_mm": 1.591,
+    "depth_mm": 0.5
+   },
+   {
+    "surface": "decor top",
+    "type": "deboss",
+    "z_surface": 12.0,
+    "centroid": [
+     -27.13,
+     14.41
+    ],
+    "area_mm2": 7.95,
+    "width_mm": 0.801,
+    "stroke_width_mm": 0.75,
+    "depth_mm": 0.4
+   },
+   {
+    "surface": "decor top",
+    "type": "deboss",
+    "z_surface": 12.0,
+    "centroid": [
+     -27.41,
+     9.16
+    ],
+    "area_mm2": 3.87,
+    "width_mm": 0.801,
+    "stroke_width_mm": 0.706,
+    "depth_mm": 0.4
+   },
+   {
+    "surface": "decor top",
+    "type": "deboss",
+    "z_surface": 12.0,
+    "centroid": [
+     27.13,
+     14.41
+    ],
+    "area_mm2": 7.95,
+    "width_mm": 0.801,
+    "stroke_width_mm": 0.75,
+    "depth_mm": 0.4
+   },
+   {
+    "surface": "decor top",
+    "type": "deboss",
+    "z_surface": 12.0,
+    "centroid": [
+     27.41,
+     9.16
+    ],
+    "area_mm2": 3.87,
+    "width_mm": 0.801,
+    "stroke_width_mm": 0.706,
+    "depth_mm": 0.4
+   },
+   {
+    "surface": "back plate",
+    "type": "deboss",
+    "z_surface": 2.0,
+    "centroid": [
+     23.48,
+     31.38
+    ],
+    "area_mm2": 8.85,
+    "width_mm": 0.803,
+    "stroke_width_mm": 0.75,
+    "depth_mm": 0.3
+   },
+   {
+    "surface": "back plate",
+    "type": "deboss",
+    "z_surface": 2.0,
+    "centroid": [
+     -23.48,
+     31.37
+    ],
+    "area_mm2": 8.85,
+    "width_mm": 0.803,
+    "stroke_width_mm": 0.75,
+    "depth_mm": 0.3
+   },
+   {
+    "surface": "ball top",
+    "type": "deboss",
+    "n_grooves": 46,
+    "width_mm": 3.464,
+    "stroke_width_mm": 1.761,
+    "depth_mm": 0.5,
+    "area_mm2": 413.1,
+    "centroid": [
+     0.0,
+     0.0
+    ]
+   }
+  ],
+  "face": {
+   "faceup_w": 33.38,
+   "faceup_h_incl_ears": 39.54,
+   "eye_d": 7.91,
+   "eye_spacing_cc": 13.6,
+   "face_width_at_eyes": 31.64,
+   "eye_d_over_face_w": 0.25,
+   "spacing_over_face_w": 0.43,
+   "head_circle_centre": [
+    -0.0,
+    35.15
+   ],
+   "head_circle_r": 15.44,
+   "eye_line_below_head_centre_over_r": 0.119
+  },
+  "ears_giggle": {
+   "ear_rise_above_crown_mm": 7.54,
+   "ear_rise_over_head_r": 0.471,
+   "farthest_point_from_P_mm": 37.07,
+   "tip_travel_each_way_mm": 8.04,
+   "tip_travel_p2p_mm": 16.07
+  }
+ },
+ "V14": [
+  {
+   "view": "front",
+   "phi": 0.0,
+   "psi": -12.42,
+   "file": "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_front_psi-12.4_phi0.png"
+  },
+  {
+   "view": "back",
+   "phi": 0.0,
+   "psi": -12.42,
+   "file": "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_back_psi-12.4_phi0.png"
+  },
+  {
+   "view": "three_quarter",
+   "phi": 0.0,
+   "psi": -12.42,
+   "file": "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_three_quarter_psi-12.4_phi0.png"
+  },
+  {
+   "view": "front",
+   "phi": 120.0,
+   "psi": 0.0,
+   "file": "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_front_psi+0.0_phi120.png"
+  },
+  {
+   "view": "back",
+   "phi": 120.0,
+   "psi": 0.0,
+   "file": "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_back_psi+0.0_phi120.png"
+  },
+  {
+   "view": "three_quarter",
+   "phi": 120.0,
+   "psi": 0.0,
+   "file": "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_three_quarter_psi+0.0_phi120.png"
+  },
+  {
+   "view": "front",
+   "phi": 240.0,
+   "psi": 12.42,
+   "file": "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_front_psi+12.4_phi240.png"
+  },
+  {
+   "view": "back",
+   "phi": 240.0,
+   "psi": 12.42,
+   "file": "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_back_psi+12.4_phi240.png"
+  },
+  {
+   "view": "three_quarter",
+   "phi": 240.0,
+   "psi": 12.42,
+   "file": "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_three_quarter_psi+12.4_phi240.png"
+  },
+  {
+   "view": "section x=0 (seen from +X, keep x<0)",
+   "phi": 12.0,
+   "psi": 5.96,
+   "file": "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_section_x0_print_pose.png"
+  },
+  {
+   "view": "section z=5.2 (seen from +Z, keep z<5.2)",
+   "phi": 12.0,
+   "psi": 5.96,
+   "file": "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_section_z5.2_print_pose.png"
+  }
+ ],
+ "checks": [
+  {
+   "id": "V10.wheel_min_width",
+   "name": "wheel: smallest enclosing cylinder over all orientations",
+   "status": "pass",
+   "measured": 35.995,
+   "criterion": ">= 35.5 (and > 31.7)",
+   "plan_min_caliper_width": 35.99,
+   "axis": [
+    -0.8621,
+    0.5067,
+    0.0
+   ]
+  },
+  {
+   "id": "V10.head_min_width",
+   "name": "head: smallest enclosing cylinder over all orientations",
+   "status": "pass",
+   "measured": 42.074,
+   "criterion": ">= 38.0 (and > 31.7)",
+   "plan_min_caliper_width": 41.755,
+   "axis": [
+    -0.0747,
+    0.9915,
+    0.107
+   ]
+  },
+  {
+   "id": "V10.no_body_fits",
+   "name": "no body fits the small-parts cylinder (D 31.7 x 25.4 / 57.1)",
+   "status": "pass",
+   "measured": {
+    "frame": 62.02,
+    "wheel": 35.995,
+    "head": 42.074
+   },
+   "criterion": "min enclosing D > 31.7 for every body"
+  },
+  {
+   "id": "V10.protrusion.frame_tower@(-23.2,7.7)",
+   "name": "protrusion frame tower@(-23.2,7.7) (vertical, frame)",
+   "status": "pass",
+   "measured": {
+    "root_mm": [
+     23.41,
+     11.8
+    ],
+    "sigma_max_MPa": 3.4
+   },
+   "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
+   "length_mm": 5.55,
+   "worst_station": {
+    "z": 12.2,
+    "area_mm2": 65.08,
+    "dims_mm": [
+     7.7,
+     12.12
+    ],
+    "moment_Nmm": 190.0,
+    "sigma_MPa": 3.398
+   },
+   "fragment_fits_small_parts": true,
+   "notes": "part standing on the body top (paw ...), 50 N at its top; stress direction: interlayer (Z) tension"
+  },
+  {
+   "id": "V10.protrusion.frame_tower@(23.2,7.7)",
+   "name": "protrusion frame tower@(23.2,7.7) (vertical, frame)",
+   "status": "pass",
+   "measured": {
+    "root_mm": [
+     23.41,
+     11.8
+    ],
+    "sigma_max_MPa": 3.4
+   },
+   "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
+   "length_mm": 5.55,
+   "worst_station": {
+    "z": 12.2,
+    "area_mm2": 65.08,
+    "dims_mm": [
+     7.7,
+     12.12
+    ],
+    "moment_Nmm": 190.0,
+    "sigma_MPa": 3.398
+   },
+   "fragment_fits_small_parts": true,
+   "notes": "part standing on the body top (paw ...), 50 N at its top; stress direction: interlayer (Z) tension"
+  },
+  {
+   "id": "V10.protrusion.post_O",
+   "name": "protrusion post O (vertical, frame)",
+   "status": "pass",
+   "measured": {
+    "root_mm": [
+     9.61,
+     9.61
+    ],
+    "sigma_max_MPa": 4.71
+   },
+   "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
+   "length_mm": 5.58,
+   "worst_station": {
+    "z": 2.77,
+    "area_mm2": 50.96,
+    "dims_mm": [
+     8.05,
+     8.05
+    ],
+    "moment_Nmm": 241.5,
+    "sigma_MPa": 4.709
+   },
+   "fragment_fits_small_parts": true,
+   "notes": "hidden; 50 N side yank on the moving body applied at the post top; stress direction: interlayer (Z) tension"
+  },
+  {
+   "id": "V10.protrusion.post_P",
+   "name": "protrusion post P (vertical, frame)",
+   "status": "pass",
+   "measured": {
+    "root_mm": [
+     9.61,
+     9.61
+    ],
+    "sigma_max_MPa": 4.71
+   },
+   "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
+   "length_mm": 5.58,
+   "worst_station": {
+    "z": 2.77,
+    "area_mm2": 50.96,
+    "dims_mm": [
+     8.05,
+     8.05
+    ],
+    "moment_Nmm": 241.5,
+    "sigma_MPa": 4.709
+   },
+   "fragment_fits_small_parts": true,
+   "notes": "hidden; 50 N side yank on the moving body applied at the post top; stress direction: interlayer (Z) tension"
+  },
+  {
+   "id": "V10.protrusion.head_lobe@(11.6,53.0)",
+   "name": "protrusion head lobe@(11.6,53.0) (in-plane, head)",
+   "status": "pass",
+   "measured": {
+    "root_mm": [
+     14.7,
+     12.88
+    ],
+    "sigma_max_MPa": 2.59
+   },
+   "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
+   "length_mm": 12.97,
+   "worst_station": {
+    "s": 6.48,
+    "area_mm2": 111.84,
+    "dims_mm": [
+     7.68,
+     14.7
+    ],
+    "moment_Nmm": 324.2,
+    "sigma_MPa": 2.592
+   },
+   "fragment_fits_small_parts": true,
+   "notes": "root chord 12.88 mm from (2.44,51.71) to (12.75,44.00), tip (15.10,58.44); bending stress lies in the layer plane (in-layer, strong direction)"
+  },
+  {
+   "id": "V10.protrusion.head_lobe@(-11.6,53.0)",
+   "name": "protrusion head lobe@(-11.6,53.0) (in-plane, head)",
+   "status": "pass",
+   "measured": {
+    "root_mm": [
+     14.7,
+     12.92
+    ],
+    "sigma_max_MPa": 2.6
+   },
+   "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
+   "length_mm": 13.0,
+   "worst_station": {
+    "s": 6.5,
+    "area_mm2": 111.92,
+    "dims_mm": [
+     7.69,
+     14.7
+    ],
+    "moment_Nmm": 324.9,
+    "sigma_MPa": 2.595
+   },
+   "fragment_fits_small_parts": true,
+   "notes": "root chord 12.92 mm from (-2.38,51.70) to (-12.75,44.00), tip (-15.10,58.44); bending stress lies in the layer plane (in-layer, strong direction)"
+  },
+  {
+   "id": "V10.protrusion.frame_lobe@(-22.5,-15.6)",
+   "name": "protrusion frame lobe@(-22.5,-15.6) (in-plane, frame)",
+   "status": "pass",
+   "measured": {
+    "root_mm": [
+     12.0,
+     10.14
+    ],
+    "sigma_max_MPa": 3.41
+   },
+   "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
+   "length_mm": 9.86,
+   "worst_station": {
+    "s": 0.0,
+    "area_mm2": 115.52,
+    "dims_mm": [
+     10.14,
+     12.0
+    ],
+    "moment_Nmm": 493.0,
+    "sigma_MPa": 3.409
+   },
+   "fragment_fits_small_parts": true,
+   "notes": "root chord 10.03 mm from (-15.00,-16.99) to (-20.84,-8.84), tip (-26.95,-17.23); bending stress lies in the layer plane (in-layer, strong direction)"
+  },
+  {
+   "id": "V10.protrusion.frame_lobe@(29.5,8.9)",
+   "name": "protrusion frame lobe@(29.5,8.9) (in-plane, frame)",
+   "status": "pass",
+   "measured": {
+    "root_mm": [
+     12.0,
+     5.9
+    ],
+    "sigma_max_MPa": 1.67
+   },
+   "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
+   "length_mm": 1.84,
+   "worst_station": {
+    "s": 0.18,
+    "area_mm2": 62.47,
+    "dims_mm": [
+     5.47,
+     12.0
+    ],
+    "moment_Nmm": 83.0,
+    "sigma_MPa": 1.674
+   },
+   "fragment_fits_small_parts": true,
+   "notes": "root chord 5.74 mm from (30.01,11.93) to (27.13,6.97), tip (30.23,8.64); bending stress lies in the layer plane (in-layer, strong direction)"
+  },
+  {
+   "id": "V10.protrusion.frame_lobe@(-29.5,8.9)",
+   "name": "protrusion frame lobe@(-29.5,8.9) (in-plane, frame)",
+   "status": "pass",
+   "measured": {
+    "root_mm": [
+     12.0,
+     5.9
+    ],
+    "sigma_max_MPa": 1.68
+   },
+   "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
+   "length_mm": 1.84,
+   "worst_station": {
+    "s": 0.18,
+    "area_mm2": 62.31,
+    "dims_mm": [
+     5.46,
+     12.0
+    ],
+    "moment_Nmm": 82.8,
+    "sigma_MPa": 1.679
+   },
+   "fragment_fits_small_parts": true,
+   "notes": "root chord 5.73 mm from (-30.00,11.99) to (-27.19,6.99), tip (-30.24,8.66); bending stress lies in the layer plane (in-layer, strong direction)"
+  },
+  {
+   "id": "V10.back_panel_0",
+   "name": "back-plate-only panel (cantilever from the body; carries the head post)",
+   "status": "warn",
+   "measured": {
+    "sigma_MPa": 38.5,
+    "L_mm": 16.62,
+    "t_mm": 1.98
+   },
+   "criterion": "plate cantilever under 50 N normal at the far edge < 10 MPa (warn level: the panel lies under the head; load reaches it through the head's back ribs)",
+   "panel": {
+    "area_mm2": 920.2,
+    "far_point": [
+     -14.58,
+     61.01
+    ],
+    "cantilever_L_mm": 16.62,
+    "support_point": [
+     -8.24,
+     45.64
+    ],
+    "width_mm": 74.69,
+    "w_eff_mm": 33.24,
+    "thickness_mm": 1.98,
+    "load_N": 50.0,
+    "sigma_MPa": 38.5,
+    "fraction_under_head": 0.321,
+    "islands_on_panel": []
+   },
+   "proposed_fix": "the 2.0 mm plate behind the head is the weakest structural element (est. crack at ~100 N on the top edge; the head post P stands on it).  Raise every Z level by 1.0 (plate 3.0): sigma x (2/3)^2 -> ~17 MPa, depth 19.3 mm; or accept and add an inspection note."
+  },
+  {
+   "id": "V12.pinch_00",
+   "name": "head vs frame at (12.2, 43.8), z 7.75-10.25",
+   "status": "fail",
+   "measured": {
+    "gap_min": 1.906,
+    "gap_max": 4.954,
+    "severity": "high"
+   },
+   "criterion": "exposed gap constant (<= 0.1 variation), always < 2.0, or always >= 12 (SPEC V12)",
+   "kind": "finger-size opening (>= 4 mm) closes below 2 mm (shear / crush)",
+   "series": [
+    "head_phi270",
+    "head_phi90"
+   ],
+   "cells": 168,
+   "cells_shear": 2,
+   "xy_bbox": [
+    9.42,
+    43.76,
+    12.42,
+    45.76
+   ],
+   "pose_at_gap_min": [
+    90.0,
+    4.35
+   ],
+   "pose_at_gap_max": [
+    90.0,
+    12.42
+   ],
+   "plot": "/home/user/Apps/fidget-toy/verification/reports/bee/safety_bee_nominal_pinch_00.png",
+   "closeup_3d": "/home/user/Apps/fidget-toy/verification/reports/bee/safety_bee_nominal_pinch_00_3d.png",
+   "proposed_fix": "Cheek / roof-lobe jaw: where the roof lobes enter the head's I3 slot the slot back wall closes on the lobe end (gap 0.55 at one bank, several mm at the other) and the slot mouth is reachable from the side.  Make the lobe end inside the slot a circular arc about P (Body2D clipped to r <= R_b about P in both lobe sectors, R_b ~17.5) so RoofSweepInv's back wall becomes the concentric arc R_b + 0.55 (constant gap), let the face outline cross the body outline at ~90 deg (locally radial to P) and round the slot-mouth corners r >= 1.0.  A cheek-only change (Face2D U sector(P, 18.5)) was prototyped and does NOT remove the jaw.",
+   "locations": [
+    {
+     "worst_cell": [
+      12.17,
+      43.76
+     ],
+     "z_range": [
+      7.75,
+      10.25
+     ],
+     "series": "head_phi90",
+     "gap": [
+      1.906,
+      4.954
+     ]
+    },
+    {
+     "worst_cell": [
+      12.17,
+      43.76
+     ],
+     "z_range": [
+      7.75,
+      10.25
+     ],
+     "series": "head_phi270",
+     "gap": [
+      1.906,
+      4.954
+     ]
+    }
+   ]
+  },
+  {
+   "id": "V12.pinch_01",
+   "name": "head vs frame at (13.2, 44.0), z 7.75-7.75",
+   "status": "warn",
+   "measured": {
+    "gap_min": 1.858,
+    "gap_max": 2.596,
+    "severity": "low"
+   },
+   "criterion": "exposed gap constant (<= 0.1 variation), always < 2.0, or always >= 12 (SPEC V12)",
+   "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+   "series": [
+    "head_phi270",
+    "head_phi90"
+   ],
+   "cells": 28,
+   "cells_shear": 0,
+   "xy_bbox": [
+    13.17,
+    44.01,
+    13.17,
+    44.01
+   ],
+   "pose_at_gap_min": [
+    90.0,
+    1.24
+   ],
+   "pose_at_gap_max": [
+    90.0,
+    3.11
+   ],
+   "plot": "/home/user/Apps/fidget-toy/verification/reports/bee/safety_bee_nominal_pinch_01.png",
+   "closeup_3d": null,
+   "proposed_fix": "Cheek / roof-lobe jaw: where the roof lobes enter the head's I3 slot the slot back wall closes on the lobe end (gap 0.55 at one bank, several mm at the other) and the slot mouth is reachable from the side.  Make the lobe end inside the slot a circular arc about P (Body2D clipped to r <= R_b about P in both lobe sectors, R_b ~17.5) so RoofSweepInv's back wall becomes the concentric arc R_b + 0.55 (constant gap), let the face outline cross the body outline at ~90 deg (locally radial to P) and round the slot-mouth corners r >= 1.0.  A cheek-only change (Face2D U sector(P, 18.5)) was prototyped and does NOT remove the jaw.",
+   "locations": [
+    {
+     "worst_cell": [
+      13.17,
+      44.01
+     ],
+     "z_range": [
+      7.75,
+      7.75
+     ],
+     "series": "head_phi90",
+     "gap": [
+      1.858,
+      2.596
+     ]
+    },
+    {
+     "worst_cell": [
+      13.17,
+      44.01
+     ],
+     "z_range": [
+      7.75,
+      7.75
+     ],
+     "series": "head_phi270",
+     "gap": [
+      1.858,
+      2.596
+     ]
+    },
+    {
+     "worst_cell": [
+      15.67,
+      42.01
+     ],
+     "z_range": [
+      9.25,
+      9.25
+     ],
+     "series": "head_phi90",
+     "gap": [
+      1.996,
+      2.736
+     ]
+    },
+    {
+     "worst_cell": [
+      15.67,
+      42.01
+     ],
+     "z_range": [
+      9.25,
+      9.25
+     ],
+     "series": "head_phi270",
+     "gap": [
+      1.996,
+      2.736
+     ]
+    },
+    {
+     "worst_cell": [
+      17.42,
+      40.01
+     ],
+     "z_range": [
+      10.25,
+      10.25
+     ],
+     "series": "head_phi90",
+     "gap": [
+      2.024,
+      2.262
+     ]
+    },
+    {
+     "worst_cell": [
+      17.42,
+      40.01
+     ],
+     "z_range": [
+      10.25,
+      10.25
+     ],
+     "series": "head_phi270",
+     "gap": [
+      2.024,
+      2.262
+     ]
+    },
+    {
+     "worst_cell": [
+      13.42,
+      43.51
+     ],
+     "z_range": [
+      8.25,
+      8.25
+     ],
+     "series": "head_phi90",
+     "gap": [
+      2.138,
+      2.374
+     ]
+    },
+    {
+     "worst_cell": [
+      13.42,
+      43.51
+     ],
+     "z_range": [
+      8.25,
+      8.25
+     ],
+     "series": "head_phi270",
+     "gap": [
+      2.138,
+      2.374
+     ]
+    },
+    {
+     "worst_cell": [
+      16.92,
+      40.26
+     ],
+     "z_range": [
+      8.25,
+      8.25
+     ],
+     "series": "head_phi90",
+     "gap": [
+      2.567,
+      2.806
+     ]
+    },
+    {
+     "worst_cell": [
+      16.92,
+      40.26
+     ],
+     "z_range": [
+      8.25,
+      8.25
+     ],
+     "series": "head_phi270",
+     "gap": [
+      2.567,
+      2.806
+     ]
+    },
+    {
+     "worst_cell": [
+      13.92,
+      42.76
+     ],
+     "z_range": [
+      8.25,
+      8.25
+     ],
+     "series": "head_phi90",
+     "gap": [
+      2.737,
+      2.972
+     ]
+    },
+    {
+     "worst_cell": [
+      13.92,
+      42.76
+     ],
+     "z_range": [
+      8.25,
+      8.25
+     ],
+     "series": "head_phi270",
+     "gap": [
+      2.737,
+      2.972
+     ]
+    },
+    {
+     "worst_cell": [
+      13.92,
+      42.76
+     ],
+     "z_range": [
+      9.75,
+      9.75
+     ],
+     "series": "head_phi90",
+     "gap": [
+      2.738,
+      2.973
+     ]
+    },
+    {
+     "worst_cell": [
+      13.92,
+      42.76
+     ],
+     "z_range": [
+      9.75,
+      9.75
+     ],
+     "series": "head_phi270",
+     "gap": [
+      2.738,
+      2.973
+     ]
+    },
+    {
+     "worst_cell": [
+      15.42,
+      41.26
+     ],
+     "z_range": [
+      9.75,
+      10.25
+     ],
+     "series": "head_phi90",
+     "gap": [
+      2.993,
+      3.226
+     ]
+    },
+    {
+     "worst_cell": [
+      15.42,
+      41.26
+     ],
+     "z_range": [
+      9.75,
+      10.25
+     ],
+     "series": "head_phi270",
+     "gap": [
+      2.993,
+      3.226
+     ]
+    },
+    {
+     "worst_cell": [
+      14.92,
+      41.76
+     ],
+     "z_range": [
+      10.25,
+      10.25
+     ],
+     "series": "head_phi90",
+     "gap": [
+      3.764,
+      4.004
+     ]
+    },
+    {
+     "worst_cell": [
+      14.92,
+      41.76
+     ],
+     "z_range": [
+      10.25,
+      10.25
+     ],
+     "series": "head_phi270",
+     "gap": [
+      3.764,
+      4.004
+     ]
+    }
+   ]
+  },
+  {
+   "id": "V12.pinch_02",
+   "name": "head vs frame at (17.4, 39.3), z 7.75-8.25",
+   "status": "warn",
+   "measured": {
+    "gap_min": 2.24,
+    "gap_max": 2.701,
+    "severity": "low"
+   },
+   "criterion": "exposed gap constant (<= 0.1 variation), always < 2.0, or always >= 12 (SPEC V12)",
+   "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+   "series": [
+    "head_phi270",
+    "head_phi90"
+   ],
+   "cells": 18,
+   "cells_shear": 0,
+   "xy_bbox": [
+    17.42,
+    39.01,
+    17.67,
+    39.26
+   ],
+   "pose_at_gap_min": [
+    90.0,
+    -12.42
+   ],
+   "pose_at_gap_max": [
+    90.0,
+    -11.18
+   ],
+   "plot": "/home/user/Apps/fidget-toy/verification/reports/bee/safety_bee_nominal_pinch_02.png",
+   "closeup_3d": null,
+   "proposed_fix": "Cheek / roof-lobe jaw: where the roof lobes enter the head's I3 slot the slot back wall closes on the lobe end (gap 0.55 at one bank, several mm at the other) and the slot mouth is reachable from the side.  Make the lobe end inside the slot a circular arc about P (Body2D clipped to r <= R_b about P in both lobe sectors, R_b ~17.5) so RoofSweepInv's back wall becomes the concentric arc R_b + 0.55 (constant gap), let the face outline cross the body outline at ~90 deg (locally radial to P) and round the slot-mouth corners r >= 1.0.  A cheek-only change (Face2D U sector(P, 18.5)) was prototyped and does NOT remove the jaw.",
+   "locations": [
+    {
+     "worst_cell": [
+      17.42,
+      39.26
+     ],
+     "z_range": [
+      7.75,
+      8.25
+     ],
+     "series": "head_phi90",
+     "gap": [
+      2.24,
+      2.701
+     ]
+    },
+    {
+     "worst_cell": [
+      17.42,
+      39.26
+     ],
+     "z_range": [
+      7.75,
+      8.25
+     ],
+     "series": "head_phi270",
+     "gap": [
+      2.24,
+      2.701
+     ]
+    },
+    {
+     "worst_cell": [
+      17.42,
+      39.26
+     ],
+     "z_range": [
+      9.75,
+      10.25
+     ],
+     "series": "head_phi90",
+     "gap": [
+      2.241,
+      2.933
+     ]
+    },
+    {
+     "worst_cell": [
+      17.42,
+      39.26
+     ],
+     "z_range": [
+      9.75,
+      10.25
+     ],
+     "series": "head_phi270",
+     "gap": [
+      2.241,
+      2.933
+     ]
+    },
+    {
+     "worst_cell": [
+      -17.33,
+      39.51
+     ],
+     "z_range": [
+      9.75,
+      9.75
+     ],
+     "series": "head_phi90",
+     "gap": [
+      2.299,
+      3.239
+     ]
+    },
+    {
+     "worst_cell": [
+      -17.33,
+      39.51
+     ],
+     "z_range": [
+      9.75,
+      9.75
+     ],
+     "series": "head_phi270",
+     "gap": [
+      2.299,
+      3.239
+     ]
+    }
+   ]
+  },
+  {
+   "id": "V12.corners",
+   "name": "exposed convex plan corners (vertical edges) r >= 1.0 (exterior >= 1.5)",
+   "status": "pass",
+   "measured": {
+    "below_1.0": 0,
+    "1.0_to_1.5": 0,
+    "min_r_by_body": {
+     "frame": null,
+     "wheel": null,
+     "head": null
+    }
+   },
+   "criterion": "no exposed convex corner sharper than r 1.0; r 1.0-1.5 is a warning",
+   "proposed_fix": "round the listed convex plan corners: FaceMid2D = open(FaceUp - RoofSweepInv, 2.0) (r 1.0; today 1.0 -> r 0.5 at the I3 slot mouth) and round the exposed fill-finger tips at the cavity mouth (Fill2D open 2.0 / r 1.0 convex rounding outside the stop pads).  Removing material only increases clearances.",
+   "worst": []
+  },
+  {
+   "id": "V12.sharp_points",
+   "name": "sharp points / knife edges on the touchable surface (1 mm ball volume fraction)",
+   "status": "warn",
+   "measured": {
+    "below_0.15": 0,
+    "0.15_to_0.20": 2,
+    "min_fraction": 0.167
+   },
+   "criterion": "fraction >= 0.20 (square edge 0.25, square corner 0.125); < 0.15 fails",
+   "worst": [
+    {
+     "body": "head",
+     "at": [
+      15.07,
+      39.97,
+      5.3
+     ],
+     "ball_fraction": 0.167
+    },
+    {
+     "body": "frame",
+     "at": [
+      -19.04,
+      45.58,
+      2.6
+     ],
+     "ball_fraction": 0.195
+    },
+    {
+     "body": "frame",
+     "at": [
+      17.19,
+      41.9,
+      2.6
+     ],
+     "ball_fraction": 0.202
+    },
+    {
+     "body": "frame",
+     "at": [
+      -21.55,
+      49.26,
+      2.6
+     ],
+     "ball_fraction": 0.203
+    },
+    {
+     "body": "frame",
+     "at": [
+      -2.21,
+      57.3,
+      2.6
+     ],
+     "ball_fraction": 0.204
+    },
+    {
+     "body": "head",
+     "at": [
+      -14.21,
+      42.83,
+      4.7
+     ],
+     "ball_fraction": 0.227
+    },
+    {
+     "body": "head",
+     "at": [
+      14.21,
+      42.83,
+      4.7
+     ],
+     "ball_fraction": 0.227
+    },
+    {
+     "body": "head",
+     "at": [
+      -14.51,
+      42.45,
+      4.7
+     ],
+     "ball_fraction": 0.228
+    },
+    {
+     "body": "head",
+     "at": [
+      -14.51,
+      42.45,
+      13.7
+     ],
+     "ball_fraction": 0.228
+    },
+    {
+     "body": "head",
+     "at": [
+      -14.21,
+      42.83,
+      13.7
+     ],
+     "ball_fraction": 0.228
+    },
+    {
+     "body": "head",
+     "at": [
+      14.21,
+      42.83,
+      13.7
+     ],
+     "ball_fraction": 0.228
+    },
+    {
+     "body": "head",
+     "at": [
+      14.51,
+      42.45,
+      4.7
+     ],
+     "ball_fraction": 0.228
+    }
+   ]
+  },
+  {
+   "id": "DR.raised_height",
+   "name": "raised features >= 0.6 high (3 layers)",
+   "status": "pass",
+   "measured": [
+    {
+     "at": [
+      -6.8,
+      33.31
+     ],
+     "h": 0.6
+    },
+    {
+     "at": [
+      6.8,
+      33.31
+     ],
+     "h": 0.6
+    },
+    {
+     "at": [
+      -12.69,
+      55.25
+     ],
+     "h": 0.6
+    },
+    {
+     "at": [
+      12.69,
+      55.25
+     ],
+     "h": 0.6
+    }
+   ],
+   "criterion": ">= 0.6 (0.05 measurement step)",
+   "low": []
+  },
+  {
+   "id": "DR.line_width",
+   "name": "grooves / lines >= 0.8 wide (2 nozzle widths) so they survive slicing and read",
+   "status": "warn",
+   "measured": [
+    {
+     "surface": "decor top",
+     "at": [
+      -27.13,
+      14.41
+     ],
+     "w": 0.75
+    },
+    {
+     "surface": "decor top",
+     "at": [
+      -27.41,
+      9.16
+     ],
+     "w": 0.706
+    },
+    {
+     "surface": "decor top",
+     "at": [
+      27.13,
+      14.41
+     ],
+     "w": 0.75
+    },
+    {
+     "surface": "decor top",
+     "at": [
+      27.41,
+      9.16
+     ],
+     "w": 0.706
+    },
+    {
+     "surface": "back plate",
+     "at": [
+      23.48,
+      31.38
+     ],
+     "w": 0.75
+    },
+    {
+     "surface": "back plate",
+     "at": [
+      -23.48,
+      31.37
+     ],
+     "w": 0.75
+    }
+   ],
+   "criterion": ">= 0.8 mm stroke width",
+   "n_thin": 6
+  },
+  {
+   "id": "DR.deboss_depth",
+   "name": "debossed features >= 0.4 deep (2 layers at 0.2)",
+   "status": "warn",
+   "measured": [
+    {
+     "surface": "back plate",
+     "at": [
+      23.48,
+      31.38
+     ],
+     "d": 0.3
+    },
+    {
+     "surface": "back plate",
+     "at": [
+      -23.48,
+      31.37
+     ],
+     "d": 0.3
+    }
+   ],
+   "criterion": ">= 0.4 mm",
+   "n_shallow": 2
+  },
+  {
+   "id": "DR.eyes",
+   "name": "kawaii eye size / placement",
+   "status": "warn",
+   "measured": {
+    "eye_d": 7.91,
+    "eye_spacing_cc": 13.6,
+    "face_width_at_eyes": 31.64,
+    "eye_d_over_face_w": 0.25,
+    "spacing_over_face_w": 0.43,
+    "head_circle_centre": [
+     -0.0,
+     35.15
+    ],
+    "head_circle_r": 15.44,
+    "eye_line_below_head_centre_over_r": 0.119
+   },
+   "criterion": "eye D >= 0.25 x face width; eye line >= 0.15 R below the head-circle centre (big, low, wide-set eyes)",
+   "suggestion": "eyes D 8.5 domes 0.8 tall at C_h + (+-7.2, -2.8) with D 2.6 highlight dimples at (+1.5, +1.5); this keeps every edge >= 3 mm inside FaceUp2D"
+  },
+  {
+   "id": "DR.nose",
+   "name": "nose readable at arm's length",
+   "status": "pass",
+   "measured": {
+    "nose_bbox_mm": [
+     4.45,
+     4.45
+    ],
+    "nose_w_over_face_w": 0.133
+   },
+   "criterion": "nose width >= 3.0 mm (about 0.1 x face width)",
+   "suggestion": ""
+  },
+  {
+   "id": "DR.head_vs_ball",
+   "name": "head reads as the biggest shape (kawaii: big head, small body)",
+   "status": "warn",
+   "measured": {
+    "face_disc_w": 33.38,
+    "ball_d": 36.0,
+    "ratio": 0.927
+   },
+   "criterion": "face width >= ball diameter",
+   "suggestion": "grow the face disc to r 17.5 with C_h = P + (0, 12.0) (chin stays put; I_h rises ~30 %, still inside 4-8e-6 - re-run V13/V4), or tint the ball a softer colour so the face dominates"
+  },
+  {
+   "id": "DR.ears",
+   "name": "ears tall enough to read as cat ears",
+   "status": "pass",
+   "measured": {
+    "ear_rise_above_crown_mm": 7.54,
+    "ear_rise_over_head_r": 0.471,
+    "farthest_point_from_P_mm": 37.07,
+    "tip_travel_each_way_mm": 8.04,
+    "tip_travel_p2p_mm": 16.07
+   },
+   "criterion": "ear tips >= 6 mm above the crown (about 0.35-0.5 x head radius)",
+   "suggestion": ""
+  },
+  {
+   "id": "DR.giggle",
+   "name": "head shiver amplitude visible as a giggle",
+   "status": "pass",
+   "measured": {
+    "ear_tip_travel_p2p_mm": 16.07
+   },
+   "criterion": ">= 8 mm peak-to-peak at the ear tips"
+  },
+  {
+   "id": "DR.colour_swap",
+   "name": "optional colour swap z 17.9-18.5 colours exactly the face features",
+   "status": "warn",
+   "measured": {
+    "coloured_top_area_mm2": {
+     "frame": 0.0,
+     "wheel": 0.0,
+     "head": 89.3
+    }
+   },
+   "criterion": "only the eyes / nose / mouth change colour",
+   "note": "the swap also colours the paw tops (frame) and a band of the knob; debossed features (mouth, blush, inner ears) stay face-coloured",
+   "suggestion": "make the mouth a raised 0.6 x 0.9 line, and drop the paw top to z 15.4 (or start the swap at z 16.05 with 0.7 tall eyes / nose) so the swap catches only the face"
+  },
+  {
+   "id": "V14.renders",
+   "name": "front / back / three-quarter at psi -12.4, 0, +12.4 (wheel 0, 120, 240) + sections",
+   "status": "pass",
+   "measured": 11,
+   "criterion": "11 PNGs written",
+   "files": [
+    "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_front_psi-12.4_phi0.png",
+    "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_back_psi-12.4_phi0.png",
+    "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_three_quarter_psi-12.4_phi0.png",
+    "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_front_psi+0.0_phi120.png",
+    "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_back_psi+0.0_phi120.png",
+    "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_three_quarter_psi+0.0_phi120.png",
+    "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_front_psi+12.4_phi240.png",
+    "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_back_psi+12.4_phi240.png",
+    "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_three_quarter_psi+12.4_phi240.png",
+    "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_section_x0_print_pose.png",
+    "/home/user/Apps/fidget-toy/renders/bee/v14_bee_nominal_section_z5.2_print_pose.png"
+   ]
+  }
+ ],
+ "summary": [
+  "[WARN] V10.back_panel_0: back-plate-only panel (cantilever from the body; carries the head post) -> {'sigma_MPa': 38.5, 'L_mm': 16.62, 't_mm': 1.98}",
+  "[FAIL] V12.pinch_00: head vs frame at (12.2, 43.8), z 7.75-10.25 -> {'gap_min': 1.906, 'gap_max': 4.954, 'severity': 'high'}",
+  "[WARN] V12.pinch_01: head vs frame at (13.2, 44.0), z 7.75-7.75 -> {'gap_min': 1.858, 'gap_max': 2.596, 'severity': 'low'}",
+  "[WARN] V12.pinch_02: head vs frame at (17.4, 39.3), z 7.75-8.25 -> {'gap_min': 2.24, 'gap_max': 2.701, 'severity': 'low'}",
+  "[WARN] V12.sharp_points: sharp points / knife edges on the touchable surface (1 mm ball volume fraction) -> {'below_0.15': 0, '0.15_to_0.20': 2, 'min_fraction': 0.167}",
+  "[WARN] DR.line_width: grooves / lines >= 0.8 wide (2 nozzle widths) so they survive slicing and read -> [{'surface': 'decor top', 'at': [-27.13, 14.41], 'w': 0.75}, {'surface': 'decor top', 'at': [-27.41, 9.16], 'w': 0.706}, {'surface': 'decor top', 'at': [27.13, 14.41], 'w': 0.75}, {'surface': 'decor top', 'at': [27.41, 9.16], 'w': 0.706}, {'surface': 'back plate', 'at': [23.48, 31.38], 'w': 0.75}, {'surface': 'back plate', 'at': [-23.48, 31.37], 'w': 0.75}]",
+  "[WARN] DR.deboss_depth: debossed features >= 0.4 deep (2 layers at 0.2) -> [{'surface': 'back plate', 'at': [23.48, 31.38], 'd': 0.3}, {'surface': 'back plate', 'at': [-23.48, 31.37], 'd': 0.3}]",
+  "[WARN] DR.eyes: kawaii eye size / placement -> {'eye_d': 7.91, 'eye_spacing_cc': 13.6, 'face_width_at_eyes': 31.64, 'eye_d_over_face_w': 0.25, 'spacing_over_face_w': 0.43, 'head_circle_centre': [-0.0, 35.15], 'head_circle_r': 15.44, 'eye_line_below_head_centre_over_r': np.float64(0.119)}",
+  "[WARN] DR.head_vs_ball: head reads as the biggest shape (kawaii: big head, small body) -> {'face_disc_w': 33.38, 'ball_d': 36.0, 'ratio': 0.927}",
+  "[WARN] DR.colour_swap: optional colour swap z 17.9-18.5 colours exactly the face features -> {'coloured_top_area_mm2': {'frame': 0.0, 'wheel': 0.0, 'head': 89.3}}"
+ ],
+ "n_pass": 18,
+ "n_warn": 9,
+ "n_fail": 1,
+ "pass": false,
+ "time_s": 452.6
+}

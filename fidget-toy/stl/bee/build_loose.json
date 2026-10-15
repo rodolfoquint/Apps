@@ -1,0 +1,201 @@
+{
+ "skin": "bee",
+ "variant": "loose",
+ "pose": {
+  "phi": 12.0,
+  "psi": 5.96
+ },
+ "D": 24.70975553421278,
+ "P": [
+  0.0,
+  24.70975553421278
+ ],
+ "pallets": [
+  [
+   -12.982732820414402,
+   8.674784732414674
+  ],
+  [
+   12.982732820414402,
+   8.674784732414674
+  ]
+ ],
+ "info": {
+  "t_sections_s": 8.79,
+  "t_solids_s": 8.34,
+  "skin_contract": {
+   "warnings": [
+    "B_i only 1.32 mm inside Face2D (contract 3.0)",
+    "disc(P, 7.5) not inside Face2D (24.1 mm^2 outside); hub collar z 7.4-8.4 added"
+   ],
+   "leg_B_margin": [
+    1.324,
+    1.324
+   ],
+   "hub_disc_outside_area": 24.128,
+   "narrower_than_6mm_area": 0.151,
+   "crown_collar": {
+    "applied": false,
+    "pieces_beyond": 1,
+    "bad_rays": 0,
+    "thin_cap_at_notch_deg": [],
+    "range_deg": [
+     56.8,
+     123.2
+    ]
+   },
+   "stop_pad_area_ratio": 0.855,
+   "stop_pad_contact_mm": [
+    4.74,
+    5.95,
+    5.93,
+    4.75
+   ]
+  },
+  "face_features": [
+   "eye_L",
+   "eye_highlight_L",
+   "cheek_L",
+   "bobble_L",
+   "eye_R",
+   "eye_highlight_R",
+   "cheek_R",
+   "bobble_R",
+   "smile"
+  ]
+ },
+ "sections": {
+  "overall_W": 61.17,
+  "overall_H": 84.8,
+  "backdrop_bounds": [
+   -30.58,
+   -21.49,
+   30.59,
+   63.31
+  ],
+  "i3_area": 641.2,
+  "headband_area": 1284.3,
+  "faceup_area": 995.1,
+  "facemid_area": 353.8,
+  "fill_area": 986.0,
+  "roof_area": 1856.9,
+  "fill_slivers_removed_area": 8.4,
+  "stoppads_area": 14.75,
+  "max_bridge_width": 15.0,
+  "n_bridge_pieces": 1
+ },
+ "bodies": {
+  "frame": {
+   "volume_mm3": 20093.6,
+   "mass_solid_g": 24.92,
+   "triangles": 161882,
+   "bbox": [
+    -30.582,
+    -21.492,
+    0.0,
+    30.585,
+    63.307,
+    16.0
+   ],
+   "size": [
+    61.17,
+    84.8,
+    16.0
+   ]
+  },
+  "wheel": {
+   "volume_mm3": 6004.8,
+   "mass_solid_g": 7.45,
+   "triangles": 14576,
+   "bbox": [
+    -17.996,
+    -17.996,
+    3.2,
+    17.996,
+    17.996,
+    13.5
+   ],
+   "size": [
+    35.99,
+    35.99,
+    10.3
+   ]
+  },
+  "head": {
+   "volume_mm3": 11795.4,
+   "mass_solid_g": 14.63,
+   "triangles": 40260,
+   "bbox": [
+    -19.79,
+    5.269,
+    3.2,
+    22.221,
+    60.401,
+    18.5
+   ],
+   "size": [
+    42.01,
+    55.13,
+    15.3
+   ]
+  }
+ },
+ "overall_size": [
+  61.17,
+  84.8,
+  18.5
+ ],
+ "print_pose_check": {
+  "bodies": {
+   "frame": {
+    "components": 1,
+    "genus": 3,
+    "volume_mm3": 20093.59,
+    "status": "Error.NoError"
+   },
+   "wheel": {
+    "components": 1,
+    "genus": 0,
+    "volume_mm3": 6004.76,
+    "status": "Error.NoError"
+   },
+   "head": {
+    "components": 1,
+    "genus": 1,
+    "volume_mm3": 11795.41,
+    "status": "Error.NoError"
+   }
+  },
+  "pairs": [
+   {
+    "a": "frame",
+    "b": "wheel",
+    "overlap_mm3": 0.0,
+    "min_gap": 0.40002771222687283
+   },
+   {
+    "a": "frame",
+    "b": "head",
+    "overlap_mm3": 0.0,
+    "min_gap": 0.40000000000000036
+   },
+   {
+    "a": "wheel",
+    "b": "head",
+    "overlap_mm3": 0.0,
+    "min_gap": 1.0999999999999988
+   }
+  ],
+  "global_min_gap": 0.40000000000000036
+ },
+ "stl_triangles": 216718,
+ "files": [
+  "stl/bee/purrbobble_bee_loose.stl"
+ ],
+ "renders": [
+  "renders/bee/purrbobble_bee_loose_face.png",
+  "renders/bee/purrbobble_bee_loose_three_quarter.png"
+ ],
+ "time_build_export_s": 22.01,
+ "time_total_s": 26.5
+}

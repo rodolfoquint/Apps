@@ -1,0 +1,433 @@
+{
+ "skin": "kitty",
+ "variant": "deep",
+ "build_time_s": 3.86,
+ "params": {
+  "skin": "kitty",
+  "variant": "deep",
+  "N": 8,
+  "Rt": 14.2992,
+  "tooth_h": 5.3968,
+  "tip_frac": 0.0765,
+  "root_frac": 0.1333,
+  "r_f": 0.7,
+  "rp": 2.1448,
+  "drho": 1.7686,
+  "m": 2,
+  "tilt": 0.8792,
+  "psi_b": 12.42,
+  "hub_r": 7.0,
+  "leg_w": 7.0,
+  "leg_A_r": 21.0,
+  "leg_B": [
+   11.0,
+   26.0
+  ],
+  "leg_B_margin": 3.0,
+  "finger_L": 7.0,
+  "finger_taper": 8.0,
+  "face_dy": 11.158251819076309,
+  "face_r": 16.0,
+  "wheel_ex_r": 14.9,
+  "ball_ex_r": 19.0,
+  "body_r": 21.5,
+  "wall": 2.5,
+  "body_round": 3.0,
+  "corner_r": 1.5,
+  "backdrop_corner_r": 2.0,
+  "open_t": 2.0,
+  "facemid_open": 2.0,
+  "tongue_r": 17.5,
+  "tongue_w": 3.8,
+  "z_tongue": 8.2,
+  "fill_wheel_r": 14.8,
+  "R_hole_roof": 17.1,
+  "R_hub_cut": 7.5,
+  "backdrop_margin": 2.0,
+  "backdrop_round": 2.0,
+  "plate_ledge": 0.05,
+  "eps_stack": 0.002,
+  "mesh_simplify": 1e-05,
+  "stop_pad_r": 3.0,
+  "stop_pad_min_contact": 4.0,
+  "gap_xy": 0.5,
+  "sweep_allowance": 0.05,
+  "n_sweep": 101,
+  "gap_rib": 0.4,
+  "decor_face_clear": 12.0,
+  "post_d": 8.0,
+  "bore_d": 8.7,
+  "post_z0": 2.0,
+  "post_z1": 7.6,
+  "post_chamfer": 0.6,
+  "post_root_fillet": 1.0,
+  "ridge_h": 0.8,
+  "ridge_z": 5.0,
+  "ridge_gap_n": 0.35,
+  "bore_chamfer": 0.6,
+  "bore_roof_z": 8.0,
+  "z_bp": 2.0,
+  "bp_chamfer": 0.5,
+  "bp_chamfer_steps": 2,
+  "rib_h": 0.6,
+  "rib_w": 0.8,
+  "z_band0": 3.0,
+  "z_band1": 7.4,
+  "z_teeth1": 8.0,
+  "z_roof0": 8.4,
+  "z_roof1": 10.4,
+  "z_front0": 11.4,
+  "z_front1": 15.4,
+  "z_feat": 16.0,
+  "z_umb_top": 13.3,
+  "z_knob_top": 18.3,
+  "z_decor1": 12.0,
+  "z_lift": 0.0,
+  "R_u": 18.0,
+  "umb_r0": 14.3,
+  "umb_rim_z0": 11.7,
+  "umb_rim_z1": 12.3,
+  "umb_fillet": 1.0,
+  "r_k": 11.0,
+  "knob_d": 10.0,
+  "knob_top_fillet": 2.5,
+  "knob_root_fillet": 1.0,
+  "relief_w": 0.6,
+  "relief_depth": 0.5,
+  "relief_r_max": 16.5,
+  "relief_knob_clear": 7.5,
+  "keepout": [
+   [
+    0.0,
+    2.0
+   ],
+   [
+    14.79,
+    2.0
+   ],
+   [
+    14.79,
+    7.79
+   ],
+   [
+    18.6,
+    11.6
+   ],
+   [
+    18.6,
+    40.0
+   ],
+   [
+    0.0,
+    40.0
+   ]
+  ],
+  "paw_span_R": [
+   -10.0,
+   25.0
+  ],
+  "paw_span_L": [
+   155.0,
+   190.0
+  ],
+  "paw_wall_r": 18.6,
+  "paw_lip_r": 17.0,
+  "paw_lip_c": 31.699213562373096,
+  "paw_z0": 10.4,
+  "paw_z1": 16.0,
+  "rib_back_r0": 6.0,
+  "rib_back_pitch": 4.5,
+  "rib_back_n": 9,
+  "rib_rings_O": [
+   7.0,
+   11.0,
+   13.8
+  ],
+  "rib_rings_clip": 14.3,
+  "rib_post_clear": 0.3,
+  "rib_roof_r0": 9.0,
+  "rib_roof_pitch": 4.0,
+  "rib_roof_n": 8,
+  "rib_roof_i3_grow": 0.5,
+  "face_top_round": 1.5,
+  "face_top_steps": 6,
+  "frame_top_fillet": 1.0,
+  "frame_top_steps": 3,
+  "phi_print": 11.6,
+  "psi_print": 6.18,
+  "tol_func": 0.005,
+  "tol_deco": 0.02,
+  "rho_pla": 0.00124
+ },
+ "skin_contract": {
+  "warnings": [
+   "B_i only 1.32 mm inside Face2D (contract 3.0)",
+   "disc(P, 7.5) not inside Face2D (26.2 mm^2 outside); hub collar z 7.4-8.4 added",
+   "Face2D has 6.8 mm^2 narrower than 6.0 mm"
+  ],
+  "leg_B_margin": [
+   1.324,
+   1.324
+  ],
+  "hub_disc_outside_area": 26.231,
+  "narrower_than_6mm_area": 6.85,
+  "stop_pad_area_ratio": 0.946,
+  "stop_pad_contact_mm": [
+   6.39,
+   5.91,
+   5.91,
+   6.39
+  ]
+ },
+ "V1": {
+  "recomputed": {
+   "pitch": 45.0,
+   "gamma": 56.25,
+   "Rr": 8.9024,
+   "rho": 15.514199999999999,
+   "D": 24.55150371513647,
+   "P": [
+    0.0,
+    24.55150371513647
+   ],
+   "pallets": [
+    [
+     -12.899585859184146,
+     8.619227709112714
+    ],
+    [
+     12.899585859184146,
+     8.619227709112714
+    ]
+   ],
+   "u": [
+    [
+     -0.8314696123025452,
+     0.5555702330196023
+    ],
+    [
+     0.8314696123025452,
+     0.5555702330196023
+    ]
+   ],
+   "pallet_arm": 20.499676438192477,
+   "pallet_span_deg": 112.5,
+   "finger_outer_half_width": 3.12858584291674
+  },
+  "checks": {
+   "D": {
+    "value": 24.55150371513647,
+    "note": "variant drho 1.7686: D follows rho*tilt/cos(gamma)",
+    "pass": true
+   },
+   "cad_pallet_L": {
+    "centre": [
+     -12.899585857987404,
+     8.619227707386017
+    ],
+    "err": 2.1008747213815905e-09,
+    "pass": true
+   },
+   "cad_pallet_R": {
+    "centre": [
+     12.899585857987404,
+     8.619227707386017
+    ],
+    "err": 2.1008747213815905e-09,
+    "pass": true
+   },
+   "cad_P": {
+    "value": [
+     0.0,
+     24.55150371513647
+    ],
+    "pass": true
+   }
+  },
+  "pass": true
+ },
+ "V7": {
+  "pose": {
+   "phi": 11.6,
+   "psi": 6.18
+  },
+  "bodies": {
+   "frame": {
+    "status": "Error.NoError",
+    "components": 1,
+    "genus": 2,
+    "watertight": true,
+    "winding_consistent": true,
+    "volume_mm3": 17385.94,
+    "triangles": 49128,
+    "pass": true
+   },
+   "wheel": {
+    "status": "Error.NoError",
+    "components": 1,
+    "genus": 0,
+    "watertight": true,
+    "winding_consistent": true,
+    "volume_mm3": 6549.55,
+    "triangles": 14606,
+    "pass": true
+   },
+   "head": {
+    "status": "Error.NoError",
+    "components": 1,
+    "genus": 0,
+    "watertight": true,
+    "winding_consistent": true,
+    "volume_mm3": 11743.98,
+    "triangles": 14476,
+    "pass": true
+   }
+  },
+  "pairs": [
+   {
+    "a": "frame",
+    "b": "wheel",
+    "overlap_mm3": 0.0,
+    "min_gap": 0.35001
+   },
+   {
+    "a": "frame",
+    "b": "head",
+    "overlap_mm3": 0.0,
+    "min_gap": 0.35
+   },
+   {
+    "a": "wheel",
+    "b": "head",
+    "overlap_mm3": 0.0,
+    "min_gap": 0.6
+   }
+  ],
+  "checks": {
+   "three_valid_shells": {
+    "pass": true
+   },
+   "disjoint": {
+    "pass": true
+   },
+   "global_min_gap": {
+    "value": 0.35,
+    "spec": 0.35,
+    "tol": 0.002,
+    "pass": true
+   },
+   "pallet_tooth_gap": {
+    "pallet_2d": 1.3454,
+    "headband_2d": 1.3454,
+    "band_slab_3d": 1.3454,
+    "spec": 1.3,
+    "pass": true
+   }
+  },
+  "stl_roundtrip": {
+   "shells": 3,
+   "all_watertight": true
+  },
+  "pass": true
+ },
+ "mass": {
+  "frame": {
+   "bbox": [
+    -26.412,
+    -22.496,
+    0.0,
+    26.411,
+    60.414,
+    16.0
+   ],
+   "size": [
+    52.82,
+    82.91,
+    16.0
+   ],
+   "volume_mm3": 17385.9,
+   "mass_solid_pla_g": 21.56
+  },
+  "wheel": {
+   "bbox": [
+    -17.997,
+    -17.997,
+    3.0,
+    17.997,
+    17.997,
+    18.3
+   ],
+   "size": [
+    35.99,
+    35.99,
+    15.3
+   ],
+   "volume_mm3": 6549.5,
+   "mass_solid_pla_g": 8.12
+  },
+  "head": {
+   "bbox": [
+    -19.472,
+    5.179,
+    3.0,
+    22.246,
+    57.538,
+    16.0
+   ],
+   "size": [
+    41.72,
+    52.36,
+    13.0
+   ],
+   "volume_mm3": 11744.0,
+   "mass_solid_pla_g": 14.56
+  },
+  "overall_size_WxHxD": [
+   52.82,
+   82.91,
+   18.3
+  ],
+  "total_mass_solid_g": 44.24,
+  "head_inertia": {
+   "mass_g": 14.56,
+   "I_P_kgm2": 5.132e-06,
+   "com_above_P_mm": 11.85,
+   "com_x_mm": -0.0,
+   "spec_I_range": [
+    4e-06,
+    8e-06
+   ],
+   "spec_com_range": [
+    8.0,
+    14.0
+   ],
+   "pass": true
+  },
+  "wheel_inertia": {
+   "mass_g": 8.12,
+   "J_O_kgm2": 1.028e-06
+  }
+ },
+ "section_report": {
+  "overall_W": 52.82,
+  "overall_H": 82.91,
+  "backdrop_bounds": [
+   -26.41,
+   -22.5,
+   26.41,
+   60.41
+  ],
+  "i3_area": 195.5,
+  "headband_area": 1230.3,
+  "faceup_area": 938.1,
+  "facemid_area": 742.6,
+  "fill_area": 889.4,
+  "roof_area": 1262.9,
+  "fill_slivers_removed_area": 4.76,
+  "stoppads_area": 14.91,
+  "max_bridge_width": 13.04,
+  "n_bridge_pieces": 2
+ },
+ "pass": true,
+ "time_s": 7.84
+}
