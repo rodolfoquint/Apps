@@ -11,8 +11,8 @@ share the same mechanism core: **Purr Kitty**, **Bumble** the bee and **Pip the 
 | | |
 |---|---|
 | Size (kitty) | 52.8 × 84.3 × 18.3 mm |
-| Weight | about 36–40 g of PLA |
-| Print time | about 4 h 20 min (0.2 mm layers, MK4 / A1 / P1S class) |
+| Weight | about 41–43 g of PLA as printed (PrusaSlicer, head and ball 100 % infill) |
+| Print time | about 5 h 15 min – 5 h 25 min (0.2 mm layers, PrusaSlicer estimate for an MK4-class printer) |
 | Ages | 6+ (home-printed toys are not certified to EN 71 / ASTM F963) |
 
 ## How the mechanism was designed

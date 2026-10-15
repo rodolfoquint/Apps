@@ -251,6 +251,32 @@ def extract_cad(M) -> dict:
     return out
 
 
+def sliced_mass_g(skin: str, variant: str) -> dict | None:
+    """As-printed mass from PrusaSlicer on the exported 3MF (per-part infill: frame 20 % gyroid, head and wheel
+    100 %), with the print settings of verification/v_printability.py.  None if the slicer or the 3MF is missing."""
+    import re
+    import shutil
+    import subprocess
+    import tempfile
+    exe = shutil.which("prusa-slicer") or shutil.which("PrusaSlicer")
+    mf = REPO / "stl" / skin / f"purrbobble_{skin}_{variant}.3mf"
+    if exe is None or not mf.exists():
+        return None
+    sys.path.insert(0, str(REPO / "verification"))
+    from v_printability import SLICER_OPTS
+    with tempfile.TemporaryDirectory() as td:
+        g = Path(td) / "w.gcode"
+        r = subprocess.run([exe, "--export-gcode", *SLICER_OPTS, "-o", str(g), str(mf)], capture_output=True,
+                           text=True, timeout=900)
+        if r.returncode != 0 or not g.exists():
+            return None
+        txt = g.read_text(errors="ignore")
+    m = re.search(r"^; filament used \[g\] = ([0-9.]+)", txt, re.M)
+    t = re.search(r"^; estimated printing time \(normal mode\) = (.+)$", txt, re.M)
+    return {"filament_g": float(m.group(1)) if m else None, "print_time": t.group(1).strip() if t else None,
+            "source": str(mf.relative_to(REPO))}
+
+
 def mass_properties(M) -> dict:
     """V13: solid PLA, head about the vertical axis through P, wheel about O."""
     P = np.array(M.P, float)
@@ -283,8 +309,8 @@ def mass_properties(M) -> dict:
                 "pass": bool(4.0e-6 <= h["I_P_kgm2"] <= 8.0e-6)},
         "com_above_P": {"measured": float(dy), "criterion": "8 <= COM_y - P_y <= 14 mm", "pass": bool(8.0 <= dy <= 14.0)},
         "total_mass": {"measured": float(printed),
-                       "criterion": f"as printed <= 45 g (head + wheel solid, frame {FRAME_SHELL_MM} mm shell + "
-                                    f"{FRAME_INFILL:.0%} infill; all-solid upper bound {total:.1f} g for reference)",
+                       "criterion": f"as printed <= 45 g (estimate: head + wheel solid, frame {FRAME_SHELL_MM} mm "
+                                    f"shell + {FRAME_INFILL:.0%} infill; all-solid upper bound {total:.1f} g)",
                        "pass": bool(printed <= 45.0)},
         "bodies_watertight": {"measured": {k: res[k]["watertight"] for k in res}, "criterion": "all watertight",
                               "pass": all(res[k]["watertight"] for k in res)},
@@ -1141,6 +1167,15 @@ def main(argv=None):
         "param_cross_check": {"P_design": list(p.P), "pallets_design": [list(c) for c in p.pallets], "rp": p.rp,
                               "Rt": p.Rt, "Rr": p.Rr, "c_r_design": (p.bore_d - p.post_d) / 2},
     }
+    # SPEC 2.6 budgets the toy as printed: weigh the 3MF with PrusaSlicer (per-part infill) when possible; the
+    # geometric estimate above double-counts thin walls (~2-4 g high) and is kept as the fallback
+    sm = sliced_mass_g(a.skin, a.variant)
+    if sm and sm.get("filament_g"):
+        mp_["checks"]["total_mass"] = {
+            "measured": sm["filament_g"], "estimate_g": mp_["checks"]["total_mass"]["measured"],
+            "criterion": f"as printed <= 45 g (PrusaSlicer on {sm['source']}, per-part infill; print time "
+                         f"{sm['print_time']})", "pass": bool(sm["filament_g"] <= 45.0)}
+        mp_["pass"] = all(c["pass"] for c in mp_["checks"].values())
     rep["V13"] = mp_
     print(f"[v_escapement] CAD: rp_fit {cad['rp']:.4f}, c_r {cad['c_r']:.4f}, psi_b {cad['psi_b']:.4f}, "
           f"I_h {h['I_P_kgm2']:.3e}, COM +{h['com_rel_P_mm'][1]:.2f}, total {mp_['total_mass_g']:.2f} g "

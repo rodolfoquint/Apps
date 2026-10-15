@@ -91,6 +91,7 @@ class Params:
                                     # the leg channels and floats on this rib); groove floor rib_h lower (4.7)
     rib_band_pitch: float = 4.2     # band-top ribs (head) under the crown roof
     rib_band_spoke_deg: float = 10.0    # radial spokes about P joining the band-top arcs into a web
+    front_rib_hole_reach: float = 0.6   # front-layer ribs may reach this far into the crown's P hole (R_hub_cut)
     face_jowls: bool = False        # front-layer cheeks down to the ball rim (core2d.face_jowls); not needed
                                     # once the front layer clears the ball top
     face_ball_gap: float = 1.45     # jowl edge >= 1.45 from the ball rim at every pose (V6 1.4-2.0)
