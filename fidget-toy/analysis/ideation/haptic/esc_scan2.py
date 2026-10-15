@@ -1,4 +1,5 @@
 import numpy as np, json
+import os as _os; _HERE = _os.path.dirname(_os.path.abspath(__file__))  # repo-relative paths
 from esc_cspace import run
 # tangent-geometry parameterisation: pins at polar radius rho, angles +-gamma about O, 2*gamma=(m+0.5)*pitch
 rows = []
@@ -20,4 +21,4 @@ for N in [8, 9, 10]:
                     r.update(m=m, drho=drho, tilt=tilt)
                     rows.append(r)
                     print(N, m, Rt, Rr, drho, tilt, 'D %.1f ra %.1f beta %.1f | swing %.1f jams %d chan %.1f printclr %.2f' % (D, ra, beta, r['swing_pp_deg'], r['jams'], r['min_channel_width_deg'], r['best_print_clear']), flush=True)
-json.dump(rows, open('scan2.json', 'w'))
+json.dump(rows, open(_os.path.join(_HERE, 'scan2.json'), 'w'))

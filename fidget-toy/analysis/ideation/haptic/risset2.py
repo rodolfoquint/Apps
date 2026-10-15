@@ -1,6 +1,7 @@
 """Risset drum: n=4, L=3 -> 16 beats/rev, two sticks (two Z tracks). Computes lifts, ramps, torque profile,
 energy per rev, click impact speeds, per-stick min tooth spacing, and a synthetic click-train WAV for listening."""
 import numpy as np, wave, struct
+import os as _os; _HERE = _os.path.dirname(_os.path.abspath(__file__))  # repo-relative paths
 n, L = 4, 3
 K = n*2**(L-1)
 k = np.arange(K); tau = np.log2(1 + k/K)
@@ -67,7 +68,7 @@ for rev in range(int(dur*rps) + 1):
         if s0 + len(clk) < len(x):
             x[s0:s0 + len(clk)] += v_imp[i]/v_imp.max()*clk
 x /= np.abs(x).max()*1.1
-with wave.open('risset_drum_preview.wav', 'w') as wf:
+with wave.open(_os.path.join(_HERE, 'risset_drum_preview.wav'), 'w') as wf:
     wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(fs)
     wf.writeframes(b''.join(struct.pack('<h', int(v*32767)) for v in x))
 print('wrote risset_drum_preview.wav')

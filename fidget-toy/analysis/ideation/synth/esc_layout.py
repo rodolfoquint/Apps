@@ -6,7 +6,8 @@ World frame: wheel axis O=(0,0), head axis P=(0,D), y up.  psi>0 = CCW head rota
 import sys, json, numpy as np, shapely
 from shapely.geometry import Point, Polygon, LineString
 from shapely import affinity
-sys.path.insert(0, '/tmp/claude-0/-home-user-Apps/023789a6-f9f1-563f-a565-9790ebbd0388/scratchpad/ideation/haptic')
+import os as _os; _HERE = _os.path.dirname(_os.path.abspath(__file__))  # repo-relative paths
+sys.path.insert(0, _os.path.join(_HERE, '..', 'haptic'))
 from esc_opt import star
 
 P_ESC = {"N": 8, "Rt": 14.2992, "tooth_h": 5.3968, "tip_frac": 0.0765, "root_frac": 0.1333,

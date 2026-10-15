@@ -1,4 +1,5 @@
 import numpy as np, sys
+import os as _os; _HERE = _os.path.dirname(_os.path.abspath(__file__))  # repo-relative paths
 import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
 import esc_dyn
 from esc_dyn import build, sample
@@ -11,7 +12,7 @@ P1=np.array([-rho*np.sin(gam), rho*np.cos(gam)]); P2=np.array([rho*np.sin(gam), 
 G=build(N,Rt,Rr)
 # monkeypatch to record
 import types
-src = open('esc_dyn.py').read()
+src = open(_os.path.join(_HERE, 'esc_dyn.py')).read()
 ns = {}
 code = src.split("if __name__")[0].replace("    t = np.arange(n_steps)*dt\n", "    t = np.arange(n_steps)*dt\n    globals()['LOG']=(t,log_phi.copy(),log_psi.copy())\n")
 exec(code, ns)
@@ -21,4 +22,4 @@ t,ph,ps = ns['LOG']
 fig,ax=plt.subplots(2,1,figsize=(10,6),sharex=True)
 ax[0].plot(t,np.degrees(ph)); ax[0].set_ylabel('wheel deg')
 ax[1].plot(t,np.degrees(ps)); ax[1].set_ylabel('anchor deg')
-plt.savefig(f'diag_mu{mu}_T{T}.png',dpi=70)
+plt.savefig(_os.path.join(_HERE, f'diag_mu{mu}_T{T}.png'),dpi=70)

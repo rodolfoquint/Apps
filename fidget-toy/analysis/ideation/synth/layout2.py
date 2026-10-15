@@ -1,5 +1,6 @@
 """Layout v2: apply the final Z-band rules, compute I3 overlap, roof spans, wall widths, and draw a top view."""
 import json, numpy as np, shapely
+import os as _os; _HERE = _os.path.dirname(_os.path.abspath(__file__))  # repo-relative paths
 from shapely.geometry import Point, Polygon, LineString
 from shapely import affinity
 from layout import build, PAR, swept, max_inscribed_width, rot
@@ -64,4 +65,4 @@ for c in g['pins']: draw(Point(c).buffer(g['rp']), color='k')
 ax.plot([0], [0], 'k+'); ax.plot([P[0]], [P[1]], 'r+')
 ax.set_aspect('equal'); ax.grid(alpha=0.3)
 ax.set_title('Purr-Bobble core: top view (print pose psi=0)\nbeige=backplate, tan=frame band fill, brown=roof, pink=head band, yellow=face(up), orange=I3, blue=wheel/umbrella')
-plt.savefig('layout_top.png', dpi=110, bbox_inches='tight')
+plt.savefig(_os.path.join(_HERE, 'layout_top.png'), dpi=110, bbox_inches='tight')

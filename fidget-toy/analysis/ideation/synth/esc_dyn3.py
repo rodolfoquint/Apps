@@ -2,7 +2,8 @@
 6 DOF: wheel (x,y,phi) on a fixed post at O, head (x,y,psi) on a fixed post at P. Penalty contacts everywhere.
 Extends the ideation model esc_dyn2.py (which had rigid frictionless pivots)."""
 import sys, json, numpy as np
-sys.path.insert(0, '/tmp/claude-0/-home-user-Apps/023789a6-f9f1-563f-a565-9790ebbd0388/scratchpad/ideation/haptic')
+import os as _os; _HERE = _os.path.dirname(_os.path.abspath(__file__))  # repo-relative paths
+sys.path.insert(0, _os.path.join(_HERE, '..', 'haptic'))
 from esc_opt import star, sdf_grid
 from esc_layout import esc_geometry, P_ESC
 

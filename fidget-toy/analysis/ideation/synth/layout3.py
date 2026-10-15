@@ -2,7 +2,8 @@
 import json, numpy as np, shapely, sys
 from shapely.geometry import Point, Polygon, LineString
 from layout import build, PAR, swept, max_inscribed_width, rot
-sys.path.insert(0, '/tmp/claude-0/-home-user-Apps/023789a6-f9f1-563f-a565-9790ebbd0388/scratchpad/ideation/haptic')
+import os as _os; _HERE = _os.path.dirname(_os.path.abspath(__file__))  # repo-relative paths
+sys.path.insert(0, _os.path.join(_HERE, '..', 'haptic'))
 from esc_opt import evaluate
 import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
 L = build(); g = L['g']; P = L['P']; O = Point(0, 0)
@@ -33,7 +34,7 @@ for dD, drp in [(0, 0), (-0.4, 0.2), (0.4, -0.2), (0.4, 0.2), (-0.4, -0.2)]:
 print(json.dumps(rep, indent=1))
 import pickle
 pickle.dump(dict(body=body, roof=roof, fill_band=fill_band, face_mid=face_mid, I3=I3, backdrop=backdrop, chan=chan,
-                 head_band=L['head_band'], face_up=L['face_up'], W=g['W'], pins=g['pins'], rp=g['rp'], P=P, D=g['D']), open('layout3.pkl', 'wb'))
+                 head_band=L['head_band'], face_up=L['face_up'], W=g['W'], pins=g['pins'], rp=g['rp'], P=P, D=g['D']), open(_os.path.join(_HERE, 'layout3.pkl'), 'wb'))
 fig, axs = plt.subplots(1, 3, figsize=(16, 8))
 for ax, ang in zip(axs, [-PAR['psi_b'], 0, PAR['psi_b']]):
     def draw(geom, **kw):
@@ -50,4 +51,4 @@ for ax, ang in zip(axs, [-PAR['psi_b'], 0, PAR['psi_b']]):
     draw(Point(0, 0).buffer(PAR['R_u']), color='#7fb3ff', alpha=0.35)
     draw(shapely.affinity.rotate(g['W'], 7*ang, origin=(0, 0)), color='#3060c0', alpha=0.7)
     ax.set_aspect('equal'); ax.set_title('head swing %+.1f deg' % ang); ax.grid(alpha=0.3)
-plt.savefig('layout_swing.png', dpi=90, bbox_inches='tight')
+plt.savefig(_os.path.join(_HERE, 'layout_swing.png'), dpi=90, bbox_inches='tight')

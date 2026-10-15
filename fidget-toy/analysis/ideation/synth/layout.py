@@ -2,6 +2,7 @@
 Builds every body's outline per Z band with shapely, then checks: finger C-space at the re-centred pin depth,
 face vs ball nip gap over the swing, roof bridge spans, wall widths, overall size, small-parts, mass & inertia."""
 import sys, json, numpy as np, shapely
+import os as _os; _HERE = _os.path.dirname(_os.path.abspath(__file__))  # repo-relative paths
 from shapely.geometry import Point, Polygon, LineString, MultiPolygon
 from shapely import affinity
 from esc_layout import esc_geometry, cspace_check, P_ESC
@@ -131,4 +132,4 @@ if __name__ == '__main__':
     rep['head_min_width'] = round(minw(L['head_band'].union(L['face_up'])), 1)
     rep['wheel_min_width'] = round(2*PAR['R_u'], 1)
     print(json.dumps(rep, indent=1))
-    import pickle; pickle.dump({k: v for k, v in L.items() if k != 'g'}, open('layout.pkl', 'wb'))
+    import pickle; pickle.dump({k: v for k, v in L.items() if k != 'g'}, open(_os.path.join(_HERE, 'layout.pkl'), 'wb'))

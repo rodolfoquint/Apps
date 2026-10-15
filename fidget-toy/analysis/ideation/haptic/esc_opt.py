@@ -3,6 +3,7 @@ Uses a wheel SDF grid: C-space clearance, lazy-anchor quasi-static sweep in both
 at contacts (pin side and wheel side, must stay below 90deg - friction angle - margin), banking stops.
 """
 import numpy as np, json, sys
+import os as _os; _HERE = _os.path.dirname(_os.path.abspath(__file__))  # repo-relative paths
 DEBUG = False
 from scipy.ndimage import map_coordinates
 from shapely.geometry import Polygon
@@ -121,5 +122,5 @@ if __name__ == '__main__':
             best.append(r)
             print('OK', json.dumps(r), flush=True)
     best.sort(key=lambda r: -r['swing_pp'])
-    json.dump(best, open(f'opt_{sys.argv[1] if len(sys.argv)>1 else 0}.json', 'w'), indent=1)
+    json.dump(best, open(_os.path.join(_HERE, f'opt_{sys.argv[1] if len(sys.argv)>1 else 0}.json'), 'w'), indent=1)
     print('n ok', len(best))

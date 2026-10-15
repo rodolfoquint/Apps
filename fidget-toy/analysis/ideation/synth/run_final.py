@@ -1,5 +1,6 @@
 import sys, json, itertools, multiprocessing as mp
-sys.path.insert(0, '.')
+import os as _os; _HERE = _os.path.dirname(_os.path.abspath(__file__))  # repo-relative paths
+sys.path.insert(0, _HERE)
 from run_dyn3 import job
 if __name__ == '__main__':
     jobs = []

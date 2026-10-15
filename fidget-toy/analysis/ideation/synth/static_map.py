@@ -1,7 +1,8 @@
 """Static (quasi-static, hard-banking) jam map: for each nominal pin depth drho, find the centre-distance error dD range
 for which the lazy-head C-space channel stays open in both directions (no hard lock), at pin size error drp."""
 import sys, json, numpy as np, multiprocessing as mp
-sys.path.insert(0, '/tmp/claude-0/-home-user-Apps/023789a6-f9f1-563f-a565-9790ebbd0388/scratchpad/ideation/haptic')
+import os as _os; _HERE = _os.path.dirname(_os.path.abspath(__file__))  # repo-relative paths
+sys.path.insert(0, _os.path.join(_HERE, '..', 'haptic'))
 from esc_opt import evaluate, star, sdf_grid
 p = dict(N=8, Rt=14.2992, tooth_h=5.3968, tip_frac=0.0765, root_frac=0.1333, rp=2.1448, m=2, tilt=0.8792, psi_b=12.42)
 W = star(p['N'], p['Rt'], p['Rt'] - p['tooth_h'], p['tip_frac'], p['root_frac']); G = sdf_grid(W, p['Rt'], h=0.05)
