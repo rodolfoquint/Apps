@@ -21,8 +21,8 @@
   ]
  ],
  "info": {
-  "t_sections_s": 4.58,
-  "t_solids_s": 8.76,
+  "t_sections_s": 3.36,
+  "t_solids_s": 7.23,
   "skin_contract": {
    "warnings": [
     "B_i only 1.32 mm inside Face2D (contract 3.0)",
@@ -122,9 +122,9 @@
    ]
   },
   "head": {
-   "volume_mm3": 11898.2,
+   "volume_mm3": 11897.0,
    "mass_solid_g": 14.75,
-   "triangles": 39908,
+   "triangles": 39936,
    "bbox": [
     -19.79,
     5.269,
@@ -162,7 +162,7 @@
    "head": {
     "components": 1,
     "genus": 1,
-    "volume_mm3": 11898.16,
+    "volume_mm3": 11897.01,
     "status": "Error.NoError"
    }
   },
@@ -188,13 +188,14 @@
   ],
   "global_min_gap": 0.3500194891453687
  },
- "stl_triangles": 215820,
+ "stl_triangles": 215848,
  "files": [
   "stl/bee/purrbobble_bee_nominal.stl",
   "stl/bee/purrbobble_bee_nominal_frame.stl",
   "stl/bee/purrbobble_bee_nominal_wheel.stl",
   "stl/bee/purrbobble_bee_nominal_head.stl",
-  "stl/bee/purrbobble_bee_nominal.3mf"
+  "stl/bee/purrbobble_bee_nominal.3mf",
+  "stl/bee/purrbobble_bee_nominal_multicolour.3mf"
  ],
  "renders": [
   "renders/bee/purrbobble_bee_nominal_face.png",
@@ -205,6 +206,6 @@
   "renders/bee/purrbobble_bee_nominal_section_x0.png",
   "renders/bee/purrbobble_bee_nominal_section_z5.png"
  ],
- "time_build_export_s": 19.0,
- "time_total_s": 26.68
+ "time_build_export_s": 17.4,
+ "time_total_s": 25.43
 }

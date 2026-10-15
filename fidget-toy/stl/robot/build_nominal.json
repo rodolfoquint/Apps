@@ -21,8 +21,8 @@
   ]
  ],
  "info": {
-  "t_sections_s": 4.01,
-  "t_solids_s": 7.71,
+  "t_sections_s": 2.87,
+  "t_solids_s": 6.32,
   "skin_contract": {
    "warnings": [
     "B_i only 1.76 mm inside Face2D (contract 3.0)",
@@ -125,9 +125,9 @@
    ]
   },
   "head": {
-   "volume_mm3": 10324.6,
+   "volume_mm3": 10323.6,
    "mass_solid_g": 12.8,
-   "triangles": 35812,
+   "triangles": 35872,
    "bbox": [
     -19.512,
     5.269,
@@ -165,7 +165,7 @@
    "head": {
     "components": 1,
     "genus": 1,
-    "volume_mm3": 10324.57,
+    "volume_mm3": 10323.62,
     "status": "Error.NoError"
    }
   },
@@ -191,13 +191,14 @@
   ],
   "global_min_gap": 0.3500194891453687
  },
- "stl_triangles": 201462,
+ "stl_triangles": 201522,
  "files": [
   "stl/robot/purrbobble_robot_nominal.stl",
   "stl/robot/purrbobble_robot_nominal_frame.stl",
   "stl/robot/purrbobble_robot_nominal_wheel.stl",
   "stl/robot/purrbobble_robot_nominal_head.stl",
-  "stl/robot/purrbobble_robot_nominal.3mf"
+  "stl/robot/purrbobble_robot_nominal.3mf",
+  "stl/robot/purrbobble_robot_nominal_multicolour.3mf"
  ],
  "renders": [
   "renders/robot/purrbobble_robot_nominal_face.png",
@@ -208,6 +209,6 @@
   "renders/robot/purrbobble_robot_nominal_section_x0.png",
   "renders/robot/purrbobble_robot_nominal_section_z5.png"
  ],
- "time_build_export_s": 17.26,
- "time_total_s": 25.25
+ "time_build_export_s": 15.57,
+ "time_total_s": 24.18
 }

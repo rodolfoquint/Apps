@@ -21,8 +21,8 @@
   ]
  ],
  "info": {
-  "t_sections_s": 10.74,
-  "t_solids_s": 9.41,
+  "t_sections_s": 4.69,
+  "t_solids_s": 5.19,
   "skin_contract": {
    "warnings": [
     "B_i only 1.76 mm inside Face2D (contract 3.0)",
@@ -126,9 +126,9 @@
    ]
   },
   "head": {
-   "volume_mm3": 10342.7,
-   "mass_solid_g": 12.83,
-   "triangles": 48760,
+   "volume_mm3": 10341.8,
+   "mass_solid_g": 12.82,
+   "triangles": 48820,
    "bbox": [
     -19.488,
     5.34,
@@ -166,7 +166,7 @@
    "head": {
     "components": 1,
     "genus": 1,
-    "volume_mm3": 10342.75,
+    "volume_mm3": 10341.8,
     "status": "Error.NoError"
    }
   },
@@ -192,7 +192,7 @@
   ],
   "global_min_gap": 0.35001948914536873
  },
- "stl_triangles": 215392,
+ "stl_triangles": 215452,
  "files": [
   "stl/robot/purrbobble_robot_shallow.stl"
  ],
@@ -200,6 +200,6 @@
   "renders/robot/purrbobble_robot_shallow_face.png",
   "renders/robot/purrbobble_robot_shallow_three_quarter.png"
  ],
- "time_build_export_s": 25.02,
- "time_total_s": 26.82
+ "time_build_export_s": 14.31,
+ "time_total_s": 16.72
 }

@@ -15,19 +15,51 @@
    5.96
   ],
   "files": {
-   "frame": "kitty_frame.json",
-   "wheel": "kitty_wheel.json",
-   "head": "kitty_head.json"
+   "frame_plate": {
+    "file": "kitty_frame_plate.json",
+    "body": "frame",
+    "color": "#74cfae"
+   },
+   "frame_accent": {
+    "file": "kitty_frame_accent.json",
+    "body": "frame",
+    "color": "#f2787d"
+   },
+   "frame_body": {
+    "file": "kitty_frame_body.json",
+    "body": "frame",
+    "color": "#f6e7d3"
+   },
+   "head_details": {
+    "file": "kitty_head_details.json",
+    "body": "head",
+    "color": "#3a2723"
+   },
+   "head_accent": {
+    "file": "kitty_head_accent.json",
+    "body": "head",
+    "color": "#f2787d"
+   },
+   "head_body": {
+    "file": "kitty_head_body.json",
+    "body": "head",
+    "color": "#f8ecdc"
+   },
+   "wheel": {
+    "file": "kitty_wheel.json",
+    "body": "wheel",
+    "color": "#f2787d"
+   }
   },
   "bbox": [
    [
-    -26.41,
-    -22.49,
+    -29.97,
+    -27.68,
     0.0
    ],
    [
-    26.41,
-    61.81,
+    30.56,
+    63.9,
     18.3
    ]
   ]
@@ -48,9 +80,31 @@
    5.96
   ],
   "files": {
-   "frame": "bee_frame.json",
-   "wheel": "bee_wheel.json",
-   "head": "bee_head.json"
+   "frame_plate": {
+    "file": "bee_frame_plate.json",
+    "body": "frame",
+    "color": "#8f78e0"
+   },
+   "frame_body": {
+    "file": "bee_frame_body.json",
+    "body": "frame",
+    "color": "#b9a4f4"
+   },
+   "head_details": {
+    "file": "bee_head_details.json",
+    "body": "head",
+    "color": "#2e2420"
+   },
+   "head_body": {
+    "file": "bee_head_body.json",
+    "body": "head",
+    "color": "#ffd23f"
+   },
+   "wheel": {
+    "file": "bee_wheel.json",
+    "body": "wheel",
+    "color": "#f7a325"
+   }
   },
   "bbox": [
    [
@@ -81,9 +135,36 @@
    5.96
   ],
   "files": {
-   "frame": "robot_frame.json",
-   "wheel": "robot_wheel.json",
-   "head": "robot_head.json"
+   "frame_plate": {
+    "file": "robot_frame_plate.json",
+    "body": "frame",
+    "color": "#5b8fd6"
+   },
+   "frame_body": {
+    "file": "robot_frame_body.json",
+    "body": "frame",
+    "color": "#86b9f0"
+   },
+   "head_details": {
+    "file": "robot_head_details.json",
+    "body": "head",
+    "color": "#22304a"
+   },
+   "head_accent": {
+    "file": "robot_head_accent.json",
+    "body": "head",
+    "color": "#ffb347"
+   },
+   "head_body": {
+    "file": "robot_head_body.json",
+    "body": "head",
+    "color": "#d8dfe8"
+   },
+   "wheel": {
+    "file": "robot_wheel.json",
+    "body": "wheel",
+    "color": "#ffb347"
+   }
   },
   "bbox": [
    [

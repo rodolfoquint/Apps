@@ -34,7 +34,7 @@
      "components": 1,
      "status": "Error.NoError",
      "genus": 1,
-     "volume_mm3": 10324.57,
+     "volume_mm3": 10323.62,
      "watertight": true,
      "winding_consistent": true,
      "euler": 0,
@@ -47,12 +47,12 @@
     "watertight_shells": 3,
     "shell_volumes": [
      6165.4,
-     10324.6,
+     10323.6,
      19230.6
     ],
     "model_volumes": [
      6165.4,
-     10324.6,
+     10323.6,
      19230.6
     ],
     "matches_model": true,
@@ -73,9 +73,9 @@
       "volume_mm3": 6165.4
      },
      "head": {
-      "triangles": 35812,
+      "triangles": 35872,
       "watertight": true,
-      "volume_mm3": 10324.6
+      "volume_mm3": 10323.6
      }
     },
     "infill": {
@@ -701,18 +701,18 @@
      }
     },
     "head": {
-     "min": 0.503,
-     "p01": 0.787,
+     "min": 0.52,
+     "p01": 0.788,
      "median": 4.4,
      "no_hit": 0,
-     "frac_below_1.2": 0.1777,
+     "frac_below_1.2": 0.1778,
      "zones": {
       "cosmetic:face_feature": {
        "policy": "cosmetic",
-       "n_thin": 4,
+       "n_thin": 2,
        "min": 0.708,
        "kinds": {
-        "cosmetic": 4
+        "cosmetic": 2
        },
        "worst": [
         {
@@ -731,42 +731,14 @@
         },
         {
          "at": [
-          12.94,
-          42.7,
-          17.52
+          1.97,
+          28.09,
+          17.68
          ],
-         "t": 0.978,
+         "t": 0.99,
          "normal": [
-          0.88,
-          0.47,
-          0.0
-         ],
-         "kind": "cosmetic"
-        },
-        {
-         "at": [
-          -15.84,
-          40.87,
-          17.35
-         ],
-         "t": 1.118,
-         "normal": [
-          0.76,
-          0.65,
-          -0.0
-         ],
-         "kind": "cosmetic"
-        },
-        {
-         "at": [
-          -1.62,
-          27.64,
-          17.65
-         ],
-         "t": 1.195,
-         "normal": [
-          0.93,
-          -0.36,
+          0.97,
+          0.26,
           0.0
          ],
          "kind": "cosmetic"
@@ -776,78 +748,78 @@
       },
       "rib_band": {
        "policy": "designed",
-       "n_thin": 527,
-       "min": 0.503,
+       "n_thin": 551,
+       "min": 0.52,
        "kinds": {
-        "designed": 527
+        "designed": 551
        },
        "worst": [
         {
          "at": [
-          -14.43,
-          14.14,
-          7.64
+          16.56,
+          17.76,
+          7.41
          ],
-         "t": 0.503,
+         "t": 0.52,
          "normal": [
-          0.8,
-          -0.59,
+          0.16,
+          0.99,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          13.71,
-          18.47,
-          7.42
+          -14.06,
+          30.1,
+          7.92
          ],
-         "t": 0.523,
+         "t": 0.534,
          "normal": [
+          0.93,
           -0.36,
-          -0.93,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          13.65,
-          19.06,
-          7.94
+          -11.98,
+          15.86,
+          7.88
          ],
-         "t": 0.548,
+         "t": 0.536,
          "normal": [
-          0.41,
-          0.91,
+          0.47,
+          -0.88,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          15.42,
+          25.52,
+          7.99
+         ],
+         "t": 0.55,
+         "normal": [
+          0.7,
+          0.71,
           -0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          -11.99,
-          16.5,
-          7.82
+          12.61,
+          32.94,
+          7.96
          ],
-         "t": 0.583,
+         "t": 0.552,
          "normal": [
-          -0.59,
-          0.81,
-          0.0
-         ],
-         "kind": "designed"
-        },
-        {
-         "at": [
-          -14.02,
-          30.23,
-          7.98
-         ],
-         "t": 0.584,
-         "normal": [
-          0.95,
-          -0.31,
+          -0.86,
+          -0.5,
           0.0
          ],
          "kind": "designed"
@@ -859,101 +831,130 @@
       },
       "rib_front": {
        "policy": "designed",
-       "n_thin": 1541,
-       "min": 0.772,
+       "n_thin": 1525,
+       "min": 0.625,
        "kinds": {
-        "designed": 1541
+        "designed": 1525
        },
        "worst": [
         {
          "at": [
-          7.19,
-          22.97,
-          11.33
+          -6.28,
+          21.86,
+          10.88
          ],
-         "t": 0.772,
+         "t": 0.625,
+         "normal": [
+          0.89,
+          0.45,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          6.74,
+          23.25,
+          11.41
+         ],
+         "t": 0.65,
+         "normal": [
+          -0.97,
+          0.26,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          -6.58,
+          21.5,
+          13.58
+         ],
+         "t": 0.678,
+         "normal": [
+          -0.27,
+          -0.96,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          -6.45,
+          21.49,
+          11.03
+         ],
+         "t": 0.736,
+         "normal": [
+          -0.01,
+          -1.0,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          7.18,
+          22.97,
+          11.34
+         ],
+         "t": 0.769,
          "normal": [
           0.46,
           -0.89,
           0.0
          ],
          "kind": "designed"
-        },
+        }
+       ],
+       "required": 0.77,
+       "status": "warn",
+       "note": "rays at clipped / rounded rib ends; rib body width checked in V8_ribs"
+      },
+      "rib_groove": {
+       "policy": "designed",
+       "n_thin": 56,
+       "min": 0.778,
+       "kinds": {
+        "designed": 56
+       },
+       "worst": [
         {
          "at": [
-          6.84,
-          34.51,
-          12.34
+          -12.41,
+          41.77,
+          4.94
          ],
-         "t": 0.775,
+         "t": 0.778,
          "normal": [
-          0.58,
-          0.82,
-          -0.0
-         ],
-         "kind": "designed"
-        },
-        {
-         "at": [
-          -9.97,
-          29.75,
-          12.7
-         ],
-         "t": 0.777,
-         "normal": [
-          0.89,
-          -0.45,
+          0.63,
+          -0.78,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          5.03,
-          34.69,
-          11.37
+          -14.57,
+          41.02,
+          5.02
          ],
-         "t": 0.777,
+         "t": 0.78,
          "normal": [
-          -0.45,
-          -0.89,
-          -0.0
+          -0.68,
+          0.74,
+          0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          5.41,
-          35.37,
-          13.22
+          12.75,
+          42.48,
+          4.96
          ],
-         "t": 0.777,
-         "normal": [
-          0.47,
-          0.88,
-          -0.0
-         ],
-         "kind": "designed"
-        }
-       ],
-       "required": 0.77,
-       "status": "pass"
-      },
-      "rib_groove": {
-       "policy": "designed",
-       "n_thin": 61,
-       "min": 0.776,
-       "kinds": {
-        "designed": 61
-       },
-       "worst": [
-        {
-         "at": [
-          12.91,
-          42.37,
-          4.77
-         ],
-         "t": 0.776,
+         "t": 0.782,
          "normal": [
           0.59,
           0.81,
@@ -963,56 +964,28 @@
         },
         {
          "at": [
-          -14.13,
-          40.38,
-          4.94
+          4.42,
+          45.34,
+          5.15
          ],
-         "t": 0.776,
+         "t": 0.784,
+         "normal": [
+          -0.26,
+          -0.97,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          -14.28,
+          40.23,
+          4.88
+         ],
+         "t": 0.786,
          "normal": [
           0.71,
           -0.71,
-          0.0
-         ],
-         "kind": "designed"
-        },
-        {
-         "at": [
-          -15.62,
-          38.89,
-          4.9
-         ],
-         "t": 0.779,
-         "normal": [
-          0.71,
-          -0.71,
-          0.0
-         ],
-         "kind": "designed"
-        },
-        {
-         "at": [
-          -12.81,
-          42.45,
-          4.78
-         ],
-         "t": 0.781,
-         "normal": [
-          -0.6,
-          0.8,
-          0.0
-         ],
-         "kind": "designed"
-        },
-        {
-         "at": [
-          8.53,
-          44.0,
-          4.83
-         ],
-         "t": 0.783,
-         "normal": [
-          -0.36,
-          -0.93,
           0.0
          ],
          "kind": "designed"
@@ -2265,10 +2238,10 @@
        17.5,
        18.1
       ],
-      "area_sum_mm2": 7.63,
+      "area_sum_mm2": 8.25,
       "wall_pieces": 2,
       "corner_pieces": 16,
-      "thinnest_wall_w_est": 0.68,
+      "thinnest_wall_w_est": 0.38,
       "examples": [
        {
         "z": 17.5,
@@ -2328,23 +2301,23 @@
        {
         "z": 17.9,
         "xy": [
-         -5.48,
-         39.6
+         -5.02,
+         39.34
         ],
-        "area": 0.983,
-        "length": 2.26,
-        "w_min": 0.68,
+        "area": 1.283,
+        "length": 3.2,
+        "w_min": 0.38,
         "kind": "wall"
        },
        {
         "z": 17.9,
         "xy": [
-         5.66,
-         40.76
+         6.12,
+         40.5
         ],
-        "area": 0.983,
-        "length": 2.26,
-        "w_min": 0.68,
+        "area": 1.283,
+        "length": 3.2,
+        "w_min": 0.38,
         "kind": "wall"
        }
       ],
@@ -5028,21 +5001,21 @@
     "stl": {
      "input": "/home/user/Apps/fidget-toy/stl/robot/purrbobble_robot_nominal.stl",
      "returncode": 0,
-     "time_s": 21.0,
+     "time_s": 13.6,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_robot_nominal.stl | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
      "errors": [],
-     "print_time": "4h 35m 16s",
+     "print_time": "4h 36m 7s",
      "filament_g": 36.41,
      "filament_m": 12.21,
      "extrusion_length_by_type_mm": {
-      "Solid infill": 162757.0,
-      "Perimeter": 78804.7,
-      "External perimeter": 53536.7,
-      "Internal infill": 28981.0,
-      "Top solid infill": 20286.4,
-      "Bridge infill": 13860.8,
+      "Solid infill": 162818.2,
+      "Perimeter": 78825.3,
+      "External perimeter": 53548.2,
+      "Internal infill": 28973.0,
+      "Top solid infill": 20317.0,
+      "Bridge infill": 13791.8,
       "Overhang perimeter": 2353.1,
       "Skirt/Brim": 273.9
      },
@@ -5494,21 +5467,6 @@
        "class": "UNLISTED",
        "limit": null,
        "status": "pass"
-      },
-      {
-       "layer_top_z": 17.2,
-       "type": "Bridge infill",
-       "body": "frame",
-       "n": 56,
-       "length_mm": 69.0,
-       "unsupported_mm": 0.0,
-       "max_unsupported_run": 0.0,
-       "worst_line_model_xy": null,
-       "max_dist_to_support": 0.0,
-       "beyond_rib_reach_mm": 0.0,
-       "class": "UNLISTED",
-       "limit": null,
-       "status": "pass"
       }
      ],
      "toolpath_gaps": {
@@ -5560,20 +5518,20 @@
     "3mf": {
      "input": "/home/user/Apps/fidget-toy/stl/robot/purrbobble_robot_nominal.3mf",
      "returncode": 0,
-     "time_s": 29.0,
+     "time_s": 16.3,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_robot_nominal | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
      "errors": [],
-     "print_time": "5h 19m 43s",
+     "print_time": "5h 18m 56s",
      "filament_g": 40.87,
      "filament_m": 13.7,
      "extrusion_length_by_type_mm": {
-      "Solid infill": 166199.8,
-      "Perimeter": 78803.9,
-      "Internal infill": 77970.0,
-      "External perimeter": 53536.6,
-      "Top solid infill": 20313.6,
+      "Solid infill": 166204.9,
+      "Perimeter": 78824.6,
+      "Internal infill": 77930.6,
+      "External perimeter": 53548.0,
+      "Top solid infill": 20316.7,
       "Bridge infill": 8543.3,
       "Overhang perimeter": 2353.0,
       "Skirt/Brim": 273.9
@@ -5680,9 +5638,9 @@
        "layer_top_z": 3.2,
        "type": "Overhang perimeter",
        "body": "wheel",
-       "n": 379,
+       "n": 377,
        "length_mm": 426.4,
-       "unsupported_mm": 364.1,
+       "unsupported_mm": 364.2,
        "max_unsupported_run": 2.62,
        "worst_line_model_xy": [
         -3.39,
@@ -5947,11 +5905,11 @@
    "stl_info": {
     "manifold": "yes",
     "number_of_parts": "3",
-    "volume": "35720.910156",
+    "volume": "35719.968750",
     "size_x": "59.994900",
     "size_y": "84.207184",
     "size_z": "18.299999",
-    "number_of_facets": "201462"
+    "number_of_facets": "201522"
    },
    "warnings_per_body_alone": {
     "frame": [
@@ -6092,5 +6050,5 @@
   }
  ],
  "pass": true,
- "runtime_s": 300.3
+ "runtime_s": 221.2
 }

@@ -21,8 +21,8 @@
   ]
  ],
  "info": {
-  "t_sections_s": 6.37,
-  "t_solids_s": 12.24,
+  "t_sections_s": 4.81,
+  "t_solids_s": 6.04,
   "skin_contract": {
    "warnings": [
     "B_i only 1.32 mm inside Face2D (contract 3.0)",
@@ -55,53 +55,58 @@
   },
   "face_features": [
    "eye_L",
-   "eye_highlight_L",
+   "eye_highlight0_L",
+   "eye_highlight1_L",
    "blush_L",
    "inner_ear_L",
    "eye_R",
-   "eye_highlight_R",
+   "eye_highlight0_R",
+   "eye_highlight1_R",
    "blush_R",
    "inner_ear_R",
    "nose",
-   "mouth"
+   "mouth",
+   "tongue",
+   "tuft",
+   "bow"
   ]
  },
  "sections": {
-  "overall_W": 52.91,
-  "overall_H": 84.31,
+  "overall_W": 59.75,
+  "overall_H": 90.81,
   "backdrop_bounds": [
-   -26.45,
-   -22.49,
-   26.45,
-   61.82
+   -29.58,
+   -27.28,
+   30.17,
+   63.53
   ],
   "i3_area": 646.5,
   "headband_area": 1243.1,
   "faceup_area": 958.3,
   "facemid_area": 311.8,
-  "fill_area": 949.1,
-  "roof_area": 1822.6,
-  "fill_slivers_removed_area": 8.96,
+  "fill_area": 1120.3,
+  "roof_area": 1993.4,
+  "fill_slivers_removed_area": 8.62,
   "stoppads_area": 13.76,
   "max_bridge_width": 15.0,
   "n_bridge_pieces": 1
  },
  "bodies": {
   "frame": {
-   "volume_mm3": 19281.5,
-   "mass_solid_g": 23.91,
-   "triangles": 155098,
+   "volume_mm3": 22930.9,
+   "mass_solid_g": 28.43,
+   "triangles": 190822,
    "bbox": [
-    -26.453,
-    -22.494,
+    -29.581,
+    -27.28,
     0.0,
-    26.452,
-    61.817,
+    30.166,
+    63.529,
     16.0
    ],
    "size": [
-    52.91,
-    84.31,
+    59.75,
+    90.81,
     16.0
    ]
   },
@@ -124,9 +129,9 @@
    ]
   },
   "head": {
-   "volume_mm3": 11257.9,
-   "mass_solid_g": 13.96,
-   "triangles": 28300,
+   "volume_mm3": 11370.9,
+   "mass_solid_g": 14.1,
+   "triangles": 36186,
    "bbox": [
     -19.488,
     5.34,
@@ -143,8 +148,8 @@
   }
  },
  "overall_size": [
-  52.91,
-  84.31,
+  59.75,
+  90.81,
   18.3
  ],
  "print_pose_check": {
@@ -152,7 +157,7 @@
    "frame": {
     "components": 1,
     "genus": 3,
-    "volume_mm3": 19281.55,
+    "volume_mm3": 22930.89,
     "status": "Error.NoError"
    },
    "wheel": {
@@ -164,7 +169,7 @@
    "head": {
     "components": 1,
     "genus": 1,
-    "volume_mm3": 11257.91,
+    "volume_mm3": 11370.95,
     "status": "Error.NoError"
    }
   },
@@ -190,7 +195,7 @@
   ],
   "global_min_gap": 0.35001948914536873
  },
- "stl_triangles": 197734,
+ "stl_triangles": 241344,
  "files": [
   "stl/kitty/purrbobble_kitty_shallow.stl"
  ],
@@ -198,6 +203,6 @@
   "renders/kitty/purrbobble_kitty_shallow_face.png",
   "renders/kitty/purrbobble_kitty_shallow_three_quarter.png"
  ],
- "time_build_export_s": 24.81,
- "time_total_s": 27.64
+ "time_build_export_s": 14.47,
+ "time_total_s": 17.8
 }
