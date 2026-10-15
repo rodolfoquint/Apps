@@ -292,7 +292,6 @@ footer { color: var(--muted); font-size: 0.88rem; display: grid; gap: 6px; }
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 (function () {
@@ -394,7 +393,7 @@ footer { color: var(--muted); font-size: 0.88rem; display: grid; gap: 6px; }
   // ---------------------------------------------------------------- 3-D stage
   let renderer, scene, camera, controls, groups = {}, cache = {};
   function initThree() {
-    if (!window.THREE || !THREE.GLTFLoader) throw new Error("three.js unavailable");
+    if (!window.THREE || !THREE.OrbitControls) throw new Error("three.js unavailable");
     const canvas = $("three");
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
@@ -422,21 +421,42 @@ footer { color: var(--muted); font-size: 0.88rem; display: grid; gap: 6px; }
     const el = $("stage"), w = el.clientWidth, h = el.clientHeight;
     renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
   }
+  function b64(s) {
+    const bin = atob(s), u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    return u8.buffer;
+  }
+  function decodeMesh(d) {
+    // positions: int16 quantised over the body's bounding box; normals computed here (vertices are already
+    // split along sharp edges by the exporter, so creases stay crisp)
+    const q = new Int16Array(b64(d.positions)), pos = new Float32Array(q.length);
+    for (let i = 0; i < q.length; i += 3) {
+      pos[i] = d.offset[0] + q[i] * d.scale[0];
+      pos[i + 1] = d.offset[1] + q[i + 1] * d.scale[1];
+      pos[i + 2] = d.offset[2] + q[i + 2] * d.scale[2];
+    }
+    const ib = b64(d.indices);
+    const idx = d.index_type === "u16" ? new Uint16Array(ib) : new Uint32Array(ib);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    g.setIndex(new THREE.BufferAttribute(idx, 1));
+    g.computeVertexNormals();
+    return g;
+  }
   function loadSkin(skin) {
     if (cache[skin]) return cache[skin];
-    const loader = new THREE.GLTFLoader();
     const files = meta[skin].files;
     const P = meta[skin].P;
-    cache[skin] = Promise.all(["frame", "wheel", "head"].map((part) => new Promise((res, rej) => {
-      loader.load("models/" + files[part], (g) => res([part, g.scene]), undefined, rej);
-    }))).then((parts) => {
+    cache[skin] = Promise.all(["frame", "wheel", "head"].map((part) =>
+      fetch("models/" + files[part]).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then((d) => [part, d]))).then((parts) => {
       const root = new THREE.Group();
       const out = { root };
-      parts.forEach(([part, obj]) => {
+      parts.forEach(([part, d]) => {
         // palette values are sRGB; the renderer outputs sRGB, so convert them to linear for the material
         const col = new THREE.Color(COLORS[skin][part]).convertSRGBToLinear();
         const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.6, metalness: 0.0 });
-        obj.traverse((o) => { if (o.isMesh) { o.material = mat; } });
+        const obj = new THREE.Mesh(decodeMesh(d), mat);
         if (part === "frame") { root.add(obj); out.frame = obj; }
         else {
           // pivot group: wheel turns about O = (0, 0), head swings about P, both about +Z

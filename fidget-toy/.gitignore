@@ -7,3 +7,6 @@ stl/**/*.stl
 verification/reports/run_all/
 # Viewer meshes are regenerated with `python3 tools/export_web.py`
 web/models/*.glb
+web/models/*_frame.json
+web/models/*_wheel.json
+web/models/*_head.json

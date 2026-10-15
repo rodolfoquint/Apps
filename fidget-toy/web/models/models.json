@@ -15,9 +15,9 @@
    5.96
   ],
   "files": {
-   "frame": "kitty_frame.glb",
-   "wheel": "kitty_wheel.glb",
-   "head": "kitty_head.glb"
+   "frame": "kitty_frame.json",
+   "wheel": "kitty_wheel.json",
+   "head": "kitty_head.json"
   },
   "bbox": [
    [
@@ -48,9 +48,9 @@
    5.96
   ],
   "files": {
-   "frame": "bee_frame.glb",
-   "wheel": "bee_wheel.glb",
-   "head": "bee_head.glb"
+   "frame": "bee_frame.json",
+   "wheel": "bee_wheel.json",
+   "head": "bee_head.json"
   },
   "bbox": [
    [
@@ -81,9 +81,9 @@
    5.96
   ],
   "files": {
-   "frame": "robot_frame.glb",
-   "wheel": "robot_wheel.glb",
-   "head": "robot_head.glb"
+   "frame": "robot_frame.json",
+   "wheel": "robot_wheel.json",
+   "head": "robot_head.json"
   },
   "bbox": [
    [
