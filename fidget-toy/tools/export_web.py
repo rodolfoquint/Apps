@@ -67,17 +67,21 @@ def main():
         p = M.params
         entry = {"O": [0.0, 0.0], "P": [float(M.P[0]), float(M.P[1])], "psi_b": float(p.psi_b),
                  "teeth": int(p.N), "print_pose": [float(p.phi_print), float(p.psi_print)], "files": {}}
-        for name in BODIES:
-            tm = to_trimesh(getattr(M, name))
+        from purrbobble.assemble import colour_parts, palette_of
+        pal = palette_of(M.skin)
+        # one mesh per colour region (design frame: phi = psi = 0); "body" says which pivot it moves with
+        for name, (m, ckey) in colour_parts(M, phi=0.0, psi=0.0).items():
+            tm = to_trimesh(m)
             tm.merge_vertices()
-            budget = a.faces if name == "frame" else a.faces // 2
+            body = name.split("_")[0]
+            budget = a.faces if name in ("frame_body", "frame_plate") else a.faces // 2
             dm = decimate(tm, budget)
             # split vertices along sharp edges so smooth normals keep creases crisp in the viewer
             sm = trimesh.graph.smooth_shade(dm, angle=np.radians(30))
             path = out / f"{skin}_{name}.json"
             path.write_text(json.dumps(pack(sm)))
-            entry["files"][name] = path.name
-            print(f"{skin:6s} {name:5s} {len(tm.faces):7d} -> {len(dm.faces):6d} faces  {path.stat().st_size/1e6:.2f} MB")
+            entry["files"][name] = {"file": path.name, "body": body, "color": pal[ckey]}
+            print(f"{skin:6s} {name:13s} {len(tm.faces):7d} -> {len(dm.faces):6d} faces  {path.stat().st_size/1e6:.2f} MB")
         lo, hi = np.min([getattr(M, b).bounding_box()[:3] for b in BODIES], 0), \
             np.max([getattr(M, b).bounding_box()[3:] for b in BODIES], 0)
         entry["bbox"] = [lo.round(2).tolist(), hi.round(2).tolist()]

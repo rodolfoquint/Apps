@@ -49,6 +49,25 @@ def main():
                    ("Every character passes; warnings are documented in verification/reports/SUMMARY.md."
                     if not fails else "Still failing: " + "; ".join(fails) +
                     ". Warnings and their reasons are in verification/reports/SUMMARY.md."))
+    # per-character facts for the page header: overall size (build report), as-printed mass and time (V13 slicer)
+    import re
+    out["facts"] = {}
+    for skin in out["skins"]:
+        fact = {}
+        try:
+            fact["size_mm"] = json.loads((ROOT / "stl" / skin / "build_nominal.json").read_text())["overall_size"]
+        except (OSError, KeyError, ValueError):
+            pass
+        try:
+            tm = json.loads((ROOT / "verification" / "reports" / skin / "escapement.json").read_text())
+            tm = tm["V13"]["checks"]["total_mass"]
+            fact["mass_g"] = round(float(tm["measured"]), 1)
+            t = re.search(r"print time (\d+)h (\d+)m", tm.get("criterion", ""))
+            if t:
+                fact["print_time"] = f"{t.group(1)} h {t.group(2)} min"
+        except (OSError, KeyError, ValueError, TypeError):
+            pass
+        out["facts"][skin] = fact
     dst = ROOT / "web" / "models" / "checks.json"
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(json.dumps(out, indent=1))

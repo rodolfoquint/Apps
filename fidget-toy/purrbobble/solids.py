@@ -326,17 +326,20 @@ def check_face_features(p: Params, S, feats: list[Feature], margin: float = 3.0)
             continue
         lim = edge if f.edge_ok else inner
         out = g2.difference(f.shape, lim).area()
-        if out > 1e-3 and f.edge_ok and f.mode == "deboss":
+        if out > 1e-3 and f.edge_ok and f.mode in ("deboss", "raise"):
             # edge features (e.g. inner ears) follow the face outline; the core may have notched that outline
             # (crown notch) after the skin drew them: clip them to the flat top inside the rim instead of failing
             f.shape = g2.drop_small(g2.opening(g2.intersect(f.shape, g2.grow(lim, -0.02, 0.01)), 0.6, 0.01), 0.3)
             out = g2.difference(f.shape, lim).area() if not f.shape.is_empty() else 0.0
         if out > 1e-3:
             raise AssertionError(f"face feature {f.name}: {out:.3f} mm^2 closer than {margin} mm to the face edge")
-        if f.mode in ("raise", "dome") and abs(f.depth - 0.6) > 1e-9:
-            raise AssertionError(f"face feature {f.name}: raised features are 0.6 tall (got {f.depth})")
-        if f.mode in ("deboss", "dimple") and not (0.3 - 1e-9 <= f.depth <= 0.5 + 1e-9):
-            raise AssertionError(f"face feature {f.name}: deboss depth must be 0.3-0.5 (got {f.depth})")
+        # raised 0.4-0.6 (>= 2 layers, never above z_feat); debossed 0.3-0.5 into the face top; a dimple cut into a
+        # raised feature (``on``) may go to 0.7 so it reaches the head colour in a multi-colour print (round 3)
+        if f.mode in ("raise", "dome") and not (0.4 - 1e-9 <= f.depth <= 0.6 + 1e-9):
+            raise AssertionError(f"face feature {f.name}: raised features are 0.4-0.6 tall (got {f.depth})")
+        dmax = 0.7 if (f.mode == "dimple" and f.on) else 0.5
+        if f.mode in ("deboss", "dimple") and not (0.3 - 1e-9 <= f.depth <= dmax + 1e-9):
+            raise AssertionError(f"face feature {f.name}: deboss depth must be 0.3-{dmax} (got {f.depth})")
 
 
 def build_head(p: Params, S, skin) -> tuple[Manifold, dict]:

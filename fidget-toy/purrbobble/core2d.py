@@ -445,7 +445,8 @@ def build_sections(p: Params, skin, verbose: bool = False) -> Sections:
 
     # backdrop (needed first: every frame section stacked on the plate must lie inside it, otherwise the
     # union leaves zero-width overhang slivers / pinch vertices along nearly coincident outlines)
-    extra = skin.backdrop2d(p)
+    S["body_pre2d"] = body          # the body outline before the plate trims it (for skins that frame it)
+    extra = _call_with_sections(skin.backdrop2d, p, S)
     bd = g2.union([body, g2.grow(S["swept_faceup2d"], p.backdrop_margin, 0.01),
                    extra if extra is not None else CrossSection()])
     S["backdrop2d"] = g2.check(g2.round_r(bd, p.backdrop_round, p.backdrop_corner_r, 0.02).simplify(0.01),

@@ -349,6 +349,14 @@ def get_params(variant: str = "nominal", skin: str = "kitty", **overrides) -> Pa
         p = base.replace(bore_d=8.80, gap_xy=0.55, z_lift=0.2, ridge_gap_n=0.40)
     else:
         raise ValueError(f"unknown variant {variant!r}; choose from {VARIANTS}")
+    # a skin may override decorative parameters (e.g. the kitty's taller feet: z_decor1); never mechanism ones
+    try:
+        from .skins import get_skin
+        so = dict(getattr(get_skin(skin), "param_overrides", {}) or {})
+    except Exception:
+        so = {}
+    if so:
+        p = p.replace(**so)
     if abs(p.D - base.D) > 1e-12 and "face_dy" not in overrides:
         # P moves with drho (D = rho tilt / cos gamma) but the face stays at its nominal world position: the chin
         # <-> ball rim gap (V6 1.4-2.0) and the overall height are then the same in every variant

@@ -79,6 +79,8 @@ def _gumdrop(cx, half_w, y0, y1, r_top, r_bot, tol=TOL) -> CrossSection:
 class RobotSkin(Skin):
     name = "robot"
     colors = {"frame": "#86b9f0", "wheel": "#ffb347", "head": "#d8dfe8"}
+    plate_color = None          # the back plate prints in the frame colour (4 filaments: frame, ball, head, details)
+    details_color = "#22304a"
 
     # ------------------------------------------------------------------ face (relative to C_h)
     head_half_w = 14.2
@@ -98,7 +100,7 @@ class RobotSkin(Skin):
     visor_y = 2.5
     visor_depth = 0.5
     eye_d, eye_x, eye_bezel = 7.0, 5.6, 0.4
-    hl_d, hl_dxy, hl_depth = 2.0, (1.2, 1.2), 0.4
+    hl_d, hl_dxy, hl_depth = 2.0, (1.2, 1.2), 0.65   # highlight reaches the head colour (multi-colour)
     mouth_y, mouth_R, mouth_w, mouth_depth = -8.2, 8.5, 1.3, 0.5
     mouth_angles = (-25.0, 0.0, 25.0)
     mouth_slot_half = 4.8      # deg, half angular length of each slot centre line (walls between slots ~1.0)
@@ -143,7 +145,7 @@ class RobotSkin(Skin):
             ec = vc + (s * self.eye_x, 0.0)
             eyes.append(ec)
             feats.append(Feature(f"eye_{tag}", g2.circle(ec, self.eye_d / 2, TOL), "dome", 0.6,
-                                 center=tuple(ec), radius=self.eye_d / 2))
+                                 center=tuple(ec), radius=self.eye_d / 2, color="details"))
             hc = ec + np.array(self.hl_dxy)
             feats.append(Feature(f"eye_highlight_{tag}", g2.circle(hc, self.hl_d / 2, TOL), "dimple", self.hl_depth,
                                  center=tuple(hc), radius=self.hl_d / 2, on=f"eye_{tag}"))
@@ -169,7 +171,7 @@ class RobotSkin(Skin):
         # antenna light bulb: a small dome on the flat top of the antenna ball (inside its r 1.5 rim)
         bc = C + (0.0, self.antenna_ball[0])
         feats.append(Feature("antenna_bulb", g2.circle(bc, self.bulb_d / 2, TOL), "dome", 0.6,
-                             center=tuple(bc), radius=self.bulb_d / 2, edge_ok=True))
+                             center=tuple(bc), radius=self.bulb_d / 2, edge_ok=True, color="accent"))
         return feats
 
     # ------------------------------------------------------------------ frame

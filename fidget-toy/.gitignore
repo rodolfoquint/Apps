@@ -7,6 +7,5 @@ stl/**/*.stl
 verification/reports/run_all/
 # Viewer meshes are regenerated with `python3 tools/export_web.py`
 web/models/*.glb
-web/models/*_frame.json
-web/models/*_wheel.json
-web/models/*_head.json
+# (one JSON per skin and colour region, e.g. kitty_frame_plate.json; models/motion/checks.json are committed)
+web/models/*_*.json

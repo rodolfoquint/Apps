@@ -9,8 +9,8 @@ Contract (checked by ``core2d.check_skin`` - violations raise):
 
 * ``face2d(C_h, p)``: Face2D polygon.  Must contain disc(P, 7.5) and both leg ends B_i with >= 3 mm margin.
   No feature narrower than 6.0 mm; outer corners r >= 2.
-* ``face_features(C_h, p)``: list of :class:`Feature` on the face top (z 15.4).  Raised features are 0.6 tall
-  (z 15.4 -> 16.0), debossed 0.3-0.5 deep; all >= 3 mm inside FaceUp2D's edge (unless ``edge_ok`` is set
+* ``face_features(C_h, p)``: list of :class:`Feature` on the face top (z_front1).  Raised features are 0.4-0.6
+  tall, debossed 0.3-0.5 deep (a dimple cut into a raised feature up to 0.7); all >= 3 mm inside FaceUp2D's edge (unless ``edge_ok`` is set
   because the SPEC places it closer, e.g. the kitty inner ears at inset 2.0).
 * ``backdrop2d(p)``: extra outline unioned into Backdrop2D (may be empty).  Final outline <= 64 W x 85 H.
 * ``backdrop_features(p, backdrop2d, body2d, swept_faceup2d)``: debossed grooves in the back-plate top
@@ -23,7 +23,11 @@ Contract (checked by ``core2d.check_skin`` - violations raise):
 * ``wheel_relief2d(p)``: groove pattern (0.6 wide x 0.5 deep) on the ball top; the core clips it to r <= 16.5
   and away from the knob.
 * ``head_pockets2d(p)``: optional closed internal pockets for inertia trimming (walls >= 2.0).
-* ``colors``: render colours {"frame", "wheel", "head"}.
+* ``colors``: render colours {"frame", "wheel", "head"}; ``plate_color`` / ``details_color`` for the multi-colour
+  3MF and renders (back plate below z_bp, raised face details above z_front1).
+* ``param_overrides``: decorative parameter overrides (e.g. the kitty's taller feet, ``{"z_decor1": 14.4}``).
+* ``backdrop2d(p)`` may also take ``(p, S)``: ``S["body_pre2d"]`` and ``S["swept_faceup2d"]`` are then available
+  (e.g. to frame the character with a scalloped cushion).
 
 Inertia check (SPEC 4.3, done by verification): I_h about P (solid PLA 1.24 g/cm^3) in [4.0, 8.0]e-6 kg m^2,
 centre of mass 8-14 mm above P.
@@ -57,6 +61,8 @@ class Feature:
     radius: float | None = None
     on: str | None = None
     edge_ok: bool = False          # allowed closer than 3 mm to the face edge (SPEC places it there)
+    color: str | None = None       # multi-colour print: "details" (eyes, nose, mouth) or "accent" (bow, blush,
+    #                                tongue, toe beans ...) for raised features; None = the body's own colour
 
 
 @dataclass
@@ -70,6 +76,21 @@ class Skin:
 
     name = "base"
     colors = {"frame": "#d9d2c5", "wheel": "#7fb3ff", "head": "#ffd27f"}
+    # Multi-colour print / render palette (see assemble.write_3mf(multicolor=True)): the back plate (z < z_bp) and
+    # the raised face details (z >= z_front1) can take their own filament.  Defaults: same as frame / dark brown.
+    plate_color: str | None = None
+    details_color: str = "#3b2a2a"
+    # Decorative parameter overrides applied by params.get_params for this skin (e.g. {"z_decor1": 14.4}).
+    param_overrides: dict = {}
+
+    def palette(self) -> dict:
+        """frame / plate / wheel / head / details colours."""
+        c = dict(self.colors)
+        c.setdefault("plate", self.plate_color or c["frame"])
+        if self.plate_color:
+            c["plate"] = self.plate_color
+        c.setdefault("details", self.details_color)
+        return c
 
     # ------------------------------------------------------------------ head
     def face2d(self, C_h, p) -> CrossSection:

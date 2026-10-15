@@ -79,6 +79,8 @@ def _band(c, u, half_len, half_w):
 class BeeSkin(Skin):
     name = "bee"
     colors = {"frame": "#b9a4f4", "wheel": "#f7a325", "head": "#ffd23f"}   # lavender flower, honey, bee yellow
+    plate_color = None          # the back plate prints in the frame colour (4 filaments: frame, ball, head, details)
+    details_color = "#2e2420"
 
     # ---- face outline
     face_r = 16.0
@@ -96,7 +98,7 @@ class BeeSkin(Skin):
     # fix round 1 (design review): bigger, lower kawaii eyes (D 8.2 = 0.26 x face width, eye line 0.15 R below the
     # head centre); the cheeks move down under them (4.0 x 2.2, still >= 3 mm inside the face edge)
     eye_d, eye_xy = 8.2, (6.8, -2.4)
-    hl_d, hl_dxy, hl_depth = 2.4, (1.5, 1.5), 0.4
+    hl_d, hl_dxy, hl_depth = 2.4, (1.5, 1.5), 0.65   # highlight reaches the head colour (multi-colour)
     smile_c, smile_r, smile_w, smile_a, smile_depth = (0.0, -5.3), 3.3, 1.1, (205.0, 335.0), 0.5
     cheek_ab, cheek_xy, cheek_depth = (2.0, 1.1), (7.6, -8.3), 0.5
     bobble_r = 2.3
@@ -160,7 +162,7 @@ class BeeSkin(Skin):
         for s, tag in ((-1, "L"), (1, "R")):
             ec = C + np.array([s * self.eye_xy[0], self.eye_xy[1]])
             feats.append(Feature(f"eye_{tag}", g2.circle(ec, self.eye_d / 2, TOL), "dome", 0.6,
-                                 center=tuple(ec), radius=self.eye_d / 2))
+                                 center=tuple(ec), radius=self.eye_d / 2, color="details"))
             hc = ec + np.array(self.hl_dxy)
             feats.append(Feature(f"eye_highlight_{tag}", g2.circle(hc, self.hl_d / 2, TOL), "dimple", self.hl_depth,
                                  center=tuple(hc), radius=self.hl_d / 2, on=f"eye_{tag}"))
@@ -169,7 +171,7 @@ class BeeSkin(Skin):
                                  self.cheek_depth))
             bc = self.ball_centre(C_h, s)
             feats.append(Feature(f"bobble_{tag}", g2.circle(bc, self.bobble_r, TOL), "dome", 0.6,
-                                 center=tuple(bc), radius=self.bobble_r, edge_ok=True))
+                                 center=tuple(bc), radius=self.bobble_r, edge_ok=True, color="details"))
         # "u" smile: lower arc with round caps (cap polygons turned half a segment: no vertex on a corner)
         sc = C + np.array(self.smile_c)
         r0, r1 = self.smile_r - self.smile_w / 2, self.smile_r + self.smile_w / 2

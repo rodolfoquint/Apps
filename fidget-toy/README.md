@@ -48,6 +48,23 @@ Rebuild the STLs and the other variants with `python3 -m purrbobble.build --all`
 | Bridges | fan 100 %, about 25 mm/s, thick bridges off, **bridging angle 180°** (set on the frame in the 3MF; with an STL, set it for the whole print) |
 | Seam | rear / aligned, never on the posts or bores |
 
+### Multi-colour (optional)
+
+`stl/<character>/purrbobble_<character>_nominal_multicolour.3mf` is the same print split into colour regions, each
+already assigned to a filament slot, with the same per-part settings. It needs a 4-filament printer (Bambu AMS,
+Prusa MMU or XL, or similar) and a wipe tower; PrusaSlicer slices the kitty with 63 tool changes. With one
+filament, print the plain 3MF instead: the faces are raised and debossed, so they still read in one colour.
+
+| Slot | Purr Kitty | Bumble | Pip the Robot |
+|---|---|---|---|
+| 1 | cream: body and head | lavender: body and back plate | sky blue: body and back plate |
+| 2 | coral: ball, blush, inner ears, tongue, bow, toe beans, tail tip | honey orange: ball | orange: ball, antenna bulb |
+| 3 | mint: quilted cushion | yellow: head | silver: head |
+| 4 | dark brown: eyes, nose, mouth | dark brown: eyes, antenna tips | navy: eyes |
+
+The colour regions are only the top 0.4–0.6 mm of the raised details, the bottom 2 mm and the exposed cushion,
+and whole parts (ball, head), so tool changes stay few and no colour boundary crosses a moving gap.
+
 Variants: **loose** (0.40 mm bearings, 0.60 mm swept gaps, 0.6 mm float gaps) for printers that fuse tight gaps;
 **deep** if the ball skips teeth; **shallow** if it feels notchy.
 

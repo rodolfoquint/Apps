@@ -13,7 +13,9 @@ import zipfile
 from pathlib import Path
 
 import numpy as np
-from manifold3d import Manifold
+from manifold3d import Manifold, OpType
+
+_ADD = OpType.Add
 
 # per-part slicer settings written into the 3MF (PrusaSlicer volume config).  SPEC 6: head and wheel 100 %,
 # frame 20 % gyroid.
@@ -161,3 +163,115 @@ def write_3mf(path, bodies: dict, name: str = "purrbobble", settings: dict | Non
         z.writestr("3D/3dmodel.model", model)
         z.writestr("Metadata/Slic3r_PE_model.config", config)
     return {"triangles": int(len(F)), "vertices": int(len(V)), "parts": [r[0] for r in ranges]}
+
+
+# ------------------------------------------------------------------------------------------- multi-colour
+# Filament slots for the multi-colour 3MF: one per distinct colour of the skin's palette, numbered in SLOT_ORDER
+# (kitty: 1 cream body + head, 2 coral ball + accents, 3 mint cushion, 4 dark details).  Every skin keeps to
+# MAX_SLOTS colours so one Bambu AMS / Prusa MMU prints it; the viewer and renders show the same colours.
+SLOT_ORDER = ("frame", "wheel", "head", "plate", "accent", "details")
+MAX_SLOTS = 4
+
+
+def _prism(cs, z0, z1):
+    from . import geom2d as g2
+    if cs is None or cs.is_empty():
+        return Manifold()
+    return g2.grow(cs, 0.03, 0.005).extrude(z1 - z0).translate((0.0, 0.0, z0))
+
+
+def colour_parts(M, phi: float | None = None, psi: float | None = None) -> dict:
+    """Split the three bodies into colour regions, posed at (phi, psi) (default: print pose).
+
+    Returns {name: (Manifold, colour_key)} with names frame_plate, frame_body, frame_accent, head_body,
+    head_details, head_accent, wheel; colour keys index ``skin.palette()`` (+ "accent").  Regions are cut with
+    prisms over the skin's coloured features (Feature.color) above the surface they sit on, so a dimple cut into
+    a dark eye (the highlight) stays in the body colour."""
+    p, sk = M.params, M.skin
+    phi = p.phi_print if phi is None else phi
+    psi = p.psi_print if psi is None else psi
+    lift = p.z_lift
+    out = {}
+    # frame: plate below z_bp, body above; accents raised on the decor / paw tops
+    F = M.frame
+    # split 1 um above the plate top: a cut exactly on the plate's top face leaves coplanar slivers
+    zs = p.z_bp + 1e-3
+    from . import geom2d as g2
+    S = M.sections
+    # the plate, plus the skid ribs where they lie on the exposed cushion (outside the body): cushion colour
+    exposed = g2.difference(S["backdrop2d"], g2.grow(S["body2d"], 0.05, 0.005))
+    pmask = Manifold.cube((400.0, 400.0, zs + 200.0)).translate((-200.0, -200.0, -200.0)) + \
+        _prism(exposed, zs - 0.01, p.z_bp + p.rib_h + 0.05)
+    out["frame_plate"] = (F ^ pmask, "plate")
+    body = F - pmask
+    acc = []
+    for f in sk.body_decor_features(p) or []:
+        if f.color:
+            acc.append(_prism(f.shape, p.z_decor1 - 1e-3, p.z_decor1 + 2.0))
+    for side, style in (sk.paw_style(p) or {}).items():
+        for f in style.features or []:
+            if f.color:
+                acc.append(_prism(f.shape, p.paw_z1 - 1e-3, p.paw_z1 + 2.0))
+    if acc:
+        mask = Manifold.batch_boolean(acc, _ADD) if len(acc) > 1 else acc[0]
+        out["frame_accent"] = (body ^ mask, "accent")
+        body = body - mask
+    out["frame_body"] = (body, "frame")
+    # head (design frame), then posed
+    H = M.head
+    z0 = p.z_front1 + lift
+    masks = {"details": [], "accent": []}
+    for f in sk.face_features(p.C_h, p) or []:
+        if f.color in masks and f.mode in ("raise", "dome"):
+            masks[f.color].append(_prism(f.shape, z0, z0 + 2.0))
+    hb = H
+    for key, ms in masks.items():
+        if ms:
+            mk = Manifold.batch_boolean(ms, _ADD) if len(ms) > 1 else ms[0]
+            out[f"head_{key}"] = (H ^ mk, key)
+            hb = hb - mk
+    out["head_body"] = (hb, "head")
+    px, py = M.P
+    for k in [k for k in out if k.startswith("head")]:
+        m, c = out[k]
+        out[k] = (m.translate((-px, -py, 0.0)).rotate((0.0, 0.0, float(psi))).translate((px, py, 0.0)), c)
+    out["wheel"] = (M.wheel.rotate((0.0, 0.0, float(phi))), "wheel")
+    return {k: v for k, v in out.items() if not v[0].is_empty() and v[0].volume() > 1e-3}
+
+
+def palette_of(skin) -> dict:
+    pal = skin.palette()
+    pal.setdefault("accent", getattr(skin, "accent_color", None) or pal["wheel"])
+    if getattr(skin, "accent_color", None):
+        pal["accent"] = skin.accent_color
+    return pal
+
+
+def colour_slots(skin) -> tuple[dict, dict]:
+    """(colour class -> filament slot, slot -> colour): one slot per distinct palette colour, in SLOT_ORDER."""
+    pal = palette_of(skin)
+    slot_of, colours = {}, {}
+    for k in SLOT_ORDER:
+        c = pal[k].lower()
+        slot = next((n for n, cc in colours.items() if cc == c), None)
+        if slot is None:
+            slot = len(colours) + 1
+            colours[slot] = c
+        slot_of[k] = slot
+    if len(colours) > MAX_SLOTS:
+        raise ValueError(f"skin {skin.name}: {len(colours)} colours, more than {MAX_SLOTS} filament slots")
+    return slot_of, colours
+
+
+def write_3mf_multicolour(path, M, name: str = "purrbobble") -> dict:
+    """One object, one volume per colour region (print pose), each with its filament slot (``extruder``) and the
+    per-part settings of its body.  Slots: colour_slots()."""
+    slot_of, colours = colour_slots(M.skin)
+    bodies, settings = {}, {}
+    for k, (m, ckey) in colour_parts(M).items():
+        body = k.split("_")[0]
+        bodies[k] = m
+        settings[k] = dict(PART_SETTINGS.get(body, {}), extruder=str(slot_of[ckey]))
+    info = write_3mf(path, bodies, name=name, settings=settings)
+    info["slots"] = {str(n): c for n, c in colours.items()}
+    return info

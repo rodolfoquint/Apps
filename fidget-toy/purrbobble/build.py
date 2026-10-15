@@ -24,7 +24,7 @@ from pathlib import Path
 from manifold3d import Manifold
 
 from . import core2d
-from .assemble import check_print_pose, write_3mf, write_stl
+from .assemble import check_print_pose, write_3mf, write_3mf_multicolour, write_stl
 from .model import Model, build
 from .params import VARIANTS
 
@@ -64,12 +64,15 @@ def model_report(M: Model, bodies: dict) -> dict:
 def render_model(M: Model, bodies: dict, out_prefix: Path, views=None, sections: bool = True) -> list[Path]:
     sys.path.insert(0, str(REPO / "tools"))
     from render import render_views  # noqa: E402
-    cols = M.skin.colors
-    parts = {k: (bodies[k], cols.get(k, "#cccccc")) for k in ("frame", "wheel", "head")}
+    from .assemble import colour_parts, palette_of
+    pal = palette_of(M.skin)
+    parts = {k: (bodies[k], pal.get(k, "#cccccc")) for k in ("frame", "wheel", "head")}
+    # views in the multi-colour palette (cushion, body, ball, face details, accents)
+    cparts = {k: (m, pal[c]) for k, (m, c) in colour_parts(M).items()}
     out = []
     views = views or VIEWS
     for name, cam in views.items():
-        pngs = render_views(parts, out_prefix.parent / "_tmp", views=(cam,), size=(1100, 1000))
+        pngs = render_views(cparts, out_prefix.parent / "_tmp", views=(cam,), size=(1100, 1000))
         dst = out_prefix.parent / f"{out_prefix.name}_{name}.png"
         pngs[0].replace(dst)
         out.append(dst)
@@ -110,6 +113,9 @@ def build_one(skin: str, variant: str, stl_dir: Path, render_dir: Path | None, v
     if threemf:
         write_3mf(stl_dir / f"{base}.3mf", bodies, name=base)
         files.append(str((stl_dir / f"{base}.3mf").relative_to(REPO)))
+        # multi-colour version: one volume per colour region with its filament slot (assemble.colour_slots)
+        write_3mf_multicolour(stl_dir / f"{base}_multicolour.3mf", M, name=base + "_multicolour")
+        files.append(str((stl_dir / f"{base}_multicolour.3mf").relative_to(REPO)))
     t_export = time.time() - t0
     renders = []
     if render_dir is not None:

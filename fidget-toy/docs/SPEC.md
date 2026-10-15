@@ -579,7 +579,7 @@ Per §4.3, verify I_h for each skin and trim with pockets.
 
 ---
 
-## 8. As-built changes (integration rounds 1 and 2)
+## 8. As-built changes (integration rounds 1 to 3)
 
 The CAD in `purrbobble/` follows this spec except where independent verification found a problem. Every change
 below is in the code with a `fix round` comment; the checkers in `verification/` test the as-built geometry.
@@ -598,6 +598,8 @@ below is in the code with a `fix round` comment; the checkers in `verification/`
 | Bee antennae | 6 mm stalk from C_h + 13 @ 22° to a ball at 21 @ 30° | kitty-ear-shaped tapered base (14°–54°, tip 23.6 @ 34°) carrying the ball at 23.3 @ 33° | the bare stalk left a notch at the crown edge: a 2–5 mm squeeze and a knife edge (V12) |
 | Robot head | 34 × 28 rounded rectangle | kitty head circle (r 16) as a helmet over a 28.4-wide square jaw; ear bolts at the temples (C_h + (±13.5, 7), r 4.2) | the rectangle hit the stop-pad zones and its straight sides squeezed against the crown edge (V7, V12) |
 | Kitty face | Ø7 eyes, 3.0 × 2.2 nose, ears to 22.5 | Ø8.4 eyes with Ø2.4 highlights, 4.0 × 2.8 nose, ears to 24.0, 0.8 mm yarn grooves, 0.4 mm debosses | design review: features too small to read and to print cleanly |
-| Mass check (V13) | total ≤ 45 g | as-printed estimate ≤ 45 g (head and ball solid, frame 1.2 mm shell + 20 % infill); solid mass reported | the spec's 37 g budget was an as-printed figure |
+| Kitty look (round 3) | flat face features, plain body | Ø9.0 domed eyes with two highlights each, open smile with tongue, blush, inner ears, bow, fur tuft; a quilted, scalloped cushion around the character on the back plate (outline grown 3.2, r 3.9 lobes); hind feet r 5.6 with toe beans and a curled tail, raised to z 13.6 by the skin's `param_overrides`; overall 59.7 × 90.8 × 18.3 mm | restyled from the owner's concept art; the head outline and every mechanism envelope are unchanged, and the kitty trims cushion and decor height to stay under the 45 g limit (44.4 g as sliced) |
+| Colour | one colour per part | an extra `_multicolour.3mf` per character: one volume per colour region (raised face details, accents, back plate / cushion) with its filament slot, at most 4 slots per character (`assemble.colour_slots`) | the concept art is multi-coloured; colour regions never cross a moving gap |
+| Mass check (V13) | total ≤ 45 g | as printed ≤ 45 g: PrusaSlicer's filament weight for the exported 3MF (head and ball 100 %, frame 20 % gyroid); a shell + infill estimate when the slicer is missing; solid mass reported | the spec's 37 g budget was an as-printed figure |
 | Short overhangs | ≤ 2 nozzle widths (0.8 mm) unlisted | ≤ 1.0 mm | the kitty's front-rib tails overhang the crown's P hole by 0.84 mm; a sub-millimetre perimeter cantilever prints cleanly |
 | Crown field over the band top (loose) | ≥ 0.95 | ≥ 0.75 (rib gap + 0.35) | the loose lift shrinks this field to 0.80; the roof there is a rib-supported float with spans ≤ 4.2 mm |
