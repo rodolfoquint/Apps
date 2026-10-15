@@ -1,7 +1,7 @@
 {
  "skin": "robot",
  "variant": "nominal",
- "build_time_s": 12.0,
+ "build_time_s": 8.81,
  "params": {
   "skin": "robot",
   "variant": "nominal",
@@ -334,8 +334,8 @@
     "genus": 1,
     "watertight": true,
     "winding_consistent": true,
-    "volume_mm3": 10324.57,
-    "triangles": 35812,
+    "volume_mm3": 10323.62,
+    "triangles": 35872,
     "pass": true
    }
   },
@@ -435,7 +435,7 @@
     54.77,
     15.3
    ],
-   "volume_mm3": 10324.6,
+   "volume_mm3": 10323.6,
    "mass_solid_pla_g": 12.8
   },
   "overall_size_WxHxD": [
@@ -446,7 +446,7 @@
   "total_mass_solid_g": 44.3,
   "head_inertia": {
    "mass_g": 12.8,
-   "I_P_kgm2": 4.312e-06,
+   "I_P_kgm2": 4.311e-06,
    "com_above_P_mm": 10.75,
    "com_x_mm": -0.0,
    "spec_I_range": [
@@ -487,10 +487,10 @@
  "slice": {
   "ok": true,
   "filament_g": "0.00",
-  "filament_mm": "14016.84",
-  "time": "4h 37m 8s",
+  "filament_mm": "14016.63",
+  "time": "4h 36m 48s",
   "support_material": false
  },
  "pass": true,
- "time_s": 49.38
+ "time_s": 32.76
 }

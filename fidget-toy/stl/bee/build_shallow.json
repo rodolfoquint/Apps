@@ -21,8 +21,8 @@
   ]
  ],
  "info": {
-  "t_sections_s": 4.63,
-  "t_solids_s": 6.39,
+  "t_sections_s": 4.77,
+  "t_solids_s": 5.95,
   "skin_contract": {
    "warnings": [
     "B_i only 1.32 mm inside Face2D (contract 3.0)",
@@ -196,6 +196,6 @@
   "renders/bee/purrbobble_bee_shallow_face.png",
   "renders/bee/purrbobble_bee_shallow_three_quarter.png"
  ],
- "time_build_export_s": 14.7,
- "time_total_s": 17.27
+ "time_build_export_s": 15.1,
+ "time_total_s": 17.24
 }

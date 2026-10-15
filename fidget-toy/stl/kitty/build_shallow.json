@@ -21,8 +21,8 @@
   ]
  ],
  "info": {
-  "t_sections_s": 4.81,
-  "t_solids_s": 6.04,
+  "t_sections_s": 5.07,
+  "t_solids_s": 7.04,
   "skin_contract": {
    "warnings": [
     "B_i only 1.32 mm inside Face2D (contract 3.0)",
@@ -203,6 +203,6 @@
   "renders/kitty/purrbobble_kitty_shallow_face.png",
   "renders/kitty/purrbobble_kitty_shallow_three_quarter.png"
  ],
- "time_build_export_s": 14.47,
- "time_total_s": 17.8
+ "time_build_export_s": 15.27,
+ "time_total_s": 18.12
 }

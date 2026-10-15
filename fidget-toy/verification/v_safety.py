@@ -642,7 +642,13 @@ class World:
         self.levels = [ZLevel(z, bodies, edge_step, ("head", "wheel")) for z in self.zs]
         bb = np.array([b.bounding_box() for b in bodies.values()])
         m = r_probe + 3.0
-        self.gx0, self.gy0 = bb[:, 0].min() - m, bb[:, 1].min() - m
+        # grid anchored to world multiples of h, so the same geometry is sampled the same way whatever the skin's
+        # outline (a bounding-box origin shifted the cells by up to h and flipped marginal probe contacts, run 5)
+        self.gx0 = math.floor((bb[:, 0].min() - m) / h) * h
+        self.gy0 = math.floor((bb[:, 1].min() - m) / h) * h
+        # a probe centre cell "touches" a cell within r + h sqrt(2): the raster error of both cells (the old
+        # r + h missed contacts in bands narrower than a cell, e.g. the crown face beside the head's neck)
+        self.touch = r_probe + h * math.sqrt(2.0)
         gx1, gy1 = bb[:, 3].max() + m, bb[:, 4].max() + m
         self.nx = int(math.ceil((gx1 - self.gx0) / h)) + 1
         self.ny = int(math.ceil((gy1 - self.gy0) / h)) + 1
@@ -791,7 +797,7 @@ def pinch_audit(W: World, series: list[dict], R: Report, roi: float = 12.5) -> d
         for t, (phi, psi) in enumerate(poses):
             acc = W.accessible(phi, psi)
             for k in levels:
-                tm = (_edt(acc[k], W.h) <= W.r + W.h) if acc[k].any() else np.zeros((W.ny, W.nx), bool)
+                tm = (_edt(acc[k], W.h) <= W.touch) if acc[k].any() else np.zeros((W.ny, W.nx), bool)
                 touch[k].append(np.packbits(tm.ravel()))
             Gm = W.to_body(mv, W.G, phi, psi)
             for k in levels:
@@ -809,7 +815,7 @@ def pinch_audit(W: World, series: list[dict], R: Report, roi: float = 12.5) -> d
                 np.maximum(a["gmax"], np.where(ok, g, -np.inf), out=a["gmax"])
                 # cells a probe sphere centred in the accessible set can touch (within r of an accessible centre)
                 if acc[k].any():
-                    a["exp"] |= ok & (_edt(acc[k], W.h) <= W.r + W.h)
+                    a["exp"] |= ok & (_edt(acc[k], W.h) <= W.touch)
         # screening (raster error <= ~0.4 on the sum of two distances)
         cand = {}
         for k in levels:
@@ -1440,7 +1446,7 @@ def exposure_masks(W: World, poses) -> list[list[np.ndarray]]:
     res = []
     for phi, psi in poses:
         acc = W.accessible(phi, psi)
-        res.append([(_edt(a, W.h) <= W.r + W.h) if a.any() else np.zeros_like(a) for a in acc])
+        res.append([(_edt(a, W.h) <= W.touch) if a.any() else np.zeros_like(a) for a in acc])
     return res
 
 

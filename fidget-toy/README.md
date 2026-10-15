@@ -10,9 +10,9 @@ share the same mechanism core: **Purr Kitty**, **Bumble** the bee and **Pip the 
 
 | | |
 |---|---|
-| Size (kitty) | 52.8 × 84.3 × 18.3 mm |
-| Weight | about 41–43 g of PLA as printed (PrusaSlicer, head and ball 100 % infill) |
-| Print time | about 5 h 15 min – 5 h 25 min (0.2 mm layers, PrusaSlicer estimate for an MK4-class printer) |
+| Size | kitty 59.7 × 90.8 × 18.3 mm; bee 61.2 × 84.8; robot 60.0 × 84.2 |
+| Weight | kitty 44.4 g, bee 42.6 g, robot 40.9 g of PLA as printed (PrusaSlicer, head and ball 100 % infill) |
+| Print time | about 5 h 20 min – 5 h 40 min in one colour (0.2 mm layers, PrusaSlicer estimate for an MK4-class printer) |
 | Ages | 6+ (home-printed toys are not certified to EN 71 / ASTM F963) |
 
 ## How the mechanism was designed
@@ -75,35 +75,43 @@ turns each way, then fast for 30 s each way; clear any strings around the ball o
 ## Safety notes
 
 * All three parts are larger than the small-parts test cylinder (ball Ø 36 mm, head ≥ 41 mm, body about
-  53 × 84 mm), and each moving part is captured by two independent features.
+  60 × 84–91 mm), and each moving part is captured by two independent features.
 * The escapement is sealed between the back plate, the ball and the body. Almost every reachable moving edge
-  keeps a constant gap, stays under 2 mm, or opens to 12 mm or more. The exception: where the head's shoulders
-  slide past the edge of the body's crown, the gap opens to about 5 mm and closes to 0.55 mm over the swing. It
-  is a blunt, rounded, finger-driven nip (15 g head) present on all three characters; the V12 audit flags it on
-  the bee, whose outline lets the 4 mm test probe reach it.
+  keeps a constant gap, stays under 2 mm, or opens to 12 mm or more. The exception is beside the head's neck:
+  at roof height the head has a collar that hugs the crown's outer edge at a constant 0.55 mm, and where the
+  collar ends, its corners slide along the exposed crown face, so the gap there opens to about 5 mm and closes
+  to 0.55 mm over the swing. It is a blunt, rounded, finger-driven nip (15 g head), but a 4 mm test fingertip
+  can reach it, and the V12 audit flags it on all three characters.
 * Suggested label: *Ages 6+. Home 3D-printed toy, not certified to EN 71 / ASTM F963. An adult should check it
   for cracks before each play session. Not for children who still put toys in their mouths.*
 
 ## Verification status
 
-Latest full run (`verification/reports/SUMMARY.md`, 2026-10-15, about 40 min on 4 CPUs):
+Latest full run (`verification/reports/SUMMARY.md`, 2026-10-15, 34 min on 4 CPUs):
 
 | Character | Escapement (V1–V4, V13) | Motion and clearances (V5–V7, V11) | Printability (V8, V9, slicer) | Child safety (V10, V12, V14) |
 |---|---|---|---|---|
-| Purr Kitty | pass | pass, with warnings | pass, with warnings | pass, with warnings |
-| Pip the Robot | pass | pass, with warnings | pass, with warnings | pass, with warnings |
+| Purr Kitty | pass | pass, with warnings | pass, with warnings | **fail**: V12.pinch_00, pinch_01 |
 | Bumble | pass | pass, with warnings | pass, with warnings | **fail**: V12.pinch_00 |
+| Pip the Robot | pass | pass, with warnings | pass, with warnings | **fail**: V12.pinch_00, pinch_01 |
 
 * **Escapement:** every character keeps shivering in all 60 tolerance-corner runs and at friction μ 0.5. A
-  gentle push (1 N·mm) gives 0.6–0.8 turns/s and a 5–6 Hz giggle; a hard push (40 N·mm) gives a 35–38 Hz buzz.
-  As-printed weight is 41–43 g (PrusaSlicer on the 3MF).
-* **Open finding (Bumble, V12.pinch_00):** where the head's shoulder slides past the edge of the body's crown,
-  the gap at the crown edge goes from 0.55 mm to 4.95 mm over the swing. The kitty and robot have the same
-  geometry there; the audit's 4 mm probe reaches it only around the bee's outline. Treat it as a blunt,
-  low-force nip and keep the bee for the older end of the age range, or print the kitty or robot.
+  gentle push (1 N·mm) gives 0.65–0.72 turns/s and a 5–6 Hz giggle; a hard push (40 N·mm) gives a 35–38 Hz buzz.
+  Head inertia 4.3–6.3e-6 kg·m² with the centre of mass 10.8–13.2 mm above the pivot (targets 4–8e-6, 8–14 mm).
+  As-printed weight 40.9–44.4 g (PrusaSlicer on the 3MF; limit 45 g).
+* **Open finding (all three, V12.pinch):** the crown-edge nip described under Safety notes. A 4 mm fingertip
+  can touch the crown face beside the neck; the head's collar corner then sweeps across it, closing the gap
+  from about 4–5 mm to under 2 mm (0.55 mm at the face). Earlier runs reported it on the bee only: the audit's
+  probe grid started at each character's bounding box, and the contact is only 0.3 mm deep, so it came and went
+  with the outline. The grid is now anchored in world coordinates with a touch tolerance that covers its raster
+  error, and all three characters report it. The proposed fix is to close the cavity under the ears around the
+  collar so its ends run in an enclosed pocket. That is a frame change (more material and a bridged face layer),
+  so it has not been made yet.
 * **Warnings kept by design:** the stop pads touch the legs only at the ±12.42° banking limit; the 2 mm back plate
-  behind the head is the weakest panel (about 38 MPa under a 50 N push on its top edge); a few cosmetic debosses
-  are 0.3 mm deep; wall-thickness warnings sit at edge rounds and ribs (0.8 mm by design).
+  behind the head is the weakest panel (about 38 MPa under a 50 N push on its top edge; the kitty's report says
+  60 MPa because its thickness probe lands in a quilting groove near the panel tip, where the bending moment is
+  about an eighth of the root's, and the plate is the full 2.0 mm from the root to there); a few cosmetic
+  debosses are 0.2–0.3 mm deep; wall-thickness warnings sit at edge rounds and ribs (0.8 mm by design).
 
 ## Layout
 

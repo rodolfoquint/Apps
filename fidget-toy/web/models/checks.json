@@ -1,12 +1,12 @@
 {
- "date": "2026-10-15 16:09:55",
+ "date": "2026-10-15 18:08:45",
  "all_pass": false,
  "skins": {
   "kitty": {
    "escapement": "pass",
    "kinematics": "warn",
    "printability": "warn",
-   "safety": "warn"
+   "safety": "fail"
   },
   "bee": {
    "escapement": "pass",
@@ -18,11 +18,42 @@
    "escapement": "pass",
    "kinematics": "warn",
    "printability": "warn",
-   "safety": "warn"
+   "safety": "fail"
   }
  },
  "failing": [
-  "Bumble safety: a pinch-point rule (see Safety) [V12.pinch_00]"
+  "Purr Kitty safety: a pinch-point rule (see Safety) [V12.pinch_00], a pinch-point rule (see Safety) [V12.pinch_01]",
+  "Bumble safety: a pinch-point rule (see Safety) [V12.pinch_00]",
+  "Pip the Robot safety: a pinch-point rule (see Safety) [V12.pinch_00], a pinch-point rule (see Safety) [V12.pinch_01]"
  ],
- "note": "Full run of 2026-10-15, about 40 minutes on 4 CPUs. Still failing: Bumble safety: a pinch-point rule (see Safety) [V12.pinch_00]. Warnings and their reasons are in verification/reports/SUMMARY.md."
+ "note": "Full run of 2026-10-15, about 40 minutes on 4 CPUs. Still failing: Purr Kitty safety: a pinch-point rule (see Safety) [V12.pinch_00], a pinch-point rule (see Safety) [V12.pinch_01]; Bumble safety: a pinch-point rule (see Safety) [V12.pinch_00]; Pip the Robot safety: a pinch-point rule (see Safety) [V12.pinch_00], a pinch-point rule (see Safety) [V12.pinch_01]. Warnings and their reasons are in verification/reports/SUMMARY.md.",
+ "facts": {
+  "kitty": {
+   "size_mm": [
+    59.74,
+    90.79,
+    18.3
+   ],
+   "mass_g": 44.4,
+   "print_time": "5 h 37 min"
+  },
+  "bee": {
+   "size_mm": [
+    61.17,
+    84.8,
+    18.3
+   ],
+   "mass_g": 42.5,
+   "print_time": "5 h 23 min"
+  },
+  "robot": {
+   "size_mm": [
+    59.99,
+    84.21,
+    18.3
+   ],
+   "mass_g": 40.9,
+   "print_time": "5 h 18 min"
+  }
+ }
 }

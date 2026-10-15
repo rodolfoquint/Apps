@@ -21,8 +21,8 @@
   ]
  ],
  "info": {
-  "t_sections_s": 4.69,
-  "t_solids_s": 5.19,
+  "t_sections_s": 4.68,
+  "t_solids_s": 5.16,
   "skin_contract": {
    "warnings": [
     "B_i only 1.76 mm inside Face2D (contract 3.0)",
@@ -200,6 +200,6 @@
   "renders/robot/purrbobble_robot_shallow_face.png",
   "renders/robot/purrbobble_robot_shallow_three_quarter.png"
  ],
- "time_build_export_s": 14.31,
- "time_total_s": 16.72
+ "time_build_export_s": 14.49,
+ "time_total_s": 16.95
 }

@@ -43,7 +43,7 @@
    "head_body": {
     "file": "kitty_head_body.json",
     "body": "head",
-    "color": "#f8ecdc"
+    "color": "#f6e7d3"
    },
    "wheel": {
     "file": "kitty_wheel.json",
@@ -53,13 +53,13 @@
   },
   "bbox": [
    [
-    -29.97,
-    -27.68,
+    -29.58,
+    -27.28,
     0.0
    ],
    [
-    30.56,
-    63.9,
+    30.16,
+    63.51,
     18.3
    ]
   ]
@@ -83,7 +83,7 @@
    "frame_plate": {
     "file": "bee_frame_plate.json",
     "body": "frame",
-    "color": "#8f78e0"
+    "color": "#b9a4f4"
    },
    "frame_body": {
     "file": "bee_frame_body.json",
@@ -138,7 +138,7 @@
    "frame_plate": {
     "file": "robot_frame_plate.json",
     "body": "frame",
-    "color": "#5b8fd6"
+    "color": "#86b9f0"
    },
    "frame_body": {
     "file": "robot_frame_body.json",
