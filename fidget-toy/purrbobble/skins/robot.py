@@ -4,8 +4,8 @@ A friendly little robot peeking out of a round porthole, hugging a big orange ge
 
 Face2D (head frame, relative to C_h = P + (0, 11)):
 
-* Head: a dome-topped "tin robot" head 28.4 wide (fix round 2: the dome replaced the SPEC's r 7 square top, whose
-  straight sides squeezed against the crown edge, V12), top at C_h + 15, and a U-shaped
+* Head: a round helmet (the kitty's r 16 head circle, fix round 2: the SPEC's r 7 square top squeezed against the
+  crown edge, V12) over a square jaw 28.4 wide, and a U-shaped
   jaw (bottom corners r 11).  The chin is placed from the ball, 1.95 above the rim (y = R_u + 1.95), so the
   face <-> ball rim gap is 1.45-1.95 over the swing in every variant (V6 1.4-2.0, V12 < 2 mm).
 * Antenna: stadium 6 wide from C_h + (0, 14) to C_h + (0, 19) with a D8 ball at C_h + (0, 20.5) (SPEC).
@@ -86,10 +86,12 @@ class RobotSkin(Skin):
     chin_gap = 1.95            # chin 1.95 above the ball rim (R_u) at rest: 1.45-1.95 over the swing
     head_r_top = 7.0
     head_r_bot = 11.0
+    helmet_r, helmet_cut = 16.0, 2.0   # helmet top: the kitty head circle, down to C_h - helmet_cut
     antenna_w = 6.0
     antenna_y = (14.0, 19.0)
     antenna_ball = (20.5, 4.0)  # (y, radius)
-    bolt_xy, bolt_r = (15.2, 1.0), 3.6   # inside the crown edge (r_P <= 22.97 < 23.05): no island beyond it (V12)
+    bolt_xy, bolt_r = (13.5, 7.0), 4.2   # temple bolts straddling the crown crossing like the kitty ear bases:
+    #                                     the head cap beyond the crown stays thick, no collar needed (V12, fix round 2)
     face_close = 1.5
 
     visor_wh = (21.0, 9.0)     # SPEC 24 x 9 (r 4.5); sized for the dome-topped head (>= 3 mm inside it) and D7 eyes
@@ -110,16 +112,16 @@ class RobotSkin(Skin):
         # the chin is placed from the ball (O), not from C_h, so the face <-> ball rim gap is the same in every
         # variant (deep / shallow move P and C_h by -+0.24)
         y0 = p.O[1] + p.R_u + self.chin_gap
-        # Dome top (fix round 2, V12): a half-disc of the head's own half width, tangent to the straight sides and
-        # topping out at C_h + head_top.  Like the kitty's head circle it crosses the crown edge at a shallow angle
-        # and stays nearly concentric with it beyond, so the swing never opens and closes a gap there.  (The square
-        # top's straight sides left the crown edge at ~38 deg off radial: a 3.2-5.6 mm squeeze, V12.pinch_00.)
-        yc = cy + self.head_top - self.head_half_w
-        jaw = _gumdrop(cx, self.head_half_w, y0, yc + self.head_r_bot, self.head_r_bot, self.head_r_bot)
-        sides = g2.poly([(cx - self.head_half_w, y0 + self.head_r_bot), (cx + self.head_half_w, y0 + self.head_r_bot),
-                         (cx + self.head_half_w, yc), (cx - self.head_half_w, yc)])
-        dome = g2.circle((cx, yc), self.head_half_w, 0.005)
-        return g2.union([jaw, sides, dome])
+        # Helmet top (fix round 2, V12): above y = C_h - helmet_cut the head is the kitty's proven head circle
+        # (r 16 about C_h).  It crosses the crown edge at a shallow angle and stays nearly concentric beyond it,
+        # and its cap there is thick enough that no collar is needed.  (The SPEC's square top and a smaller r 14.2
+        # dome both left a thin cap or straight sides at the crown edge: 1.7-5.6 mm squeezes and knife edges.)
+        # Below, the narrower square jaw keeps clear of the stop pads; the step between them reads as a helmet rim.
+        top = g2.intersect(g2.circle((cx, cy), self.helmet_r, 0.005),
+                           g2.poly([(cx - 40, cy - self.helmet_cut), (cx + 40, cy - self.helmet_cut),
+                                    (cx + 40, cy + 40), (cx - 40, cy + 40)]))
+        jaw = _gumdrop(cx, self.head_half_w, y0, cy - self.helmet_cut + 1.0, 1.0, self.head_r_bot)
+        return g2.opening(g2.union([top, jaw]), 2.0, 0.01)
 
     def face2d(self, C_h, p) -> CrossSection:
         cx, cy = C_h

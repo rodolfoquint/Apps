@@ -141,6 +141,9 @@ class Params:
     z_band0: float = 3.0            # head band / wheel teeth bottom
     z_band1: float = 7.4            # head band top
     z_teeth1: float = 8.0           # wheel teeth top = umbrella plate bottom
+    z_pallet_top: float = 6.9       # pallet-finger tops where they pass under the umbrella plate (inside WheelEx2D):
+    #                                 1.1 below the plate, more than the 0.8 relative axial play of head and wheel
+    #                                 (fix round 2, V5x); contact height with the teeth 3.9
     z_roof0: float = 8.4
     z_roof1: float = 10.4           # roof top = body top
     # Fix round 1: the face front layer is raised 2.3 (SPEC 11.4 / 15.4 / 16.0) so its underside clears the yarn

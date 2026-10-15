@@ -614,6 +614,8 @@ def build_sections(p: Params, skin, verbose: bool = False) -> Sections:
         radii = np.linspace(r_first, r_last, k + 1)
         # 1.5 inside the face outline: the 3.3 mm slit between crown top and front layer admits no 4 mm probe, so
         # the rib ends are out of reach (a rib end at the face edge would face the ball rim, V12)
+        # (the rim rib's two tails near the chin end over the crown's P hole: their first layer overhangs the hole
+        # edge by ~0.84 mm, a sub-millimetre cantilever; they are kept because they carry the front layer there)
         fclip = g2.difference(g2.intersect(g2.grow(S["i3_2d"], -0.3, 0.01), g2.grow(S["faceup2d"], -1.5, 0.01)),
                               g2.grow(S["facemid2d"], 0.3, 0.01))
         arcs = [g2.difference(g2.circle(P, r + p.rib_w / 2, g2.TOL_DECO), g2.circle(P, r - p.rib_w / 2, g2.TOL_DECO))

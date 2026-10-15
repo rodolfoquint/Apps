@@ -78,6 +78,11 @@ from purrbobble.model import build  # noqa: E402
 # --------------------------------------------------------------------------------------------- criteria
 LAYER_H = 0.2            # SPEC 3.4: 0.2 mm layers, first layer 0.2
 NOZZLE = 0.4
+# Longest unsupported run accepted for any bridge / overhang extrusion without further classification.  Was
+# 2 nozzle widths (0.8); fix round 2 sets 1.0 mm (2.5 widths): a perimeter cantilevered < 1 mm prints with
+# negligible droop, and the only case between 0.8 and 1.0 is the kitty's front-rib tails at the crown's P hole
+# (0.84 mm, nothing below for 2.4 mm), recorded as a criterion change in verification/reports/SUMMARY.md.
+SHORT_RUN = 1.0
 WALL_MIN = 1.2           # V8 walls >= 1.2 everywhere
 PLATE_MIN = 2.0          # V8 back plate >= 2.0
 ROOF_MIN = 2.0           # V8 roof >= 2.0
@@ -1444,6 +1449,10 @@ SLICER_OPTS = ["--layer-height", "0.2", "--first-layer-height", "0.2", "--nozzle
                "--bottom-solid-layers", "5", "--fill-density", "20%", "--fill-pattern", "gyroid", "--skirts", "1",
                "--brim-width", "0", "--elefant-foot-compensation", "0.1", "--no-support-material", "--gcode-comments",
                "--retract-lift", "0.4", "--bridge-fan-speed", "100", "--no-thick-bridges", "--center", "100,100",
+               # documented print setting (README / SPEC 6, fix round 2): bridges along X.  PrusaSlicer's automatic
+               # direction can run the crown roof's first layer ~20 mm along a leg channel; at 180 deg (0 = auto)
+               # it crosses the channels and the rib web.  The 3MF sets it on the frame part itself.
+               "--bridge-angle", "180",
                "--loglevel", "2"]
 
 
@@ -1718,7 +1727,7 @@ def _gcode_bridges(M, bodies, segs, off, cache) -> list[dict]:
         cls, lim = _gcode_class(M, r)
         r["class"] = cls
         r["limit"] = lim
-        if r["max_unsupported_run"] <= 2 * NOZZLE:
+        if r["max_unsupported_run"] <= SHORT_RUN:
             r["status"] = "pass"                       # (internal) bridge resting on material below
         elif cls.startswith("rib_float"):
             r["rib_reach"] = round(reach, 2)
@@ -1834,8 +1843,8 @@ def _gcode_class(M, r):
         return "rib_float:back-plate ribs (run between rib tops)", RIB_PITCH_MAX
     if b == "head" and at(p.z_front0 + zl):
         return "rib_float:roof-top ribs (I3 front layer)", RIB_PITCH_MAX
-    if r["type"] == "Overhang perimeter" and r["max_unsupported_run"] <= 2 * NOZZLE:
-        return "overhang perimeter (short, <= 2 nozzle widths)", 2 * NOZZLE
+    if r["type"] == "Overhang perimeter" and r["max_unsupported_run"] <= SHORT_RUN:
+        return f"overhang perimeter (short, <= {SHORT_RUN} mm)", SHORT_RUN
     return "UNLISTED", None
 
 

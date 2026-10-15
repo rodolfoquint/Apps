@@ -369,6 +369,8 @@ def build_head(p: Params, S, skin) -> tuple[Manifold, dict]:
     ribs_band = S.get("ribs_band2d")
     if ribs_band is not None and not ribs_band.is_empty():
         band = union3([band, extrude(ribs_band, p.z_band1, p.z_band1 + p.rib_h - p.z_lift)])
+    # pallet fingers lowered under the umbrella plate (only the fingers reach into WheelEx2D)
+    band = band - extrude(g2.grow(S["wheelex2d"], 0.05, 0.005), p.z_pallet_top, p.z_band1 + p.rib_h + 0.1, mode="cut")
     block = stepped_top(g2.grow(S["faceup2d"], -block_eps, 0.001), p.z_band1, p.z_front1, p.face_top_round,
                         p.face_top_steps)
     slot = extrude(S["slot2d"], p.z_band1, p.z_front0, mode="cut")

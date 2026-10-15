@@ -37,8 +37,10 @@ Outputs:
   design frame; `Model.posed(phi, psi)` places them. Print pose = `posed(p.phi_print, p.psi_print)` =
   `posed(12.0, 5.96)` for nominal, shallow and loose; the deep variant prints at its max-clearance pose
   `(11.6, 6.22)` (pallet <-> tooth 1.303; at 12.0 / 5.96 it would be only 1.21).
-* Wheel frame: knob axis at (r_k, 0) = (11, 0); star root lands centred on 0, 45, ... deg; tips on 22.5, 67.5, ...
-* Floating bodies in the `loose` variant are lifted by `z_lift` = 0.05 (their V-grooves stay on the frame ridge).
+* Wheel frame: finger-well axis at (r_k, 0) = (11, 0) (fix round 1 replaced the protruding knob with a recessed
+  finger well); star root lands centred on 0, 45, ... deg; tips on 22.5, 67.5, ...
+* Floating bodies in the `loose` variant are lifted by `z_lift` = 0.2, one full layer (a 0.05 lift is lost to layer
+  quantisation); the crown's band-top ribs are shortened by the lift so they keep their 0.40 gap.
 
 ## API
 
@@ -59,7 +61,7 @@ M.skin, M.info                                  # skin instance; timings + skin-
   "deep", "shallow", "loose")`. Derived properties: `Rr, pitch, gamma, rho, D, P, C_h, u, pallets, leg_A,
   leg_Bs, pallet_arm, post_r, bore_r, ridge_apex_r, groove_apex_r, swept_gap`; `p.replace(**kw)`,
   `p.as_dict()`. Variants: deep drho 1.7186, shallow drho 2.0186 (P moves with drho exactly as in the ideation
-  analysis), loose = bore 8.80 / gap_xy 0.55 (swept gaps 0.60) / z_lift 0.05 / ridge normal gap 0.40.
+  analysis), loose = bore 8.80 / gap_xy 0.55 (swept gaps 0.60) / z_lift 0.2 / ridge normal gap 0.40.
 * `escapement`: `star2d(p)` (wheel frame), `pallet_centres(p)`, `pallet_discs2d(p)`, `finger2d(p, i)`,
   `fingers2d(p)`, `summary(p)` (V1 numbers), `star_polygon_pts(p)`.
 * `sweep`: `swept(cs, pivot, psi_b=12.42, n=101, allowance=0.05, psi_range=None)` = U Rot_P(+psi)(cs) grown by

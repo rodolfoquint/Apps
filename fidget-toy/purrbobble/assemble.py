@@ -18,7 +18,10 @@ from manifold3d import Manifold
 # per-part slicer settings written into the 3MF (PrusaSlicer volume config).  SPEC 6: head and wheel 100 %,
 # frame 20 % gyroid.
 PART_SETTINGS = {
-    "frame": {"fill_density": "20%", "fill_pattern": "gyroid"},
+    # bridge_angle 180 (= along X; PrusaSlicer reads 0 as "automatic"): the crown roof's first layer then crosses
+    # both leg channels steeply and the band-top rib web every few mm (longest unsupported strand 12.7 mm vs
+    # ~20 mm with the automatic direction, which runs along a channel)
+    "frame": {"fill_density": "20%", "fill_pattern": "gyroid", "bridge_angle": "180"},
     "wheel": {"fill_density": "100%"},
     "head": {"fill_density": "100%"},
 }

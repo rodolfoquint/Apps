@@ -84,13 +84,12 @@ class BeeSkin(Skin):
     face_r = 16.0
     ant_w = 6.0                      # stalk width (SPEC)
     ant_r0, ant_a0 = 12.0, 22.0      # stalk root: distance from C_h, direction (deg from +Y) (SPEC 22 deg)
-    ant_r1, ant_a1 = 23.1, 31.5      # ball centre (68.5 deg about P: >= 12 mm from the exposed crown wall, V12)
+    ant_r1, ant_a1 = 23.3, 33.0      # ball centre (fix round 2: on the tip of the kitty-style antenna base; H 84.8)
     ant_ball_d = 8.0                 # (SPEC)
     root_fillet = 2.0                # concave antenna root (makes the root > 8 wide)
     ant_base_r = 14.72               # tapered base on the head circle = the kitty ear base (r 14.72, 14..54 deg)
     ant_base_angles = (14.0, 54.0)
-    ant_taper_r, ant_taper_a = 22.0, 32.0    # base tapers up into the stalk just below the ball (cap at the crown
-    #                                          notch >= facemid_open + 0.3, so no collar is needed, like the kitty)
+    ant_taper_r, ant_taper_a = 23.6, 34.0    # base = the kitty ear (tip 24 @ 34 deg), ending under the ball
     neck_fillet = 1.0                # stalk / ball junction
 
     # ---- face features (relative to C_h)

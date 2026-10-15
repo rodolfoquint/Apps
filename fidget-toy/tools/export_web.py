@@ -30,7 +30,10 @@ BODIES = ("frame", "wheel", "head")
 def decimate(tm: trimesh.Trimesh, max_faces: int) -> trimesh.Trimesh:
     if len(tm.faces) <= max_faces:
         return tm
-    out = tm.simplify_quadric_decimation(face_count=max_faces)
+    import fast_simplification
+    v, f = fast_simplification.simplify(np.asarray(tm.vertices, np.float32), np.asarray(tm.faces, np.int32),
+                                        target_reduction=1.0 - max_faces / len(tm.faces))
+    out = trimesh.Trimesh(v, f, process=True)
     out.merge_vertices()
     return out
 
@@ -39,7 +42,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--skins", default="kitty,bee,robot")
     ap.add_argument("--out", default=str(ROOT / "web" / "models"))
-    ap.add_argument("--faces", type=int, default=60000, help="max faces for the frame (wheel/head get half)")
+    ap.add_argument("--faces", type=int, default=50000, help="max faces for the frame (wheel/head get half)")
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)

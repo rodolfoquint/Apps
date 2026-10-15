@@ -450,7 +450,7 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
     per_phi = {f"{phis_c[i]:.1f}": free_intervals(free[i], psis) for i in range(0, len(phis_c), 6)}
     max_free_psi = float(np.abs(np.where(free, np.broadcast_to(psis, free.shape), 0)).max())
     # pallet top <-> umbrella plate Z gap caps the 3-D gap (head band top vs plate)
-    z_pal_plate = (p.z_teeth1 - p.z_band1)
+    z_pal_plate = (p.z_teeth1 - p.z_pallet_top)
     heads = {}
     wheels = {}
 
@@ -655,12 +655,13 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
         rib_sel["band_ribs_to_crown_roof"] = ("head", None, "frame", 0.7, None)      # band ribs (and band groove)
         rib_sel["crown_top_to_front_ribs"] = ("frame", p.z_roof1, "head", 0.7, None)
         fld_sel["band_top_to_crown_roof"] = ("head", p.z_band1 + lift, "frame", None, 0.7)
-        fld_sel["crown_top_to_face_front"] = ("frame", p.z_roof1, "head", None, 0.7)
+        # (no field entry over the crown top: the front layer is 3.3+ mm above it and its hanging ribs share the
+        # census cluster with it; the 0.40 rib gap there is checked in V6.rib_z)
         rib_want.update(band_ribs_to_crown_roof=rib_design, crown_top_to_front_ribs=rib_design + lift)
         # crown fields: the roof / front layer print as rib floats (arcs + spokes, spans <= ~4.2 mm); the field
         # only has to clear the rib gap plus the sag of such a span: >= rib gap + 0.35.  (z_lift shrinks the
         # band-top field: 1.0 nominal, 0.8 loose.)
-        fld_want.update(band_top_to_crown_roof=rib_design + 0.35, crown_top_to_face_front=field_min)
+        fld_want.update(band_top_to_crown_roof=rib_design + 0.35)
     else:
         rib_sel["roof_ribs_to_face_front"] = ("frame", z_rib_r, "head", 1.0, None)
         fld_sel["roof_to_face_front"] = ("frame", p.z_roof1, "head", None, None)
@@ -703,7 +704,7 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
           f">= {min(rib_want.values()) - SPEC['rib_tol']:.2f} (nothing tighter than the designed rib floats)")
     cl = census["design_0_0"]
     g_legs = census_select(cl, "head", p.z_band1 + lift, "frame", "flat")[0]
-    g_pal = census_select(cl, "head", p.z_band1 + lift, "wheel", "flat")[0]
+    g_pal = census_select(cl, "head", p.z_pallet_top + lift, "wheel", "flat")[0]
     g_cone = census_select(cl, "frame", p.z_roof1, "wheel", "slanted")[0]
     g_lip = census_select(cl, "wheel", None, "frame", None)[0]          # ball rim / knob -> paw lips (field)
     g_ridge = min(census_select(cl, "wheel", None, "frame", None, zone="journal_O")[0],
@@ -1059,7 +1060,7 @@ def zplay(R: Report, M, hw):
         res[name] = {"dz_head": r4(dzh), "dz_wheel": r4(dzw), "poses": int(len(idx)), "poses_with_overlap": n_ov,
                      "max_overlap_mm3": r4(vmax), "worst_pose": worst, "overlap_region": loc}
     rel = up_h + dn_w
-    gap_pp = p.z_teeth1 - p.z_band1
+    gap_pp = p.z_teeth1 - p.z_pallet_top
     R.add("V5x.axial_play_corners", "head x wheel with the two bodies at opposite ends of their axial play",
           "warn" if any(v["poses_with_overlap"] for v in res.values()) else "pass",
           {"axial_play_head_up/down": [r4(up_h), r4(dn_h)], "axial_play_wheel_up/down": [r4(up_w), r4(dn_w)],
