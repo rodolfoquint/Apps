@@ -1,7 +1,7 @@
 {
  "skin": "kitty",
  "variant": "nominal",
- "time_s": 811.4,
+ "time_s": 741.9,
  "n_pass": 34,
  "n_warn": 1,
  "n_fail": 0,
@@ -454,7 +454,7 @@
     "to_manifold_error": null,
     "volumes": [
      19234.1856,
-     11344.4668,
+     11334.5369,
      6116.7839
     ]
    },

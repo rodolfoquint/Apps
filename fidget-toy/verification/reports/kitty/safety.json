@@ -1406,8 +1406,8 @@
      0.0
     ],
     "n_poses": 41,
-    "exposed_gap_cells": 54100,
-    "candidates": 24855
+    "exposed_gap_cells": 54048,
+    "candidates": 24803
    },
    "head_phi270": {
     "mover": "head",
@@ -1416,8 +1416,8 @@
      0.0
     ],
     "n_poses": 41,
-    "exposed_gap_cells": 53484,
-    "candidates": 24679
+    "exposed_gap_cells": 53419,
+    "candidates": 24614
    },
    "wheel_psi-12.42": {
     "mover": "wheel",
@@ -1426,8 +1426,8 @@
      -12.42
     ],
     "n_poses": 72,
-    "exposed_gap_cells": 12662,
-    "candidates": 11488
+    "exposed_gap_cells": 12459,
+    "candidates": 11254
    },
    "wheel_psi+0.00": {
     "mover": "wheel",
@@ -1436,8 +1436,8 @@
      0.0
     ],
     "n_poses": 72,
-    "exposed_gap_cells": 12983,
-    "candidates": 11742
+    "exposed_gap_cells": 12971,
+    "candidates": 11730
    },
    "wheel_psi+12.42": {
     "mover": "wheel",
@@ -1446,8 +1446,8 @@
      12.42
     ],
     "n_poses": 72,
-    "exposed_gap_cells": 12810,
-    "candidates": 11556
+    "exposed_gap_cells": 12704,
+    "candidates": 11414
    }
   },
   "clusters": [
@@ -3000,9 +3000,9 @@
     },
     "head": {
      "stats": {
-      "sharp_edges": 7175,
+      "sharp_edges": 7147,
       "acute_edges": 2,
-      "candidates": 432,
+      "candidates": 433,
       "exposed_candidates": 30
      },
      "points": [
@@ -4723,5 +4723,5 @@
  "n_warn": 9,
  "n_fail": 0,
  "pass": true,
- "time_s": 399.4
+ "time_s": 457.6
 }

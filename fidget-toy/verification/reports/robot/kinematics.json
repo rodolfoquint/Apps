@@ -1,7 +1,7 @@
 {
  "skin": "robot",
  "variant": "nominal",
- "time_s": 647.8,
+ "time_s": 625.8,
  "n_pass": 34,
  "n_warn": 1,
  "n_fail": 0,
@@ -454,7 +454,7 @@
     "to_manifold_error": null,
     "volumes": [
      19230.6413,
-     10334.2406,
+     10324.5678,
      6165.3608
     ]
    },

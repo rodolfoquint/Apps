@@ -1,7 +1,7 @@
 {
  "skin": "kitty",
  "variant": "nominal",
- "build_time_s": 10.59,
+ "build_time_s": 11.18,
  "params": {
   "skin": "kitty",
   "variant": "nominal",
@@ -51,6 +51,7 @@
   "z_groove": 5.3,
   "rib_band_pitch": 4.2,
   "rib_band_spoke_deg": 10.0,
+  "front_rib_hole_reach": 0.6,
   "face_jowls": false,
   "face_ball_gap": 1.45,
   "col_r": 5.0,
@@ -333,8 +334,8 @@
     "genus": 1,
     "watertight": true,
     "winding_consistent": true,
-    "volume_mm3": 11344.47,
-    "triangles": 28416,
+    "volume_mm3": 11334.54,
+    "triangles": 28310,
     "pass": true
    }
   },
@@ -434,19 +435,19 @@
     53.56,
     15.3
    ],
-   "volume_mm3": 11344.5,
-   "mass_solid_pla_g": 14.07
+   "volume_mm3": 11334.5,
+   "mass_solid_pla_g": 14.05
   },
   "overall_size_WxHxD": [
    52.82,
    84.31,
    18.3
   ],
-  "total_mass_solid_g": 45.5,
+  "total_mass_solid_g": 45.48,
   "head_inertia": {
-   "mass_g": 14.07,
-   "I_P_kgm2": 5.431e-06,
-   "com_above_P_mm": 12.21,
+   "mass_g": 14.05,
+   "I_P_kgm2": 5.43e-06,
+   "com_above_P_mm": 12.22,
    "com_x_mm": -0.0,
    "spec_I_range": [
     4e-06,
@@ -486,10 +487,10 @@
  "slice": {
   "ok": true,
   "filament_g": "0.00",
-  "filament_mm": "14193.73",
-  "time": "4h 26m 11s",
+  "filament_mm": "14189.39",
+  "time": "4h 26m 1s",
   "support_material": false
  },
  "pass": true,
- "time_s": 43.84
+ "time_s": 43.56
 }

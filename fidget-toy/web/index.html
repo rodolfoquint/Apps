@@ -115,7 +115,7 @@ section { display: grid; gap: 18px; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
 
 .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
-table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+table { border-collapse: collapse; width: 100%; min-width: 540px; font-size: 0.92rem; }
 th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
 tr:last-child td { border-bottom: 0; }
@@ -277,7 +277,7 @@ footer { color: var(--muted); font-size: 0.88rem; display: grid; gap: 6px; }
     <div class="two">
       <div class="prose">
         <p>All three parts are larger than the choking-hazard test cylinder: the ball is 36 mm across, the head at least 41 mm, the body about 53 × 84 mm. Each moving part is held by two separate features, so nothing comes loose even if one breaks. There are no springs, magnets, screws, glued eyes or stickers.</p>
-        <p>The clockwork is sealed between the back plate, the ball and the body. Every moving edge you can reach either keeps a constant gap or stays under 2 mm. The only power is your finger, and the head stores a few millijoules at its fastest buzz.</p>
+        <p>The clockwork is sealed between the back plate, the ball and the body. Almost every moving edge you can reach keeps a constant gap or stays under 2 mm. The exception is where the head’s shoulders slide past the round edge of the body: there the gap opens to about 5 mm and closes to 0.55 mm as the head swings. It is a blunt, rounded edge driven only by your finger (the head weighs about 15 g and stores a few millijoules at its fastest buzz), and the audit flags it on the bumblebee, whose outline lets a test finger reach it.</p>
       </div>
       <div class="label-card">
         <span class="eyebrow">Suggested label</span>
@@ -401,9 +401,9 @@ footer { color: var(--muted); font-size: 0.88rem; display: grid; gap: 6px; }
     renderer.outputEncoding = THREE.sRGBEncoding;
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(30, 1, 1, 2000);
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x8a80a8, 0.85));
-    const key = new THREE.DirectionalLight(0xffffff, 0.75); key.position.set(-60, 90, 160); scene.add(key);
-    const rim = new THREE.DirectionalLight(0xffffff, 0.3); rim.position.set(80, -40, 60); scene.add(rim);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x6f6690, 0.55));
+    const key = new THREE.DirectionalLight(0xffffff, 0.95); key.position.set(-70, 110, 150); scene.add(key);
+    const rim = new THREE.DirectionalLight(0xffffff, 0.35); rim.position.set(90, -30, 70); scene.add(rim);
     controls = new THREE.OrbitControls(camera, canvas);
     controls.enableDamping = true; controls.dampingFactor = 0.08; controls.enablePan = false;
     controls.minDistance = 90; controls.maxDistance = 420;
@@ -414,7 +414,7 @@ footer { color: var(--muted); font-size: 0.88rem; display: grid; gap: 6px; }
     const b = meta[state.skin].bbox;
     const cx = (b[0][0] + b[1][0]) / 2, cy = (b[0][1] + b[1][1]) / 2, cz = (b[0][2] + b[1][2]) / 2;
     controls.target.set(cx, cy, cz);
-    camera.position.set(cx - 55, cy - 40, cz + 200);
+    camera.position.set(cx - 50, cy - 18, cz + 205);
     controls.update();
   }
   function resize() {
@@ -433,7 +433,9 @@ footer { color: var(--muted); font-size: 0.88rem; display: grid; gap: 6px; }
       const root = new THREE.Group();
       const out = { root };
       parts.forEach(([part, obj]) => {
-        const mat = new THREE.MeshStandardMaterial({ color: COLORS[skin][part], roughness: 0.62, metalness: 0.0 });
+        // palette values are sRGB; the renderer outputs sRGB, so convert them to linear for the material
+        const col = new THREE.Color(COLORS[skin][part]).convertSRGBToLinear();
+        const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.6, metalness: 0.0 });
         obj.traverse((o) => { if (o.isMesh) { o.material = mat; } });
         if (part === "frame") { root.add(obj); out.frame = obj; }
         else {

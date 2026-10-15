@@ -1,5 +1,5 @@
 {
- "date": "2026-10-15 15:15:56",
+ "date": "2026-10-15 16:09:55",
  "quick": false,
  "slicer": true,
  "skins": [
@@ -7,7 +7,7 @@
   "bee",
   "robot"
  ],
- "wall_time_s": 2427.0,
+ "wall_time_s": 2394.2,
  "all_pass": false,
  "jobs": [
   {
@@ -16,7 +16,7 @@
    "variant": "all",
    "status": "pass",
    "exit_code": 0,
-   "runtime_s": 93.3,
+   "runtime_s": 99.8,
    "checks": {},
    "notes": [],
    "report": null,
@@ -28,7 +28,7 @@
    "variant": "nominal",
    "status": "pass",
    "exit_code": 0,
-   "runtime_s": 45.1,
+   "runtime_s": 44.6,
    "checks": {
     "V1": "pass",
     "V7": "pass",
@@ -48,7 +48,7 @@
    "variant": "nominal",
    "status": "pass",
    "exit_code": 0,
-   "runtime_s": 230.2,
+   "runtime_s": 226.3,
    "checks": {
     "V2": "pass",
     "V3": "pass",
@@ -60,7 +60,7 @@
     "[WARN] V2 static-lock margin beyond the +-0.4 pivot box (fat pallets +0.2) is only 0.05 mm (lock from dpivot -0.5)",
     "[WARN] V4 extra x_gravity_side_+x: 2/6 runs fail the V4 gates: T 1 dir 1 dD None drp None rps -0.008 swing 2.24 (rps<0.15,swing<8,JAM); T 1 dir -1 dD None drp None rps 0.007 swing 1.57 (rps<0.15,swing<8,JAM)",
     "[WARN] V4 extra x_gravity_side_-x: 2/6 runs fail the V4 gates: T 1 dir 1 dD None drp None rps -0.002 swing 0.37 (rps<0.15,swing<8,JAM); T 1 dir -1 dD None drp None rps 0.007 swing 1.67 (rps<0.15,swing<8,JAM)",
-    "[WARN] V4 friction_mu0.5: min swing 9.54 deg is within 2 deg of the 8 deg gate"
+    "[WARN] V4 friction_mu0.5: min swing 9.76 deg is within 2 deg of the 8 deg gate"
    ],
    "report": "verification/reports/kitty/escapement.json",
    "log": "verification/reports/run_all/kitty_escapement_nominal.log"
@@ -71,7 +71,7 @@
    "variant": "nominal",
    "status": "warn",
    "exit_code": 0,
-   "runtime_s": 813.4,
+   "runtime_s": 743.2,
    "checks": {
     "V5.frame_head": "pass",
     "V5.banking_pads": "pass",
@@ -121,7 +121,7 @@
    "variant": "loose",
    "status": "warn",
    "exit_code": 0,
-   "runtime_s": 704.1,
+   "runtime_s": 680.2,
    "checks": {
     "V5.frame_head": "pass",
     "V5.banking_pads": "pass",
@@ -170,7 +170,7 @@
    "variant": "nominal",
    "status": "warn",
    "exit_code": 0,
-   "runtime_s": 234.5,
+   "runtime_s": 295.7,
    "checks": {
     "V8_topology": "pass",
     "V8_walls_raycast": "warn",
@@ -210,7 +210,7 @@
    "variant": "loose",
    "status": "warn",
    "exit_code": 0,
-   "runtime_s": 212.2,
+   "runtime_s": 206.7,
    "checks": {
     "V8_topology": "pass",
     "V8_walls_raycast": "warn",
@@ -250,7 +250,7 @@
    "variant": "nominal",
    "status": "warn",
    "exit_code": 0,
-   "runtime_s": 401.6,
+   "runtime_s": 458.9,
    "checks": {
     "V10.wheel_min_width": "pass",
     "V10.head_min_width": "pass",
@@ -298,7 +298,7 @@
    "variant": "all",
    "status": "pass",
    "exit_code": 0,
-   "runtime_s": 108.3,
+   "runtime_s": 124.5,
    "checks": {},
    "notes": [],
    "report": null,
@@ -310,7 +310,7 @@
    "variant": "nominal",
    "status": "pass",
    "exit_code": 0,
-   "runtime_s": 55.1,
+   "runtime_s": 51.1,
    "checks": {
     "V1": "pass",
     "V7": "pass",
@@ -327,23 +327,21 @@
    "skin": "bee",
    "check": "escapement",
    "variant": "nominal",
-   "status": "fail",
-   "exit_code": 1,
-   "runtime_s": 252.8,
+   "status": "pass",
+   "exit_code": 0,
+   "runtime_s": 282.8,
    "checks": {
     "V2": "pass",
     "V3": "pass",
     "V4": "pass",
-    "V13": "fail"
+    "V13": "pass"
    },
    "notes": [
-    "[FAIL] V13: {\"I_h\": 6.2696905994198765e-06, \"com_above_P\": 13.150009322728263, \"total_mass\": 45.53357862067999, \"bodies_watertight\": {\"frame\": true, \"wheel\": true, \"head\": true}}",
     "[WARN] V2 worst pressure angle 59.2 deg is within 1 deg of the 60 deg gate (case (-0.4, -0.2, 'band')); stable on 2.5x finer grids in development",
     "[WARN] V2 static-lock margin beyond the +-0.4 pivot box (fat pallets +0.2) is only 0.05 mm (lock from dpivot -0.5)",
-    "[WARN] V4 extra x_bare_wheel: 1/16 runs fail the V4 gates: T 3 dir -1 dD 0.4 drp -0.2 rps -3.242 swing 12.65 (rps>2.2x nominal)",
-    "[WARN] V4 extra x_gravity_side_+x: 2/6 runs fail the V4 gates: T 1 dir 1 dD None drp None rps -0.009 swing 2.36 (rps<0.15,swing<8,JAM); T 1 dir -1 dD None drp None rps 0.009 swing 1.65 (rps<0.15,swing<8,JAM)",
+    "[WARN] V4 extra x_gravity_side_+x: 2/6 runs fail the V4 gates: T 1 dir 1 dD None drp None rps -0.009 swing 2.36 (rps<0.15,swing<8,JAM); T 1 dir -1 dD None drp None rps 0.009 swing 1.68 (rps<0.15,swing<8,JAM)",
     "[WARN] V4 extra x_gravity_side_-x: 2/6 runs fail the V4 gates: T 1 dir 1 dD None drp None rps -0.003 swing 0.56 (rps<0.15,swing<8,JAM); T 1 dir -1 dD None drp None rps 0.008 swing 1.84 (rps<0.15,swing<8,JAM)",
-    "[WARN] V4 friction_mu0.5: min swing 9.85 deg is within 2 deg of the 8 deg gate"
+    "[WARN] V4 friction_mu0.5: min swing 8.6 deg is within 2 deg of the 8 deg gate"
    ],
    "report": "verification/reports/bee/escapement.json",
    "log": "verification/reports/run_all/bee_escapement_nominal.log"
@@ -354,7 +352,7 @@
    "variant": "nominal",
    "status": "warn",
    "exit_code": 0,
-   "runtime_s": 803.7,
+   "runtime_s": 768.3,
    "checks": {
     "V5.frame_head": "pass",
     "V5.banking_pads": "pass",
@@ -404,7 +402,7 @@
    "variant": "loose",
    "status": "warn",
    "exit_code": 0,
-   "runtime_s": 766.1,
+   "runtime_s": 742.7,
    "checks": {
     "V5.frame_head": "pass",
     "V5.banking_pads": "pass",
@@ -453,7 +451,7 @@
    "variant": "nominal",
    "status": "warn",
    "exit_code": 0,
-   "runtime_s": 311.3,
+   "runtime_s": 286.8,
    "checks": {
     "V8_topology": "pass",
     "V8_walls_raycast": "warn",
@@ -493,7 +491,7 @@
    "variant": "loose",
    "status": "warn",
    "exit_code": 0,
-   "runtime_s": 350.0,
+   "runtime_s": 306.3,
    "checks": {
     "V8_topology": "pass",
     "V8_walls_raycast": "warn",
@@ -533,7 +531,7 @@
    "variant": "nominal",
    "status": "fail",
    "exit_code": 1,
-   "runtime_s": 455.1,
+   "runtime_s": 498.8,
    "checks": {
     "V10.wheel_min_width": "pass",
     "V10.head_min_width": "pass",
@@ -585,7 +583,7 @@
    "variant": "all",
    "status": "pass",
    "exit_code": 0,
-   "runtime_s": 97.8,
+   "runtime_s": 111.2,
    "checks": {},
    "notes": [],
    "report": null,
@@ -597,7 +595,7 @@
    "variant": "nominal",
    "status": "pass",
    "exit_code": 0,
-   "runtime_s": 47.1,
+   "runtime_s": 51.1,
    "checks": {
     "V1": "pass",
     "V7": "pass",
@@ -617,7 +615,7 @@
    "variant": "nominal",
    "status": "pass",
    "exit_code": 0,
-   "runtime_s": 190.7,
+   "runtime_s": 209.7,
    "checks": {
     "V2": "pass",
     "V3": "pass",
@@ -627,7 +625,7 @@
    "notes": [
     "[WARN] V2 worst pressure angle 59.2 deg is within 1 deg of the 60 deg gate (case (-0.4, -0.2, 'band')); stable on 2.5x finer grids in development",
     "[WARN] V2 static-lock margin beyond the +-0.4 pivot box (fat pallets +0.2) is only 0.05 mm (lock from dpivot -0.5)",
-    "[WARN] V4 extra x_gravity_side_+x: 2/6 runs fail the V4 gates: T 1 dir 1 dD None drp None rps -0.005 swing 1.46 (rps<0.15,swing<8,JAM); T 1 dir -1 dD None drp None rps 0.004 swing 1.09 (rps<0.15,swing<8,JAM)",
+    "[WARN] V4 extra x_gravity_side_+x: 2/6 runs fail the V4 gates: T 1 dir -1 dD None drp None rps 0.004 swing 1.09 (rps<0.15,swing<8,JAM); T 1 dir 1 dD None drp None rps -0.005 swing 1.46 (rps<0.15,swing<8,JAM)",
     "[WARN] V4 extra x_gravity_side_-x: 2/6 runs fail the V4 gates: T 1 dir 1 dD None drp None rps -0.001 swing 0.22 (rps<0.15,swing<8,JAM); T 1 dir -1 dD None drp None rps 0.004 swing 1.17 (rps<0.15,swing<8,JAM)"
    ],
    "report": "verification/reports/robot/escapement.json",
@@ -639,7 +637,7 @@
    "variant": "nominal",
    "status": "warn",
    "exit_code": 0,
-   "runtime_s": 649.3,
+   "runtime_s": 627.7,
    "checks": {
     "V5.frame_head": "pass",
     "V5.banking_pads": "pass",
@@ -689,7 +687,7 @@
    "variant": "loose",
    "status": "warn",
    "exit_code": 0,
-   "runtime_s": 602.2,
+   "runtime_s": 579.2,
    "checks": {
     "V5.frame_head": "pass",
     "V5.banking_pads": "pass",
@@ -736,9 +734,9 @@
    "skin": "robot",
    "check": "printability",
    "variant": "nominal",
-   "status": "fail",
-   "exit_code": 1,
-   "runtime_s": 356.1,
+   "status": "warn",
+   "exit_code": 0,
+   "runtime_s": 302.3,
    "checks": {
     "V8_topology": "pass",
     "V8_walls_raycast": "warn",
@@ -754,15 +752,13 @@
     "V8_slivers_frame_layers": "warn",
     "V9_overhangs": "pass",
     "LAYER_quantisation": "pass",
-    "SLICER": "fail"
+    "SLICER": "warn"
    },
    "notes": [
-    "[FAIL] SLICER stl: PrusaSlicer toolpaths confirm: layer 11.0 head Overhang perimeter (UNLISTED): longest unsupported strand 1.2 mm (limit None) at [-5.9, 21.53, -4.77, 21.35]",
     "[WARN] SLICER stl: slicer warnings: print warning: Detected print stability issues: | purrbobble_robot_nominal.stl | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports.",
     "[WARN] SLICER stl: layer 3.2 head Bridge infill: strands run up to 22.16 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
     "[WARN] SLICER stl: layer 3.2 wheel Bridge infill: strands run up to 9.48 mm parallel to the arc ribs (all within 1.63 mm of a rib)",
     "[WARN] SLICER stl: layer 3.2 head Overhang perimeter: strands run up to 6.41 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
-    "[FAIL] SLICER 3mf: PrusaSlicer toolpaths confirm: layer 11.0 head Overhang perimeter (UNLISTED): longest unsupported strand 1.2 mm (limit None) at [-5.9, 21.53, -4.77, 21.35]",
     "[WARN] SLICER 3mf: slicer warnings: print warning: Detected print stability issues: | purrbobble_robot_nominal | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports.",
     "[WARN] SLICER 3mf: layer 3.2 head Bridge infill: strands run up to 22.16 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
     "[WARN] SLICER 3mf: layer 3.2 wheel Bridge infill: strands run up to 9.48 mm parallel to the arc ribs (all within 1.63 mm of a rib)",
@@ -778,9 +774,9 @@
    "skin": "robot",
    "check": "printability",
    "variant": "loose",
-   "status": "fail",
-   "exit_code": 1,
-   "runtime_s": 377.7,
+   "status": "warn",
+   "exit_code": 0,
+   "runtime_s": 308.8,
    "checks": {
     "V8_topology": "pass",
     "V8_walls_raycast": "warn",
@@ -796,15 +792,13 @@
     "V8_slivers_frame_layers": "warn",
     "V9_overhangs": "pass",
     "LAYER_quantisation": "pass",
-    "SLICER": "fail"
+    "SLICER": "warn"
    },
    "notes": [
-    "[FAIL] SLICER stl: PrusaSlicer toolpaths confirm: layer 11.2 head Overhang perimeter (UNLISTED): longest unsupported strand 1.2 mm (limit None) at [-5.9, 21.53, -4.77, 21.35]",
     "[WARN] SLICER stl: slicer warnings: print warning: Detected print stability issues: | purrbobble_robot_loose.stl | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports.",
     "[WARN] SLICER stl: layer 3.4 head Bridge infill: strands run up to 22.18 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
     "[WARN] SLICER stl: layer 3.4 wheel Bridge infill: strands run up to 9.48 mm parallel to the arc ribs (all within 1.63 mm of a rib)",
     "[WARN] SLICER stl: layer 3.4 head Overhang perimeter: strands run up to 6.41 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
-    "[FAIL] SLICER 3mf: PrusaSlicer toolpaths confirm: layer 11.2 head Overhang perimeter (UNLISTED): longest unsupported strand 1.2 mm (limit None) at [-5.9, 21.53, -4.77, 21.35]",
     "[WARN] SLICER 3mf: slicer warnings: print warning: Detected print stability issues: | purrbobble_robot_loose | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports.",
     "[WARN] SLICER 3mf: layer 3.4 head Bridge infill: strands run up to 22.18 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
     "[WARN] SLICER 3mf: layer 3.4 wheel Bridge infill: strands run up to 9.48 mm parallel to the arc ribs (all within 1.63 mm of a rib)",
@@ -822,7 +816,7 @@
    "variant": "nominal",
    "status": "warn",
    "exit_code": 0,
-   "runtime_s": 434.6,
+   "runtime_s": 489.1,
    "checks": {
     "V10.wheel_min_width": "pass",
     "V10.head_min_width": "pass",

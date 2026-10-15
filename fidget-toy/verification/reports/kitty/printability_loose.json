@@ -34,7 +34,7 @@
      "components": 1,
      "status": "Error.NoError",
      "genus": 1,
-     "volume_mm3": 11231.39,
+     "volume_mm3": 11221.46,
      "watertight": true,
      "winding_consistent": true,
      "euler": 0,
@@ -47,12 +47,12 @@
     "watertight_shells": 3,
     "shell_volumes": [
      6108.4,
-     11231.4,
+     11221.5,
      19223.2
     ],
     "model_volumes": [
      6108.4,
-     11231.4,
+     11221.5,
      19223.2
     ],
     "matches_model": true,
@@ -715,86 +715,139 @@
      }
     },
     "head": {
-     "min": 0.505,
-     "p01": 0.793,
-     "median": 4.6,
+     "min": 0.51,
+     "p01": 0.794,
+     "median": 4.566,
      "no_hit": 0,
-     "frac_below_1.2": 0.1702,
+     "frac_below_1.2": 0.1683,
      "zones": {
-      "cosmetic:face_feature": {
-       "policy": "cosmetic",
-       "n_thin": 26,
-       "min": 0.665,
+      "bore_hub": {
+       "policy": "structural",
+       "n_thin": 3,
+       "min": 1.189,
        "kinds": {
-        "cosmetic": 26
+        "edge_z_only": 3
        },
        "worst": [
         {
          "at": [
-          -14.0,
-          44.38,
-          17.8
+          -2.16,
+          20.87,
+          4.04
+         ],
+         "t": 1.189,
+         "normal": [
+          0.33,
+          0.63,
+          0.71
+         ],
+         "kind": "edge_z_only"
+        },
+        {
+         "at": [
+          -2.13,
+          20.85,
+          4.04
+         ],
+         "t": 1.195,
+         "normal": [
+          0.33,
+          0.63,
+          0.71
+         ],
+         "kind": "edge_z_only"
+        },
+        {
+         "at": [
+          -1.02,
+          29.0,
+          4.05
+         ],
+         "t": 1.195,
+         "normal": [
+          0.16,
+          -0.69,
+          0.71
+         ],
+         "kind": "edge_z_only"
+        }
+       ],
+       "status": "warn"
+      },
+      "cosmetic:face_feature": {
+       "policy": "cosmetic",
+       "n_thin": 27,
+       "min": 0.665,
+       "kinds": {
+        "cosmetic": 27
+       },
+       "worst": [
+        {
+         "at": [
+          9.74,
+          47.07,
+          17.66
          ],
          "t": 0.665,
          "normal": [
-          0.78,
-          0.63,
+          -0.89,
+          0.46,
           0.0
          ],
          "kind": "cosmetic"
         },
         {
          "at": [
-          9.38,
-          46.37,
+          9.86,
+          47.44,
+          17.81
+         ],
+         "t": 0.812,
+         "normal": [
+          -1.0,
+          0.03,
+          0.0
+         ],
+         "kind": "cosmetic"
+        },
+        {
+         "at": [
+          9.88,
+          48.06,
           17.82
          ],
-         "t": 0.665,
+         "t": 1.085,
          "normal": [
-          -0.89,
-          0.46,
+          -1.0,
+          0.03,
           0.0
          ],
          "kind": "cosmetic"
         },
         {
          "at": [
-          9.57,
-          46.72,
-          17.73
+          -14.5,
+          45.57,
+          17.75
          ],
-         "t": 0.665,
+         "t": 1.094,
          "normal": [
-          -0.89,
-          0.46,
+          0.97,
+          0.24,
           0.0
          ],
          "kind": "cosmetic"
         },
         {
          "at": [
-          10.7,
-          47.47,
-          17.71
+          -15.13,
+          53.42,
+          17.79
          ],
-         "t": 0.928,
+         "t": 1.095,
          "normal": [
-          0.89,
-          -0.46,
-          0.0
-         ],
-         "kind": "cosmetic"
-        },
-        {
-         "at": [
-          -15.32,
-          44.95,
-          17.89
-         ],
-         "t": 1.038,
-         "normal": [
-          -0.78,
-          -0.63,
+          -0.4,
+          -0.92,
           0.0
          ],
          "kind": "cosmetic"
@@ -804,19 +857,19 @@
       },
       "rib_band": {
        "policy": "designed",
-       "n_thin": 384,
-       "min": 0.505,
+       "n_thin": 367,
+       "min": 0.51,
        "kinds": {
-        "designed": 384
+        "designed": 367
        },
        "worst": [
         {
          "at": [
-          -14.73,
-          14.51,
+          -14.74,
+          14.5,
           7.61
          ],
-         "t": 0.505,
+         "t": 0.51,
          "normal": [
           -0.38,
           0.93,
@@ -826,25 +879,11 @@
         },
         {
          "at": [
-          -14.73,
-          13.88,
-          7.76
+          -15.0,
+          14.32,
+          7.79
          ],
-         "t": 0.515,
-         "normal": [
-          0.62,
-          -0.78,
-          0.0
-         ],
-         "kind": "designed"
-        },
-        {
-         "at": [
-          -15.13,
-          14.23,
-          7.91
-         ],
-         "t": 0.527,
+         "t": 0.513,
          "normal": [
           -0.59,
           0.81,
@@ -854,28 +893,42 @@
         },
         {
          "at": [
-          -15.3,
-          22.27,
-          7.96
+          -10.22,
+          17.32,
+          7.63
          ],
-         "t": 0.549,
+         "t": 0.603,
          "normal": [
-          -0.95,
-          0.31,
+          1.0,
+          -0.06,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          14.06,
-          36.69,
-          7.87
+          15.0,
+          25.12,
+          7.81
          ],
-         "t": 0.574,
+         "t": 0.668,
          "normal": [
-          -0.75,
-          -0.66,
+          -1.0,
+          -0.04,
+          -0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          14.18,
+          35.49,
+          7.66
+         ],
+         "t": 0.675,
+         "normal": [
+          -0.54,
+          0.84,
           0.0
          ],
          "kind": "designed"
@@ -887,61 +940,61 @@
       },
       "rib_front": {
        "policy": "designed",
-       "n_thin": 1569,
-       "min": 0.641,
+       "n_thin": 1572,
+       "min": 0.682,
        "kinds": {
-        "designed": 1569
+        "designed": 1572
        },
        "worst": [
         {
          "at": [
-          -4.86,
-          21.64,
-          11.83
+          -6.58,
+          22.63,
+          12.61
          ],
-         "t": 0.641,
+         "t": 0.682,
          "normal": [
-          -0.26,
-          -0.97,
+          0.98,
+          0.19,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          -4.87,
-          21.64,
-          13.72
+          -6.95,
+          22.37,
+          11.34
          ],
-         "t": 0.647,
+         "t": 0.687,
          "normal": [
-          -0.26,
-          -0.97,
+          -0.4,
+          -0.92,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          5.04,
-          23.07,
-          11.89
+          -6.98,
+          22.38,
+          11.6
          ],
-         "t": 0.701,
+         "t": 0.718,
          "normal": [
-          -0.96,
-          0.28,
+          -0.4,
+          -0.92,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          5.01,
-          22.92,
-          12.41
+          6.87,
+          24.11,
+          13.23
          ],
-         "t": 0.713,
+         "t": 0.722,
          "normal": [
           -1.0,
           0.05,
@@ -951,14 +1004,14 @@
         },
         {
          "at": [
-          5.53,
-          22.78,
-          11.69
+          -8.73,
+          32.86,
+          13.01
          ],
-         "t": 0.771,
+         "t": 0.776,
          "normal": [
-          0.45,
-          -0.89,
+          -0.73,
+          0.68,
           0.0
          ],
          "kind": "designed"
@@ -970,47 +1023,33 @@
       },
       "rib_groove": {
        "policy": "designed",
-       "n_thin": 63,
-       "min": 0.587,
+       "n_thin": 50,
+       "min": 0.584,
        "kinds": {
-        "designed": 63
+        "designed": 50
        },
        "worst": [
         {
          "at": [
-          13.4,
-          41.51,
-          4.83
+          -16.57,
+          38.53,
+          4.75
          ],
-         "t": 0.587,
+         "t": 0.584,
          "normal": [
-          0.99,
-          0.1,
-          -0.0
-         ],
-         "kind": "designed"
-        },
-        {
-         "at": [
-          -15.98,
-          38.46,
-          5.22
-         ],
-         "t": 0.671,
-         "normal": [
-          0.78,
-          -0.63,
+          -0.99,
+          0.17,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          12.71,
-          41.53,
-          5.05
+          12.89,
+          41.38,
+          4.86
          ],
-         "t": 0.726,
+         "t": 0.609,
          "normal": [
           -0.63,
           -0.78,
@@ -1020,11 +1059,11 @@
         },
         {
          "at": [
-          -15.86,
-          38.61,
-          5.05
+          -15.9,
+          38.55,
+          4.94
          ],
-         "t": 0.762,
+         "t": 0.733,
          "normal": [
           0.78,
           -0.63,
@@ -1034,15 +1073,29 @@
         },
         {
          "at": [
-          10.98,
-          43.63,
-          4.97
+          -12.45,
+          41.74,
+          5.28
          ],
-         "t": 0.776,
+         "t": 0.78,
          "normal": [
-          0.51,
-          0.86,
-          -0.0
+          0.63,
+          -0.78,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          -10.89,
+          43.69,
+          4.96
+         ],
+         "t": 0.784,
+         "normal": [
+          -0.52,
+          0.85,
+          0.0
          ],
          "kind": "designed"
         }
@@ -2180,7 +2233,7 @@
        11.1,
        13.7
       ],
-      "area_sum_mm2": 2091.41,
+      "area_sum_mm2": 2043.47,
       "wall_pieces": 70,
       "corner_pieces": 28,
       "thinnest_wall_w_est": 0.38,
@@ -2188,10 +2241,10 @@
        {
         "z": 11.1,
         "xy": [
-         5.99,
-         30.7
+         -5.62,
+         31.04
         ],
-        "area": 97.798,
+        "area": 94.374,
         "length": 29.0,
         "w_min": 0.38,
         "kind": "wall"
@@ -2254,10 +2307,10 @@
        {
         "z": 11.3,
         "xy": [
-         5.99,
-         30.71
+         -5.62,
+         31.04
         ],
-        "area": 97.798,
+        "area": 94.374,
         "length": 29.0,
         "w_min": 0.38,
         "kind": "wall"
@@ -3904,35 +3957,34 @@
     {
      "body": "head",
      "z": 11.0,
-     "area_mm2": 159.23,
+     "area_mm2": 155.81,
      "centroid": [
-      -7.16,
-      33.76
+      -1.17,
+      35.92
      ],
      "bbox": [
       -15.64,
-      21.63,
+      22.34,
       13.36,
       45.91
      ],
      "max_dist_to_own_anchor": 11.51,
      "below": {
-      "frame@0.60": 153.9,
-      "head@2.40": 3.3,
-      "head@3.40": 1.4,
-      "head@6.30": 0.5
+      "frame@0.60": 154.3,
+      "head@3.40": 1.2,
+      "head@6.30": 0.4
      },
      "min_gap_below": 0.6,
      "free_edge_runs": {
-      "n": 6,
-      "max_chord": 27.26,
-      "max_path": 83.04,
+      "n": 5,
+      "max_chord": 29.0,
+      "max_path": 108.11,
       "closed_unanchored_ring": true
      },
      "class": "rib_float:front-layer ribs over the crown top",
      "rib_gap_design": 0.6,
      "area_over_rib_tops_mm2": 154.24,
-     "max_dist_to_support": 1.26,
+     "max_dist_to_support": 0.62,
      "support_allowance": 1.9,
      "unsupported_area_mm2": 0.0,
      "unsupported_regions": [],
@@ -3942,7 +3994,7 @@
     {
      "body": "head",
      "z": 13.9,
-     "area_mm2": 205.98,
+     "area_mm2": 209.41,
      "centroid": [
       -16.27,
       33.8
@@ -3953,11 +4005,11 @@
       14.85,
       47.81
      ],
-     "max_dist_to_own_anchor": 1.59,
+     "max_dist_to_own_anchor": 2.24,
      "below": {
       "frame@3.50": 117.8,
-      "head@5.30": 51.4,
-      "head@6.30": 18.8,
+      "head@5.30": 54.6,
+      "head@6.30": 19.0,
       "head@9.20": 18.8,
       "frame@3.83": 0.2,
       "frame@4.50": 0.1
@@ -3971,9 +4023,24 @@
      },
      "class": "own_rib_bridge:front layer between its own ribs",
      "support_allowance": 1.9,
-     "max_dist_to_support": 1.59,
-     "unsupported_area_mm2": 0.0,
-     "unsupported_regions": [],
+     "max_dist_to_support": 2.24,
+     "unsupported_area_mm2": 0.48,
+     "unsupported_regions": [
+      {
+       "centroid": [
+        -5.72,
+        20.48
+       ],
+       "area_mm2": 0.24
+      },
+      {
+       "centroid": [
+        6.46,
+        21.75
+       ],
+       "area_mm2": 0.24
+      }
+     ],
      "status": "pass",
      "notes": []
     },
@@ -4906,22 +4973,22 @@
     "stl": {
      "input": "/home/user/Apps/fidget-toy/stl/kitty/purrbobble_kitty_loose.stl",
      "returncode": 0,
-     "time_s": 14.7,
+     "time_s": 15.6,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_kitty_loose.stl | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
      "errors": [],
-     "print_time": "4h 17m 31s",
-     "filament_g": 35.45,
-     "filament_m": 11.89,
+     "print_time": "4h 17m 36s",
+     "filament_g": 35.44,
+     "filament_m": 11.88,
      "extrusion_length_by_type_mm": {
-      "Solid infill": 148806.2,
+      "Solid infill": 148812.8,
       "Perimeter": 77787.3,
-      "External perimeter": 53506.0,
-      "Internal infill": 35197.5,
+      "External perimeter": 53385.5,
+      "Internal infill": 35180.7,
       "Top solid infill": 18877.4,
       "Bridge infill": 13909.4,
-      "Overhang perimeter": 2339.1,
+      "Overhang perimeter": 2330.5,
       "Skirt/Brim": 275.1
      },
      "support_extrusion_mm": 0,
@@ -5252,17 +5319,17 @@
        "layer_top_z": 11.2,
        "type": "Overhang perimeter",
        "body": "head",
-       "n": 501,
-       "length_mm": 393.7,
-       "unsupported_mm": 12.5,
-       "max_unsupported_run": 0.84,
+       "n": 482,
+       "length_mm": 385.1,
+       "unsupported_mm": 3.9,
+       "max_unsupported_run": 0.55,
        "worst_line_model_xy": [
-        6.07,
-        23.76,
-        5.38,
-        23.37
+        8.19,
+        25.34,
+        7.12,
+        24.43
        ],
-       "max_dist_to_support": 1.26,
+       "max_dist_to_support": 0.41,
        "beyond_rib_reach_mm": 0.0,
        "class": "overhang perimeter (short, <= 1.0 mm)",
        "limit": 1.0,
@@ -5421,24 +5488,24 @@
      "status": "warn"
     },
     "3mf": {
-     "input": "/tmp/v_print_i_pfq3fo/model_kitty_loose.3mf",
+     "input": "/tmp/v_print_tlx73xnd/model_kitty_loose.3mf",
      "returncode": 0,
-     "time_s": 17.8,
+     "time_s": 18.0,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_kitty_loose | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
      "errors": [],
-     "print_time": "5h 11m 40s",
-     "filament_g": 41.14,
+     "print_time": "5h 11m 52s",
+     "filament_g": 41.12,
      "filament_m": 13.79,
      "extrusion_length_by_type_mm": {
-      "Solid infill": 151856.8,
-      "Internal infill": 96438.0,
+      "Solid infill": 151863.5,
+      "Internal infill": 96428.7,
       "Perimeter": 77783.6,
-      "External perimeter": 53499.2,
+      "External perimeter": 53378.7,
       "Top solid infill": 18877.1,
       "Bridge infill": 8741.6,
-      "Overhang perimeter": 2339.1,
+      "Overhang perimeter": 2330.5,
       "Skirt/Brim": 275.1
      },
      "support_extrusion_mm": 0,
@@ -5543,9 +5610,9 @@
        "layer_top_z": 3.4,
        "type": "Overhang perimeter",
        "body": "wheel",
-       "n": 381,
+       "n": 383,
        "length_mm": 427.4,
-       "unsupported_mm": 365.0,
+       "unsupported_mm": 364.9,
        "max_unsupported_run": 2.6,
        "worst_line_model_xy": [
         -3.06,
@@ -5724,17 +5791,17 @@
        "layer_top_z": 11.2,
        "type": "Overhang perimeter",
        "body": "head",
-       "n": 493,
-       "length_mm": 393.7,
-       "unsupported_mm": 12.5,
-       "max_unsupported_run": 0.84,
+       "n": 480,
+       "length_mm": 385.1,
+       "unsupported_mm": 3.9,
+       "max_unsupported_run": 0.55,
        "worst_line_model_xy": [
-        6.07,
-        23.76,
-        5.38,
-        23.37
+        8.19,
+        25.34,
+        7.12,
+        24.43
        ],
-       "max_dist_to_support": 1.26,
+       "max_dist_to_support": 0.41,
        "beyond_rib_reach_mm": 0.0,
        "class": "overhang perimeter (short, <= 1.0 mm)",
        "limit": 1.0,
@@ -5789,11 +5856,11 @@
         "status": "pass"
        },
        "frame|head": {
-        "min_printed_xy_gap": 0.372,
+        "min_printed_xy_gap": 0.373,
         "at_layer_top_z": 7.0,
         "at_xy": [
          -3.93,
-         26.15
+         26.14
         ],
         "min_empty_layers": 2,
         "stack_layers": [
@@ -5825,11 +5892,11 @@
    "stl_info": {
     "manifold": "yes",
     "number_of_parts": "3",
-    "volume": "36562.968750",
+    "volume": "36553.023438",
     "size_x": "52.903564",
     "size_y": "84.306011",
     "size_z": "18.500000",
-    "number_of_facets": "198482"
+    "number_of_facets": "198374"
    },
    "warnings_per_body_alone": {
     "frame": [
@@ -5851,7 +5918,7 @@
    "3mf": null
   },
   "used_stl": "/home/user/Apps/fidget-toy/stl/kitty/purrbobble_kitty_loose.stl",
-  "used_3mf": "/tmp/v_print_i_pfq3fo/model_kitty_loose.3mf"
+  "used_3mf": "/tmp/v_print_tlx73xnd/model_kitty_loose.3mf"
  },
  "summary": {
   "V8_topology": "pass",
@@ -5970,5 +6037,5 @@
   }
  ],
  "pass": true,
- "runtime_s": 210.6
+ "runtime_s": 205.2
 }

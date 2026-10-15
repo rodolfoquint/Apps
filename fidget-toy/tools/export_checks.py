@@ -34,10 +34,21 @@ def main():
             row[k] = ("fail" if "fail" in sts else "warn" if "warn" in sts else "pass" if sts and all(
                 s == "pass" for s in sts) else "not-run")
         out["skins"][skin] = row
-    n_fail = sum(v == "fail" for r in out["skins"].values() for v in r.values())
-    out["note"] = (f"Full run {summ['date']}: " + ("every character passes; warnings are documented in "
-                   "verification/reports/SUMMARY.md." if n_fail == 0 else
-                   f"{n_fail} checker group(s) still failing; see verification/reports/SUMMARY.md."))
+    names = {"kitty": "Purr Kitty", "bee": "Bumble", "robot": "Pip the Robot"}
+    plain = {"V12.pinch": "a pinch-point rule (see Safety)", "V13": "the weight limit", "V2": "the jam screen",
+             "V4": "the dynamics runs", "V5": "the collision sweep", "V6": "a clearance", "V8": "a wall-thickness rule",
+             "V9": "an overhang rule", "SLICER": "the slicer check"}
+
+    def friendly(cid):
+        return next((v for k, v in plain.items() if cid.startswith(k)), cid)
+    fails = [f"{names.get(job['skin'], job['skin'])} {job['check']}: "
+             + ", ".join(f"{friendly(k)} [{k}]" for k, v in (job.get('checks') or {}).items() if v == 'fail')
+             for job in summ["jobs"] if job["status"] == "fail" and job["check"] in GROUPS]
+    out["failing"] = fails
+    out["note"] = (f"Full run of {summ['date'][:10]}, about 40 minutes on 4 CPUs. " +
+                   ("Every character passes; warnings are documented in verification/reports/SUMMARY.md."
+                    if not fails else "Still failing: " + "; ".join(fails) +
+                    ". Warnings and their reasons are in verification/reports/SUMMARY.md."))
     dst = ROOT / "web" / "models" / "checks.json"
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(json.dumps(out, indent=1))

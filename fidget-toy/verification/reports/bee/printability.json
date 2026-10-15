@@ -34,7 +34,7 @@
      "components": 1,
      "status": "Error.NoError",
      "genus": 1,
-     "volume_mm3": 11908.09,
+     "volume_mm3": 11898.16,
      "watertight": true,
      "winding_consistent": true,
      "euler": 0,
@@ -47,12 +47,12 @@
     "watertight_shells": 3,
     "shell_volumes": [
      6013.2,
-     11908.1,
+     11898.2,
      20116.5
     ],
     "model_volumes": [
      6013.2,
-     11908.1,
+     11898.2,
      20116.5
     ],
     "matches_model": true,
@@ -73,9 +73,9 @@
       "volume_mm3": 6013.2
      },
      "head": {
-      "triangles": 40060,
+      "triangles": 39908,
       "watertight": true,
-      "volume_mm3": 11908.1
+      "volume_mm3": 11898.2
      }
     },
     "infill": {
@@ -773,27 +773,55 @@
      }
     },
     "head": {
-     "min": 0.506,
-     "p01": 0.789,
-     "median": 5.0,
+     "min": 0.486,
+     "p01": 0.791,
+     "median": 4.8,
      "no_hit": 0,
-     "frac_below_1.2": 0.1777,
+     "frac_below_1.2": 0.1803,
      "zones": {
       "rib_band": {
        "policy": "designed",
-       "n_thin": 512,
-       "min": 0.506,
+       "n_thin": 551,
+       "min": 0.486,
        "kinds": {
-        "designed": 512
+        "designed": 551
        },
        "worst": [
         {
          "at": [
-          -14.88,
-          14.41,
-          7.4
+          -14.4,
+          14.18,
+          7.68
          ],
-         "t": 0.506,
+         "t": 0.486,
+         "normal": [
+          0.8,
+          -0.59,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          16.6,
+          17.74,
+          7.64
+         ],
+         "t": 0.502,
+         "normal": [
+          0.41,
+          0.91,
+          -0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          -14.95,
+          14.36,
+          7.95
+         ],
+         "t": 0.51,
          "normal": [
           -0.59,
           0.81,
@@ -803,56 +831,28 @@
         },
         {
          "at": [
-          16.98,
-          17.57,
-          7.78
+          -14.75,
+          14.5,
+          7.67
          ],
-         "t": 0.529,
+         "t": 0.511,
          "normal": [
-          0.41,
-          0.91,
+          -0.38,
+          0.93,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          -14.86,
-          22.27,
-          7.87
+          16.62,
+          17.17,
+          7.72
          ],
-         "t": 0.56,
+         "t": 0.514,
          "normal": [
-          0.91,
-          0.41,
-          -0.0
-         ],
-         "kind": "designed"
-        },
-        {
-         "at": [
-          -16.31,
-          33.53,
-          7.52
-         ],
-         "t": 0.568,
-         "normal": [
-          0.75,
-          -0.66,
-          0.0
-         ],
-         "kind": "designed"
-        },
-        {
-         "at": [
-          -11.78,
-          15.97,
-          7.56
-         ],
-         "t": 0.568,
-         "normal": [
-          0.47,
-          -0.88,
+          -0.45,
+          -0.89,
           0.0
          ],
          "kind": "designed"
@@ -864,78 +864,78 @@
       },
       "rib_front": {
        "policy": "designed",
-       "n_thin": 1557,
-       "min": 0.668,
+       "n_thin": 1555,
+       "min": 0.685,
        "kinds": {
-        "designed": 1557
+        "designed": 1555
        },
        "worst": [
         {
          "at": [
-          -4.72,
-          21.63,
-          13.46
+          -6.58,
+          22.63,
+          11.1
          ],
-         "t": 0.668,
+         "t": 0.685,
          "normal": [
-          -0.0,
-          -1.0,
+          0.98,
+          0.19,
+          -0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          7.37,
+          23.91,
+          11.13
+         ],
+         "t": 0.771,
+         "normal": [
+          0.58,
+          -0.81,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          5.42,
-          22.72,
-          12.04
+          8.18,
+          33.42,
+          12.4
          ],
-         "t": 0.671,
+         "t": 0.776,
          "normal": [
-          0.45,
-          -0.89,
+          0.68,
+          0.73,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          5.45,
-          22.74,
-          12.97
+          9.33,
+          32.18,
+          12.86
          ],
-         "t": 0.708,
+         "t": 0.777,
          "normal": [
-          0.45,
-          -0.89,
+          0.77,
+          0.64,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          -4.94,
-          21.66,
-          11.23
+          5.05,
+          34.68,
+          11.06
          ],
-         "t": 0.722,
+         "t": 0.778,
          "normal": [
-          -0.26,
-          -0.97,
-          0.0
-         ],
-         "kind": "designed"
-        },
-        {
-         "at": [
-          -4.61,
-          22.1,
-          12.08
-         ],
-         "t": 0.736,
-         "normal": [
-          0.88,
-          0.48,
+          -0.51,
+          -0.86,
           0.0
          ],
          "kind": "designed"
@@ -947,86 +947,85 @@
       },
       "rib_groove": {
        "policy": "designed",
-       "n_thin": 64,
-       "min": 0.557,
+       "n_thin": 58,
+       "min": 0.782,
        "kinds": {
-        "designed": 64
+        "designed": 58
        },
        "worst": [
         {
          "at": [
-          13.38,
-          41.61,
-          4.9
+          -12.5,
+          41.7,
+          5.3
          ],
-         "t": 0.557,
+         "t": 0.782,
          "normal": [
-          0.93,
-          0.37,
+          0.63,
+          -0.78,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          -16.59,
-          38.45,
-          5.15
+          8.54,
+          44.0,
+          4.7
          ],
-         "t": 0.655,
+         "t": 0.783,
          "normal": [
-          -1.0,
-          -0.1,
+          -0.36,
+          -0.93,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          -15.87,
-          38.6,
-          4.86
+          8.82,
+          44.73,
+          5.22
          ],
-         "t": 0.759,
+         "t": 0.784,
          "normal": [
-          0.78,
-          -0.63,
+          0.42,
+          0.91,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          -16.23,
-          39.37,
-          5.16
+          -10.49,
+          43.02,
+          5.18
          ],
-         "t": 0.775,
+         "t": 0.786,
          "normal": [
-          -0.74,
-          0.67,
+          0.45,
+          -0.89,
           0.0
          ],
          "kind": "designed"
         },
         {
          "at": [
-          10.94,
-          43.65,
+          4.52,
+          45.31,
           4.75
          ],
-         "t": 0.776,
+         "t": 0.786,
          "normal": [
-          0.51,
-          0.86,
-          -0.0
+          -0.26,
+          -0.97,
+          0.0
          ],
          "kind": "designed"
         }
        ],
        "required": 0.77,
-       "status": "warn",
-       "note": "rays at clipped / rounded rib ends; rib body width checked in V8_ribs"
+       "status": "pass"
       }
      }
     }
@@ -2216,7 +2215,7 @@
        10.9,
        13.5
       ],
-      "area_sum_mm2": 2143.29,
+      "area_sum_mm2": 2095.36,
       "wall_pieces": 70,
       "corner_pieces": 28,
       "thinnest_wall_w_est": 0.38,
@@ -2224,10 +2223,10 @@
        {
         "z": 10.9,
         "xy": [
-         6.0,
-         30.7
+         -5.61,
+         31.05
         ],
-        "area": 97.798,
+        "area": 94.374,
         "length": 29.0,
         "w_min": 0.38,
         "kind": "wall"
@@ -2290,10 +2289,10 @@
        {
         "z": 11.1,
         "xy": [
-         5.99,
-         30.71
+         -5.58,
+         31.07
         ],
-        "area": 97.798,
+        "area": 94.374,
         "length": 29.0,
         "w_min": 0.38,
         "kind": "wall"
@@ -3970,35 +3969,34 @@
     {
      "body": "head",
      "z": 10.8,
-     "area_mm2": 158.87,
+     "area_mm2": 155.45,
      "centroid": [
-      -7.16,
-      33.76
+      -1.17,
+      35.91
      ],
      "bbox": [
       -15.64,
-      21.63,
+      22.34,
       13.36,
       45.91
      ],
-     "max_dist_to_own_anchor": 11.45,
+     "max_dist_to_own_anchor": 11.46,
      "below": {
-      "frame@0.40": 153.8,
-      "head@2.40": 3.4,
-      "head@3.40": 1.4,
-      "head@6.10": 0.2
+      "frame@0.40": 154.2,
+      "head@3.40": 1.2,
+      "head@6.10": 0.3
      },
      "min_gap_below": 0.4,
      "free_edge_runs": {
-      "n": 6,
-      "max_chord": 27.26,
-      "max_path": 82.69,
+      "n": 5,
+      "max_chord": 29.0,
+      "max_path": 107.77,
       "closed_unanchored_ring": true
      },
      "class": "rib_float:front-layer ribs over the crown top",
      "rib_gap_design": 0.4,
      "area_over_rib_tops_mm2": 153.96,
-     "max_dist_to_support": 1.26,
+     "max_dist_to_support": 0.62,
      "support_allowance": 1.9,
      "unsupported_area_mm2": 0.0,
      "unsupported_regions": [],
@@ -4008,7 +4006,7 @@
     {
      "body": "head",
      "z": 13.7,
-     "area_mm2": 204.79,
+     "area_mm2": 208.22,
      "centroid": [
       -16.27,
       33.79
@@ -4019,11 +4017,11 @@
       14.85,
       47.76
      ],
-     "max_dist_to_own_anchor": 1.59,
+     "max_dist_to_own_anchor": 2.24,
      "below": {
       "frame@3.30": 118.0,
-      "head@5.30": 52.9,
-      "head@6.30": 17.2,
+      "head@5.30": 56.2,
+      "head@6.30": 17.4,
       "head@9.00": 17.1,
       "frame@3.63": 0.2,
       "frame@4.30": 0.1
@@ -4037,9 +4035,24 @@
      },
      "class": "own_rib_bridge:front layer between its own ribs",
      "support_allowance": 1.9,
-     "max_dist_to_support": 1.59,
-     "unsupported_area_mm2": 0.0,
-     "unsupported_regions": [],
+     "max_dist_to_support": 2.24,
+     "unsupported_area_mm2": 0.48,
+     "unsupported_regions": [
+      {
+       "centroid": [
+        -5.72,
+        20.48
+       ],
+       "area_mm2": 0.24
+      },
+      {
+       "centroid": [
+        6.46,
+        21.75
+       ],
+       "area_mm2": 0.24
+      }
+     ],
      "status": "pass",
      "notes": []
     },
@@ -5048,22 +5061,22 @@
     "stl": {
      "input": "/home/user/Apps/fidget-toy/stl/bee/purrbobble_bee_nominal.stl",
      "returncode": 0,
-     "time_s": 16.8,
+     "time_s": 17.9,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_bee_nominal.stl | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
      "errors": [],
-     "print_time": "4h 25m 22s",
-     "filament_g": 36.53,
-     "filament_m": 12.25,
+     "print_time": "4h 25m 30s",
+     "filament_g": 36.52,
+     "filament_m": 12.24,
      "extrusion_length_by_type_mm": {
-      "Solid infill": 152378.7,
+      "Solid infill": 152381.7,
       "Perimeter": 79593.3,
-      "External perimeter": 55395.1,
-      "Internal infill": 38520.8,
+      "External perimeter": 55274.9,
+      "Internal infill": 38519.9,
       "Top solid infill": 19304.0,
       "Bridge infill": 13783.9,
-      "Overhang perimeter": 2407.3,
+      "Overhang perimeter": 2398.7,
       "Skirt/Brim": 283.0
      },
      "support_extrusion_mm": 0,
@@ -5168,7 +5181,7 @@
        "layer_top_z": 3.2,
        "type": "Overhang perimeter",
        "body": "wheel",
-       "n": 374,
+       "n": 373,
        "length_mm": 426.4,
        "unsupported_mm": 363.5,
        "max_unsupported_run": 2.6,
@@ -5394,17 +5407,17 @@
        "layer_top_z": 11.0,
        "type": "Overhang perimeter",
        "body": "head",
-       "n": 520,
-       "length_mm": 390.1,
-       "unsupported_mm": 12.4,
-       "max_unsupported_run": 0.85,
+       "n": 505,
+       "length_mm": 381.5,
+       "unsupported_mm": 3.7,
+       "max_unsupported_run": 0.5,
        "worst_line_model_xy": [
-        6.08,
-        23.76,
-        5.38,
-        23.37
+        8.19,
+        25.34,
+        7.12,
+        24.43
        ],
-       "max_dist_to_support": 1.26,
+       "max_dist_to_support": 0.41,
        "beyond_rib_reach_mm": 0.0,
        "class": "overhang perimeter (short, <= 1.0 mm)",
        "limit": 1.0,
@@ -5565,22 +5578,22 @@
     "3mf": {
      "input": "/home/user/Apps/fidget-toy/stl/bee/purrbobble_bee_nominal.3mf",
      "returncode": 0,
-     "time_s": 25.3,
+     "time_s": 26.2,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_bee_nominal | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
      "errors": [],
-     "print_time": "5h 23m 11s",
-     "filament_g": 42.56,
+     "print_time": "5h 23m 13s",
+     "filament_g": 42.55,
      "filament_m": 14.27,
      "extrusion_length_by_type_mm": {
-      "Solid infill": 155864.7,
-      "Internal infill": 102328.3,
+      "Solid infill": 155867.7,
+      "Internal infill": 102326.3,
       "Perimeter": 79593.3,
-      "External perimeter": 55395.0,
+      "External perimeter": 55274.9,
       "Top solid infill": 19304.5,
       "Bridge infill": 8965.9,
-      "Overhang perimeter": 2407.2,
+      "Overhang perimeter": 2398.7,
       "Skirt/Brim": 283.0
      },
      "support_extrusion_mm": 0,
@@ -5881,17 +5894,17 @@
        "layer_top_z": 11.0,
        "type": "Overhang perimeter",
        "body": "head",
-       "n": 519,
-       "length_mm": 390.1,
-       "unsupported_mm": 12.4,
-       "max_unsupported_run": 0.85,
+       "n": 505,
+       "length_mm": 381.5,
+       "unsupported_mm": 3.7,
+       "max_unsupported_run": 0.5,
        "worst_line_model_xy": [
-        6.08,
-        23.76,
-        5.38,
-        23.37
+        8.19,
+        25.34,
+        7.12,
+        24.43
        ],
-       "max_dist_to_support": 1.26,
+       "max_dist_to_support": 0.41,
        "beyond_rib_reach_mm": 0.0,
        "class": "overhang perimeter (short, <= 1.0 mm)",
        "limit": 1.0,
@@ -6012,11 +6025,11 @@
    "stl_info": {
     "manifold": "yes",
     "number_of_parts": "3",
-    "volume": "38038.832031",
+    "volume": "38028.847656",
     "size_x": "61.167198",
     "size_y": "84.799458",
     "size_z": "18.299999",
-    "number_of_facets": "215972"
+    "number_of_facets": "215820"
    },
    "warnings_per_body_alone": {
     "frame": [
@@ -6157,5 +6170,5 @@
   }
  ],
  "pass": true,
- "runtime_s": 309.8
+ "runtime_s": 285.3
 }

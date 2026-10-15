@@ -1,7 +1,7 @@
 {
  "skin": "bee",
  "variant": "nominal",
- "build_time_s": 12.32,
+ "build_time_s": 12.27,
  "params": {
   "skin": "bee",
   "variant": "nominal",
@@ -51,6 +51,7 @@
   "z_groove": 5.3,
   "rib_band_pitch": 4.2,
   "rib_band_spoke_deg": 10.0,
+  "front_rib_hole_reach": 0.6,
   "face_jowls": false,
   "face_ball_gap": 1.45,
   "col_r": 5.0,
@@ -332,8 +333,8 @@
     "genus": 1,
     "watertight": true,
     "winding_consistent": true,
-    "volume_mm3": 11908.09,
-    "triangles": 40060,
+    "volume_mm3": 11898.16,
+    "triangles": 39908,
     "pass": true
    }
   },
@@ -433,19 +434,19 @@
     55.13,
     15.3
    ],
-   "volume_mm3": 11908.1,
-   "mass_solid_pla_g": 14.77
+   "volume_mm3": 11898.2,
+   "mass_solid_pla_g": 14.75
   },
   "overall_size_WxHxD": [
    61.17,
    84.8,
    18.3
   ],
-  "total_mass_solid_g": 47.17,
+  "total_mass_solid_g": 47.15,
   "head_inertia": {
-   "mass_g": 14.77,
-   "I_P_kgm2": 6.27e-06,
-   "com_above_P_mm": 13.15,
+   "mass_g": 14.75,
+   "I_P_kgm2": 6.269e-06,
+   "com_above_P_mm": 13.16,
    "com_x_mm": -0.0,
    "spec_I_range": [
     4e-06,
@@ -485,10 +486,10 @@
  "slice": {
   "ok": true,
   "filament_g": "0.00",
-  "filament_mm": "14626.77",
-  "time": "4h 33m 26s",
+  "filament_mm": "14622.48",
+  "time": "4h 33m 19s",
   "support_material": false
  },
  "pass": true,
- "time_s": 52.95
+ "time_s": 49.64
 }
