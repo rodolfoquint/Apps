@@ -274,7 +274,11 @@ def sculpt_geom(M) -> dict:
         rings = [g2.difference(g2.circle(O, r + p.rib_w / 2, 0.01), g2.circle(O, r - p.rib_w / 2, 0.01))
                  for r in ring_r]
         _SCULPT_GEOM[key] = {"band2d": band2d, "low2d_cav": low2d_cav,
-                             "ribs_back": g2.intersect(S["ribs_back2d"], g2.grow(low2d_cav, -0.3, 0.01)),
+                             # (as integrate(): clipped to the cavity, then what the clip leaves narrower than
+                             # 0.9 rib_w dropped)
+                             "ribs_back": g2.drop_small(g2.opening(g2.intersect(S["ribs_back2d"],
+                                                                               g2.grow(low2d_cav, -0.3, 0.01)),
+                                                                   0.9 * p.rib_w, 0.005), 0.1),
                              "rings": compose(rings), "ring_r": ring_r}
     return _SCULPT_GEOM[key]
 
@@ -1362,6 +1366,14 @@ def _vertical_extent(t: trimesh.Trimesh, o: np.ndarray, sign: int) -> np.ndarray
             hits[r].append(dd)
         for r, lst in hits.items():
             lst = sorted(lst)
+            # a ray grazing a near-vertical wall a few microns away registers an exit and a re-entry microns apart
+            # (no gap a printer could make): drop such pairs
+            j = 1
+            while j + 1 < len(lst):
+                if lst[j + 1] - lst[j] < 0.005:
+                    del lst[j:j + 2]
+                else:
+                    j += 2
             # origin is outside (just below / above the surface): entry, exit, ...
             if len(lst) >= 2:
                 out[r] = lst[1] - lst[0]

@@ -294,7 +294,8 @@ def slice_check(M, bodies) -> dict:
         write_3mf(f3, bodies)
         gc = Path(td) / "pb.gcode"
         cmd = ["prusa-slicer", "--export-gcode", "--layer-height", "0.2", "--nozzle-diameter", "0.4",
-               "--filament-diameter", "1.75", "--perimeters", "3", "--top-solid-layers", "5",
+               "--filament-diameter", "1.75", "--filament-density", "1.24", "--perimeters", "3",
+               "--top-solid-layers", "5",
                "--bottom-solid-layers", "5", "--center", "100,100", "-o", str(gc), str(f3)]
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
         if r.returncode != 0:
@@ -333,16 +334,20 @@ def main(argv=None):
            "params": {k: v for k, v in M.params.as_dict().items() if k != "derived"},
            "skin_contract": M.info.get("skin_contract")}
     if sculpt:
-        # the classic face contract's hub collar and crown collar are not built in a sculpt head / frame (the bore
-        # wall they stood for is probed on the head itself: V1 cad_bore_wall_P); the face / leg / stop pad items stay
-        # (the sculpt band and pads are still cut from those sections).  run_all leaves these classic notes out of
-        # the summary for a sculpt skin ("sculpt": true)
+        # the classic face contract's crown collar is not built in a sculpt frame (the bore wall it stood for is
+        # probed on the head itself: V1 cad_bore_wall_P; the head's hub collar is built as in the classic head).
+        # Face2D (the sculpt's face slice) only shapes the band's face part: the legs' roots and the face lie in the
+        # head body (13-15 mm tall there), so the B_i margin and the Face2D width items carry no structural meaning
+        # (thin parts of the head are judged by V8 / V10 / V12).  The stop pad items stay.  run_all leaves these
+        # classic notes out of the summary for a sculpt skin ("sculpt": true)
         sc = dict(rep["skin_contract"] or {})
         sc.pop("crown_collar", None)
-        sc["warnings"] = [w for w in sc.get("warnings", []) if "collar" not in w]
-        sc["note"] = ("sculpt skin: hub collar / crown collar items n/a (not built), bore wall: V1 cad_bore_wall_P; "
-                      "Face2D (the sculpt's face slice) only shapes the band's face part, the head is the sculpt's "
-                      "head blob")
+        na = ("collar", "B_i ", "Face2D has")
+        sc["warnings_na_sculpt"] = [w for w in sc.get("warnings", []) if any(s_ in w for s_ in na)]
+        sc["warnings"] = [w for w in sc.get("warnings", []) if not any(s_ in w for s_ in na)]
+        sc["note"] = ("sculpt skin: crown collar n/a (not built), bore wall: V1 cad_bore_wall_P; Face2D (the "
+                      "sculpt's face slice) only shapes the band's face part, the head is the sculpt's head blob: "
+                      "B_i / Face2D width items n/a (listed in warnings_na_sculpt)")
         rep["skin_contract"] = sc
         rep["sculpt"] = True
         rep["sculpt_info"] = M.info["sculpt"]

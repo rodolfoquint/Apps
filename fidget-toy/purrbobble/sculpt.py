@@ -269,7 +269,7 @@ def _watertight_merged(v: np.ndarray, f: np.ndarray) -> bool:
     return bool(t.is_watertight)
 
 
-def float32_stable(m: Manifold, p, name: str, rounds: int = 6) -> Manifold:
+def float32_stable(m: Manifold, p, name: str, rounds: int = 6, poses=()) -> Manifold:
     """The body as it is exported (float32 vertices: STL, 3MF and the build cache): round-trip it until the float32
     mesh is itself one clean shell that stays closed when a reader merges its vertices by position.  Rounding can
     collapse sub-micron sliver triangles (trim and weld cuts) into zero-volume shells, pinch vertices or nearly
@@ -285,6 +285,13 @@ def float32_stable(m: Manifold, p, name: str, rounds: int = 6) -> Manifold:
         # distinct vertices closer than ~1e-6: a reader that merges them by position (trimesh, slicers) collapses
         # the triangles between them and finds the mesh open; Manifold.simplify merges such short edges
         near = not _watertight_merged(v, f)
+        for c_, deg in poses:                                # (the export / print pose too)
+            if near:
+                break
+            mp = r.translate((-c_[0], -c_[1], 0.0)).rotate((0.0, 0.0, float(deg))).translate((c_[0], c_[1], 0.0))
+            mesh_p = mp.to_mesh()
+            near = not _watertight_merged(np.asarray(mesh_p.vert_properties, np.float32)[:, :3],
+                                          np.asarray(mesh_p.tri_verts, np.uint32))
         if len(parts) == 1 and not len(solids.pinch_vertices(r)) and not near:
             return solids.check_solid(r, name)
         if near and len(parts) == 1:
@@ -500,15 +507,17 @@ def integrate(M, verbose: bool = False) -> dict:
     bank = g2.union([g2.grow(g2.rot_about(band2d, s_ * p.psi_b, P), 3 * p.eps_stack, 0.001) for s_ in (-1, 1)])
     pad_pcs = g2.pieces(S["stoppads2d"])
     pad_low = [not g2.intersect(pc, HB).is_empty() for pc in pad_pcs]
-    pads = []
+    pads, blk_low, blk_full = [], [], []
     for pad, low in zip(pad_pcs, pad_low):
         blk = g2.union([pad, g2.intersect(S["fill2d"], g2.grow(pad, sk.pad_back, 0.01))])
         blk = g2.clean(g2.drop_small(g2.opening(blk, 0.4, 0.005), 0.5), "solid")
         blk = g2.clean(g2.difference(g2.union([pad, g2.opening(blk, 2.0, 0.005)]), bank), "solid")   # (r 1)
         pads.append(ext(blk, p.z_bp - EPS, pad_low_top if low else p.z_band1))
+        (blk_low if low else blk_full).append(blk)
     pads = solids.union3(pads)
-    pads_low2d = g2.union([pc for pc, low in zip(pad_pcs, pad_low) if low] or [CrossSection()])
-    pads_full2d = g2.union([pc for pc, low in zip(pad_pcs, pad_low) if not low] or [CrossSection()])
+    # (the real block outlines: what the head's floors must clear, and what supports them in print)
+    pads_low_blk = g2.union(blk_low or [CrossSection()])
+    pads_full_blk = g2.union(blk_full or [CrossSection()])
     posts = solids.union3([solids.post(p, O), solids.post(p, P)])
     log("pads / posts")
 
@@ -585,18 +594,32 @@ def integrate(M, verbose: bool = False) -> dict:
     # hard floor requirements (the static parts they clear must exist at that height): the chest over the full-height
     # legs, the cover over the lowered legs, the stop pads with their backing
     hard = [(cover_min + gzf, legs_cov), (cov_top + gzf, g2.difference(sw_low_all, C)),
-            (p.z_band1 + gzf, g2.grow(pads_full2d, sk.pad_back, 0.01)),
-            (pad_low_top + gzf, g2.grow(pads_low2d, sk.pad_back, 0.01))]
+            (p.z_band1 + gzf, pads_full_blk), (pad_low_top + gzf, pads_low_blk)]
     # (floor levels sit off the sculpt's flats - its cushion top is flat at 5.60-5.62 - by FLOOR_OFFSET: a floor
     # coplanar with a flat leaves thousands of pinch vertices)
     levels = [p.z_band0 + zl] + list(np.round(np.arange(p.z_band0 + 2 * sk.floor_step, sk.float_top + 1e-6,
                                                    sk.floor_step) + FLOOR_OFFSET, 4))
     reach = g2.grow(swp(HBb), gxy + 0.2, 0.01)               # all the head ever swings over
+    # visible reliefs (skin.reliefs: head part box, cushion box, z): the cushion in the box that this head part
+    # swings over is lowered to z (the floor envelope cuts it), so the part's floors can come lower (the left ear's
+    # root is otherwise only ~5.5 deep: V10 protrusion)
+    rect = lambda b: g2.poly([(b[0], b[1]), (b[2], b[1]), (b[2], b[3]), (b[0], b[3])])     # noqa: E731
+    reliefs = []
+    for head_box, box, zr in getattr(sk, "reliefs", ()):
+        q = g2.intersect(g2.difference(TV.at(zr + 0.01, up=False), out),
+                         g2.grow(swp(g2.intersect(HBb, rect(head_box))), gxy, 0.01), rect(box))
+        if not q.is_empty():
+            reliefs.append((zr, q))
+    info["relief_mm2"] = round(sum(q.area() for _, q in reliefs), 1)
     R = {}                                                    # level -> head points whose floor is >= level
     film_mm2 = 0.0
     for k, L in enumerate(levels[1:]):
         Lp = levels[k]                                        # floors round UP to a level: a point needing a floor
-        soft = [g2.intersect(g2.difference(TV.at(Lp - gzf + 1e-3, up=False), out), reach)]   # above Lp gets L
+        tv = TV.at(Lp - gzf + 1e-3, up=False)
+        for zr, q in reliefs:
+            if Lp - gzf > zr:
+                tv = g2.difference(tv, q)
+        soft = [g2.intersect(g2.difference(tv, out), reach)]   # above Lp gets L
         if Lp < sk.float_z - 1e-9:
             soft.append(partial)
         Rs = g2.intersect(HBb, swp(g2.grow(g2.union(soft), gxy, 0.01)), TV.at(L + sk.t_min, up=True))
@@ -625,9 +648,12 @@ def integrate(M, verbose: bool = False) -> dict:
 
     no_slivers()
     # printable underside: a floor terrace (the points whose floor is exactly L) may reach at most overhang_max beyond
-    # the head's own material just below it (its lower floors, its band) or float_reach beyond frame just under its
-    # seam (the strands sag onto it); points beyond float up a level.  The frame under a floor is the sculpt minus
-    # the envelopes at that height: the band's, the collar's and the sweep of every head point with a lower floor.
+    # the head's own material just below it (where the sculpt is really solid there: not the air under the ears' and
+    # cheeks' undercuts) or float_reach beyond frame right under it in the PRINT pose (the head is printed turned
+    # psi_print about P; the strands sag onto that frame); points beyond float up a level, where the sculpt above
+    # leaves t_min.  The frame under a floor is the sculpt minus the envelopes at that height (the band's, the
+    # collar's and the sweep of every head point with a lower floor), solid 0.6 deep (no films), plus the stop pads'
+    # real blocks.
     pushed = 0.0
     for k in range(1, len(levels) - 1):
         L, Ln = levels[k], levels[k + 1]
@@ -635,7 +661,7 @@ def integrate(M, verbose: bool = False) -> dict:
         if T.is_empty():
             continue
         lower = g2.difference(HBb, R[L])                    # head points with floor < L
-        zf = L - gzf - 0.05
+        zf = L - gzf - 0.01
         cut = [g2.grow(swp(lower), gxy, 0.01)] if not lower.is_empty() else []
         if zf < z_fl:
             cut.append(sw_band)
@@ -644,11 +670,16 @@ def integrate(M, verbose: bool = False) -> dict:
         if p.z_band1 + zl <= zf <= p.z_roof0 + zl + gz:
             cut.append(g2.circle(P, p.R_hub_cut, 0.005))
         fr = g2.difference(Ks.slice(zf), g2.union(cut)) if cut else Ks.slice(zf)
-        fr = g2.union([fr] + [g2.grow(pd, sk.pad_back, 0.01) for pd, zp in ((pads_low2d, pad_low_top),
-                                                                            (pads_full2d, p.z_band1)) if zf <= zp])
-        own = g2.union([lower, band_at(L - 0.1)])
-        ok = g2.union([g2.grow(own, sk.overhang_max, 0.01), g2.grow(fr, sk.float_reach, 0.01)])
-        up = g2.drop_small(g2.difference(T, ok), 0.01)
+        fr = g2.intersect(fr, g2.intersect(*[Ks.slice(float(z)) for z in np.arange(zf - 0.6, zf + 1e-6, 0.1)]))
+        pads_here = [b_ for b_, zp in ((pads_low_blk, pad_low_top), (pads_full_blk, p.z_band1))
+                     if zf <= zp and not b_.is_empty()]
+        fr = g2.opening(g2.union([fr] + pads_here), 0.6, 0.005)
+        own = g2.union([g2.grow(g2.opening(g2.intersect(lower, kslice(L - 0.1)), 0.15, 0.005), -0.1, 0.005),
+                        band_at(L - 0.1)])
+        Tw = g2.rot_about(T, p.psi_print, P)
+        sup = g2.rot_about(g2.intersect(g2.grow(g2.intersect(Tw, fr), sk.float_reach, 0.01), Tw), -p.psi_print, P)
+        ok = g2.union([g2.grow(own, sk.overhang_max, 0.01), sup])
+        up = g2.drop_small(g2.intersect(g2.difference(T, ok), TV.at(Ln + sk.t_min, up=True)), 0.01)
         if not up.is_empty():
             pushed += up.area()
             R[Ln] = g2.clean(g2.union([R[Ln], up]), "solid")      # (still nested: up lies in R[L])
@@ -747,7 +778,9 @@ def integrate(M, verbose: bool = False) -> dict:
     frame = solids.finish(weld_pinches(frame), p, "frame")
     log("frame")
     # as exported: float32 vertices (STL, 3MF, build cache) must give the same single clean shells
-    frame, head, wheel = (float32_stable(b, p, n) for b, n in ((frame, "frame"), (head, "head"), (wheel, "wheel")))
+    frame = float32_stable(frame, p, "frame")
+    head = float32_stable(head, p, "head", poses=((P, p.psi_print), (P, p.psi_b), (P, -p.psi_b)))
+    wheel = float32_stable(wheel, p, "wheel", poses=((O, p.phi_print),))
     log("float32-stable")
     M.frame, M.head, M.wheel = frame, head, wheel
     info.update({"t_sculpt_s": round(time.time() - t0, 1)})

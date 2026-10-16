@@ -912,9 +912,11 @@ def v4_jobs(base: dict, c_r_cad: float, quick: bool, sculpt: bool = False) -> li
         J.append(a)
 
     # simulated time: SPEC/ideation used 0.6 s (nominal) and 0.45 s (corners); slow runs are lengthened so the
-    # averaging window (t > 0.35 t_end) always spans several teeth
-    t_nom = {1: 1.2, 2: 0.9}
-    t_cor = {1: 1.2, 3: 0.6}
+    # averaging window (t > 0.35 t_end) always spans many teeth.  At T 1 the motion is chaotic and intermittent: a
+    # 1.2 s run averages ~5 teeth dominated by the spin-up overshoot (its f moved +-0.1 Hz for a 1e-9 change of I_h
+    # on the sculpt kitty), so T 1 runs 4 s (~17 teeth) and T 2 1.8 s - the steady rate the table describes
+    t_nom = {1: 4.0, 2: 1.8}
+    t_cor = {1: 4.0, 3: 0.6}
     Ts = [1, 2, 3, 5, 10, 20, 40] if not quick else [1, 3, 20]
     for T in Ts:
         for d in (1, -1):
