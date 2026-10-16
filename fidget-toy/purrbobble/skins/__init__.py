@@ -4,11 +4,12 @@ from __future__ import annotations
 import importlib
 import importlib.util
 
-from .base import Feature, PawStyle, Skin
+from .base import Feature, PawStyle, Skin, Tier, mirror_features
 
 # name -> "module:Class" (modules are imported lazily so a broken skin cannot break the others)
 REGISTRY = {
-    "kitty": "purrbobble.skins.kitty:KittySkin",
+    "kitty": "purrbobble.skins.kitty_sculpt:SculptKittySkin",   # round 5: the owner's sculpt
+    "kitty_classic": "purrbobble.skins.kitty:KittySkin",
     "bee": "purrbobble.skins.bee:BeeSkin",
     "robot": "purrbobble.skins.robot:RobotSkin",
 }

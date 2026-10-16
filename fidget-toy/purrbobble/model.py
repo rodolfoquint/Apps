@@ -74,8 +74,20 @@ def build(skin: str | Skin = "kitty", variant: str = "nominal", params: Params |
     S["wheel_relief2d"] = winfo["relief2d"]
     S["collar2d"] = hinfo["collar2d"]
     t2 = time.time()
+    sinfo = {}
+    if hasattr(sk, "sculpt"):
+        # round 5: the mechanism goes inside the skin's sculpted mesh (purrbobble/sculpt.py)
+        from . import sculpt as _sc
+        M0 = Model(frame=frame, wheel=wheel, head=head, params=p, sections=S, skin=sk, info={})
+        sinfo = _sc.integrate(M0, verbose=verbose)
+        frame, wheel, head = M0.frame, M0.wheel, M0.head
+        hinfo = dict(hinfo, head_base=None, feature_parts={})
     info = {"t_sections_s": round(t1 - t0, 2), "t_solids_s": round(t2 - t1, 2),
-            "skin_contract": S.get("skin_contract"), "face_features": [f.name for f in hinfo["features"]]}
+            "skin_contract": S.get("skin_contract"), "face_features": [f.name for f in hinfo["features"]],
+            # solids for the colour regions (assemble.colour_parts): the bodies before their surface features and
+            # each draped feature's added / removed solid
+            "head_base": hinfo.get("head_base"), "head_feature_parts": hinfo.get("feature_parts", {}),
+            "frame_colour_masks": finfo.get("colour_masks", []), "sculpt": sinfo}
     if verbose:
         print(f"  [model] sections {t1 - t0:.1f}s, solids {t2 - t1:.1f}s", flush=True)
     return Model(frame=frame, wheel=wheel, head=head, params=p, sections=S, skin=sk, info=info)

@@ -9,3 +9,5 @@ verification/reports/run_all/
 web/models/*.glb
 # (one JSON per skin and colour region, e.g. kitty_frame_plate.json; models/motion/checks.json are committed)
 web/models/*_*.json
+# cached face-up copy of the sculpt (purrbobble/sculpt.load_sculpt)
+sculpt/*.npz

@@ -169,7 +169,8 @@ class Params:
     # Fix round 1 (V12 pinch audit + V10): the protruding D10 knob made a shear with the paw-lip span ends
     # (12.4 -> 1.0 mm) and a squeeze under the chin, and would be a small part if it snapped.  The child now drives
     # the ball with a fingertip in a recessed spherical finger well at the same radius r_k (same lever arm for the
-    # dynamics); nothing of the wheel stands above the ball top (z 13.3).  wheel_drive = "knob" restores the SPEC knob.
+    # dynamics); nothing of the wheel stands above the ball top (z 13.3).  wheel_drive = "knob" restores the SPEC knob;
+    # "dish": the skin cuts its own finger dish at (r_k, 0) (the sculpt kitty's spinning cap).
     wheel_drive: str = "well"
     well_d: float = 8.4             # well opening diameter (dish) before the rim round: top edge r 4.65 about the
                                     # well axis (D 9.3), leaving a 1.35 land of ball top before the r 1.0 rim round
@@ -182,6 +183,9 @@ class Params:
     relief_w: float = 0.6           # skin top relief grooves 0.6 wide x 0.5 deep
     relief_depth: float = 0.5
     relief_r_max: float = 16.5      # grooves for r <= 16.5
+    relief_bevel: float = 0.0       # > 0: V-ish grooves (round 4): the top relief_depth/3 is cut this much wider
+    #                                 on each side and the bottom third this much narrower, so the lands read as
+    #                                 rounded cords
     relief_knob_clear: float = 7.5  # no grooves within 7.5 of the knob / well axis (well top edge r 4.65 + 2.85)
 
     # ------------------------------------------------------------------ keep-out under the umbrella (SPEC 2.7)
@@ -221,6 +225,12 @@ class Params:
     # ------------------------------------------------------------------ fillets (stepped approximations)
     face_top_round: float = 1.5     # FaceUp2D top perimeter r 1.5 ...
     face_top_steps: int = 6         # ... as 6 inset steps
+    # pillow face (round 4, decorative, per-skin override): when face_pillow_xy > 0 the front layer's top edge is a
+    # quarter-ellipse face_pillow_xy wide x face_pillow_z tall in face_pillow_steps terraces (each re-rounded r 1.5)
+    # instead of face_top_round, and face features are draped over it (solids.apply_features_draped)
+    face_pillow_xy: float = 0.0
+    face_pillow_z: float = 0.0
+    face_pillow_steps: int = 0
     frame_top_fillet: float = 1.0   # frame exterior top edges r 1.0
     frame_top_steps: int = 3
 
@@ -349,7 +359,8 @@ def get_params(variant: str = "nominal", skin: str = "kitty", **overrides) -> Pa
         p = base.replace(bore_d=8.80, gap_xy=0.55, z_lift=0.2, ridge_gap_n=0.40)
     else:
         raise ValueError(f"unknown variant {variant!r}; choose from {VARIANTS}")
-    # a skin may override decorative parameters (e.g. the kitty's taller feet: z_decor1); never mechanism ones
+    # a skin may override decorative parameters (e.g. the kitty's taller feet: z_decor1), never escapement ones; the
+    # sculpt kitty also shrinks the wheel's umbrella (R_u ...) to hide it under its sculpted yarn ball
     try:
         from .skins import get_skin
         so = dict(getattr(get_skin(skin), "param_overrides", {}) or {})

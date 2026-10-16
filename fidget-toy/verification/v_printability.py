@@ -242,13 +242,23 @@ class Zoner:
         except Exception:
             plate_f = []
         decor_f = sk.body_decor_features(p) if hasattr(sk, "body_decor_features") else []
+        # pillowed (round 4) parts carry draped features below their flat top: the cosmetic windows start at the
+        # lowest point of the round (face: z_front1 - face_pillow_z; paws: min over lip pieces of z1 - round_z)
+        self.face_feat_z = p.z_front1 - (p.face_pillow_z if getattr(p, "face_pillow_xy", 0.0) > 0 else 0.0) - 0.7
+        zs = [((st.z1 if getattr(st, "z1", None) is not None else p.paw_z1) - getattr(st, "round_z", 0.0))
+              for st in paws.values()]
+        self.paw_feat_z = (min(zs) if zs else p.paw_z1) - 0.7
+        paw_f = footprint([f for st in paws.values() for f in st.features])
+        tier_f = [f for t in list(S.get("tiers", [])) + list(S.get("plate_decor", [])) for f in t.features]
         self.g = {
             "ribs_back": prep(S["ribs_back2d"], 0.05),
             "ribs_roof": prep(S["ribs_roof2d"], 0.05) if not S["ribs_roof2d"].is_empty() else None,
             "ribs_band": prep(S["ribs_band2d"], 0.05) if not S.get("ribs_band2d", CrossSection()).is_empty() else None,
             "ribs_front": prep(S["ribs_front2d"], 0.05) if not S.get("ribs_front2d", CrossSection()).is_empty() else None,
             "ribs_groove": prep(S["groove_rib2d"], 0.05) if not S.get("groove_rib2d", CrossSection()).is_empty() else None,
-            "paws": prep(compose([S["paw_plan_R"], S["paw_plan_L"]]), 0.05),
+            "paws": prep(compose(list((S.get("paw_plans") or {"R": S["paw_plan_R"], "L": S["paw_plan_L"]}).values())),
+                         0.05),
+            "tier_feat": prep(footprint(tier_f), 1.5) if tier_f else None,
             "decor": prep(S["decor2d"], 0.05) if not S["decor2d"].is_empty() else None,
             "pads": prep(S["stoppads2d"], 0.1) if not S["stoppads2d"].is_empty() else None,
             "plate_edge": prep(S["backdrop2d"] - grow(S["backdrop2d"], -0.8)),
@@ -293,6 +303,9 @@ class Zoner:
             post_zone = p.post_r + p.post_root_fillet + 0.25
             rules = [
                 ((z <= p.z_bp + e) & (z >= p.z_bp - 0.7) & self._in("plate_feat", x, y), COSMETIC_PREFIX + "plate_groove"),
+                # raised cushion relief (round 4: piping, quilted pillows) on the plate top, <= 1.2 proud
+                ((z >= p.z_bp - e) & (z <= p.z_bp + 1.3) & self._in("plate_feat", x, y)
+                 & ~self._in("ribs_back", x, y), COSMETIC_PREFIX + "plate_relief"),
                 ((z <= p.z_bp + e) & self._in("plate_edge", x, y), "plate_edge"),
                 # a sample on a back-plate rib's side wall exactly at its root (z_bp) belongs to the rib
                 ((z >= p.z_bp - e) & (z <= p.z_bp + p.rib_h + e) & self._in("ribs_back", x, y), "rib_back"),
@@ -300,7 +313,8 @@ class Zoner:
                 (((rO <= post_zone) | (rP <= post_zone)) & (z <= p.post_z1 + e), "post"),
                 ((z <= p.z_bp + p.rib_h + e) & self._in("ribs_back", x, y), "rib_back"),
                 ((z >= p.z_roof1 - e) & (z <= p.z_roof1 + p.rib_h + e) & self._in("ribs_roof", x, y), "rib_roof"),
-                ((z >= p.paw_z1 - 0.7) & self._in("paw_feat", x, y) & self._in("paws", x, y), COSMETIC_PREFIX + "paw_feature"),
+                ((z >= self.paw_feat_z) & self._in("paw_feat", x, y) & self._in("paws", x, y), COSMETIC_PREFIX + "paw_feature"),
+                ((z >= p.z_bp) & self._in("tier_feat", x, y), COSMETIC_PREFIX + "tier_feature"),
                 ((z >= p.z_roof1 - e) & self._in("paws", x, y) & (rO <= p.paw_wall_r + 0.05), "paw_lip"),
                 ((z >= p.z_roof1 - e) & self._in("paws", x, y), "paw"),
                 ((z >= p.z_decor1 - 0.7) & self._in("decor_feat", x, y) & self._in("decor", x, y), COSMETIC_PREFIX + "decor_feature"),
@@ -322,7 +336,7 @@ class Zoner:
         else:
             rules = [
                 ((rP <= p.bore_r + 1.0) & (z <= p.bore_roof_z + 0.6), "bore_hub"),
-                ((z >= p.z_front1 - 0.7) & self._in("face_feat", x, y), COSMETIC_PREFIX + "face_feature"),
+                ((z >= self.face_feat_z) & self._in("face_feat", x, y), COSMETIC_PREFIX + "face_feature"),
                 ((z >= p.z_band1 - e) & (z <= p.z_band1 + p.rib_h + e) & self._in("ribs_band", x, y), "rib_band"),
                 ((z >= p.z_roof1 + p.gap_rib - e) & (z <= p.z_front0 + e) & self._in("ribs_front", x, y), "rib_front"),
                 ((z >= getattr(p, "z_groove", 0.0) - p.rib_h - p.z_lift - 0.05 - e)
@@ -896,9 +910,11 @@ def v8_slivers_3d(M, L: Layers, zoner: Zoner) -> dict:
     summ = {f"{z}/{k}": {"n_pieces": len(v), "z_range": [min(r["z"] for r in v), max(r["z"] for r in v)],
                          "area_sum": rnd(sum(r["area"] for r in v), 2), "min_w": rnd(min(r["w"] for r in v), 2),
                          "worst": sorted(v, key=lambda r: r["w"])[:4]} for (z, k), v in by.items()}
-    n_walls = sum(1 for r in rows if r["kind"] == "wall")
+    # cosmetic relief (round 4: the cushion's raised piping / quilting crests, <= 1.2 proud of the 2.0 plate) is
+    # reported but, as in the other wall checks, only warns
+    n_walls = sum(1 for r in rows if r["kind"] == "wall" and not r["zone"].startswith(COSMETIC_PREFIX))
     return {"criterion": f"frame layers z {p.z_bp + p.rib_h:.1f}-{p.z_roof1:.1f}: no sliver (strip >= 2 mm long) narrower "
-                         f"than {SLIVER_T} (stop pads and posts excluded)",
+                         f"than {SLIVER_T} (stop pads and posts excluded; cosmetic relief warns)",
             "by_zone": summ, "n_wall_pieces": n_walls, "n_corner_pieces": len(rows) - n_walls,
             "status": "fail" if n_walls else ("warn" if rows else "pass")}
 
@@ -2027,7 +2043,7 @@ def build_findings(rep: dict) -> list[dict]:
             fix = "reduce the span or add anchors"
         else:
             fix = "make it self-supporting (<= 45 deg), a listed bridge or a rib-supported float"
-        add("fail", "V9 overhang", f"{r['body']} z {r['z']} {r['class']}: " + "; ".join(r["notes"]), fix,
+        add("fail", "V9 overhang", f"{r['body']} z {r['z']} {r['class']}: " + "; ".join(r.get("notes") or []), fix,
             {"area_mm2": r["area_mm2"], "centroid": r["centroid"],
              "regions": r.get("beyond_half_span_regions") or r.get("unsupported_regions")})
     sl = c.get("SLICER", {})

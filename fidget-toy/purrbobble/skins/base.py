@@ -63,12 +63,42 @@ class Feature:
     edge_ok: bool = False          # allowed closer than 3 mm to the face edge (SPEC places it there)
     color: str | None = None       # multi-colour print: "details" (eyes, nose, mouth) or "accent" (bow, blush,
     #                                tongue, toe beans ...) for raised features; None = the body's own colour
+    round: float = 0.0             # "raise" only: puffy top, a quarter-round of this radius (0 = the core's small
+    #                                default round); a puffy feature may stand up to 2.5 proud (bow, fur curls)
 
 
 @dataclass
 class PawStyle:
     plan2d: CrossSection                      # plan outline, world frame
     features: list = field(default_factory=list)   # Feature list on the paw top (z 16.0)
+    span: tuple | None = None                 # (a0, a1) deg about O; default p.paw_span_R / _L for keys "R" / "L".
+    #                                           Extra keys (e.g. "RF", "LF": feet) add more lip pieces per side
+    z1: float | None = None                   # top height (default p.paw_z1)
+    round_xy: float = 0.0                     # pillow top outside the lip zone (0: the frame_top_fillet round)
+    round_z: float = 0.0
+
+
+@dataclass
+class Tier:
+    """A rounded relief standing on the frame: on the body top (``Skin.body_tiers``, from z_roof1) or on the back
+    plate (``Skin.plate_decor``, from z_bp).  The core clips it clear of the swinging head (V12) and of the yarn
+    ball keep-out, builds it as a pillow (quarter-ellipse round_xy x round_z) and drapes its features over it."""
+    name: str
+    shape: CrossSection
+    z1: float
+    round_xy: float = 0.8
+    round_z: float = 0.8
+    features: list = field(default_factory=list)
+
+
+def mirror_features(feats: list, suffix: str = "_L") -> list:
+    """Mirror features x -> -x (all fields kept, names suffixed)."""
+    import dataclasses
+    return [dataclasses.replace(f, name=f.name + suffix,
+                                shape=None if f.shape is None else f.shape.mirror((1.0, 0.0)),
+                                center=None if f.center is None else (-f.center[0], f.center[1]),
+                                on=None if f.on is None else f.on + suffix)
+            for f in feats]
 
 
 class Skin:
@@ -102,6 +132,11 @@ class Skin:
     def head_pockets2d(self, p) -> CrossSection | None:
         return None
 
+    def face_front2d(self, C_h, p, S=None) -> CrossSection | None:
+        """Optional front-layer-only widening of the face (z_front0 .. z_front1), e.g. cheeks.  The core keeps
+        only the buildable, safe part (core2d.front_extension).  Default: none."""
+        return None
+
     # ------------------------------------------------------------------ frame
     def backdrop2d(self, p) -> CrossSection | None:
         return None
@@ -115,6 +150,20 @@ class Skin:
     def body_decor_features(self, p) -> list[Feature]:
         return []
 
+    def body_tiers(self, p, S=None) -> list:
+        """Extra rounded reliefs on the body top (list of Tier), e.g. a pillowy torso.  Default: none."""
+        return []
+
+    def plate_decor(self, p, S=None) -> list:
+        """Rounded reliefs standing on the back plate outside the body (list of Tier), e.g. a tail lying on the
+        cushion.  The backdrop grows around them.  Default: none."""
+        return []
+
+    def torso2d(self, p, S=None) -> CrossSection | None:
+        """Multi-colour print: the frame body above the plate outside this outline (and outside paws, decor and
+        tiers) takes the cushion colour, e.g. the crown ring around the kitty's head.  Default: None (all body)."""
+        return None
+
     def paw_plan_right(self, p) -> CrossSection:
         """Default: plain annular sector out to a generous radius (core clips to Body2D outline)."""
         a0, a1 = p.paw_span_R
@@ -127,10 +176,7 @@ class Skin:
         planR = self.paw_plan_right(p)
         featR = self.paw_features_right(p, planR)
         planL = planR.mirror((1.0, 0.0))
-        featL = [Feature(f.name + "_L", None if f.shape is None else f.shape.mirror((1.0, 0.0)), f.mode, f.depth,
-                         None if f.center is None else (-f.center[0], f.center[1]), f.radius, f.on, f.edge_ok)
-                 for f in featR]
-        return {"R": PawStyle(planR, featR), "L": PawStyle(planL, featL)}
+        return {"R": PawStyle(planR, featR), "L": PawStyle(planL, mirror_features(featR))}
 
     # ------------------------------------------------------------------ wheel
     def wheel_relief2d(self, p) -> CrossSection | None:

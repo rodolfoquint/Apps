@@ -11,6 +11,8 @@ step is checked (non-empty, expected piece counts) so a broken parameter set fai
 """
 from __future__ import annotations
 
+import dataclasses
+
 import math
 import time
 
@@ -352,6 +354,30 @@ def face_jowls(p: Params, S: Sections) -> CrossSection:
     return j
 
 
+def front_extension(p: Params, S: Sections, ext: CrossSection, keep_clear: CrossSection) -> CrossSection:
+    """Front-layer-only widening of the head (round 4: the kitty's wide "mochi" cheeks, fur tufts, forehead curls).
+
+    The skin draws the extra outline; the core keeps the parts that can be built and stay safe:
+      * over the crown roof (inside RoofSweepInv, like face_jowls), where the front-layer ribs carry it, or at most
+        front_overhang (1.5) beyond the full-height face mid layer (a short cantilever, V9 own_rib_bridge <= 1.9);
+      * clear of the yarn ball's sweep (SweptInv(disc(O, R_u + face_ball_gap)), V6 face <-> ball);
+      * >= decor_face_clear (12) from the paws and body decor at every pose (they share the front layer's Z band,
+        V12)."""
+    P, psi_b, n = p.P, p.psi_b, p.n_sweep
+    allowed = g2.union([g2.grow(S["roof_sweep_inv2d"], -0.05, 0.005), g2.grow(S["facemid2d"], 1.5, 0.01)])
+    ball = swept_inv(g2.circle((0.0, 0.0), p.R_u + p.face_ball_gap, g2.TOL_FUNC, hole=True), P, psi_b, n,
+                     allowance=0.0)
+    cut = [ball]
+    if keep_clear is not None and not keep_clear.is_empty():
+        cut.append(swept_inv(g2.grow(keep_clear, p.decor_face_clear, 0.02), P, psi_b, n, allowance=0.0))
+    e = g2.difference(g2.intersect(ext, allowed), *cut)
+    e = g2.difference(e, S["faceup2d"])
+    # merge with the face and keep only what joins it in one piece, corners r >= 1.5
+    whole = g2.opening(g2.union([S["faceup2d"], e]), 2.0 * p.corner_r, 0.01)
+    e = g2.difference(g2.intersect(whole, g2.union([e, S["faceup2d"]])), g2.grow(S["faceup2d"], -0.02, 0.005))
+    return g2.drop_small(e, 2.0)
+
+
 def _call_with_sections(fn, p, S):
     """Call a skin hook ``fn(p)``, or ``fn(p, S)`` if it accepts the (partial) sections as a second argument."""
     import inspect
@@ -422,7 +448,7 @@ def build_sections(p: Params, skin, verbose: bool = False) -> Sections:
     spans = {"R": p.paw_span_R, "L": p.paw_span_L}
     paw_plans = {}
     for side, ps in paws.items():
-        a0, a1 = spans[side]
+        a0, a1 = ps.span if getattr(ps, "span", None) is not None else spans[side]
         plan = g2.intersect(ps.plan2d, g2.sector(p.paw_lip_r, 80.0, a0, a1, tol=0.01))
         paw_plans[side] = g2.check(plan, f"paw_plan_{side}", n_pieces=1)
     paw_fp = g2.union(list(paw_plans.values()))
@@ -446,8 +472,21 @@ def build_sections(p: Params, skin, verbose: bool = False) -> Sections:
     # backdrop (needed first: every frame section stacked on the plate must lie inside it, otherwise the
     # union leaves zero-width overhang slivers / pinch vertices along nearly coincident outlines)
     S["body_pre2d"] = body          # the body outline before the plate trims it (for skins that frame it)
+    # reliefs standing on the plate (e.g. a tail on the cushion): clear of the swinging head - >= decor_face_clear
+    # from Swept(FaceUp2D) if they rise into the head's Z band (z_band0), else >= 0.8 - and inside the plate
+    plate_decor = []
+    for t in (skin.plate_decor(p, S) if hasattr(skin, "plate_decor") else []) or []:
+        clear = p.decor_face_clear if t.z1 > p.z_band0 - 0.05 else 0.8
+        shp = g2.drop_small(g2.difference(t.shape, g2.grow(S["swept_faceup2d"], clear, 0.01)), 1.0)
+        if not shp.is_empty():
+            plate_decor.append(dataclasses.replace(t, shape=shp))
+    S["plate_decor"] = plate_decor
+    S["plate_decor2d"] = g2.union([t.shape for t in plate_decor]) if plate_decor else CrossSection()
+    S["body_pre2d"] = g2.union([body, S["plate_decor2d"]]) if plate_decor else body
     extra = _call_with_sections(skin.backdrop2d, p, S)
+    S["body_pre2d"] = body
     bd = g2.union([body, g2.grow(S["swept_faceup2d"], p.backdrop_margin, 0.01),
+                   g2.grow(S["plate_decor2d"], 1.5, 0.01) if plate_decor else CrossSection(),
                    extra if extra is not None else CrossSection()])
     S["backdrop2d"] = g2.check(g2.round_r(bd, p.backdrop_round, p.backdrop_corner_r, 0.02).simplify(0.01),
                                "backdrop2d", n_pieces=1)
@@ -533,6 +572,20 @@ def build_sections(p: Params, skin, verbose: bool = False) -> Sections:
         S["jowl2d"] = face_jowls(p, S)
         if not S["jowl2d"].is_empty():
             S["faceup2d"] = g2.union([S["faceup2d"], S["jowl2d"]])
+    ext = skin.face_front2d(p.C_h, p, S) if hasattr(skin, "face_front2d") else None
+    if ext is not None and not ext.is_empty():
+        S["front_ext2d"] = front_extension(p, S, ext, g2.union([paw_fp, decor]))
+        if not S["front_ext2d"].is_empty():
+            S["faceup2d"] = g2.check(g2.union([S["faceup2d"], S["front_ext2d"]]), "faceup2d + front ext",
+                                     n_pieces=1)
+    # the swept front layer including any extension (Swept(FaceUp2D) above predates it): frame parts added later on
+    # the body top (tiers) keep clear of this one
+    S["swept_faceup_full2d"] = swept(S["faceup2d"], P, psi_b, n, allowance=alw) if "front_ext2d" in S \
+        else S["swept_faceup2d"]
+    if "front_ext2d" in S and not S["front_ext2d"].is_empty():
+        # front layer only: below z_front0 the extension is cut away with the I3 slot (where it overhangs the face
+        # mid layer instead of riding on the crown roof, it would otherwise stand full height over nothing)
+        S["slot2d"] = g2.union([S["slot2d"], g2.grow(g2.difference(S["front_ext2d"], S["facemid2d"]), 0.02, 0.005)])
     S["i3_2d"] = g2.check(g2.difference(S["faceup2d"], S["facemid2d"]), "i3_2d")
     S["bridges2d"] = g2.intersect(S["roof2d"], S["cavity2d"])      # roof spans over the head channels
     log("roof / face mid / I3")
@@ -546,6 +599,7 @@ def build_sections(p: Params, skin, verbose: bool = False) -> Sections:
         plan = g2.intersect(plan, g2.union([top, g2.intersect(lip_zone, plan)]))
         paw_plans[side] = g2.check(g2.drop_small(plan, 1.0), f"paw_plan_{side}", n_pieces=1)
     S["paw_plan_R"], S["paw_plan_L"] = paw_plans["R"], paw_plans["L"]
+    S["paw_plans"] = paw_plans          # every lip piece (R, L and any extra, e.g. the kitty's feet RF / LF)
     S["decor2d"] = g2.drop_small(g2.intersect(decor, top), 1.0) if not decor.is_empty() else decor
 
     # ---------------- rib fields (SPEC 3.4)
@@ -673,11 +727,15 @@ def build_sections(p: Params, skin, verbose: bool = False) -> Sections:
     for k in CUT_SECTIONS:
         if k in S and not S[k].is_empty():
             S[k] = g2.clean(S[k], "cut")
+    S["paw_plans"] = {k: (S[f"paw_plan_{k}"] if k in ("R", "L") else g2.clean(v, "solid"))
+                      for k, v in S["paw_plans"].items()}
     S["top2d"] = g2.clean(g2.union([S["roof2d"], S["fill2d"]]), "cut")
     S["backdrop2d"] = g2.clean(S["backdrop2d"], "cut")
     fu = g2.intersect(S["faceup2d"], S["headband2d"])
     if "jowl2d" in S and not S["jowl2d"].is_empty():
         fu = g2.union([fu, S["jowl2d"]])
+    if "front_ext2d" in S and not S["front_ext2d"].is_empty():
+        fu = g2.union([fu, S["front_ext2d"]])
     S["faceup2d"] = g2.clean(fu, "solid")
     if p.crown_ring and "crown_recess2d" in S and not S["crown_recess2d"].is_empty():
         # the skirt stands under the roof: inside the body top face (the rounded window-end corners)

@@ -171,6 +171,8 @@ def write_3mf(path, bodies: dict, name: str = "purrbobble", settings: dict | Non
 # MAX_SLOTS colours so one Bambu AMS / Prusa MMU prints it; the viewer and renders show the same colours.
 SLOT_ORDER = ("frame", "wheel", "head", "plate", "accent", "details")
 MAX_SLOTS = 4
+COLOUR_SKIN = 0.4       # thickness of a coloured floor under a recess / of a flush inlay (2 layers)
+PLATE_RELIEF_MAX = 1.2  # raised cushion relief (piping, quilting) on the plate top: up to z_bp + 1.2
 
 
 def _prism(cs, z0, z1):
@@ -200,32 +202,74 @@ def colour_parts(M, phi: float | None = None, psi: float | None = None) -> dict:
     S = M.sections
     # the plate, plus the skid ribs where they lie on the exposed cushion (outside the body): cushion colour
     exposed = g2.difference(S["backdrop2d"], g2.grow(S["body2d"], 0.05, 0.005))
+    pd = S.get("plate_decor2d")
+    if pd is not None and not pd.is_empty():
+        exposed = g2.difference(exposed, g2.grow(pd, 0.05, 0.005))        # a tail on the cushion stays cream
+    # the cushion: the plate, its raised quilting / piping and the skid ribs where they lie on the exposed cushion
+    z_cush = p.z_bp + max(p.rib_h, PLATE_RELIEF_MAX) + 0.05
     pmask = Manifold.cube((400.0, 400.0, zs + 200.0)).translate((-200.0, -200.0, -200.0)) + \
-        _prism(exposed, zs - 0.01, p.z_bp + p.rib_h + 0.05)
+        _prism(exposed, zs - 0.01, z_cush)
     out["frame_plate"] = (F ^ pmask, "plate")
     body = F - pmask
-    acc = []
+    acc = {"accent": [], "details": []}
     for f in sk.body_decor_features(p) or []:
-        if f.color:
-            acc.append(_prism(f.shape, p.z_decor1 - 1e-3, p.z_decor1 + 2.0))
+        if f.color in acc:
+            acc[f.color].append(_prism(f.shape, p.z_decor1 - 1e-3, p.z_decor1 + 2.0))
+    draped = (M.info or {}).get("frame_colour_masks") or []
+    names_draped = set()
     for side, style in (sk.paw_style(p) or {}).items():
+        if getattr(style, "round_xy", 0.0) > 0:
+            continue                                       # draped: masks come from the build
         for f in style.features or []:
-            if f.color:
-                acc.append(_prism(f.shape, p.paw_z1 - 1e-3, p.paw_z1 + 2.0))
-    if acc:
-        mask = Manifold.batch_boolean(acc, _ADD) if len(acc) > 1 else acc[0]
-        out["frame_accent"] = (body ^ mask, "accent")
-        body = body - mask
+            if f.color in acc:
+                acc[f.color].append(_prism(f.shape, p.paw_z1 - 1e-3, p.paw_z1 + 2.0))
+    for key, m in draped:
+        if key in acc and not m.is_empty():
+            acc[key].append(m)
+    for key, ms in acc.items():
+        if ms:
+            mask = Manifold.batch_boolean(ms, _ADD) if len(ms) > 1 else ms[0]
+            reg = body ^ mask
+            if not reg.is_empty():
+                out[f"frame_{key}"] = (reg, key)
+                body = body - mask
+    # the body above the plate outside the skin's torso outline (and its paws, decor, tiers) is cushion-coloured
+    torso = sk.torso2d(p, S) if hasattr(sk, "torso2d") else None
+    if torso is not None and not torso.is_empty():
+        keep = [torso, S["decor2d"], S.get("tiers2d", None), S.get("plate_decor2d", None)] + \
+            list((S.get("paw_plans") or {}).values())
+        keep = g2.union([k for k in keep if k is not None and not k.is_empty()])
+        hood2d = g2.difference(g2.grow(S["backdrop2d"], 1.0, 0.01), g2.grow(keep, 0.02, 0.005))
+        hood = body ^ _prism(hood2d, zs - 0.01, 40.0)
+        if not hood.is_empty():
+            out["frame_hood"] = (hood, "plate")
+            body = body - _prism(hood2d, zs - 0.01, 40.0)
     out["frame_body"] = (body, "frame")
     # head (design frame), then posed
     H = M.head
     z0 = p.z_front1 + lift
     masks = {"details": [], "accent": []}
+    fparts = (M.info or {}).get("head_feature_parts") or {}
+    base = (M.info or {}).get("head_base")
     for f in sk.face_features(p.C_h, p) or []:
-        if f.color in masks and f.mode in ("raise", "dome"):
+        if f.color not in masks:
+            continue
+        if fparts and base is not None:
+            # draped features (pillowed face): raised = what stands above the featureless head; recessed = a 0.4
+            # floor under the cut; inlay = the top 0.4 of the surface
+            add, cut = fparts.get(f.name, (None, None))
+            if f.mode in ("raise", "dome") and add is not None:
+                masks[f.color].append(add - base)
+            elif f.mode == "deboss" and cut is not None:
+                masks[f.color].append(cut.translate((0.0, 0.0, -COLOUR_SKIN)))
+            elif f.mode == "inlay":
+                masks[f.color].append(_prism(f.shape, p.z_front0, p.z_feat + 5.0)
+                                      ^ (base - base.translate((0.0, 0.0, -COLOUR_SKIN))))
+        elif f.mode in ("raise", "dome"):
             masks[f.color].append(_prism(f.shape, z0, z0 + 2.0))
     hb = H
     for key, ms in masks.items():
+        ms = [m for m in ms if not m.is_empty()]
         if ms:
             mk = Manifold.batch_boolean(ms, _ADD) if len(ms) > 1 else ms[0]
             out[f"head_{key}"] = (H ^ mk, key)

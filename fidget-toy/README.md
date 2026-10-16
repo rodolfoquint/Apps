@@ -6,13 +6,15 @@ the mainspring. Push gently for a slow giggle (about 5 shivers a second), harder
 (about 36 a second). Let go and it stops at once, in either direction.
 
 One PLA print, three captive moving parts, no supports, no springs, magnets, screws or glue. Three characters
-share the same mechanism core: **Purr Kitty**, **Bumble** the bee and **Pip the Robot**.
+share the same mechanism core: **Purr Kitty**, **Bumble** the bee and **Pip the Robot**. The kitty follows the
+owner's concept art: a chubby cream kitten with a wide pillowy head, cheek tufts, a big bow and toe-bean feet,
+hugging a coral yarn ball on a quilted mint cushion.
 
 | | |
 |---|---|
-| Size | kitty 59.7 × 90.8 × 18.3 mm; bee 61.2 × 84.8; robot 60.0 × 84.2 |
-| Weight | kitty 44.4 g, bee 42.6 g, robot 40.9 g of PLA as printed (PrusaSlicer, head and ball 100 % infill) |
-| Print time | about 5 h 20 min – 5 h 40 min in one colour (0.2 mm layers, PrusaSlicer estimate for an MK4-class printer) |
+| Size | kitty 65.1 × 91.5 × 19.3 mm; bee 61.2 × 84.8 × 18.3; robot 60.0 × 84.2 × 18.3 |
+| Weight | kitty 48.0 g, bee 42.6 g, robot 40.9 g of PLA as printed (PrusaSlicer, head and ball 100 % infill) |
+| Print time | about 5 h 20 min (bee, robot) to 6 h (kitty) in one colour (0.2 mm layers, PrusaSlicer estimate for an MK4-class printer) |
 | Ages | 6+ (home-printed toys are not certified to EN 71 / ASTM F963) |
 
 ## How the mechanism was designed
@@ -58,12 +60,12 @@ filament, print the plain 3MF instead: the faces are raised and debossed, so the
 | Slot | Purr Kitty | Bumble | Pip the Robot |
 |---|---|---|---|
 | 1 | cream: body and head | lavender: body and back plate | sky blue: body and back plate |
-| 2 | coral: ball, blush, inner ears, tongue, bow, toe beans, tail tip | honey orange: ball | orange: ball, antenna bulb |
-| 3 | mint: quilted cushion | yellow: head | silver: head |
+| 2 | coral: ball, blush, inner ears, tongue, bow, toe beans | honey orange: ball | orange: ball, antenna bulb |
+| 3 | mint: quilted cushion and the frame around the head | yellow: head | silver: head |
 | 4 | dark brown: eyes, nose, mouth | dark brown: eyes, antenna tips | navy: eyes |
 
-The colour regions are only the top 0.4–0.6 mm of the raised details, the bottom 2 mm and the exposed cushion,
-and whole parts (ball, head), so tool changes stay few and no colour boundary crosses a moving gap.
+The colour regions are the raised details (or a 0.4 mm floor under the kitty's recessed mouth and inner ears),
+the cushion, and whole parts (ball, head), so no colour boundary crosses a moving gap.
 
 Variants: **loose** (0.40 mm bearings, 0.60 mm swept gaps, 0.6 mm float gaps) for printers that fuse tight gaps;
 **deep** if the ball skips teeth; **shallow** if it feels notchy.
@@ -75,7 +77,7 @@ turns each way, then fast for 30 s each way; clear any strings around the ball o
 ## Safety notes
 
 * All three parts are larger than the small-parts test cylinder (ball Ø 36 mm, head ≥ 41 mm, body about
-  60 × 84–91 mm), and each moving part is captured by two independent features.
+  60–65 × 84–92 mm), and each moving part is captured by two independent features.
 * The escapement is sealed between the back plate, the ball and the body. Almost every reachable moving edge
   keeps a constant gap, stays under 2 mm, or opens to 12 mm or more. The exception is beside the head's neck:
   at roof height the head has a collar that hugs the crown's outer edge at a constant 0.55 mm, and where the

@@ -12,6 +12,7 @@ Fillets are approximated by stepped insets (SPEC 2.7 allows this): ``stepped_top
 """
 from __future__ import annotations
 
+import dataclasses
 import math
 import sys
 from typing import Iterable
@@ -38,8 +39,10 @@ def pinch_vertices(m: Manifold, decimals: int = 6) -> np.ndarray:
 
 
 def finish(m: Manifold, p: Params, name: str) -> Manifold:
-    """Final clean-up of a body: merge sub-micron slivers (Manifold.simplify), then validate."""
-    if p.mesh_simplify > 0:
+    """Final clean-up of a body: merge sub-micron slivers (Manifold.simplify) where the mesh has pinch vertices or
+    detached pieces, then validate.  (Simplifying a clean mesh can only degrade it: on the round-4 kitty frame it
+    tilted a few crown-recess step faces into 0.08 mm^2 oblique overhangs, V9.)"""
+    if p.mesh_simplify > 0 and (len(pinch_vertices(m)) or len(m.decompose()) > 1):
         m = m.simplify(p.mesh_simplify)
     parts = m.decompose()
     if len(parts) > 1:
@@ -123,6 +126,63 @@ def stepped_top(cs: CrossSection, z0: float, z1: float, r: float, steps: int,
         sec = g2.grow(cs, -d, tol) if d > 1e-4 else cs
         if protect is not None:
             sec = g2.union([sec, g2.intersect(cs, protect)])
+        parts.append(extrude(sec, z1 - dz_hi, z1 - dz_lo))
+    return union3(parts)
+
+
+def pillow_insets(a: float, b: float, steps: int) -> list[tuple[float, float, float]]:
+    """(dz0, dz1, inset) like round_insets, for a quarter-ellipse a wide (XY) x b tall (Z)."""
+    h = b / steps
+    out = []
+    d_prev = 0.0
+    for k in range(steps):
+        z_lo = b - (k + 1) * h
+        z_hi = b - k * h
+        t = b - 0.5 * (z_lo + z_hi)             # height above the round's start, 0 .. b
+        d = a * (1.0 - math.sqrt(max(1.0 - (t / b) ** 2, 0.0)))
+        # every terrace strictly inside the one below (>= 0.02 mm): a near-zero inset is a nearly coincident wall,
+        # which leaves pinch vertices in the boolean result
+        d = max(d, d_prev + 0.02)
+        out.append((z_lo, z_hi, d))
+        d_prev = d
+    return out
+
+
+def pillow_sections(cs: CrossSection, a: float, b: float, steps: int, protect: CrossSection | None = None,
+                    reround: float = 0.0, tol: float = g2.TOL_DECO) -> list[tuple[float, float, CrossSection]]:
+    """Terraces of a pillow top: [(dz_lo, dz_hi, section)] measured downward from the top.  Each terrace is the
+    outline inset by the quarter-ellipse, re-rounded by an opening of radius ``reround`` (an inset sharpens convex
+    corners by the inset depth, V12.corners) and strictly nested in the terrace below it (no shared walls).
+    ``protect`` (optional) keeps (nearly) full height: inset only 0.02 per terrace and grown 0.01 per terrace, so
+    that no two terraces share a wall or cross the outline at the same point (stacked identical vertices are pinch
+    vertices); the re-rounding is applied after it so its corners are rounded too."""
+    out = []
+    prev = cs
+    for k, (dz_lo, dz_hi, d) in enumerate(pillow_insets(a, b, steps)):
+        sec = g2.grow(cs, -d, tol) if d > 1e-4 else cs
+        if protect is not None:
+            # (inset by a token 0.02 per terrace, so even there no two terraces share a wall or a vertex)
+            sec = g2.union([sec, g2.intersect(g2.grow(cs, -0.02 * (k + 1), 0.001),
+                                              g2.grow(protect, 0.01 * k, 0.001))])
+        if reround > 0 and d > 1e-4:
+            sec = g2.opening(sec, reround, tol)
+        sec = g2.intersect(sec, prev)
+        if sec.is_empty() or sec.area() < 1e-3:
+            break
+        out.append((dz_lo, dz_hi, sec))
+        prev = sec
+    return out
+
+
+def pillow_top(cs: CrossSection, z0: float, z1: float, a: float, b: float, steps: int,
+               protect: CrossSection | None = None, reround: float = 0.0, tol: float = g2.TOL_DECO) -> Manifold:
+    """extrude(cs, z0, z1) whose top edge is a quarter-ellipse a wide x b tall (``steps`` terraces).  A convex
+    top: every terrace faces up, so it prints without support (V9) whatever a / b."""
+    if a <= 0 or b <= 0 or steps <= 0:
+        return extrude(cs, z0, z1)
+    b = min(b, z1 - z0)
+    parts = [extrude(cs, z0, z1 - b)]
+    for dz_lo, dz_hi, sec in pillow_sections(cs, a, b, steps, protect, reround, tol):
         parts.append(extrude(sec, z1 - dz_hi, z1 - dz_lo))
     return union3(parts)
 
@@ -239,6 +299,18 @@ def wheel_relief_cut(p: Params, relief2d: CrossSection | None) -> tuple[Manifold
                          g2.circle((p.r_k, 0.0), p.relief_knob_clear, 0.01))
     rel = g2.drop_small(g2.intersect(relief2d, clip), 0.2)
     z = p.z_umb_top
+    if p.relief_bevel > 0:
+        # three steps: wide and shallow at the top, the drawn width in the middle, narrow at the bottom
+        d3 = p.relief_depth / 3.0
+        # (hairline lands where two widened grooves nearly meet are merged away: they would be pinch vertices)
+        # each step strictly inside the one above it, also along the clip boundary (coincident walls -> pinches)
+        wide = g2.closing(g2.intersect(g2.grow(rel, p.relief_bevel, 0.005), clip), 0.3, 0.005)
+        mid = g2.intersect(g2.closing(rel, 0.3, 0.005), g2.grow(clip, -0.05, 0.005))
+        narrow = g2.drop_small(g2.intersect(g2.grow(mid, -min(p.relief_bevel, 0.2), 0.005),
+                                            g2.grow(clip, -0.1, 0.005)), 0.05)
+        cut = union3([extrude(wide, z - d3, z + 1.0, mode="cut"), extrude(mid, z - 2 * d3, z + 1.0, mode="cut"),
+                      extrude(narrow, z - p.relief_depth, z + 1.0, mode="cut")])
+        return cut, rel
     return extrude(rel, z - p.relief_depth, z + 1.0, mode="cut"), rel
 
 
@@ -253,6 +325,9 @@ def build_wheel(p: Params, S, skin) -> tuple[Manifold, dict]:
         # the knob mesh by half a segment so that point is a facet midpoint (strictly inside), not a shared vertex
         knob = revolve_rz(knob_profile(p), nK).rotate((0.0, 0.0, 180.0 / nK)).translate((p.r_k, 0.0, 0.0))
         body = union3([teeth, umb, knob])
+    elif p.wheel_drive == "dish":
+        # the skin adds the finger dish itself (the sculpt kitty's cap, purrbobble/sculpt.py), at (r_k, 0)
+        body = union3([teeth, umb])
     else:
         body = union3([teeth, umb])
         nW = g2.nseg(p.well_d / 2 + p.well_rim_r, g2.TOL_DECO, mult=8)
@@ -293,7 +368,12 @@ def apply_features(base: Manifold, feats: list[Feature], z_surf: float, protect_
     by_name = {f.name: f for f in feats}
     for f in feats:
         if f.mode == "raise":
-            if protect_raise_round > 0:
+            if f.round > 0:
+                # the round starts 0.05 above the surface: a terrace lying in the host's top plane is a coplanar
+                # sliver (pinch vertices)
+                b = min(f.round, f.depth - 0.05)
+                adds.append(pillow_top(f.shape, z_surf - EPS, z_surf + f.depth, f.round, b, _puffy_steps(b)))
+            elif protect_raise_round > 0:
                 adds.append(stepped_top(f.shape, z_surf - EPS, z_surf + f.depth, min(protect_raise_round, f.depth), 2))
             else:
                 adds.append(extrude(f.shape, z_surf - EPS, z_surf + f.depth))
@@ -310,10 +390,59 @@ def apply_features(base: Manifold, feats: list[Feature], z_surf: float, protect_
             rd = (a * a + dep * dep) / (2 * dep)
             cuts.append(Manifold.sphere(rd, g2.nseg(rd, g2.TOL_DECO, mult=4)).translate(
                 (f.center[0], f.center[1], zs + rd - dep)))
-        elif f.mode not in ("raise", "dome"):
+        elif f.mode not in ("raise", "dome", "inlay"):      # inlay: colour only (multi-colour 3MF), no geometry
             raise ValueError(f"unknown feature mode {f.mode}")
     out = union3([base] + adds)
     return subtract3(out, cuts)
+
+
+def _puffy_steps(r: float) -> int:
+    return max(2, int(math.ceil(r / 0.1)))
+
+
+def apply_features_draped(base: Manifold, feats: list[Feature], surf: Manifold, z_lo: float, z_flat: float,
+                          z_hi: float = 30.0) -> tuple[Manifold, dict]:
+    """Apply features to a curved (pillowed) top: ``surf`` is the solid whose top surface the features sit on.
+
+    raise  : surf lifted by depth, cut to the feature's footprint (its top follows the surface, its walls are
+             ``depth`` tall everywhere); with ``f.round`` > 0 a puffy quarter-round top built the same way
+    deboss : the footprint above surf lowered by depth is removed
+    dome / dimple : as apply_features on the flat top z_flat (the skin keeps them on the plateau)
+    Returns (solid, {feature name: (added solid or None, removed solid or None)}) for the colour regions."""
+    adds, cuts, parts = [], [], {}
+    by_name = {f.name: f for f in feats}
+    for f in feats:
+        if f.mode == "raise":
+            prism = lambda cs: extrude(cs, z_lo, z_hi)     # noqa: E731
+            r = f.round if f.round > 0 else min(0.25, f.depth)
+            b = min(r, f.depth - 0.05)
+            steps = _puffy_steps(b) if f.round > 0 else 2
+            pieces = [surf.translate((0.0, 0.0, f.depth - b)) ^ prism(f.shape)]
+            for dz_lo, dz_hi, sec in pillow_sections(f.shape, r, b, steps, reround=0.0):
+                pieces.append(surf.translate((0.0, 0.0, f.depth - dz_lo)) ^ prism(sec))
+            add = union3(pieces)
+            adds.append(add)
+            parts[f.name] = (add, None)
+        elif f.mode == "dome":
+            add = _dome(f, z_flat)
+            adds.append(add)
+            parts[f.name] = (add, None)
+    for f in feats:
+        if f.mode == "deboss":
+            cut = extrude(f.shape, z_lo, z_hi, mode="cut") - surf.translate((0.0, 0.0, -f.depth))
+            cuts.append(cut)
+            parts[f.name] = (None, cut)
+        elif f.mode == "dimple":
+            host = by_name.get(f.on)
+            zs = z_flat + (_dome_height(host, *f.center) if host is not None and host.mode == "dome"
+                           else (host.depth if host is not None else 0.0))
+            a, dep = f.radius, f.depth
+            rd = (a * a + dep * dep) / (2 * dep)
+            cut = Manifold.sphere(rd, g2.nseg(rd, g2.TOL_DECO, mult=4)).translate((f.center[0], f.center[1], zs + rd - dep))
+            cuts.append(cut)
+            parts[f.name] = (None, cut)
+    out = union3([base] + adds)
+    return subtract3(out, cuts), parts
 
 
 def check_face_features(p: Params, S, feats: list[Feature], margin: float = 3.0) -> None:
@@ -321,12 +450,21 @@ def check_face_features(p: Params, S, feats: list[Feature], margin: float = 3.0)
     debossed 0.3-0.5."""
     inner = g2.grow(S["faceup2d"], -margin, 0.01)
     edge = g2.grow(S["faceup2d"], -p.face_top_round - 0.05, 0.01)     # never on the rounded rim
+    pillow = p.face_pillow_xy > 0
+    if pillow:
+        # pillowed face (round 4): raised / debossed features are draped over the round and may come to 1.0 of the
+        # outline; domes and dimples sit on the flat plateau inside the round
+        edge = g2.grow(S["faceup2d"], -1.0, 0.01)
+        plateau = g2.grow(S["faceup2d"], -p.face_pillow_xy - 0.05, 0.01)
     for f in feats:
         if f.shape is None:
             continue
-        lim = edge if f.edge_ok else inner
+        if pillow:
+            lim = plateau if f.mode in ("dome", "dimple") else edge
+        else:
+            lim = edge if f.edge_ok else inner
         out = g2.difference(f.shape, lim).area()
-        if out > 1e-3 and f.edge_ok and f.mode in ("deboss", "raise"):
+        if out > 1e-3 and (f.edge_ok or pillow) and f.mode in ("deboss", "raise"):
             # edge features (e.g. inner ears) follow the face outline; the core may have notched that outline
             # (crown notch) after the skin drew them: clip them to the flat top inside the rim instead of failing
             f.shape = g2.drop_small(g2.opening(g2.intersect(f.shape, g2.grow(lim, -0.02, 0.01)), 0.6, 0.01), 0.3)
@@ -335,8 +473,9 @@ def check_face_features(p: Params, S, feats: list[Feature], margin: float = 3.0)
             raise AssertionError(f"face feature {f.name}: {out:.3f} mm^2 closer than {margin} mm to the face edge")
         # raised 0.4-0.6 (>= 2 layers, never above z_feat); debossed 0.3-0.5 into the face top; a dimple cut into a
         # raised feature (``on``) may go to 0.7 so it reaches the head colour in a multi-colour print (round 3)
-        if f.mode in ("raise", "dome") and not (0.4 - 1e-9 <= f.depth <= 0.6 + 1e-9):
-            raise AssertionError(f"face feature {f.name}: raised features are 0.4-0.6 tall (got {f.depth})")
+        hmax = 2.5 if (f.mode == "raise" and f.round > 0) else 0.6    # puffy accessories (bow, fur curls)
+        if f.mode in ("raise", "dome") and not (0.4 - 1e-9 <= f.depth <= hmax + 1e-9):
+            raise AssertionError(f"face feature {f.name}: raised features are 0.4-{hmax} tall (got {f.depth})")
         dmax = 0.7 if (f.mode == "dimple" and f.on) else 0.5
         if f.mode in ("deboss", "dimple") and not (0.3 - 1e-9 <= f.depth <= dmax + 1e-9):
             raise AssertionError(f"face feature {f.name}: deboss depth must be 0.3-{dmax} (got {f.depth})")
@@ -374,8 +513,12 @@ def build_head(p: Params, S, skin) -> tuple[Manifold, dict]:
         band = union3([band, extrude(ribs_band, p.z_band1, p.z_band1 + p.rib_h - p.z_lift)])
     # pallet fingers lowered under the umbrella plate (only the fingers reach into WheelEx2D)
     band = band - extrude(g2.grow(S["wheelex2d"], 0.05, 0.005), p.z_pallet_top, p.z_band1 + p.rib_h + 0.1, mode="cut")
-    block = stepped_top(g2.grow(S["faceup2d"], -block_eps, 0.001), p.z_band1, p.z_front1, p.face_top_round,
-                        p.face_top_steps)
+    fu = g2.grow(S["faceup2d"], -block_eps, 0.001)
+    if p.face_pillow_xy > 0:
+        block = pillow_top(fu, p.z_band1, p.z_front1, p.face_pillow_xy, p.face_pillow_z, p.face_pillow_steps,
+                           reround=2.0 * p.corner_r)
+    else:
+        block = stepped_top(fu, p.z_band1, p.z_front1, p.face_top_round, p.face_top_steps)
     slot = extrude(S["slot2d"], p.z_band1, p.z_front0, mode="cut")
     collar2d = g2.circle(p.P, p.R_hub_cut - p.swept_gap - 0.05, g2.TOL_FUNC)
     collar = extrude(collar2d, p.z_band1, p.z_roof0)
@@ -387,14 +530,22 @@ def build_head(p: Params, S, skin) -> tuple[Manifold, dict]:
     head = union3(parts)
     feats = skin.face_features(p.C_h, p)
     check_face_features(p, S, feats)
-    head = apply_features(head, feats, p.z_front1, protect_raise_round=0.25)
+    feature_parts = {}
+    head_base = head
+    if p.face_pillow_xy > 0:
+        head, feature_parts = apply_features_draped(head, feats, block, p.z_front0 + 0.5, p.z_front1)
+    else:
+        head = apply_features(head, feats, p.z_front1, protect_raise_round=0.25)
     pockets = skin.head_pockets2d(p)
     cuts = [bore(p, p.P)]
     if pockets is not None and not pockets.is_empty():
         cuts.append(extrude(pockets, p.z_band1 + 2.0, p.z_front1 - 2.0, mode="cut"))
     head = subtract3(head, cuts)
     head = head.translate((0.0, 0.0, p.z_lift)) if p.z_lift else head
-    return finish(head, p, "head"), {"features": feats, "collar2d": collar2d}
+    lift = (lambda m: m.translate((0.0, 0.0, p.z_lift)) if (p.z_lift and m is not None) else m)
+    feature_parts = {k: (lift(a), lift(c)) for k, (a, c) in feature_parts.items()}
+    return finish(head, p, "head"), {"features": feats, "collar2d": collar2d, "head_base": lift(head_base),
+                                     "feature_parts": feature_parts}
 
 
 # ============================================================================== frame
@@ -408,12 +559,60 @@ def paw_profile(p: Params) -> list:
             (60.0, p.paw_z0 - 1.0), (60.0, p.paw_z1 + 1.0), (p.paw_lip_r, p.paw_z1 + 1.0)]
 
 
-def build_paw(p: Params, plan2d: CrossSection, feats: list[Feature]) -> Manifold:
+def colour_masks(parts: dict, feats: list[Feature], base: Manifold, z_lo: float, z_hi: float = 30.0) -> list:
+    """[(colour key, mask solid)] for the coloured draped features of one body part (see assemble.colour_parts):
+    raised -> what stands above ``base``; recessed -> a COLOUR_SKIN floor under the cut; inlay -> the top
+    COLOUR_SKIN of the surface."""
+    skin_t = 0.4
+    out = []
+    for f in feats:
+        if not f.color:
+            continue
+        add, cut = parts.get(f.name, (None, None))
+        if f.mode in ("raise", "dome") and add is not None:
+            out.append((f.color, add - base))
+        elif f.mode == "deboss" and cut is not None:
+            out.append((f.color, cut.translate((0.0, 0.0, -skin_t))))
+        elif f.mode == "inlay" and f.shape is not None:
+            out.append((f.color, extrude(f.shape, z_lo, z_hi) ^ (base - base.translate((0.0, 0.0, -skin_t)))))
+    return out
+
+
+def build_paw(p: Params, plan2d: CrossSection, feats: list[Feature], style=None) -> tuple[Manifold, list]:
+    """Paw / foot lip piece: the lip ring profile (the wheel's second capture) n the plan's block.  A style with
+    round_xy > 0 gets a pillow top outside the lip zone (r <= paw_wall_r + 0.3 is never inset) and draped features."""
     nP = g2.nseg(p.paw_lip_r, g2.TOL_FUNC, mult=8)
     ring = revolve_rz(paw_profile(p), nP, hole=True)
-    block = stepped_top(plan2d, p.paw_z0, p.paw_z1, p.frame_top_fillet, p.frame_top_steps)
+    z1 = style.z1 if (style is not None and style.z1 is not None) else p.paw_z1
+    if style is not None and style.round_xy > 0:
+        if z1 - style.round_z < p.paw_lip_c - p.paw_lip_r + 0.05:
+            raise ValueError(f"paw pillow starts at z {z1 - style.round_z:.2f}, below the lip underside "
+                             f"{p.paw_lip_c - p.paw_lip_r:.2f} (+0.05): lower round_z")
+        # the lip zone (r <= paw_wall_r + 0.3) keeps its full height (the wheel's second capture): protected in
+        # every terrace, which are then re-rounded r 1.5 (V12.corners)
+        lip_zone = g2.circle((0.0, 0.0), p.paw_wall_r + 0.3, 0.01)
+        block = pillow_top(plan2d, p.paw_z0, z1, style.round_xy, style.round_z, _puffy_steps(style.round_z),
+                           protect=lip_zone, reround=2.0 * p.corner_r)
+        paw = ring ^ block
+        out, parts = apply_features_draped(paw, feats, block, p.paw_z0 + 0.5, z1)
+        return out, colour_masks(parts, feats, paw, p.paw_z0 + 0.5)
+    block = stepped_top(plan2d, p.paw_z0, z1, p.frame_top_fillet, p.frame_top_steps)
     paw = ring ^ block
-    return apply_features(paw, feats, p.paw_z1)
+    return apply_features(paw, feats, z1), []
+
+
+def build_tier(t, z0: float, clip: Manifold | None = None) -> tuple[Manifold, list]:
+    """A Tier (skins/base.py) from z0 to t.z1 with a pillow top and draped features."""
+    # (each terrace opened by 1.3: where the tier is a narrow strip its upper terraces would otherwise thin out
+    # below the 1.2 wall minimum, V8)
+    block = pillow_top(t.shape, z0, t.z1, t.round_xy, t.round_z, _puffy_steps(t.round_z), reround=1.3) \
+        if t.round_xy > 0 and t.round_z > 0 else extrude(t.shape, z0, t.z1)
+    if clip is not None:
+        block = block - clip
+    if not t.features:
+        return block, []
+    out, parts = apply_features_draped(block, t.features, block, z0 + 0.3, t.z1)
+    return out, colour_masks(parts, t.features, block, z0 + 0.3)
 
 
 def build_body_stack(p: Params, S) -> tuple[Manifold, CrossSection]:
@@ -426,7 +625,9 @@ def build_body_stack(p: Params, S) -> tuple[Manifold, CrossSection]:
     Returns (solid, top-face section at z 10.4)."""
     r, nst = p.frame_top_fillet, p.frame_top_steps
     eps = p.eps_stack
-    protect = g2.grow(g2.union([S["paw_plan_R"], S["paw_plan_L"], S["decor2d"]]), 0.5, 0.02)
+    protect = g2.grow(g2.union(list(S.get("paw_plans", {}).values()) + [S["paw_plan_R"], S["paw_plan_L"],
+                                                                        S["decor2d"], S.get("tiers2d", CrossSection())]),
+                      0.5, 0.02)
     if S.get("crown_skirt2d") is not None and "crown" in S:
         # (fix round 1) no top-edge round along the crown arc: there the edge faces the head's face mid layer across the
         # constant 0.5 slot; an inset top edge would leave a varying 0.5-1.5 gap at the ends of the head's concentric
@@ -489,6 +690,23 @@ def build_frame(p: Params, S, skin) -> tuple[Manifold, dict]:
     plate = apply_features(plate, plate_feats, p.z_bp)
     info["plate_features"] = plate_feats
 
+    # body tiers (2-D): on the body top, >= 0.8 outside Swept(FaceUp2D) below the face's front layer, else >= the
+    # decor clearance (12); the body's top-edge round is not applied under them
+    tiers = []
+    pre_top = g2.grow(g2.union([S["top2d"]]), -0.3, 0.01)
+    for t in (skin.body_tiers(p, S) if hasattr(skin, "body_tiers") else []) or []:
+        clear = 0.8 if t.z1 <= p.z_front0 - 0.5 else p.decor_face_clear
+        # (kept 0.6 outside the paw lip zone, which also clears the ball keep-out cone / cylinder: a tier wall on
+        # those surfaces would coincide with the body's own cut)
+        shp = g2.difference(g2.intersect(t.shape, pre_top, g2.grow(S["body2d"], -0.3, 0.01)),
+                            g2.circle((0.0, 0.0), p.paw_wall_r + 0.9, 0.01))
+        swf = S.get("swept_faceup_full2d", S["swept_faceup2d"])
+        shp = g2.drop_small(g2.opening(g2.difference(shp, g2.grow(swf, clear, 0.01)), 1.6, 0.01), 2.0)
+        if not shp.is_empty():
+            tiers.append(dataclasses.replace(t, shape=g2.clean(shp, "solid")))
+    S["tiers"] = tiers
+    S["tiers2d"] = g2.union([t.shape for t in tiers]) if tiers else CrossSection()
+
     # body: fill + roof minus the umbrella keep-out, exterior top edge rounded r 1.0 (stepped).
     ko = keepout_u(p)
     body, top_face = build_body_stack(p, S)
@@ -504,14 +722,16 @@ def build_frame(p: Params, S, skin) -> tuple[Manifold, dict]:
     posts = [post(p, (0.0, 0.0)), post(p, p.P)]
 
     # paws (their footprint on the roof must lie inside the body top face)
-    paws = []
+    paws, masks = [], []
     style = skin.paw_style(p)
     lip_zone = g2.circle((0.0, 0.0), p.paw_wall_r + 0.3, 0.01)
-    for side in ("R", "L"):
-        plan = S[f"paw_plan_{side}"]
+    plans = S.get("paw_plans") or {"R": S["paw_plan_R"], "L": S["paw_plan_L"]}
+    for side, plan in plans.items():
         plan = g2.intersect(plan, g2.union([on_top, g2.intersect(lip_zone, plan)]))
         plan = g2.opening(plan, 2 * p.corner_r, 0.01)          # exterior plan corners r >= 1.5
-        paws.append(build_paw(p, g2.clean(plan, "solid"), style[side].features))
+        paw, mk = build_paw(p, g2.clean(plan, "solid"), style[side].features, style[side])
+        paws.append(paw)
+        masks += mk
 
     # body decor (raised 1.6 on the roof, rounded top edge), kept out of the umbrella keep-out
     decor = Manifold()
@@ -519,5 +739,21 @@ def build_frame(p: Params, S, skin) -> tuple[Manifold, dict]:
         decor = stepped_top(g2.intersect(S["decor2d"], on_top), p.z_roof1, p.z_decor1, 0.8, 3) - ko
         decor = apply_features(decor, skin.body_decor_features(p), p.z_decor1)
 
-    frame = union3([plate, body, ribs_roof, ribs_back, decor] + posts + paws)
+    # rounded tiers on the body top (round 4, e.g. the kitty's pillowy torso) and reliefs on the plate (its tail)
+    tiers = []
+    for t in S.get("tiers", []):
+        m, mk = build_tier(t, p.z_roof1 - EPS, clip=ko)
+        tiers.append(m)
+        masks += mk
+    for t in S.get("plate_decor", []):
+        # never into the head's cavity in the fill (the tail may tuck into the body beside it)
+        shp = g2.drop_small(g2.difference(t.shape, g2.grow(S["cavity2d"], 0.6, 0.01)), 1.0)
+        if shp.is_empty():
+            continue
+        m, mk = build_tier(dataclasses.replace(t, shape=g2.clean(shp, "solid")), p.z_bp - EPS)
+        tiers.append(m)
+        masks += mk
+    info["colour_masks"] = masks
+
+    frame = union3([plate, body, ribs_roof, ribs_back, decor] + posts + paws + tiers)
     return finish(frame, p, "frame"), info
