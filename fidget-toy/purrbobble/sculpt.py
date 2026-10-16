@@ -290,7 +290,7 @@ def float32_stable(m: Manifold, p, name: str, rounds: int = 6, poses=()) -> Mani
     coincident vertices; the shells are dropped as crumbs, the pinches welded and short edges simplified away, then
     again."""
     from . import solids
-    for _ in range(rounds):
+    for i in range(rounds):
         mesh = m.to_mesh()
         v = np.array(np.asarray(mesh.vert_properties)[:, :3], dtype=np.float32, order="C", copy=True)
         f = np.array(np.asarray(mesh.tri_verts), dtype=np.uint32, order="C", copy=True)
@@ -309,7 +309,7 @@ def float32_stable(m: Manifold, p, name: str, rounds: int = 6, poses=()) -> Mani
         if len(parts) == 1 and not len(solids.pinch_vertices(r)) and not near:
             return solids.check_solid(r, name)
         if near and len(parts) == 1:
-            m = r.simplify(max(p.mesh_simplify, 1e-5))
+            m = r.simplify(max(p.mesh_simplify, 1e-5) * 2 ** i)
             continue
         keep = [q for q in parts if abs(q.volume()) > p.min_crumb_mm3]
         m = keep[0] if len(keep) == 1 else Manifold.compose(keep)
@@ -505,10 +505,7 @@ def integrate(M, verbose: bool = False) -> dict:
     a, dep = sk.dish_d / 2.0, sk.dish_depth
     rs = (a * a + dep * dep) / (2 * dep)
     dish = Manifold.sphere(rs, 96).translate((cxy[0], cxy[1], ztop - dep + rs))
-    # knife edges of the cap's rim where the seam cylinder cuts the yarn strands (the static ring's side is
-    # chamfered): slice-trimmed on the cap's side
-    seam_in = g2.difference(g2.circle(O, sk.cap_r + 0.05, 0.005), g2.circle(O, sk.cap_r - 1.5, 0.005))
-    wheel = _finish_trimmed(wheel - dish, lambda z: seam_in, zt + sk.cap_min_h, p, "wheel", info, log)
+    wheel = finish_welded(wheel - dish, p, "wheel")
     log("wheel")
 
     # ---------------- frame parts the mechanism needs: stop pads (with backing), posts, back ribs
@@ -831,7 +828,7 @@ def integrate(M, verbose: bool = False) -> dict:
     log("frame")
     # as exported: float32 vertices (STL, 3MF, build cache) must give the same single clean shells
     frame = float32_stable(frame, p, "frame")
-    head = float32_stable(head, p, "head", poses=((P, p.psi_print), (P, p.psi_b), (P, -p.psi_b)))
+    head = float32_stable(head, p, "head", poses=((P, p.psi_print),))
     wheel = float32_stable(wheel, p, "wheel", poses=((O, p.phi_print),))
     log("float32-stable")
     M.frame, M.head, M.wheel = frame, head, wheel
