@@ -753,35 +753,6 @@ def integrate(M, verbose: bool = False) -> dict:
         env_slabs.append((L0 - gzf, L - gzf, g2.grow(swp(g2.difference(HBb, R[L])), gxy, 0.01)))
     env_slabs.append((levels[-1] - gzf, 60.0, g2.grow(swp(HBb), gxy, 0.01)))
     log("head floor sweeps")
-    # the frame the floor envelope leaves must be printable (V8): per envelope slab, the sculpt there (sampled at
-    # its bottom, middle and top) outside the slab's cut and outside the mechanism's own walls; what of it lies
-    # within 1.25 of the cut and is narrower than 1.2 (the cushion's tapering edge at the head's envelope), and what
-    # has air right under it while the next slab cuts above it (films of the cheeks' and ears' undersides kept over
-    # a crevice) joins the cut.  Sections stay nested upward (a thin wall's cut continues up with it).  Removing
-    # frame only widens the clearances.
-    r_wx = getattr(sk, "flange_r", None) or p.R_u           # (the wheel's widest radius)
-    mech = g2.union([g2.grow(sw_band, 0.6, 0.01), g2.circle(O, r_wx + gxy + 0.6, 0.01),
-                     g2.circle(P, p.R_hub_cut + 0.6, 0.01), g2.grow(S["stoppads2d"], sk.pad_back + 0.6, 0.01)])
-    thin_mm2 = 0.0
-    for k in range(len(env_slabs) - 1):
-        zA, zB, sec = env_slabs[k]
-        if k:
-            sec = g2.clean(g2.union([sec, env_slabs[k - 1][2]]), "solid")
-        if zB > sk.pad_low_top - 0.5:
-            fk = g2.difference(g2.union([Ks.slice(zA + 0.01), Ks.slice(0.5 * (zA + zB)), Ks.slice(zB - 0.01)]),
-                               sec, mech)
-            if not fk.is_empty():
-                thin = g2.intersect(g2.difference(fk, g2.opening(fk, 1.2, 0.005)), g2.grow(sec, 1.25, 0.01))
-                film = g2.intersect(g2.difference(fk, Ks.slice(zA - 0.05)), env_slabs[k + 1][2])
-                add = g2.drop_small(g2.union([thin, film]), 0.02)
-                if not add.is_empty():
-                    thin_mm2 += add.area()
-                    sec = g2.clean(g2.union([sec, g2.closing(g2.grow(add, 0.05, 0.005), 0.3, 0.01)]), "solid")
-        env_slabs[k] = (zA, zB, sec)
-    env_slabs[-1] = (env_slabs[-1][0], env_slabs[-1][1],
-                     g2.clean(g2.union([env_slabs[-1][2], env_slabs[-2][2]]), "solid"))
-    info["frame_thin_cut_mm2"] = round(thin_mm2, 1)
-    log(f"frame thin parts / films at the floor envelope: {thin_mm2:.1f} mm^2 of slab sections")
     cut = nested_stack(cut_slabs, p.eps_stack, grows_up=False)
     log("head floor cut stack")
     body = (K ^ ext(HBb, p.z_band0 + zl, 60.0)) - cut
@@ -811,8 +782,8 @@ def integrate(M, verbose: bool = False) -> dict:
     # lowered legs' top, the rest to the band top; the collar's (a disc about P: its own sweep) over it
     band_env = [(p.z_bp, z_fl, sw_band), (z_fl, sm["band_top_seam_z"], sw(keep))]
     Ec = ext(g2.circle(P, p.R_hub_cut, 0.005, hole=True), p.z_band1 + zl, sm["collar_top_seam_z"])
-    Ef = nested_stack(env_slabs, p.eps_stack, grows_up=True)                  # (the head body's floors)
-    Eh = solids.union3([stack_sections(band_env, p.eps_stack), Ef, Ec])
+    Eb = stack_sections(band_env, p.eps_stack)
+    Eh = solids.union3([Eb, nested_stack(env_slabs, p.eps_stack, grows_up=True), Ec])
     log("head envelope")
     # the wheel's envelope: per layer below the umbrella top, exact above it (layer rounding would leave the
     # static ring 0.7 above the skid rings instead of gap_z): the umbrella disc to its top + gap_z, the skid rings
@@ -844,6 +815,49 @@ def integrate(M, verbose: bool = False) -> dict:
         info["flange_d"] = 2 * fl
     log("wheel envelope")
     # under the band and the wheel the cavities reach down to the plate top (back ribs added again below)
+    # the frame the floor envelope leaves must be printable (V8).  On the provisional frame, per envelope slab
+    # (sampled at its bottom, middle and top): what lies within 1.25 of the slab's cut, outside the mechanism's own
+    # walls, and is narrower than 1.2 where the sculpt itself is not (thinness the cut made: the cushion's tapering
+    # edge at the head's envelope - never the owner's own thin strand crests), and what has air right under it while
+    # the next slab cuts above it (films of the cheeks' and ears' undersides kept over a crevice) joins the cut.
+    # Sections stay nested upward, and every addition stays within 1.25 of its own slab's envelope (no cascade).
+    # Removing frame only widens the clearances.
+    Kf0 = Ks - solids.union3([Eh, Ew])
+    r_wx = getattr(sk, "flange_r", None) or p.R_u           # (the wheel's widest radius)
+    mech = g2.union([g2.grow(sw_band, 0.6, 0.01), g2.circle(O, r_wx + gxy + 0.6, 0.01),
+                     g2.circle(P, p.R_hub_cut + 0.6, 0.01), g2.grow(S["stoppads2d"], sk.pad_back + 0.6, 0.01)])
+    near_hb = g2.grow(HB, 0.3, 0.01)
+
+    def thin_of(cs):
+        return g2.difference(cs, g2.opening(cs, 1.2, 0.005)) if not cs.is_empty() else CrossSection()
+
+    thin_mm2, prev, aug = 0.0, None, []
+    for k, (zA, zB, sec) in enumerate(env_slabs):
+        new = sec
+        if zB > sk.pad_low_top - 0.5 and zA < 40.0 and k < len(env_slabs) - 1:
+            zs = (zA + 0.01, 0.5 * (zA + zB), zB - 0.01)
+            fk = g2.union([Kf0.slice(z) for z in zs])
+            kth = g2.union([thin_of(Ks.slice(z)) for z in zs])
+            bound = g2.difference(g2.grow(sec, 1.25, 0.01), mech)
+            thin = g2.intersect(g2.difference(thin_of(fk), g2.grow(kth, 0.05, 0.005)), bound)
+            top = Kf0.slice(zB - 0.005)
+            film = g2.intersect(g2.difference(top, g2.intersect(*[Kf0.slice(float(z)) for z in
+                                                                 list(np.arange(zB - 0.6, zB - 0.005, 0.1))])),
+                                env_slabs[k + 1][2], near_hb, bound)
+            add = g2.drop_small(g2.union([thin, film]), 0.02)
+            if not add.is_empty():
+                thin_mm2 += add.area()
+                new = g2.union([new, g2.intersect(g2.closing(g2.grow(add, 0.05, 0.005), 0.3, 0.01),
+                                                  g2.grow(sec, 1.3, 0.01))])
+        if prev is not None:
+            new = g2.union([new, prev])                      # (nested; prev lies within 1.25 of this envelope too)
+        new = g2.clean(new, "solid")
+        aug.append((zA, zB, new))
+        prev = new
+    info["frame_thin_cut_mm2"] = round(thin_mm2, 1)
+    log(f"frame thin parts / films at the floor envelope: {thin_mm2:.1f} mm^2 of slab sections")
+    if thin_mm2 > 0:
+        Eh = solids.union3([Eb, nested_stack(aug, p.eps_stack, grows_up=True), Ec])
     Kf = Ks - solids.union3([Eh, Ew])
     frame = solids.union3([Kf, ribs_back, posts, pads])
     # convex vertical edges where the neck's envelope meets the band's channel (and the pad backing) in the neck
