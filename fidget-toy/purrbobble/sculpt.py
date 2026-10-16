@@ -210,15 +210,16 @@ def stack_sections(slabs: list[tuple[float, float, CrossSection]], eps: float) -
 
 
 def seam_chamfer(K: Manifold, r_s: float, c: float, z_lo: float, n: int = 720, land: float = 1.2,
-                 z_min: float | None = None) -> Manifold:
+                 fin: float = 3.3, z_min: float | None = None) -> Manifold:
     """A 45 deg chamfer cutter for the outer side of a circular seam at r_s about O: at each angle it removes what
     lies above the line rising outward at 45 deg from (r_s, h - c), h being the sculpt's highest point at the seam
     (so the edge is c below the surface and blunt however steeply the yarn strands fall away from it; taken at the
     seam itself, so the chamfer does not dig under strand crests nearby).  Where a strand crest stands at the seam
-    as a remnant more than `land` taller than the height at which the ring is still `land` wide outward from the
-    seam (an acute fin the cut leaves), the cutter drops to that height over +-2 deg (never below z_min: the ring
-    over the wheel keeps its thickness).  Built as one closed ring mesh: profile (r_s - 0.3 .. r_s + c + 2.5) swept
-    around O."""
+    as a tall acute fin - more than `fin` above the height up to which the ring is still `land` wide outward from
+    the seam (the cut leaves two such, 3.8-4.0 tall, on the owner's ball) - the cutter drops over +-1 deg so that
+    the fin keeps only `land` above that height (never below z_min: the ring over the wheel keeps its thickness;
+    lower crests are left alone, they are blunt and supported).  Built as one closed ring mesh: profile
+    (r_s - 0.3 .. r_s + c + 2.5) swept around O."""
     import shapely
     from shapely.geometry import Polygon
     th = np.linspace(0.0, 2 * math.pi, n, endpoint=False)
@@ -239,17 +240,17 @@ def seam_chamfer(K: Manifold, r_s: float, c: float, z_lo: float, n: int = 720, l
     h = H[:, :2].max(axis=1)                                # (the seam itself: r_s .. r_s + 0.05)
     k = max(1, n // 360)                                    # max-filter over +-1 deg: no notches between samples
     h = np.minimum(np.max(np.stack([np.roll(h, j) for j in range(-k, k + 1)]), axis=0), h + 0.1)
-    # tall remnants: the ring is >= land wide outward from the seam up to z_land (every sample out to r_s + land
-    # reaches it); a crest standing more than land above that is cut down to it (after the max filter)
+    # tall fins: the ring is >= land wide outward from the seam up to z_land (every sample out to r_s + land
+    # reaches it); a crest standing more than `fin` above that keeps only `land` of it (after the max filter)
     z_land = H.min(axis=1)
     if z_min is not None:
         z_land = np.maximum(z_land, z_min)
-    tall = np.flatnonzero(h - z_land > land)
+    tall = np.flatnonzero(h - z_land > fin)
     hn = h.copy()
-    w = 2 * k * 2                                           # +-2 deg
+    w = 2 * k                                               # +-1 deg
     for i in tall:
         for j in range(i - w, i + w + 1):
-            hn[j % n] = min(hn[j % n], z_land[i] + c)
+            hn[j % n] = min(hn[j % n], z_land[i] + land + c)
     h = hn
     seam_chamfer.last_tall = int(len(tall))
     prof = [(r_s - 0.3, -c), (r_s, -c), (r_s + c + 2.5, 2.5), (r_s - 0.3, 2.5)]     # (r, z - h), CCW in (r, z)
