@@ -21,7 +21,7 @@
   ]
  ],
  "info": {
-  "t_sections_s": 14.28,
+  "t_sections_s": 13.8,
   "t_solids_s": 0.03,
   "skin_contract": {
    "warnings": [
@@ -123,7 +123,7 @@
     "14.037": 0.0
    },
    "frame_pinches_before_weld": 135,
-   "t_sculpt_s": 92.0
+   "t_sculpt_s": 126.1
   }
  },
  "sections": {
@@ -260,6 +260,6 @@
   "stl/kitty/purrbobble_kitty_nominal_multicolour.3mf"
  ],
  "renders": [],
- "time_build_export_s": 127.59,
- "time_total_s": 127.82
+ "time_build_export_s": 162.15,
+ "time_total_s": 162.38
 }
