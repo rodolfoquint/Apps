@@ -1718,22 +1718,20 @@ def run_edges(R: Report, M, W: World) -> dict:
     # (a) plan corners of exposed outlines, every 1.0 mm in Z
     worst_r = {}
     sculpt = hasattr(M.skin, "sculpt")
-    if sculpt:
-        out["corners_sloped"] = {}
+    out["corners_sloped"] = {}
     for b, body in M.bodies.items():
         bb = body.bounding_box()
         found, sloped = [], []
         for z in np.arange(math.floor(bb[2]) + 0.5, bb[5], 1.0):
-            k = int(np.argmin(np.abs(np.asarray(W.zs) - z)))
 
             def exp_fn(tip, b=b, z=z):
                 return bool(touched(W, masks, poses, b, np.array([[tip[0], tip[1], z]]))[0])
             cs_z = convex_corner_report(body.slice(float(z)), SPEC["edge_r_ext"], exp_fn)
-            if sculpt and cs_z:
-                # (sculpt: the seams are vertical cuts through the sloping sculpt surface, so a slice also shows a
-                # sharp 2-D corner where it crosses a SLOPED edge (seam wall x sculpt surface) - its 3-D sharpness is
-                # the dihedral, which the ball test (b) measures.  A vertical edge persists: keep a corner only if the
-                # slice 0.5 above or below has one within 0.3 mm)
+            if cs_z:
+                # (a slice also shows a sharp 2-D corner where it crosses a SLOPED edge - a sculpt seam's vertical cut
+                # through the sloping surface, a classic paw lip's conical underside meeting the paw's end face; its
+                # 3-D sharpness is the dihedral, which the ball test (b) measures.  A vertical edge persists: keep a
+                # corner only if the slice 0.5 above or below has one within 0.3 mm)
                 nb = [np.array(c["at"]) for dz in (-0.5, 0.5) if bb[2] < z + dz < bb[5]
                       for c in convex_corner_report(body.slice(float(z + dz)), SPEC["edge_r_ext"])]
                 for c in cs_z:
@@ -1742,31 +1740,26 @@ def run_edges(R: Report, M, W: World) -> dict:
                         found.append(c)
                     else:
                         sloped.append(c)
-                continue
-            for c in cs_z:
-                c["z"] = float(z)
-                found.append(c)
         out["corners"][b] = found
-        if sculpt:
-            out["corners_sloped"][b] = sloped
+        out["corners_sloped"][b] = sloped
         worst_r[b] = min((c["est_corner_r_mm"] for c in found), default=None)
     allc = [(b, c) for b, lst in out["corners"].items() for c in lst]
     sharp_c = [(b, c) for b, c in allc if c["est_corner_r_mm"] < SPEC["edge_r_min"] - 0.05]
     soft_c = [(b, c) for b, c in allc if SPEC["edge_r_min"] - 0.05 <= c["est_corner_r_mm"] < SPEC["edge_r_ext"] - 0.1]
+    n_sl = {b: len(v) for b, v in out["corners_sloped"].items()}
+    extra = {"sloped_edge_corners_not_counted": n_sl,
+             "sloped_note": "single-slice corners that do not persist 0.5 above or below (a sloped edge, e.g. a seam "
+                            "through the sloping sculpt surface or a paw lip's conical underside meeting the paw's end "
+                            "face): their sharpness is the 3-D dihedral, judged by V12.sharp_points"}
     if sculpt:
-        n_sl = {b: len(v) for b, v in out["corners_sloped"].items()}
         fix_c = ("round the listed near-vertical convex corners (the seams the head's swept envelope, the stop pads "
                  "and the neck cut leave in the sculpt; r >= 1.0, exterior 1.5).  Removing material only increases "
                  "clearances.") if (sharp_c or soft_c) else ""
-        extra = {"sloped_edge_corners_not_counted": n_sl,
-                 "sloped_note": "single-slice corners where a vertical seam meets the sloping sculpt surface: their "
-                                "sharpness is the 3-D dihedral, judged by V12.sharp_points"}
     else:
         fix_c = ("round the listed convex plan corners: FaceMid2D = open(FaceUp - RoofSweepInv, 2.0) "
                  "(r 1.0; today 1.0 -> r 0.5 at the I3 slot mouth) and round the exposed fill-finger tips at "
                  "the cavity mouth (Fill2D open 2.0 / r 1.0 convex rounding outside the stop pads).  Removing "
                  "material only increases clearances.")
-        extra = {}
     R.add("V12.corners", "exposed convex plan corners (vertical edges) r >= 1.0 (exterior >= 1.5)",
           "fail" if sharp_c else ("warn" if soft_c else "pass"),
           {"below_1.0": len(sharp_c), "1.0_to_1.5": len(soft_c), "min_r_by_body": worst_r},

@@ -1,0 +1,300 @@
+{
+ "skin": "kitty_classic",
+ "variant": "deep",
+ "pose": {
+  "phi": 11.6,
+  "psi": 6.18
+ },
+ "D": 24.55150371513647,
+ "P": [
+  0.0,
+  24.55150371513647
+ ],
+ "pallets": [
+  [
+   -12.899585859184146,
+   8.619227709112714
+  ],
+  [
+   12.899585859184146,
+   8.619227709112714
+  ]
+ ],
+ "info": {
+  "t_sections_s": 8.85,
+  "t_solids_s": 45.1,
+  "skin_contract": {
+   "warnings": [
+    "B_i only 1.32 mm inside Face2D (contract 3.0)",
+    "disc(P, 7.5) not inside Face2D (26.2 mm^2 outside); hub collar z 7.4-8.4 added",
+    "Face2D has 9.1 mm^2 narrower than 6.0 mm"
+   ],
+   "leg_B_margin": [
+    1.324,
+    1.324
+   ],
+   "hub_disc_outside_area": 26.231,
+   "narrower_than_6mm_area": 9.137,
+   "crown_collar": {
+    "applied": false,
+    "pieces_beyond": 1,
+    "bad_rays": 0,
+    "thin_cap_at_notch_deg": [],
+    "range_deg": [
+     56.13,
+     123.87
+    ]
+   },
+   "stop_pad_area_ratio": 0.861,
+   "stop_pad_contact_mm": [
+    4.94,
+    5.91,
+    5.91,
+    4.68
+   ]
+  },
+  "face_features": [
+   "eye_L",
+   "eye_highlight0_L",
+   "eye_highlight1_L",
+   "blush_L",
+   "brow_L",
+   "inner_ear_L",
+   "eye_R",
+   "eye_highlight0_R",
+   "eye_highlight1_R",
+   "blush_R",
+   "brow_R",
+   "inner_ear_R",
+   "nose",
+   "mouth",
+   "tongue",
+   "smile_hooks",
+   "curl_groove_0",
+   "curl_groove_1",
+   "bow",
+   "bow_knot"
+  ],
+  "head_base": "<manifold3d.Manifold object at 0x7fa619f4f410>",
+  "head_feature_parts": {
+   "eye_L": [
+    "<manifold3d.Manifold object at 0x7fa619f4f370>",
+    null
+   ],
+   "blush_L": [
+    "<manifold3d.Manifold object at 0x7fa619f4f230>",
+    null
+   ],
+   "eye_R": [
+    "<manifold3d.Manifold object at 0x7fa619f4efb0>",
+    null
+   ],
+   "blush_R": [
+    "<manifold3d.Manifold object at 0x7fa619f4ef10>",
+    null
+   ],
+   "nose": [
+    "<manifold3d.Manifold object at 0x7fa619f4ee70>",
+    null
+   ],
+   "smile_hooks": [
+    "<manifold3d.Manifold object at 0x7fa619f4ee20>",
+    null
+   ],
+   "bow": [
+    "<manifold3d.Manifold object at 0x7fa619f4f730>",
+    null
+   ],
+   "bow_knot": [
+    "<manifold3d.Manifold object at 0x7fa619f4f460>",
+    null
+   ],
+   "eye_highlight0_L": [
+    null,
+    "<manifold3d.Manifold object at 0x7fa619f4f6e0>"
+   ],
+   "eye_highlight1_L": [
+    null,
+    "<manifold3d.Manifold object at 0x7fa619f4eb00>"
+   ],
+   "brow_L": [
+    null,
+    "<manifold3d.Manifold object at 0x7fa619f4f050>"
+   ],
+   "inner_ear_L": [
+    null,
+    "<manifold3d.Manifold object at 0x7fa619f4c990>"
+   ],
+   "eye_highlight0_R": [
+    null,
+    "<manifold3d.Manifold object at 0x7fa619f4f690>"
+   ],
+   "eye_highlight1_R": [
+    null,
+    "<manifold3d.Manifold object at 0x7fa619f4eab0>"
+   ],
+   "brow_R": [
+    null,
+    "<manifold3d.Manifold object at 0x7fa619f4cb70>"
+   ],
+   "inner_ear_R": [
+    null,
+    "<manifold3d.Manifold object at 0x7fa619f4f780>"
+   ],
+   "mouth": [
+    null,
+    "<manifold3d.Manifold object at 0x7fa619f4f7d0>"
+   ],
+   "curl_groove_0": [
+    null,
+    "<manifold3d.Manifold object at 0x7fa619f4ec90>"
+   ],
+   "curl_groove_1": [
+    null,
+    "<manifold3d.Manifold object at 0x7fa619f4cda0>"
+   ]
+  },
+  "frame_colour_masks": [
+   [
+    "accent",
+    "<manifold3d.Manifold object at 0x7fa619f4f190>"
+   ],
+   [
+    "accent",
+    "<manifold3d.Manifold object at 0x7fa619f4ece0>"
+   ]
+  ],
+  "sculpt": {}
+ },
+ "sections": {
+  "overall_W": 65.14,
+  "overall_H": 91.51,
+  "backdrop_bounds": [
+   -31.54,
+   -26.4,
+   33.6,
+   65.11
+  ],
+  "i3_area": 881.0,
+  "headband_area": 1252.9,
+  "faceup_area": 1206.1,
+  "facemid_area": 325.2,
+  "fill_area": 1143.5,
+  "roof_area": 2005.5,
+  "fill_slivers_removed_area": 8.33,
+  "stoppads_area": 13.58,
+  "max_bridge_width": 15.0,
+  "n_bridge_pieces": 1
+ },
+ "bodies": {
+  "frame": {
+   "volume_mm3": 26638.8,
+   "mass_solid_g": 33.03,
+   "triangles": 397128,
+   "bbox": [
+    -31.54,
+    -26.401,
+    0.0,
+    33.595,
+    65.111,
+    17.4
+   ],
+   "size": [
+    65.13,
+    91.51,
+    17.4
+   ]
+  },
+  "wheel": {
+   "volume_mm3": 5993.3,
+   "mass_solid_g": 7.43,
+   "triangles": 32466,
+   "bbox": [
+    -17.997,
+    -17.997,
+    3.0,
+    17.997,
+    17.997,
+    13.3
+   ],
+   "size": [
+    35.99,
+    35.99,
+    10.3
+   ]
+  },
+  "head": {
+   "volume_mm3": 12418.7,
+   "mass_solid_g": 15.4,
+   "triangles": 111968,
+   "bbox": [
+    -22.722,
+    5.179,
+    3.0,
+    22.246,
+    58.865,
+    19.3
+   ],
+   "size": [
+    44.97,
+    53.69,
+    16.3
+   ]
+  }
+ },
+ "overall_size": [
+  65.13,
+  91.51,
+  19.3
+ ],
+ "print_pose_check": {
+  "bodies": {
+   "frame": {
+    "components": 1,
+    "genus": 3,
+    "volume_mm3": 26638.82,
+    "status": "Error.NoError"
+   },
+   "wheel": {
+    "components": 1,
+    "genus": 0,
+    "volume_mm3": 5993.31,
+    "status": "Error.NoError"
+   },
+   "head": {
+    "components": 1,
+    "genus": 1,
+    "volume_mm3": 12418.71,
+    "status": "Error.NoError"
+   }
+  },
+  "pairs": [
+   {
+    "a": "frame",
+    "b": "wheel",
+    "overlap_mm3": 0.0,
+    "min_gap": 0.35000994548840264
+   },
+   {
+    "a": "frame",
+    "b": "head",
+    "overlap_mm3": 0.0,
+    "min_gap": 0.35000216919009297
+   },
+   {
+    "a": "wheel",
+    "b": "head",
+    "overlap_mm3": 0.0,
+    "min_gap": 1.0999999999999996
+   }
+  ],
+  "global_min_gap": 0.35000216919009297
+ },
+ "stl_triangles": 541562,
+ "files": [
+  "stl/kitty_classic/purrbobble_kitty_classic_deep.stl"
+ ],
+ "renders": [],
+ "time_build_export_s": 61.29,
+ "time_total_s": 61.44
+}
