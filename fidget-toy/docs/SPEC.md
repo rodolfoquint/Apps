@@ -608,3 +608,38 @@ below is in the code with a `fix round` comment; the checkers in `verification/`
 | Mass limit (V13) | <= 45 g | <= 50 g as printed (`v_escapement.MASS_LIMIT_G`); kitty 48.0 g | the 45 g was a budget from the first estimate, not a mechanism or safety need (frame mass does not enter V4); the concept's cushion relief, feet and tail are frame material |
 | Mesh clean-up | Manifold.simplify on every body | only where the raw mesh has pinch vertices or detached pieces | simplifying the clean round-4 kitty frame tilted crown-recess step faces into small oblique overhangs (V9); bee and robot meshes keep their volumes (more triangles) |
 | V8 zoning (round 4) | cosmetic windows at flat feature planes | windows start at the bottom of each pillow round; raised cushion relief is cosmetic; the frame-layer sliver check warns (not fails) on cosmetic relief | raised, draped and pillowed decoration sits below the old flat planes |
+
+## 9. Rounds 5 and 6: the mechanism inside the owner's sculpt (Purr Kitty)
+
+The kitty is no longer built from the parametric skin. The owner's own sculpted model
+(`sculpt/Yarn_Cuddle_Kitty_Meshy_AI.3mf`, 58.2 × 75.0 × 18.9 mm) is scaled ×1.139 so its yarn ball is the 36 mm escape
+wheel, and `purrbobble/sculpt.py` splits it into the three print-in-place bodies around the unchanged escapement core.
+At rest the outside of the toy is the sculpt's own surface everywhere except thin seams. The round-4 kitty is kept as
+the skin `kitty_classic`.
+
+| Area | Classic skins | Sculpt kitty | Why |
+|---|---|---|---|
+| Bodies | Parametric head, roof, face layers, crown, paws | Head = the sculpt over its head blob (ears and bow included), each point from its own floor up; wheel = escape wheel + small umbrella + the yarn ball's centre (r 10) as a spinning cap; frame = the rest of the sculpt minus the swept envelopes, plus ribs, posts and stop pads | The owner asked for their model, not a restyled skin |
+| Umbrella | R_u 17.75 (Ø 35.5), visible yarn face | R_u 15, under the sculpt's yarn ball; a hidden flange ring r 14.7–16.2 at z 8.5–9.45 widens the wheel to Ø 32.4 | The ball's outer strands are the static ring over the wheel; the flange keeps the wheel out of the small-parts cylinder (31.7) |
+| Drive | Knob / finger well at r 11 | Spherical finger dish Ø 7.5 × 3 in the cap at r_k 5 | The cap is only r 10; V4 uses r_k 5 as the finger's lever arm |
+| Head band | Full height z 3.0–7.4 | Legs passing under cushion too thin for a cover are lowered to 4.27 (1.27 tall); a hub collar disc(P, 6.9) z 7.4–8.4 over the bore; full-band corners rounded r 1 except at the pallet discs | Hidden under the sculpt; the collar restores the classic bore wall (2.45 mm) |
+| Head floors | Flat face layers | Quantised floors (3.0, then 3.437 + 0.2 k); a floor clears everything static it swings over by gap_z + z_lift + floor_rest (0.2 more: face up the head rests on its back ribs); the rim floats above the cushion (float_z 6.95: no moat); floors rise over undercut films and where a terrace would overhang its support in the print pose | Print-in-place, rest-on-ribs clearance, printability |
+| Frame covers | Roof ≥ 2.0 over 13.5 mm leg channels | Covers ≥ cover_t 1.25 over the lowered legs (~7 mm channel), filled up to that where the sculpt is thinner (tapered 45° bosses, ≤ 0.3 above the cushion) | The head is also held by the post ridge and the collar under the frame |
+| Seams | Gaps 0.40–0.55 | gap_xy 0.5 (loose 0.55), gap_z 0.4137 over a floating body in every variant, + z_lift under it; cap seam r 10/10.5 with a 0.4 chamfer on the static ring | Off round numbers (no faces coplanar with the sculpt's flats) |
+| Left ear | — | The cushion behind the left ear is lowered ≤ 0.72 mm (31 mm²) so the ear's floors come down and its root carries the V10 protrusion load | Visible relief, accepted for child safety |
+| Balance | Head on the P axis | The mechanism axis sits 1.22 mm right of the sculpted ball's centre | The bow makes the head heavier on its right; an off-axis COM is a gravity torque that slows the escapement one way |
+| Mesh | Clean CAD | Sculpt welded (pinch vertices), every body float32-stable (STL / 3MF / cache) | The AI-generated mesh has defects |
+| Colour | Multi-colour regions | One colour, as the owner's model | The owner's model is single-colour |
+| Mass | ≤ 50 g | ≤ 55 g (owner's model at ×1.14 is 66 × 85 mm) | Frame mass does not enter the dynamics |
+
+Accepted deviations (reported by the checkers, not hidden):
+
+* Head inertia ~3.2e-6 kg·m² and COM ~6.9 mm above P are below the classic band (4–8e-6, 8–14 mm). The sculpt head is
+  what it is; V13 accepts it only because V4 passes with these values.
+* V4 averages the T = 1 and 2 N·mm runs over 4 s / 1.8 s (was 1.2 / 0.9 s): at the gentlest push the motion is chaotic
+  and a 1.2 s run measured the spin-up overshoot, not the steady giggle the SPEC 2.4 table describes.
+* V10 wheel width: the classic 35.5 mm cannot be reached hidden inside the sculpted ball; the sculpt kitty's criterion
+  is the small-parts test itself with a 0.5 mm margin (Ø 32.4 > 32.2).
+* V12 pinch points at the cheeks and chin (the owner's head is not an arc about the pivot): finger-wide gaps that close
+  from ~9 to ~2.5 mm as the head swings. The squeeze force is child-powered through the escapement (≈ 3 N for a normal
+  push, ≈ 6 N for a hard one) and nothing stores energy. Making them constant would mean recutting the visible cheeks.
