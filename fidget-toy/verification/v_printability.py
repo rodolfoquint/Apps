@@ -46,6 +46,28 @@ SLICER  PrusaSlicer CLI (0.2 layers, 0.4 nozzle, PLA, 3 perimeters, 5/5 solid la
     longest run without material in the 3 layers below (bridges: <= listed span) and its distance to that support
     (floats: <= 1.90); and the printed separation of the bodies in the toolpaths (XY gap after line widths >= 0.30,
     >= 1 empty layer between stacked bodies).
+
+Sculpt skins (purrbobble/sculpt.py: frame and head cut from a sculpted mesh, no roof / fill walls / face layers /
+paws / rib fields in the bodies, although the sections still hold them) are judged on what is built instead:
+    * zones: the built back ribs (clipped to the low cavity), the wheel's skid rings (designed 0.8), 'sculpt' for the
+      sculpted surface; a thin XY piece within 0.6 of the >= 1.2 core of the same body one layer up or down is the
+      tapering 'edge' of a sculpted wall (warn), one that stays thin in both neighbouring layers is a 'wall' (fail); a
+      thin horizontal shell sampled >= 1.0 inside its section is a 'plate' (fail);
+    * V8_roof = the frame's covers over the moving bodies (every non-bed horizontal underside, vertical rays, >= 2.0);
+      V8_plates = the head's floors and lowered band and the wheel's undersides (>= 1.2); fingers / legs are measured
+      where the whole band exists (below the lowered legs' top) and their band height is reported; back plate =
+      the designed plate under the band's sweep and the wheel (rest of the footprint reported); Fill2D / Roof2D
+      sliver checks are not run (no such walls);
+    * V9: bed = the first layer; horizontal undersides that overhang their own layer below by <= 1.0 and oblique
+      sculpted overhangs whose per-layer reach is <= 1.0 are 'sculpt_overhang' (reported, warn); other undersides
+      are 'sculpt_float': every point within the float reach (1.90) of support (own material below, any body's top
+      <= gap_z + z_lift below) or on a straight strand <= 13.5 between such anchors, else FAIL;
+    * SLICER: bridges / overhangs off the listed levels are judged by that support on whole paths (consecutive
+      extrusions chained): a stretch farther than 1.90 from material 0.2-0.8 below must be a bridge between two
+      supported points (<= 13.5, straying <= 1.0 from the line between them), never a free end (> 1.0);
+    * V8_topology: sub-micron sliver facets that collapse to zero-volume shells in the STL (and join vertices of the
+      3MF when merged by position) are reported (warn); the 3MF is judged by its indexed topology;
+    * an exported STL / 3MF that does not match the current build is not used (a temporary export is).
 """
 from __future__ import annotations
 
@@ -154,7 +176,13 @@ def shp(cs: CrossSection):
         polys.append(shapely.Polygon(rings[i0], [rings[i] for i in range(len(rings)) if i != i0]))
     if not polys:
         return shapely.Polygon()
-    return shapely.union_all(polys) if len(polys) > 1 else polys[0]
+    if len(polys) == 1:
+        return polys[0]
+    try:
+        return shapely.union_all(polys)
+    except shapely.errors.GEOSException:
+        # (sculpt sections) rings touching at a single point are valid for manifold3d, not for GEOS
+        return shapely.union_all([shapely.make_valid(q) for q in polys])
 
 
 def rot2(pts, deg, pivot=(0.0, 0.0)):
@@ -203,6 +231,50 @@ def rnd(v, n=3):
 def tm_of(man: Manifold) -> trimesh.Trimesh:
     v, f = mesh_arrays(man)
     return trimesh.Trimesh(v, f, process=False)
+
+
+# ============================================================================================ sculpt skins
+def is_sculpt(M) -> bool:
+    """Sculpt skins (purrbobble/sculpt.py) cut the frame and head from a sculpted mesh: the classic roof, fill walls,
+    face layers, paws and rib fields of M.sections are not in their bodies."""
+    return hasattr(M.skin, "sculpt")
+
+
+_SCULPT_GEOM = {}
+
+
+def sculpt_geom(M) -> dict:
+    """The sculpt integration's own plan layout, rebuilt exactly as purrbobble/sculpt.integrate makes it (the bodies
+    do not carry it; design frame):
+    band2d     the head band's plan (hub, legs, fingers and the always-covered face part);
+    low2d_cav  the cavity cut down to the plate top under the band's sweep and the wheel;
+    ribs_back  the back ribs as built (Ribs_back2d clipped to low2d_cav shrunk 0.3);
+    rings      the skid rings on the wheel's umbrella top (annuli rib_w wide)."""
+    key = id(M)
+    if key not in _SCULPT_GEOM:
+        from purrbobble import geom2d as g2
+        from purrbobble.sweep import swept
+        p, S, sk = M.params, M.sections, M.skin
+        P, O = tuple(p.P), (0.0, 0.0)
+        gxy = max(sk.gap_xy, p.gap_xy)
+        HB = sk.head_blob()
+        C = HB                                    # the part of the head's footprint it covers at every pose
+        for a_ in np.linspace(-p.psi_b, p.psi_b, 41):
+            C = g2.intersect(C, g2.rot_about(HB, float(a_), P))
+        C = g2.grow(C, -gxy, 0.01)
+        mech2d = g2.union([S["hub2d"], S["legs2d"], S["fingers2d"]])
+        band2d = g2.intersect(S["headband2d"], g2.union([g2.grow(C, -0.5, 0.01), g2.grow(mech2d, 0.05, 0.01)]))
+        band2d = g2.clean(g2.opening(band2d, 0.5, 0.005), "solid")
+        band2d = max(g2.pieces(band2d), key=lambda q: q.area())
+        sw_band = g2.grow(swept(band2d, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01)
+        low2d_cav = g2.union([sw_band, g2.circle(O, p.wheel_ex_r, 0.01)])
+        ring_r = [float(r) for r in np.arange(sk.cap_r + sk.cap_gap + 1.2, p.R_u - 1.0 + 1e-6, sk.ring_pitch)]
+        rings = [g2.difference(g2.circle(O, r + p.rib_w / 2, 0.01), g2.circle(O, r - p.rib_w / 2, 0.01))
+                 for r in ring_r]
+        _SCULPT_GEOM[key] = {"band2d": band2d, "low2d_cav": low2d_cav,
+                             "ribs_back": g2.intersect(S["ribs_back2d"], g2.grow(low2d_cav, -0.3, 0.01)),
+                             "rings": compose(rings), "ring_r": ring_r}
+    return _SCULPT_GEOM[key]
 
 
 # ============================================================================================ zones
@@ -271,6 +343,15 @@ class Zoner:
             "legs_free": prep(S["legs2d"] - S["face2d"], 0.05),
             "hub": prep(S["hub2d"], 0.05),
         }
+        self.sculpt = is_sculpt(M)
+        if self.sculpt:
+            # what a sculpt build has: the back ribs clipped to the low cavity and the wheel's skid rings - none of
+            # the classic head ribs (band / front / groove), roof ribs, paws, decor or plate features
+            sg = sculpt_geom(M)
+            self.g.update({"ribs_back": prep(sg["ribs_back"], 0.05), "ribs_roof": None, "ribs_band": None,
+                           "ribs_front": None, "ribs_groove": None, "rings": prep(sg["rings"], 0.05),
+                           "low_cav": prep(sg["low2d_cav"]),
+                           "dish": prep(CrossSection.circle(sk.dish_d / 2 + 0.3, 96).translate((p.r_k, 0.0)))})
 
     def _in(self, key, x, y):
         g = self.g.get(key)
@@ -299,7 +380,9 @@ class Zoner:
         rO = np.hypot(x, y)
         rP = np.hypot(x - self.P[0], y - self.P[1])
         e = 1e-3
-        if body == "frame":
+        if self.sculpt:
+            rules, default = self._sculpt_rules(body, x, y, z, rO, rP, e)
+        elif body == "frame":
             post_zone = p.post_r + p.post_root_fillet + 0.25
             rules = [
                 ((z <= p.z_bp + e) & (z >= p.z_bp - 0.7) & self._in("plate_feat", x, y), COSMETIC_PREFIX + "plate_groove"),
@@ -354,11 +437,40 @@ class Zoner:
         lab[lab == ""] = default
         return lab
 
+    def _sculpt_rules(self, body, x, y, z, rO, rP, e):
+        """Zones of a sculpt build (design frame): the mechanism's own parts keep their names, everything cut from
+        the sculpt is 'sculpt' (structural)."""
+        p = self.p
+        if body == "frame":
+            post_zone = p.post_r + p.post_root_fillet + 0.25
+            return [
+                ((z >= p.z_bp - e) & (z <= p.z_bp + p.rib_h + e) & self._in("ribs_back", x, y), "rib_back"),
+                ((z <= p.z_bp + e) & self._in("low_cav", x, y), "plate"),
+                (((rO <= post_zone) | (rP <= post_zone)) & (z <= p.post_z1 + e), "post"),
+                ((z <= p.z_band1 + e) & self._in("pads", x, y), "stop_pad"),
+            ], "sculpt"
+        if body == "wheel":
+            return [
+                ((rO <= p.bore_r + 1.0) & (z <= p.bore_roof_z + 0.6), "bore_hub"),
+                ((z <= p.z_teeth1 + e) & (rO >= p.Rt - 1.2), "tooth_tip"),
+                ((z <= p.z_teeth1 + e) & (rO >= p.Rr - 0.05), "tooth"),
+                # skid rings: from the umbrella top (their side walls start there) to their tops
+                ((z >= p.z_umb_top - 0.1 - e) & (z <= p.z_umb_top + p.rib_h + e) & self._in("rings", x, y), "rib_wheel"),
+                ((z >= p.z_umb_top + p.rib_h - e) & self._in("dish", x, y), "dish"),
+                (z >= p.z_umb_top + p.rib_h - e, "cap"),
+            ], "umbrella"
+        return [
+            ((rP <= p.bore_r + 1.0) & (z <= p.bore_roof_z + 0.6), "bore_hub"),
+            ((z <= p.z_band1 + e) & self._in("fingers", x, y), "finger"),
+            ((z <= p.z_band1 + e) & self._in("legs_free", x, y), "leg"),
+            ((z <= p.z_band1 + e) & self._in("hub", x, y), "hub"),
+        ], "sculpt"
+
 
 def zone_policy(zone: str, p) -> tuple[str, float]:
     """(kind, required minimum) for a zone: designed / frozen / cosmetic / structural."""
-    if zone in ("rib_back", "rib_roof", "rib_band", "rib_front", "rib_groove"):
-        return "designed", p.rib_w - 0.03          # SPEC 3.4 skid ribs 0.8 wide
+    if zone in ("rib_back", "rib_roof", "rib_band", "rib_front", "rib_groove", "rib_wheel"):
+        return "designed", p.rib_w - 0.03          # SPEC 3.4 skid ribs 0.8 wide (rib_wheel: sculpt skid rings)
     if zone == "tooth_tip":
         return "frozen", 0.0                       # SPEC 2.3 frozen escapement (tip land 2 x 1.721 deg)
     if zone.startswith(COSMETIC_PREFIX):
@@ -409,10 +521,17 @@ def v8_topology(M, bodies: dict, stl_path: Path | None, mf_path: Path | None) ->
         ok &= d["pass"]
         out["bodies"][k] = d
     vols = sorted(float(b.volume()) for b in bodies.values())
+    sculpt = is_sculpt(M)
     if stl_path is not None and stl_path.exists():
         t = trimesh.load(str(stl_path), force="mesh")
         t.merge_vertices()
         shells = t.split(only_watertight=False)
+        degen = []
+        if sculpt:
+            # sub-micron sliver triangles of the sculpt (weld spheres, envelope cuts) collapse to zero-volume pairs
+            # of facets once rounded to float32: not part of any body (the slicer drops them), reported separately
+            degen = [s for s in shells if abs(s.volume) < 1e-6 and s.area < 1e-3]
+            shells = [s for s in shells if not (abs(s.volume) < 1e-6 and s.area < 1e-3)]
         sv = sorted(float(abs(s.volume)) for s in shells)
         match = len(sv) == len(vols) and all(abs(a - b) <= 2e-3 * b for a, b in zip(sv, vols))
         bb_model = np.array([[b.bounding_box()[i] for i in range(6)] for b in bodies.values()])
@@ -422,6 +541,12 @@ def v8_topology(M, bodies: dict, stl_path: Path | None, mf_path: Path | None) ->
         d = {"path": str(stl_path), "shells": len(shells), "watertight_shells": int(sum(s.is_watertight for s in shells)),
              "shell_volumes": rnd(sv, 1), "model_volumes": rnd(vols, 1), "matches_model": bool(match and bb_ok)}
         d["pass"] = d["shells"] == 3 and d["watertight_shells"] == 3 and d["matches_model"]
+        if degen:
+            d["degenerate_zero_volume_shells"] = {
+                "n": len(degen), "facets": int(sum(len(s.faces) for s in degen)),
+                "at": [rnd(s.bounds.mean(0), 2) for s in degen[:8]],
+                "note": "zero-area facet pairs (float32 rounding of sliver triangles); PrusaSlicer drops them on load"}
+            out["warn"] = True
         ok &= d["pass"]
         out["stl"] = d
     if mf_path is not None and mf_path.exists():
@@ -445,6 +570,13 @@ def v8_topology(M, bodies: dict, stl_path: Path | None, mf_path: Path | None) ->
                 sub = trimesh.Trimesh(V, F[int(a):int(b) + 1], process=True)
                 parts[nm] = {"triangles": int(b) - int(a) + 1, "watertight": bool(sub.is_watertight),
                              "volume_mm3": rnd(abs(sub.volume), 1)}
+                if sculpt and not sub.is_watertight:
+                    # the 3MF is an indexed mesh (the slicer reads it by index): merging its vertices by their 6-decimal
+                    # coordinates also joins distinct sculpt vertices < 1e-6 apart.  Judge the file's own topology
+                    by_index = trimesh.Trimesh(V, F[int(a):int(b) + 1], process=False)
+                    parts[nm].update({"watertight": bool(by_index.is_watertight), "watertight_by_position": False,
+                                      "note": "not watertight once vertices < 1e-6 apart are merged (sliver triangles)"})
+                    out["warn"] = True
             d.update({"objects": n_obj, "parts": parts, "infill": infill})
             pv = sorted(v["volume_mm3"] for v in parts.values())
             d["matches_model"] = len(pv) == 3 and all(abs(a - b) <= 2e-3 * b for a, b in zip(pv, vols))
@@ -478,23 +610,67 @@ class ThinMap:
     an acute plan corner or a short stub)."""
 
     WALL_LEN = 2.0
+    EDGE_GROW = 0.6          # sculpt skins: a thin piece within this of the >= t core one layer up / down is an 'edge'
 
-    def __init__(self, body: Manifold, t: float = WALL_MIN):
+    def __init__(self, body: Manifold, t: float = WALL_MIN, edge_test: bool = False):
         self.b, self.t, self.c = body, t, {}
+        self.edge_test, self._core, self._g = edge_test, {}, {}
+        bb = body.bounding_box()
+        self.zlo, self.zhi = bb[2], bb[5]
 
     def at(self, z: float, exact: bool = False):
         key = round(z, 4) if exact else round(round(z / 0.02) * 0.02, 3)
         if key not in self.c:
             S = self.b.slice(float(key))
-            self.c[key] = (S, thin_pieces(S, self.t))
+            self.c[key] = (S, self._edges(key, thin_pieces(S, self.t)))
         return self.c[key]
 
     def put(self, z: float, S: CrossSection):
         """Register an externally computed section (the conservative layer section) at height z."""
         key = round(z, 4)
         if key not in self.c:
-            self.c[key] = (S, thin_pieces(S, self.t))
+            self.c[key] = (S, self._edges(key, thin_pieces(S, self.t)))
         return self.c[key]
+
+    def depth(self, x: float, y: float, z: float) -> float:
+        """Distance from (x, y) to the outline of the section at z (0 outside it)."""
+        S, _ = self.at(z)
+        key = round(round(z / 0.02) * 0.02, 3)
+        if key not in self._g:
+            g = shp(S)
+            shapely.prepare(g)
+            self._g[key] = g
+        g = self._g[key]
+        pt = shapely.Point(x, y)
+        return float(g.boundary.distance(pt)) if g.contains(pt) else 0.0
+
+    def _core_at(self, z: float) -> CrossSection:
+        """The >= t core of the body at z (opening of the slice; 0.02 grid)."""
+        key = round(round(z / 0.02) * 0.02, 3)
+        if key not in self._core:
+            self._core[key] = (opening(self.b.slice(float(key)), self.t) if self.zlo < key < self.zhi
+                               else CrossSection())
+        return self._core[key]
+
+    def _edges(self, z: float, pcs: list[dict]) -> list[dict]:
+        """Sculpt skins: a 'wall' piece that lies within EDGE_GROW of the >= t core of the same body one layer
+        above or below is the tapering edge of a thicker sculpted wall (a gentle slope of the sculpt running out
+        against an envelope cut, the top layer of a rounded crest): kind 'edge' (warn).  A piece that stays thin in
+        both neighbouring layers - a fin, a feather, a knife edge steeper than the layer step - remains a 'wall'."""
+        if not self.edge_test:
+            return pcs
+        for d in pcs:
+            if d["kind"] != "wall":
+                continue
+            b = d["cs"].bounds()
+            m = self.EDGE_GROW + 0.1
+            box = CrossSection.square((b[2] - b[0] + 2 * m, b[3] - b[1] + 2 * m)).translate((b[0] - m, b[1] - m))
+            for dz in (-LAYER_H, LAYER_H):
+                rest = d["cs"] - grow(self._core_at(z + dz) ^ box, self.EDGE_GROW)
+                if rest.is_empty() or rest.area() <= 0.02 * d["area"] + 1e-3:
+                    d["kind"] = "edge"
+                    break
+        return pcs
 
     def kind_at(self, x: float, y: float, z: float):
         S, pcs = self.at(z)
@@ -561,6 +737,11 @@ def v8_walls_rays(M, bodies, zoner: Zoner, n_rays: int, thinmaps: dict) -> dict:
                       ">= 2 mm long thinner than 1.2 (fail), 'corner' = acute-corner tip / short stub (warn), "
                       "'edge_z_only' = XY section >= 1.2 wide there (stepped edge round seen by a vertical ray, warn)"),
            "samples_per_body": n_rays, "bodies": {}}
+    sculpt = is_sculpt(M)
+    if sculpt:
+        out["method"] += ("; sculpt: 'edge' = the strip lies within 0.6 of the >= 1.2 core of the body one layer up or "
+                          "down (tapering edge of a sculpted wall, warn), 'plate' = a horizontal face sample "
+                          "(|n_z| > 0.99) >= 1.0 inside its XY section (a thin horizontal shell, fail)")
     status = "pass"
     clusters_all = []
     for bi, (k, b) in enumerate(bodies.items()):
@@ -579,6 +760,9 @@ def v8_walls_rays(M, bodies, zoner: Zoner, n_rays: int, thinmaps: dict) -> dict:
                 q = pts[i] - 0.05 * nrm[i]
                 hit = tmap.kind_at(q[0], q[1], q[2])
                 kind = "edge_z_only" if hit is None else hit["kind"]
+                # (sculpt) a vertical ray through a horizontal shell well inside its section: the shell is thin
+                if sculpt and kind == "edge_z_only" and abs(nrm[i, 2]) > 0.99 and tmap.depth(q[0], q[1], q[2]) >= 1.0:
+                    kind = "plate"
             kinds[i] = kind
         for zone in sorted(set(lab[thin])):
             idx = [i for i in thin if lab[i] == zone]
@@ -599,13 +783,17 @@ def v8_walls_rays(M, bodies, zoner: Zoner, n_rays: int, thinmaps: dict) -> dict:
             elif kind0 in ("frozen", "cosmetic"):
                 zd["status"] = "warn"
             else:
-                zd["status"] = "fail" if ks.get("wall", 0) else "warn"
+                zd["status"] = "fail" if ks.get("wall", 0) or ks.get("plate", 0) else "warn"
             d["zones"][zone] = zd
             if zd["status"] == "fail":
                 status = "fail"
             elif zd["status"] == "warn" and status == "pass":
                 status = "warn"
-        xs = [i for i in thin if kinds[i] in ("wall", "corner")]
+        if sculpt:
+            na = t.area / n_rays
+            d["area_est_mm2_by_kind"] = {kk: rnd(sum(1 for i in thin if kinds[i] == kk) * na, 2)
+                                         for kk in sorted(set(kinds.values()))}
+        xs = [i for i in thin if kinds[i] in ("wall", "corner", "plate")]
         if xs:
             lab_c = _cluster(pts[xs], 1.5)
             for c in sorted(set(lab_c)):
@@ -615,7 +803,7 @@ def v8_walls_rays(M, bodies, zoner: Zoner, n_rays: int, thinmaps: dict) -> dict:
                                      "z_range": rnd([pts[ii][:, 2].min(), pts[ii][:, 2].max()], 2),
                                      "area_est_mm2": rnd(len(ii) * t.area / n_rays, 2)})
         out["bodies"][k] = d
-    out["structural_thin_clusters"] = sorted(clusters_all, key=lambda c: (c["kind"] != "wall", -c["n"]))
+    out["structural_thin_clusters"] = sorted(clusters_all, key=lambda c: (c["kind"] not in ("wall", "plate"), -c["n"]))
     out["status"] = status
     return out
 
@@ -646,6 +834,11 @@ def v8_layer_widths(M, L: Layers, zoner: Zoner, thinmaps: dict) -> dict:
            "bodies": {}}
     status = "pass"
     walls = []
+    sculpt = is_sculpt(M)
+    if sculpt:
+        out["method"] += ("; sculpt: a strip within 0.6 of the >= 1.2 core of the body one layer up or down is the "
+                          "tapering 'edge' of a sculpted wall (warn, area reported), one thin in both neighbours a 'wall'")
+        edge_area = defaultdict(float)
     for k in L.sec:
         tmap = thinmaps[k]
         zones = defaultdict(lambda: {"layers": set(), "area_mm2": 0.0, "walls": 0, "corners": 0, "w_min": math.inf,
@@ -660,7 +853,12 @@ def v8_layer_widths(M, L: Layers, zoner: Zoner, thinmaps: dict) -> dict:
                 zz = zones[zone]
                 zz["layers"].add(round(z, 2))
                 zz["area_mm2"] += d["area"]
-                zz["walls" if d["kind"] == "wall" else "corners"] += 1
+                if d["kind"] == "edge":
+                    zz["edges"] = zz.get("edges", 0) + 1
+                    zz["edge_area_mm2"] = zz.get("edge_area_mm2", 0.0) + d["area"]
+                    edge_area[k] += d["area"]
+                else:
+                    zz["walls" if d["kind"] == "wall" else "corners"] += 1
                 if d["kind"] == "wall":
                     zz["w_min"] = min(zz["w_min"], d.get("w_min", d["w_est"]))
                 if len(zz["examples"]) < 5 or (d["kind"] == "wall" and len(zz["examples"]) < 8):
@@ -685,12 +883,17 @@ def v8_layer_widths(M, L: Layers, zoner: Zoner, thinmaps: dict) -> dict:
                         "area_sum_mm2": rnd(zz["area_mm2"], 2), "wall_pieces": zz["walls"],
                         "corner_pieces": zz["corners"], "thinnest_wall_w_est": rnd(zz["w_min"], 2),
                         "examples": zz["examples"], "status": st}
+            if sculpt:
+                bz[zone].update({"edge_pieces": zz.get("edges", 0), "edge_area_mm2": rnd(zz.get("edge_area_mm2", 0.0), 2)})
             if st == "fail":
                 status = "fail"
             elif st == "warn" and status == "pass":
                 status = "warn"
         out["bodies"][k] = bz
     out["structural_thin_walls"] = sorted(walls, key=lambda d: d["w_min"])[:30]
+    if sculpt:
+        out["n_structural_thin_walls"] = len(walls)
+        out["edge_area_mm2_by_body"] = {k: rnd(v, 2) for k, v in edge_area.items()}
     out["status"] = status
     return out
 
@@ -700,7 +903,138 @@ def v8_specifics(M, bodies, zoner: Zoner) -> dict:
     S = M.sections
     res = {}
     frame_t = tm_of(bodies["frame"])
+    sculpt = is_sculpt(M)
+    if sculpt:
+        # the sculpt frame has no flat back plate over the whole footprint and no roof: the designed plate under
+        # the mechanism, and the covers over the moving bodies (every non-bed underside of the frame) take their
+        # place; the head's floors / lowered band and the wheel's undersides are horizontal shells too
+        res["back_plate"] = _sculpt_back_plate(M, frame_t)
+        res["roof"] = v8_shells(M, bodies, ("frame",), ROOF_MIN)
+        res["plates"] = v8_shells(M, bodies, ("head", "wheel"), WALL_MIN)
+    else:
+        _classic_plate_roof(M, bodies, zoner, frame_t, res)
+    _fingers_legs(M, bodies, res)
+    _posts_pads_ribs(M, bodies, res)
+    return res
 
+
+def _sculpt_back_plate(M, frame_t) -> dict:
+    """Sculpt skins: back plate >= 2.0 where it is designed - under the low cavity (the band's sweep and the wheel,
+    cut down to the plate top z_bp); vertical rays up from a 0.5 grid on the bed.  The rest of the footprint (the
+    sculpt's cushion, thicker by design except at its rounded rim) is reported as rim_min."""
+    p = M.params
+    sg = sculpt_geom(M)
+    foot = grow(M.sections["backdrop2d"], -(p.bp_chamfer + 0.1))
+    out = {"criterion": f">= {PLATE_MIN} under the low cavity (band sweep + wheel, cut to the plate top z {p.z_bp})"}
+    status = "pass"
+    for nm, region in (("plate", foot ^ sg["low2d_cav"]), ("rim", foot - sg["low2d_cav"])):
+        xs, ys = _grid_in(shp(region), 0.5)
+        th = _vertical_extent(frame_t, np.c_[xs, ys, np.full(len(xs), -0.01)], +1)
+        if not len(th):
+            continue
+        j = int(np.argmin(th))
+        thin = th < PLATE_MIN - 1e-3
+        if nm == "plate":
+            out.update({"samples": int(len(th)), "min": rnd(th[j]), "at_min": rnd([xs[j], ys[j]], 2),
+                        "area_below_2.0_mm2": rnd(thin.sum() * 0.25, 2)})
+            status = "pass" if th[j] >= PLATE_MIN - 1e-3 else "fail"
+        else:
+            out.update({"rim_samples": int(len(th)), "rim_min": rnd(th[j]), "rim_at_min": rnd([xs[j], ys[j]], 2),
+                        "rim_area_below_2.0_mm2": rnd(thin.sum() * 0.25, 2)})
+            if thin.any() and status == "pass":
+                status = "warn"
+                out["note"] = "the sculpt's cushion outside the cavity is thinner than 2.0 only at its rounded rim"
+    out["status"] = status
+    return out
+
+
+def _underside_levels(t: trimesh.Trimesh, z_min: float) -> list[float]:
+    """Heights of the horizontal undersides of a body (faces with n_z < -0.9999) above z_min.  Faces are grouped to
+    0.001 mm; the level is the group's median height (the sculpt's levels sit at x.xx37: a level rounded to 0.001
+    can lie inside the body)."""
+    n = t.face_normals
+    zc = t.triangles_center[:, 2]
+    zs = zc[(n[:, 2] < -0.9999) & (zc > z_min)]
+    keys = np.round(zs, 3)
+    return [float(np.median(zs[keys == key])) for key in np.unique(keys)]
+
+
+def v8_shells(M, bodies, names, crit: float) -> dict:
+    """Sculpt skins: vertical thickness of every horizontal underside of the given bodies (bed excluded): vertical
+    rays up from a 0.3 grid just under each underside (first exit).  The frame's undersides are the covers over the
+    moving bodies (their roof: >= ROOF_MIN), the head's are its floors and the bottom of its band (>= WALL_MIN).
+    'interior' = more than 1.05 from where the sculpted surface comes down to the underside (the tapering edge, like
+    the classic roof's r 1.0 edge round): from the outline of the body's section 0.05 above the underside, except
+    where that outline is a wall rising at least the criterion or the edge of a higher ceiling (neither makes the
+    shell beside it any thinner)."""
+    edge_d = 1.05
+    out = {"criterion": f">= {crit} (vertical; interior = more than {edge_d} from where the surface comes down to the "
+                        "underside)", "levels": []}
+    status = "pass"
+    worst = (math.inf, None)
+    for k in names:
+        t = tm_of(bodies[k])
+        for Lz in _underside_levels(t, LAYER_H / 2):
+            R = bodies[k].slice(Lz + 2e-3) - bodies[k].slice(Lz - 2e-3)
+            R = compose(keep_pieces(opening(compose(keep_pieces(R, 1e-4)), 0.05), 0.05))
+            g = shp(grow(R, -0.05))
+            xs, ys = _grid_in(g, 0.3)
+            if not len(xs):
+                continue
+            th = _vertical_extent(t, np.c_[xs, ys, np.full(len(xs), Lz - 1e-3)], +1)
+            d_edge = _taper_edge_dist(bodies[k], Lz, crit, R, np.c_[xs, ys])
+            interior = d_edge > edge_d
+            bad = (th < crit - 1e-3) & interior
+            row = {"body": k, "z": rnd(Lz, 4), "area_mm2": rnd(R.area(), 2), "samples": int(len(xs)),
+                   "min_all": rnd(th.min()), "at_min_all": rnd([xs[np.argmin(th)], ys[np.argmin(th)]], 2),
+                   "min_interior": rnd(th[interior].min()) if interior.any() else None,
+                   "area_below_interior_mm2": rnd(bad.sum() * 0.09, 2),
+                   "area_below_all_mm2": rnd((th < crit - 1e-3).sum() * 0.09, 2)}
+            if crit > WALL_MIN:
+                row["area_below_1.2_interior_mm2"] = rnd(((th < WALL_MIN - 1e-3) & interior).sum() * 0.09, 2)
+            if bad.any():
+                j = int(np.argmin(np.where(bad, th, np.inf)))
+                row["at_min_interior"] = rnd([xs[j], ys[j]], 2)
+                status = "fail"
+                worst = min(worst, (float(th[j]), row))
+            row["status"] = "fail" if bad.any() else ("warn" if row["area_below_all_mm2"] else "pass")
+            if row["status"] == "warn" and status == "pass":
+                status = "warn"
+            out["levels"].append(row)
+    out["levels"].sort(key=lambda r: ({"fail": 0, "warn": 1, "pass": 2}[r["status"]], r["body"], r["z"]))
+    out["n_levels"] = len(out["levels"])
+    if worst[1] is not None:
+        out["worst"] = {"body": worst[1]["body"], "z": worst[1]["z"], "t": rnd(worst[0]), "at": worst[1]["at_min_interior"]}
+    if not out["levels"]:
+        status = "not-run"
+        out["note"] = "no horizontal underside above the first layer"
+    out["status"] = status
+    return out
+
+
+def _taper_edge_dist(body: Manifold, Lz: float, crit: float, R: CrossSection, P: np.ndarray,
+                     step: float = 0.1) -> np.ndarray:
+    """Distance from points P (on the underside region R at height Lz) to where the shell tapers: the outline of the
+    body's section 0.05 above Lz where the surface comes down to the underside - not where that outline is a wall
+    rising at least `crit` (the outline crit above lies within 0.1) nor the edge of a higher ceiling next to the
+    underside (the body closes over it lower than crit above)."""
+    box = _box_around(R, 2.5)
+    lo, hi = shp(body.slice(Lz + 0.05) ^ box), shp(body.slice(Lz + crit - 0.05) ^ box)
+    pts = []
+    for ln in getattr(lo.boundary, "geoms", [lo.boundary]):
+        if not ln.is_empty and ln.length > 0:
+            pts.append(shapely.line_interpolate_point(ln, np.arange(0.0, ln.length, step)))
+    pts = np.concatenate(pts) if pts else np.zeros(0, object)
+    if len(pts) and not hi.is_empty:
+        pts = pts[~shapely.contains(hi, pts) & (shapely.distance(hi.boundary, pts) > 0.1)]
+    if not len(pts):
+        return np.full(len(P), np.inf)
+    return shapely.distance(shapely.multipoints(pts), shapely.points(P))
+
+
+def _classic_plate_roof(M, bodies, zoner, frame_t, res) -> None:
+    p = M.params
+    S = M.sections
     # ---- back plate >= 2.0: vertical rays upward from a grid on the plate bottom (inside the 0.5 chamfer)
     bd = shp(grow(S["backdrop2d"], -(p.bp_chamfer + 0.1)))
     xs, ys = _grid_in(bd, 0.5)
@@ -746,8 +1080,15 @@ def v8_specifics(M, bodies, zoner: Zoner) -> dict:
     else:
         res["roof"]["status"] = "fail"
 
+
+def _fingers_legs(M, bodies, res) -> None:
+    p = M.params
+    sculpt = is_sculpt(M)
     # ---- fingers >= 4.29 and legs >= 7.0: chord width perpendicular to their axes in the head band slice
-    hb = M.head.slice(0.5 * (p.z_band0 + p.z_band1) + p.z_lift)
+    # (sculpt skins lower the legs and finger roots that pass under thin sculpt to leg_low_top: the whole band
+    # exists only below that, and the band's height along each axis is measured as well)
+    zb = 0.5 * (p.z_band0 + (M.skin.leg_low_top if sculpt else p.z_band1)) + p.z_lift
+    hb = M.head.slice(zb)
     gh = shp(hb)
     fing = []
     for i, (cx, cy) in enumerate(p.pallets):
@@ -800,7 +1141,49 @@ def v8_specifics(M, bodies, zoner: Zoner) -> dict:
                                "HeadBand2D definition; the narrowed section sees less bending than the full-width root")
         if max(worst) < 1.0 and lmin >= 0.75 * LEG_MIN:
             res["legs"]["status"] = "warn"
+    if sculpt:
+        _band_heights(M, res)
 
+
+def _band_heights(M, res) -> None:
+    """Sculpt skins: the band's height along each finger axis (pallet centre -> root) and leg axis (A -> B), by
+    vertical rays up from the band bottom through the head (design frame, first exit).  A lowered leg / finger root
+    is only z_band0 .. leg_low_top tall: it carries the pallet impulse, so it is a wall like any other (>= 1.2); the
+    in-plane bending stress grows with 1 / height against the full band."""
+    p = M.params
+    head_t = tm_of(M.head)
+    z0 = p.z_band0 + p.z_lift - 0.01
+    full = p.z_band1 - p.z_band0
+    worst = math.inf
+    for key, axes in (("fingers", [(np.array(c, float), np.array(c, float) + p.finger_L * np.array(u, float))
+                                   for c, u in zip(p.pallets, p.u)]),
+                      ("legs", [(np.array(a, float), np.array(b, float)) for a, b in zip(p.leg_A, p.leg_Bs)])):
+        rows = []
+        for i, (a, b) in enumerate(axes):
+            ts = np.linspace(0.0, 1.0, 121)
+            pts = a + ts[:, None] * (b - a)
+            h = _vertical_extent(head_t, np.c_[pts, np.full(len(pts), z0)], +1)
+            j = int(np.argmin(h))
+            rows.append({"which": "LR"[i], "min_height": rnd(h[j]), "at": rnd(pts[j], 2), "at_frac": rnd(ts[j], 3),
+                         "len_below_1.2": rnd(float((h < WALL_MIN - 0.01).mean() * np.linalg.norm(b - a)), 2)})
+            worst = min(worst, float(h[j]))
+        hmin = min(r["min_height"] for r in rows)
+        d = res[key]
+        d["band_height"] = {"criterion": f">= {WALL_MIN} (vertical, from the band bottom z {p.z_band0 + p.z_lift:g}; full "
+                                         f"band {full:g})", "per_axis": rows, "min": rnd(hmin),
+                            "bending_stress_ratio_vs_full_band": rnd(full / max(hmin, 1e-6), 2),
+                            "legs_lowered_mm2": (M.info.get("sculpt") or {}).get("legs_lowered_mm2"),
+                            "lowered_top_z": rnd(M.skin.leg_low_top + p.z_lift)}
+        if hmin < WALL_MIN - 0.01:
+            d["status"] = "fail"
+            d["note"] = (f"lowered to leg_low_top: only {hmin:.2f} tall (z {p.z_band0 + p.z_lift:g}-"
+                         f"{M.skin.leg_low_top + p.z_lift:g}) against the full band's {full:g}")
+
+
+def _posts_pads_ribs(M, bodies, res) -> None:
+    p = M.params
+    S = M.sections
+    sculpt = is_sculpt(M)
     # ---- posts D 8.0: inscribed radius about O and P in frame slices clear of root fillet, ridge and chamfer
     zs = [p.post_z0 + p.post_root_fillet + 0.2, p.ridge_z - p.ridge_h - 0.25, p.ridge_z + p.ridge_h + 0.25,
           p.post_z1 - p.post_chamfer - 0.1]
@@ -823,6 +1206,8 @@ def v8_specifics(M, bodies, zoner: Zoner) -> dict:
     sl2 = {}
     for nm, cs, excl in (("fill2d", S["fill2d"], grow(pads, 0.7) if not pads.is_empty() else CrossSection()),
                          ("roof2d", S["roof2d"], CrossSection())):
+        if sculpt:
+            break
         pcs = [d for d in thin_pieces(cs, SLIVER_T) if (d["cs"] - excl).area() > 0.02]
         sl2[nm] = {"walls": [{"xy": rnd(d["xy"], 2), "length": rnd(d["length"], 2), "w_min": rnd(d["w_min"], 2)}
                              for d in pcs if d["kind"] == "wall"],
@@ -830,6 +1215,10 @@ def v8_specifics(M, bodies, zoner: Zoner) -> dict:
     bad = any(v["walls"] for v in sl2.values())
     res["slivers_2d"] = {"criterion": f"no sliver (strip >= 2 mm long) narrower than {SLIVER_T} in Fill2D (pads excluded) "
                                       "/ Roof2D", "sections": sl2, "status": "fail" if bad else "pass"}
+    if sculpt:
+        res["slivers_2d"].update({"status": "not-run", "note": "the sculpt frame has no Fill2D / Roof2D walls (the "
+                                                               "sections are not in its body); its thin walls are judged "
+                                                               "by V8_walls_layers / V8_walls_raycast"})
 
     # ---- stop pads (banking stops): thickness and the part not backed by the fill wall
     rows = []
@@ -862,18 +1251,33 @@ def v8_specifics(M, bodies, zoner: Zoner) -> dict:
 
     # ---- skid ribs: designed 0.8 wide (SPEC 3.4) - every rib piece must reach that width, tips < 0.4 reported
     rr = {}
-    for nm in ("ribs_back2d", "ribs_roof2d", "ribs_band2d", "ribs_front2d", "groove_rib2d"):
-        if nm not in S:
-            continue
-        cs = S[nm]
+    # (sculpt skins build only the back ribs inside the low cavity and the wheel's skid rings)
+    secs = ({"ribs_back_built": sculpt_geom(M)["ribs_back"], "wheel_skid_rings": sculpt_geom(M)["rings"]} if sculpt
+            else {nm: S[nm] for nm in ("ribs_back2d", "ribs_roof2d", "ribs_band2d", "ribs_front2d", "groove_rib2d")
+                  if nm in S})
+    for nm, cs in secs.items():
         pcs = keep_pieces(cs, 0.05)
         narrow = [q for q in pcs if grow(q, -(p.rib_w / 2 - 0.03)).is_empty()]
         tips = keep_pieces(cs - opening(cs, NOZZLE), 0.01, 0.3)
         rr[nm] = {"pieces": len(pcs), "pieces_narrower_than_0.74": len(narrow),
                   "tip_area_below_0.4_mm2": rnd(sum(t_.area() for t_ in tips), 3)}
+        if narrow:
+            rr[nm]["narrow_pieces"] = [{"centroid": rnd(_centroid(q), 2), "area_mm2": rnd(q.area(), 2),
+                                        "max_width": rnd(2 * _inscribed_r(q), 3)} for q in narrow[:6]]
     res["ribs"] = {"criterion": f"rib pieces reach the designed width {p.rib_w}", "sections": rr,
                    "status": "pass" if all(v["pieces_narrower_than_0.74"] == 0 for v in rr.values()) else "fail"}
-    return res
+
+
+def _inscribed_r(q: CrossSection) -> float:
+    """Radius of the largest disc inside q (bisection on inward offsets)."""
+    lo, hi = 0.0, 3.0
+    for _ in range(18):
+        mid = 0.5 * (lo + hi)
+        if grow(q, -mid).is_empty():
+            hi = mid
+        else:
+            lo = mid
+    return lo
 
 
 def chord_width(g, c, v, L: float = 25.0) -> float:
@@ -891,6 +1295,10 @@ def chord_width(g, c, v, L: float = 25.0) -> float:
 def v8_slivers_3d(M, L: Layers, zoner: Zoner) -> dict:
     """No sliver < 1.6 in every frame layer of the fill / roof band (z 2.6 - 10.4), stop pads and posts excluded."""
     p = M.params
+    if is_sculpt(M):
+        return {"criterion": f"no sliver narrower than {SLIVER_T} in the frame's Fill2D / Roof2D walls", "status": "not-run",
+                "note": "the sculpt frame has no Fill2D / Roof2D walls (z 2.6 - 10.4 holds the sculpt and its envelope "
+                        "cuts); its thin walls are judged against 1.2 by V8_walls_layers / V8_walls_raycast"}
     excl = compose([grow(M.sections["stoppads2d"], 0.7)] + [CrossSection.circle(p.post_r + p.post_root_fillet + 0.3, 96)
                     .translate(c) for c in ((0.0, 0.0), tuple(p.P))])
     rows = []
@@ -973,6 +1381,14 @@ def v9_overhangs(M, bodies: dict, L: Layers) -> dict:
            "bodies": {}, "pieces": [], "faces_45deg": []}
     status = "pass"
     allowance_float = (RIB_PITCH_MAX - p.rib_w) / 2.0 + 0.05
+    sculpt = is_sculpt(M)
+    sup_cache = {}
+    if sculpt:
+        out["criterion"] += (f"; sculpt: the first layer is bed; an underside overhanging its own layer below by <= "
+                             f"{SHORT_RUN} and oblique sculpted overhangs reaching <= {SHORT_RUN} per layer are "
+                             f"'sculpt_overhang' (warn); other undersides ('sculpt_float') need every point within "
+                             f"{SHORT_RUN} of own material below or {allowance_float:.2f} of any body's top <= gap_z + "
+                             f"z_lift below, or on a straight strand <= {SPAN['roof']} between such anchors")
     for k, t in tms.items():
         n = t.face_normals
         zc = t.triangles_center[:, 2]
@@ -980,7 +1396,8 @@ def v9_overhangs(M, bodies: dict, L: Layers) -> dict:
         zmin = t.bounds[0, 2]
         steep = (n[:, 2] < lim)
         horiz = n[:, 2] < -0.9999
-        bed = steep & (zc < zmin + 1e-3) & (zmin < 1e-3)
+        # (sculpt: the sculpt's back is printed on the bed; whatever lies in the first layer is bed)
+        bed = steep & ((zc < LAYER_H / 2) if sculpt else (zc < zmin + 1e-3)) & (zmin < 1e-3)
         oblique = steep & ~horiz
         d = {"steep_area_mm2": rnd(A[steep & ~bed].sum(), 2), "bed_area_mm2": rnd(A[bed].sum(), 2),
              "oblique_steep_area_mm2": rnd(A[oblique].sum(), 3),
@@ -1000,25 +1417,41 @@ def v9_overhangs(M, bodies: dict, L: Layers) -> dict:
                                        "z_range": rnd([t.triangles[comp][:, :, 2].min(), t.triangles[comp][:, :, 2].max()], 2),
                                        "label": _label45(M, k, c, t.triangles_center[comp]),
                                        "class": "45deg_self_supporting (SPEC 3.4 item 4)"})
-        # oblique steep faces (none expected): unlisted
+        # horizontal downward levels (sculpt: at the levels' true heights, x.xx37, not the 0.001-rounded ones, which
+        # can lie inside the body) -> exact 2-D regions
+        levels = ([(rnd(Lz, 3), Lz) for Lz in _underside_levels(t, LAYER_H / 2 if zmin < 1e-3 else -1.0)]
+                  if sculpt else [(Lz, Lz) for Lz in d["levels"]])
+        hreg = {}
+        for Lr, Lz in levels:
+            below = bodies[k].slice(Lz - 2e-3)
+            R = compose(keep_pieces(bodies[k].slice(Lz + 2e-3) - below, 1e-4))     # drop zero-area slicing noise first
+            hreg[Lz] = (Lr, below, R)
+        # oblique steep faces (none expected): unlisted.  (sculpt: the sculpt's own organic overhangs - ears, cheeks,
+        # chin, arms, paws, the yarn ball's strands - are reported with their per-layer reach)
         for comp in _face_clusters(t, np.nonzero(oblique)[0]):
             a = float(A[comp].sum())
             if a < 0.05:
                 continue
             c = (t.triangles_center[comp] * A[comp, None]).sum(0) / a
+            if sculpt:
+                rec = _sculpt_oblique(M, k, t, comp, c, a, L, bodies, allowance_float, sup_cache,
+                                      {Lz: v[2] for Lz, v in hreg.items()})
+                out["pieces"].append(rec)
+                if rec["status"] == "fail":
+                    status = "fail"
+                elif rec["status"] == "warn" and status == "pass":
+                    status = "warn"
+                continue
             out["pieces"].append({"body": k, "z": rnd(c[2], 2), "class": "UNLISTED_oblique_overhang", "area_mm2": rnd(a, 2),
                                   "centroid": rnd(c, 2), "status": "fail",
                                   "min_nz": rnd(float(n[comp, 2].min()), 3)})
             status = "fail"
         out["bodies"][k] = d
-        # horizontal downward levels -> exact 2-D regions
-        for Lz in d["levels"]:
-            above = bodies[k].slice(Lz + 2e-3)
-            below = bodies[k].slice(Lz - 2e-3)
-            R = compose(keep_pieces(above - below, 1e-4))        # drop zero-area slicing noise first
+        for Lz, (Lr, below, R) in hreg.items():
             pieces = keep_pieces(opening(R, 0.02), 0.01)
             for q in pieces:
                 rec = _classify_piece(M, k, Lz, q, below, bodies, allt, owner, names, allowance_float)
+                rec["z"] = Lr
                 out["pieces"].append(rec)
                 if rec["status"] == "fail":
                     status = "fail"
@@ -1047,6 +1480,8 @@ def _label45(M, body, c, pts):
         rP = float(np.median(np.hypot(pts[:, 0] - p.P[0], pts[:, 1] - p.P[1])))
         if min(rO, rP) < p.ridge_apex_r + 0.3 and abs(z - p.ridge_z) < p.ridge_h + 0.2:
             return "post V-ridge lower flank"
+        if is_sculpt(M):
+            return "sculpt 45 deg face"               # (no paw lips: the ball, arms and chin of the sculpt)
         if rO > p.paw_lip_r - 0.1 and z > p.z_roof1:
             return "paw lip underside"
         return "frame 45 deg face"
@@ -1078,7 +1513,8 @@ def _classify_piece(M, body, Lz, q, below, bodies, allt, owner, names, allowance
     if len(xs) == 0:
         c = g.representative_point()
         xs, ys = np.array([c.x]), np.array([c.y])
-    o = np.c_[xs, ys, np.full(len(xs), Lz - 1e-4)]
+    # (sculpt: 1e-3 under the underside - float32 sculpt meshes; no other body is that close)
+    o = np.c_[xs, ys, np.full(len(xs), Lz - (1e-3 if is_sculpt(M) else 1e-4))]
     loc, ri, ti = allt.ray.intersects_location(o, np.tile([0, 0, -1.0], (len(o), 1)), multiple_hits=False)
     gap = np.full(len(o), Lz)      # to the bed if nothing is hit
     hit = np.full(len(o), "bed", dtype=object)
@@ -1102,6 +1538,16 @@ def _classify_piece(M, body, Lz, q, below, bodies, allt, owner, names, allowance
         pass
     elif cls == "chamfer_micro_step":
         notes.append(f"overhangs its own layer below by <= {MICRO_LEDGE} (stair-stepped chamfer / mesh hygiene ledge)")
+    elif cls == "sculpt_overhang":
+        status = "warn"
+        notes.append(f"overhangs its own layer below by {d_own:.2f} <= {SHORT_RUN} (a stair step of the sculpt / its "
+                     "floors, printed as an overhang perimeter)")
+    elif cls == "sculpt_float":
+        bad, unsup = _sculpt_float(M, body, Lz, q, below, bodies, gap, hit, allowance_float, rec)
+        _bad_parts += unsup if bad else []
+        if bad:
+            status = "fail"
+            notes += bad
     elif cls.startswith("bridge:"):
         span_lim = lim
         rec["span_limit"] = span_lim
@@ -1198,7 +1644,7 @@ def _classify_piece(M, body, Lz, q, below, bodies, allt, owner, names, allowance
             gu = shp(u)
             ux, uy = _grid_in(gu, 0.25)
             if len(ux):
-                oo = np.c_[ux, uy, np.full(len(ux), Lz - 1e-4)]
+                oo = np.c_[ux, uy, np.full(len(ux), Lz - (1e-3 if is_sculpt(M) else 1e-4))]
                 lo2, r2, t2 = allt.ray.intersects_location(oo, np.tile([0, 0, -1.0], (len(oo), 1)), multiple_hits=False)
                 gg = np.full(len(oo), Lz)
                 gg[r2] = Lz - lo2[:, 2]
@@ -1240,16 +1686,190 @@ def rib_tops(bodies, body, z):
     return compose([bodies[o].slice(z - 2e-3) - bodies[o].slice(z + 2e-3) for o in bodies if o != body])
 
 
+# ---------------------------------------------------------------------------------------------- V9, sculpt skins
+def _cs_from_shapely(g) -> CrossSection:
+    """shapely (Multi)Polygon -> CrossSection (exteriors counter-clockwise, holes clockwise)."""
+    rings = []
+    for poly in getattr(g, "geoms", [g]):
+        if poly.is_empty or poly.geom_type != "Polygon":
+            continue
+        poly = shapely.geometry.polygon.orient(poly, 1.0)
+        rings.append(np.asarray(poly.exterior.coords)[:-1])
+        rings += [np.asarray(h.coords)[:-1] for h in poly.interiors]
+    return CrossSection(rings) if rings else CrossSection()
+
+
+def _box_around(cs: CrossSection, m: float) -> CrossSection:
+    b = cs.bounds()
+    return CrossSection.square((b[2] - b[0] + 2 * m, b[3] - b[1] + 2 * m)).translate((b[0] - m, b[1] - m))
+
+
+def _strand_test(Q: CrossSection, anchors: CrossSection, span: float, step: float = 0.25, ndir: int = 16):
+    """Points of Q (on a `step` grid) that no straight strand can bridge.  Through every point, in ndir directions,
+    the strand is the chord of Q containing it; it bridges when it is <= span long and both of its ends lie on
+    `anchors` (within 0.05).  A cantilever (anchored on one side only) is not bridged.
+    Returns (unbridged points (n, 2), number of points, longest strand needed by a bridged point)."""
+    g = shp(Q)
+    if g.is_empty:
+        return np.zeros((0, 2)), 0, 0.0
+    xs, ys = _grid_in(g, step)
+    if not len(xs):
+        rp = g.representative_point()
+        xs, ys = np.array([rp.x]), np.array([rp.y])
+    P = np.c_[xs, ys]
+    ga = shp(anchors)
+    shapely.prepare(ga)
+    x0, y0, x1, y1 = g.bounds
+    Lb = math.hypot(x1 - x0, y1 - y0) + 1.0
+    best = np.full(len(P), np.inf)
+    for a in np.linspace(0.0, math.pi, ndir, endpoint=False):
+        u = np.array([math.cos(a), math.sin(a)])
+        lines = shapely.linestrings(np.stack([P - Lb * u, P + Lb * u], axis=1))
+        for j, geom in enumerate(shapely.intersection(lines, g)):
+            pt = shapely.Point(P[j])
+            for part in getattr(geom, "geoms", [geom]):
+                if part.geom_type != "LineString" or part.length <= 0 or part.distance(pt) > 1e-6:
+                    continue
+                c = np.asarray(part.coords)
+                if (part.length <= span and ga.distance(shapely.Point(c[0])) <= 0.05
+                        and ga.distance(shapely.Point(c[-1])) <= 0.05):
+                    best[j] = min(best[j], part.length)
+                break
+    ok = np.isfinite(best)
+    return P[~ok], len(P), (float(best[ok].max()) if ok.any() else 0.0)
+
+
+def _support_tops(M, bodies, z, cache=None) -> CrossSection:
+    """Material of any body reaching up to within gap_z + z_lift (+ tol) of height z: what a float's strands sag
+    onto (the sculpt's gaps: frame covers gap_z over the lifted band, the static ring and the head's floors
+    gap_z + z_lift over the wheel's rings / the frame)."""
+    zz = round(z - (M.skin.gap_z + M.params.z_lift + RIB_GAP_TOL), 5)
+    if cache is not None and zz in cache:
+        return cache[zz]
+    out = compose([b.slice(zz) for b in bodies.values()])
+    if cache is not None:
+        cache[zz] = out
+    return out
+
+
+def _sculpt_float(M, body, Lz, q, below, bodies, gap, hit, allowance_float, rec):
+    """Sculpt skins: an underside overhanging its own layer below by more than SHORT_RUN.  Supported are the points
+    within SHORT_RUN of the body's own material below (overhang perimeters) and within the float reach of any body's
+    top <= gap_z + z_lift below (the strands sag onto it, as for the rib floats); every other point must lie on a
+    straight strand <= SPAN['roof'] between such anchors (a bridge - a cantilever has no second anchor).  Nothing of
+    another body may lie less than 2 layers below (it would fuse).  Returns (failure notes, unsupported parts)."""
+    tops = q ^ _support_tops(M, bodies, Lz)
+    zone = q ^ compose([grow(below, SHORT_RUN), grow(tops, allowance_float)])
+    unsup = keep_pieces(q - zone, 0.05)
+    ua = sum(u.area() for u in unsup)
+    rec.update({"area_over_support_tops_mm2": rnd(tops.area(), 2), "own_reach": SHORT_RUN,
+                "float_reach": rnd(allowance_float, 2),
+                "max_dist_to_support": rnd(cover_dist(q, compose([below, tops])), 2),
+                "area_beyond_reach_mm2": rnd(ua, 2),
+                "beyond_reach_regions": [{"centroid": rnd(_centroid(u), 2), "area_mm2": rnd(u.area(), 2)}
+                                         for u in sorted(unsup, key=lambda c: -c.area())[:6]]})
+    bad = []
+    other = np.array([h not in (body, "bed") for h in hit], bool)
+    if other.any() and gap[other].min() < 2 * LAYER_H - 0.03:
+        bad.append(f"another body only {gap[other].min():.2f} below (< 2 layers: they fuse)")
+    if unsup:
+        Pb, n, longest = _strand_test(compose(unsup), compose([below, zone]), SPAN["roof"])
+        nb = len(Pb) * 0.0625
+        rec.update({"strand_bridged_mm2": rnd((n - len(Pb)) * 0.0625, 2), "longest_strand": rnd(longest, 2),
+                    "unbridged_area_mm2": rnd(nb, 2)})
+        if len(Pb):
+            rec["unbridged_centroid"] = rnd(Pb.mean(0), 2)
+        if nb > 0.5:
+            bad.append(f"{nb:.1f} mm^2 farther than {SHORT_RUN} from own material below and {allowance_float:.2f} from "
+                       f"any support top, on no strand <= {SPAN['roof']} between anchors (cantilever / unanchored) "
+                       f"near {rnd(Pb.mean(0), 1)}")
+    return bad, unsup
+
+
+def _sculpt_oblique(M, k, t, comp, c, a, L: Layers, bodies, allowance_float, cache=None, hreg=None) -> dict:
+    """Sculpt skins: an oblique overhang of the sculpt (faces steeper than 45.5 deg from vertical, not horizontal:
+    ears, cheeks, chin, arms, paws, the yarn ball's strands).  For every layer it spans, the new material inside the
+    cluster's plan (hull + 0.3) is measured against its support - the body's layer below (overhang perimeters reach
+    SHORT_RUN) and any body's material within gap_z + z_lift below the layer (float reach); what lies beyond both
+    must be on a strand <= SPAN['roof'] between them, else FAIL.  Reported as 'sculpt_overhang' (warn).  The
+    horizontal undersides first printed in a layer (hreg: level -> region) are judged on their own and left out."""
+    n = t.face_normals[comp]
+    A = t.area_faces[comp]
+    ang = np.degrees(np.arcsin(np.clip(-n[:, 2], 0.0, 1.0)))
+    tri = t.triangles[comp]
+    z0, z1 = float(tri[:, :, 2].min()), float(tri[:, :, 2].max())
+    # plan: the faces' own footprint + 0.3 (the material each layer adds over them; not the floors beside them)
+    plan = _cs_from_shapely(shapely.union_all(shapely.polygons(tri[:, :, :2])).buffer(0.3, 8))
+    if plan.is_empty():
+        plan = _cs_from_shapely(shapely.MultiPoint(tri[:, :, :2].reshape(-1, 2)).convex_hull.buffer(0.3, 8))
+    box = _box_around(plan, SPAN["roof"] / 2 + 1.0)
+    rec = {"body": k, "z": rnd(c[2], 2), "class": "sculpt_overhang", "area_mm2": rnd(a, 2), "centroid": rnd(c, 2),
+           "z_range": rnd([z0, z1], 2), "mean_angle_from_vertical_deg": rnd(float(np.average(ang, weights=A)), 1),
+           "max_angle_from_vertical_deg": rnd(float(ang.max()), 1), "min_nz": rnd(float(n[:, 2].min()), 3)}
+    reach, at_z, unb, bad_parts = 0.0, None, 0.0, []
+    for i in range(1, L.n):
+        zm = float(L.mid[i])
+        if zm < z0 - LAYER_H / 2 or zm > z1 + LAYER_H / 2:
+            continue
+        prev = L.sec[k][i - 1] ^ box
+        D = (L.sec[k][i] ^ plan) - prev
+        flat = [R for Lz, R in (hreg or {}).items() if zm - LAYER_H < Lz <= zm + 1e-6]
+        if flat and not D.is_empty():
+            D = D - grow(compose(flat) ^ box, 0.1)
+        if D.is_empty() or D.area() < 1e-3:
+            continue
+        tops = D ^ _support_tops(M, bodies, zm - LAYER_H / 2, cache)
+        r = cover_dist(D, compose([prev, tops]))
+        if r > reach:
+            reach, at_z = r, zm
+        if r > SHORT_RUN:
+            zone = D ^ compose([grow(prev, SHORT_RUN), grow(tops, allowance_float)])
+            U = keep_pieces(D - zone, 0.01)
+            if U:
+                Pb, _, _ = _strand_test(compose(U), compose([prev, zone]), SPAN["roof"], step=0.15)
+                if len(Pb):
+                    unb += len(Pb) * 0.0225
+                    bad_parts += U
+    rec.update({"max_reach_per_layer": rnd(reach, 2), "at_layer_mid_z": rnd(at_z, 2), "reach_limit": SHORT_RUN,
+                "unbridged_area_mm2": rnd(unb, 2)})
+    if unb > 0.5:
+        rec["status"] = "fail"
+        rec["notes"] = [f"reaches {reach:.2f} beyond its layer below / support (> {SHORT_RUN}) at z {at_z:.2f}: "
+                        f"{unb:.1f} mm^2 on no strand <= {SPAN['roof']} between anchors"]
+    else:
+        rec["status"] = "warn"
+        rec["notes"] = [f"sculpted overhang, mean {rec['mean_angle_from_vertical_deg']} deg from vertical; reach per "
+                        f"layer {reach:.2f}" + (" (beyond 1.0 bridged by strands)" if reach > SHORT_RUN else "")]
+    rec["_bad"] = compose(bad_parts) if unb > 0.5 else CrossSection()
+    return rec
+
+
 def _listed_class(M, body, Lz, q, d_own):
     """Map a horizontal overhang region onto the SPEC 3.4 / V9 list."""
     p = M.params
     zl = p.z_lift if body != "frame" else 0.0
     c = _centroid(q)
     b = q.bounds()
-    if Lz < 1e-3:
+    sculpt = is_sculpt(M)
+    if Lz < (LAYER_H / 2 if sculpt else 1e-3):
         return "bed", None
     if d_own <= MICRO_LEDGE + 1e-3:
         return "chamfer_micro_step", None
+    if sculpt:
+        # no roof, crown skirt or face front layer: of the listed levels only the mechanism's own remain (bore roofs,
+        # umbrella plate, band / teeth bottoms over the back ribs); everything else is the sculpt's
+        if body in ("wheel", "head") and abs(Lz - (p.bore_roof_z + zl)) < 1e-3:
+            ax = (0.0, 0.0) if body == "wheel" else _posed_axis(M, body)
+            rmax = max(math.hypot(x - ax[0], y - ax[1]) for x, y in ((b[0], b[1]), (b[2], b[3]), (b[0], b[3]), (b[2], b[1])))
+            if rmax <= (p.bore_r / math.cos(math.pi / 64)) * math.sqrt(2) + 0.1 and math.hypot(c[0] - ax[0], c[1] - ax[1]) < 1.0:
+                return "bridge:bore roof", max(SPAN["bore_roof"], p.bore_d)
+        if body == "wheel" and abs(Lz - (p.z_teeth1 + zl)) < 1e-3:
+            return "bridge:umbrella plate (tooth gaps)", SPAN["umbrella_plate"]
+        if body in ("wheel", "head") and abs(Lz - (p.z_band0 + zl)) < 1e-3:
+            return "rib_float:back-plate ribs", None
+        if d_own <= SHORT_RUN + 1e-3:
+            return "sculpt_overhang", SHORT_RUN
+        return "sculpt_float", SPAN["roof"]
     if body == "frame" and abs(Lz - p.z_roof0) < 1e-3:
         return "bridge:roof (leg channels)", SPAN["roof"]
     if body == "frame" and getattr(p, "crown_ring", False) and abs(Lz - p.z_skirt) < 1e-3:
@@ -1704,6 +2324,23 @@ def _gcode_bridges(M, bodies, segs, off, cache) -> list[dict]:
         return cache[ztop]
 
     agg = {}
+    sculpt = is_sculpt(M)
+    chain = None                      # (sculpt) consecutive extrusions of one path: [key, points, distances]
+
+    def flush(ch):
+        # (sculpt) a path's stretches farther than the float reach from any support: free ends (cantilevers), the
+        # longest bounded one (a bridge) and how far a bounded one strays from the line between its ends (sag)
+        if ch is None:
+            return
+        fe, br, sag, at_fe, at_sag = _hanging_stretches(np.vstack(ch[1]), np.concatenate(ch[2]), reach)
+        r = agg[ch[0]]
+        for k2, v, at in (("max_hanging_free_end", fe, at_fe), ("max_hanging_bridge", br, None),
+                          ("max_hanging_sag", sag, at_sag)):
+            if v > r.get(k2, 0.0):
+                r[k2] = v
+                if at is not None:
+                    r[k2 + "_model_xy"] = at
+
     for z, t, x0, y0, x1, y1, _w in segs:
         if t not in ("Bridge infill", "Overhang perimeter"):
             continue
@@ -1734,16 +2371,36 @@ def _gcode_bridges(M, bodies, segs, off, cache) -> list[dict]:
         if best_len > r["max_unsupported_run"]:
             r["max_unsupported_run"] = best_len
             r["worst_line_model_xy"] = rnd(np.r_[a, b], 2)
+        if sculpt:
+            # (sculpt) chain the extrusions of one path (a curved perimeter is many short segments)
+            if chain is not None and chain[0] == key and np.hypot(*(chain[1][-1][-1] - a)) < 1e-3:
+                chain[1].append(P[1:])
+                chain[2].append(dsup[1:])
+            else:
+                flush(chain)
+                chain = [key, [P], [dsup]]
+    flush(chain)
     out = []
     for key, r in sorted(agg.items()):
         for k2 in ("length_mm", "unsupported_mm", "beyond_rib_reach_mm"):
             r[k2] = round(r[k2], 1)
         r["max_unsupported_run"] = round(r["max_unsupported_run"], 2)
         r["max_dist_to_support"] = round(r["max_dist_to_support"], 2)
+        for k2 in ("max_hanging_free_end", "max_hanging_bridge", "max_hanging_sag"):
+            if sculpt:
+                r[k2] = round(r.get(k2, 0.0), 2)
         cls, lim = _gcode_class(M, r)
         r["class"] = cls
         r["limit"] = lim
-        if r["max_unsupported_run"] <= SHORT_RUN:
+        if cls == "sculpt_float":
+            # (sculpt) like V9's sculpt_float, on whole paths: within the float reach of material 0.2-0.8 below
+            # (own layers below, other bodies' tops) is supported; a path beyond it must be a bridge between two
+            # supported points (<= the roof span, straying <= SHORT_RUN from its chord), never a free end
+            r["rib_reach"] = round(reach, 2)
+            bad = (r["max_hanging_free_end"] > SHORT_RUN or r["max_hanging_bridge"] > lim + 0.1
+                   or r["max_hanging_sag"] > SHORT_RUN)
+            r["status"] = "fail" if bad else "pass"
+        elif r["max_unsupported_run"] <= SHORT_RUN:
             r["status"] = "pass"                       # (internal) bridge resting on material below
         elif cls.startswith("rib_float"):
             r["rib_reach"] = round(reach, 2)
@@ -1756,6 +2413,46 @@ def _gcode_bridges(M, bodies, segs, off, cache) -> list[dict]:
             r["status"] = "pass" if r["max_unsupported_run"] <= lim + 0.1 else "fail"
         out.append(r)
     return out
+
+
+def _hanging_stretches(P: np.ndarray, d: np.ndarray, reach: float):
+    """(sculpt) Stretches of a toolpath (points P, distance to support d) farther than `reach` from support:
+    (longest stretch touching an open end of the path or a whole unsupported path - a cantilevered strand,
+     longest stretch between two supported points - a bridge,
+     largest distance of such a bridge from the straight line between its supported ends - its sag,
+     model xy of the worst free end, of the worst sag)."""
+    hang = d > reach
+    if not hang.any():
+        return 0.0, 0.0, 0.0, None, None
+    s = np.r_[0.0, np.cumsum(np.hypot(*np.diff(P, axis=0).T))]
+    closed = len(P) > 2 and float(np.hypot(*(P[0] - P[-1]))) < 0.05
+    if hang.all():
+        return float(s[-1]), 0.0, 0.0, rnd(P[len(P) // 2], 2), None
+    idx = np.nonzero(hang)[0]
+    runs = np.split(idx, np.nonzero(np.diff(idx) > 1)[0] + 1)
+    if closed and len(runs) > 1 and runs[0][0] == 0 and runs[-1][-1] == len(P) - 1:
+        runs = [np.r_[runs[-1], runs[0]]] + runs[1:-1]           # a stretch through the loop's seam
+    fe = br = sag = 0.0
+    at_fe = at_sag = None
+    n = len(P)
+    for rr in runs:
+        i0, i1 = int(rr[0]), int(rr[-1])
+        if not closed and (i0 == 0 or i1 == n - 1):
+            ln = float(s[i1] - s[i0])
+            if ln > fe:
+                fe, at_fe = ln, rnd(P[i1 if i0 == 0 else i0], 2)
+            continue
+        a_, b_ = P[(i0 - 1) % n], P[(i1 + 1) % n]
+        ln = float(s[i1] - s[i0]) if i1 >= i0 else float(s[-1] - s[i0] + s[i1])
+        br = max(br, ln)
+        ab = b_ - a_
+        L2 = float(ab @ ab)
+        Q = P[rr]
+        tt = np.clip(((Q - a_) @ ab) / L2, 0.0, 1.0) if L2 > 1e-12 else np.zeros(len(Q))
+        dev = np.hypot(*(Q - (a_ + tt[:, None] * ab)).T)
+        if dev.max() > sag:
+            sag, at_sag = float(dev.max()), rnd(Q[int(np.argmax(dev))], 2)
+    return fe, br, sag, at_fe, at_sag
 
 
 def _gcode_body_gaps(bodies, segs, off, step: float = 0.15) -> dict:
@@ -1851,6 +2548,15 @@ def _gcode_class(M, r):
         k = math.floor((level - LAYER_H / 2) / LAYER_H + 1e-9) + 1
         return abs(z - LAYER_H * (k + 1)) < 1e-6
 
+    if is_sculpt(M):
+        # no roof / face front layer: the mechanism's own listed levels, else classified by support (sculpt_float)
+        if b in ("wheel", "head") and at(p.bore_roof_z + zl):
+            return "bridge:umbrella plate / bore roof", SPAN["umbrella_plate"] if b == "wheel" else max(SPAN["bore_roof"], p.bore_d)
+        if b in ("wheel", "head") and at(p.z_band0 + zl):
+            return "rib_float:back-plate ribs (run between rib tops)", RIB_PITCH_MAX
+        if r["type"] == "Overhang perimeter" and r["max_unsupported_run"] <= SHORT_RUN:
+            return f"overhang perimeter (short, <= {SHORT_RUN} mm)", SHORT_RUN
+        return "sculpt_float", SPAN["roof"]
     if b == "frame" and at(p.z_roof0):
         return "bridge:roof (leg channels)", SPAN["roof"]
     if b in ("wheel", "head") and at(p.bore_roof_z + zl):
@@ -1911,7 +2617,8 @@ def render_overhang_map(M, bodies, v9, path: Path):
         for r in groups[key]:
             cls = r["class"]
             fc = ("#9ca3af" if cls == "chamfer_micro_step" else "#22c55e" if cls.startswith("rib_float")
-                  else "#3b82f6" if cls.startswith("bridge") else "#ef4444")
+                  else "#3b82f6" if cls.startswith("bridge") else "#14b8a6" if cls == "sculpt_float"
+                  else "#f59e0b" if cls == "sculpt_overhang" else "#ef4444")
             _patch(ax, r["_cs"], fc=fc, ec="k", lw=0.3, alpha=0.5)
             if "_ribs" in r and not r["_ribs"].is_empty():
                 _patch(ax, r["_ribs"], fc="#111111", ec="none", alpha=0.85)
@@ -1928,13 +2635,16 @@ def render_overhang_map(M, bodies, v9, path: Path):
         ax.set_title(f"{k} z {zz:g}: {', '.join(names)}  [{st}]", fontsize=8)
     for ax in axs.ravel()[len(keys):]:
         ax.axis("off")
-    axs.ravel()[0].legend(handles=[Patch(color="#3b82f6", alpha=0.5, label="listed bridge"),
-                                   Patch(color="#22c55e", alpha=0.5, label="rib-supported float"),
-                                   Patch(color="#111111", label="rib tops under the float"),
-                                   Patch(color="#9ca3af", label="chamfer micro-step"),
-                                   Patch(color="#ef4444", label="UNSUPPORTED: > span/2 from anchors, > rib reach, unlisted"),
-                                   Patch(facecolor="none", edgecolor="#c084fc", label="other bodies just below")],
-                          loc="lower left", fontsize=7)
+    handles = [Patch(color="#3b82f6", alpha=0.5, label="listed bridge"),
+               Patch(color="#22c55e", alpha=0.5, label="rib-supported float"),
+               Patch(color="#111111", label="rib tops under the float"),
+               Patch(color="#9ca3af", label="chamfer micro-step"),
+               Patch(color="#ef4444", label="UNSUPPORTED: > span/2 from anchors, > rib reach, unlisted"),
+               Patch(facecolor="none", edgecolor="#c084fc", label="other bodies just below")]
+    if is_sculpt(M):
+        handles[4:4] = [Patch(color="#14b8a6", alpha=0.5, label="sculpt float / bridge (supported or strand-bridged)"),
+                        Patch(color="#f59e0b", alpha=0.5, label="sculpt overhang step (<= 1.0 per layer)")]
+    axs.ravel()[0].legend(handles=handles, loc="lower left", fontsize=7)
     plt.tight_layout()
     path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(path, dpi=70)
@@ -1957,7 +2667,7 @@ def render_overhang_3d(M, bodies, v9, path: Path) -> str | None:
             if "_cs" not in r or r["class"] in ("bed", "chamfer_micro_step"):
                 continue
             zz = r["z"]
-            key = "float" if r["class"].startswith("rib_float") else "bridge"
+            key = "float" if r["class"].startswith(("rib_float", "sculpt_float")) else "bridge"
             slabs[key].append(r["_cs"].extrude(0.12).translate((0, 0, zz - 0.13)))
             if not r["_bad"].is_empty():
                 slabs["bad"].append(r["_bad"].extrude(0.8).translate((0, 0, zz - 0.82)))
@@ -2008,6 +2718,9 @@ def build_findings(rep: dict) -> list[dict]:
     def add(sev, check, what, fix, evidence=None):
         F.append({"severity": sev, "check": check, "finding": what, "proposed_fix": fix, "evidence": evidence})
 
+    if rep.get("sculpt"):
+        _sculpt_findings(c, add)
+        return F
     w = c.get("V8_walls_layers", {})
     walls = w.get("structural_thin_walls", [])
     if walls:
@@ -2078,7 +2791,126 @@ def build_findings(rep: dict) -> list[dict]:
     return F
 
 
+def _sculpt_findings(c: dict, add) -> None:
+    """build_findings for sculpt skins: the fixes point at the integration (purrbobble/sculpt.py), not at the classic
+    roof / fill / face features, which a sculpt build does not have."""
+    topo = c.get("V8_topology", {})
+    if topo.get("status") in ("fail", "warn"):
+        ev = {k: topo.get(k) for k in ("stale_export",) if topo.get(k)}
+        stl = topo.get("stl") or {}
+        if stl.get("degenerate_zero_volume_shells"):
+            ev["stl_degenerate"] = stl["degenerate_zero_volume_shells"]
+        ev["3mf_parts"] = (topo.get("3mf") or {}).get("parts")
+        add(topo["status"], "V8 topology", "exported files: " + ("do not match the model" if topo["status"] == "fail"
+                                                                 else "stale or carrying degenerate sliver facets"),
+            "re-run purrbobble.build; export the bodies after a float32 round trip (as the build cache stores them), "
+            "which drops the sliver triangles that collapse in the STL / 3MF", ev)
+    w = c.get("V8_walls_layers", {})
+    walls = w.get("structural_thin_walls", [])
+    if walls:
+        by = defaultdict(list)
+        for x in walls:
+            by[(x["body"], x["zone"])].append(x)
+        for (b, zone), xs in by.items():
+            add("fail", "V8 walls", f"{b} ({zone}): {len(xs)} thin strip(s) that stay thin in both neighbouring layers, "
+                f"down to {min(x['w_min'] for x in xs)} mm at z {min(x['z'] for x in xs)}-{max(x['z'] for x in xs)} "
+                f"(e.g. {xs[0]['xy']} z {xs[0]['z']}, {xs[0]['length']} mm long)",
+                "a cut of the integration runs nearly tangent to the sculpted surface there: remove the sliver "
+                "(subtract the body's section minus its opening by 1.2 around the cut) or move the cut so that "
+                ">= 1.2 remains", xs[:4])
+    r = c.get("V8_walls_raycast", {})
+    plates = [x for x in r.get("structural_thin_clusters", []) if x["kind"] == "plate"]
+    if plates:
+        add("fail", "V8 walls", f"{len(plates)} thin horizontal shell cluster(s) (vertical thickness < {WALL_MIN} well "
+            f"inside the section), thinnest {min(x['min_t'] for x in plates)} mm", "see V8_roof / V8_plates", plates[:4])
+    for k, crit, what, fix in (("V8_roof", ROOF_MIN, "frame covers over the moving bodies (their roof)",
+                                f"keep >= {ROOF_MIN} of sculpt above every envelope ceiling (cover_t / cover_min in "
+                                "the skin, bosses where the sculpt is thinner) or lower the band under it"),
+                               ("V8_plates", WALL_MIN, "head floors / band bottom and wheel undersides (horizontal "
+                                "shells)", f"floors: t_min >= {WALL_MIN} (pocket the frame instead); lowered legs: "
+                                f"leg_low_top >= z_band0 + {WALL_MIN}")):
+        v = c.get(k, {})
+        if v.get("status") == "fail":
+            bad = [x for x in v.get("levels", []) if x["status"] == "fail"]
+            add("fail", k, f"{what} thinner than {crit} well inside the shell: {len(bad)} level(s), worst "
+                f"{v.get('worst')}", fix,
+                [{kk: x.get(kk) for kk in ("body", "z", "area_mm2", "min_interior", "at_min_interior",
+                                           "area_below_interior_mm2")} for x in bad[:6]])
+    rb = c.get("V8_ribs", {})
+    if rb.get("status") == "fail":
+        add("fail", "V8_ribs", "built rib pieces narrower than the designed 0.8 (a rib clipped lengthwise by the low "
+            "cavity outline)", "drop what the clip leaves narrower than rib_w (opening by rib_w after clipping the "
+            "rib field to the low cavity)",
+            {nm: v.get("narrow_pieces") for nm, v in (rb.get("sections") or {}).items() if v.get("narrow_pieces")})
+    for k in ("V8_fingers", "V8_legs"):
+        v = c.get(k, {})
+        bh = v.get("band_height") or {}
+        if v.get("status") == "fail":
+            add("fail", k, v.get("note") or f"{k} below its criterion",
+                "keep the band >= 1.2 tall where it carries the pallet impulse: raise leg_low_top to >= z_band0 + 1.2 "
+                "(the frame cover above it then needs the sculpt / bosses to be thicker), or do not lower the "
+                "finger roots", {"min_height": bh.get("min"), "per_axis": bh.get("per_axis"),
+                                 "bending_stress_ratio_vs_full_band": bh.get("bending_stress_ratio_vs_full_band")})
+    for r in c.get("V9_overhangs", {}).get("unlisted_or_failed", []):
+        fix = ("raise / lower the floor so it rests on support (a body's top <= gap_z + z_lift below) or is anchored "
+               "on both sides within the span, or chamfer the underside to <= 45 deg")
+        if r["class"] == "sculpt_overhang":
+            fix = "chamfer or round the sculpted overhang to reach <= 1.0 per layer, or support it"
+        add("fail", "V9 overhang", f"{r['body']} z {r['z']} {r['class']}: " + "; ".join(r.get("notes") or []), fix,
+            {"area_mm2": r["area_mm2"], "centroid": r["centroid"],
+             "regions": r.get("beyond_reach_regions") or r.get("beyond_half_span_regions") or r.get("unsupported_regions")})
+    sl = c.get("SLICER", {})
+    for tag, run in (sl.get("runs") or {}).items():
+        bad = [b for b in run.get("bridges", []) if b["status"] == "fail"]
+        if bad:
+            add("fail", f"SLICER {tag}", "PrusaSlicer toolpaths: " + "; ".join(
+                (f"layer {b['layer_top_z']} {b['body']} {b['type']} (sculpt_float): paths farther than "
+                 f"{b.get('rib_reach')} from support - " + ", ".join(
+                     f"{nm} {b[k2]} mm" + (f" at {b[k2 + '_model_xy']}" if b.get(k2 + "_model_xy") else "")
+                     for nm, k2 in (("free end", "max_hanging_free_end"), ("bridge", "max_hanging_bridge"),
+                                    ("sag", "max_hanging_sag")) if b.get(k2)))
+                if b["class"] == "sculpt_float" else
+                (f"layer {b['layer_top_z']} {b['body']} {b['type']} ({b['class']}): longest unsupported strand "
+                 f"{b['max_unsupported_run']} mm (limit {b['limit']}) at {b['worst_line_model_xy']}") for b in bad),
+                "see the V9 fixes", None)
+        if run.get("warnings"):
+            add("warn", f"SLICER {tag}", "slicer warnings: " + " / ".join(run["warnings"]),
+                "per-body attribution in SLICER.warnings_per_body_alone (floating parts are inherent to "
+                "print-in-place)", sl.get("warnings_per_body_alone"))
+    lc = c.get("LAYER_quantisation", {})
+    if lc.get("float_bottom_quantisation", {}).get("status") == "warn":
+        add("warn", "LAYER", lc["float_bottom_quantisation"]["note"],
+            "use z_lift = 0.2 (one layer) for the loose variant, or state that it only widens XY gaps", None)
+    bp = c.get("V8_back_plate", {})
+    if bp.get("status") == "warn":
+        add("warn", "V8_back_plate", bp.get("note", ""), "edge geometry of the sculpt's cushion - no change needed",
+            {"rim_min": bp.get("rim_min"), "rim_at_min": bp.get("rim_at_min")})
+
+
 # ============================================================================================ main
+def _stale_export(M, build_json: Path) -> str | None:
+    """Why the exported STL / 3MF of this skin / variant do not match the current build (None if they do): the
+    builder's report next to them (stl/<skin>/build_<variant>.json, written with the exports) must give the current
+    bodies' volumes and triangle counts, and a sculpt build's integration info.  Without that report the exports
+    are assumed current (as before)."""
+    if not build_json.exists():
+        return None
+    try:
+        info = json.loads(build_json.read_text())
+    except Exception as ex:  # pragma: no cover
+        return f"unreadable {build_json.name}: {ex!r}"
+    why = []
+    for k, b in M.bodies.items():
+        d = (info.get("bodies") or {}).get(k) or {}
+        if "volume_mm3" in d and abs(float(d["volume_mm3"]) - b.volume()) > max(0.2, 1e-4 * b.volume()):
+            why.append(f"{k} volume {d['volume_mm3']} vs {b.volume():.1f}")
+        if "triangles" in d and int(d["triangles"]) != b.num_tri():
+            why.append(f"{k} triangles {d['triangles']} vs {b.num_tri()}")
+    if is_sculpt(M) and not (info.get("info") or {}).get("sculpt"):
+        why.append(f"{build_json.name} has no sculpt integration info (exported before the sculpt skin)")
+    return "; ".join(why) or None
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--skin", default="kitty")
@@ -2104,32 +2936,50 @@ def main(argv=None) -> int:
     outdir.mkdir(parents=True, exist_ok=True)
     rep = {"skin": a.skin, "variant": a.variant, "pose": {"phi": p.phi_print, "psi": p.psi_print},
            "z_lift": p.z_lift, "checks": {}}
+    sculpt = is_sculpt(M)
+    if sculpt:
+        rep["sculpt"] = True
     log(f"built {a.skin}/{a.variant}, print pose ({p.phi_print}, {p.psi_print})")
 
-    # exported files (or temporary exports of the current model when the deliverable does not exist)
+    # exported files (or temporary exports of the current model when the deliverable does not exist, or does not
+    # match the current build: it is then neither checked nor sliced)
     stl_dir = REPO / "stl" / a.skin
     stl_path = stl_dir / f"purrbobble_{a.skin}_{a.variant}.stl"
     mf_path = stl_dir / f"purrbobble_{a.skin}_{a.variant}.3mf"
     tmpdir = Path(tempfile.mkdtemp(prefix="v_print_"))
     exported = {"stl": str(stl_path) if stl_path.exists() else None, "3mf": str(mf_path) if mf_path.exists() else None}
-    if not stl_path.exists():
+    stale = _stale_export(M, stl_dir / f"build_{a.variant}.json") if (stl_path.exists() or mf_path.exists()) else None
+    if stale:
+        log(f"exports in {stl_dir} do not match the current build ({stale}): temporary exports are used")
+    if not stl_path.exists() or stale:
         stl_path = tmpdir / f"model_{a.skin}_{a.variant}.stl"
         write_stl(stl_path, bodies)
-    if not mf_path.exists():
+    if not mf_path.exists() or stale:
         mf_path = tmpdir / f"model_{a.skin}_{a.variant}.3mf"
         write_3mf(mf_path, bodies, name=f"purrbobble_{a.skin}_{a.variant}")
     rep["files"] = {"exported": exported, "used_stl": str(stl_path), "used_3mf": str(mf_path)}
+    if stale:
+        rep["files"]["stale_export"] = {"reason": stale, "note": "the deliverables under stl/ predate the current "
+                                                                 "build (re-run purrbobble.build); the temporary "
+                                                                 "exports were checked and sliced instead"}
+        checked = {"stl": str(stl_path), "3mf": str(mf_path) if exported["3mf"] else None}
+    else:
+        checked = exported
 
     zoner = Zoner(M)
-    thinmaps = {k: ThinMap(b, WALL_MIN) for k, b in bodies.items()}
+    thinmaps = {k: ThinMap(b, WALL_MIN, edge_test=sculpt) for k, b in bodies.items()}
     z_top = max(b.bounding_box()[5] for b in bodies.values())
     L = Layers(bodies, z_top)
     log(f"sliced {L.n} layers")
 
     # ---------------- V8
-    topo = v8_topology(M, bodies, Path(exported["stl"]) if exported["stl"] else None,
-                       Path(exported["3mf"]) if exported["3mf"] else None)
-    rep["checks"]["V8_topology"] = {"status": "pass" if topo["pass"] else "fail", **topo}
+    topo = v8_topology(M, bodies, Path(checked["stl"]) if checked["stl"] else None,
+                       Path(checked["3mf"]) if checked["3mf"] else None)
+    if stale:
+        topo["stale_export"] = stale
+        topo["warn"] = True
+    rep["checks"]["V8_topology"] = {"status": ("warn" if topo.get("warn") else "pass") if topo["pass"] else "fail",
+                                    **topo}
     log(f"V8 topology {rep['checks']['V8_topology']['status']}")
     rays = v8_walls_rays(M, bodies, zoner, max(2000, a.rays), thinmaps)
     rep["checks"]["V8_walls_raycast"] = rays

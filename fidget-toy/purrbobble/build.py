@@ -40,6 +40,14 @@ VIEWS = {
 }
 
 
+def _rel(path: Path) -> str:
+    """Repo-relative path for the report (absolute when --out is outside the repo)."""
+    try:
+        return str(path.relative_to(REPO))
+    except ValueError:
+        return str(path)
+
+
 def _bbox(m: Manifold) -> list:
     bb = m.bounding_box()
     return [round(float(x), 3) for x in bb]
@@ -55,10 +63,23 @@ def _sections(M: Model) -> dict:
     return sec
 
 
+def _info(M: Model) -> dict:
+    info = M.info or {}
+    if info.get("sculpt") and info.get("skin_contract"):
+        # the classic face contract's hub collar and crown collar are not built in a sculpt head / frame (as in
+        # verification/v_basic.py): leave them out of the report
+        sc = dict(info["skin_contract"])
+        sc.pop("crown_collar", None)
+        sc["warnings"] = [w for w in sc.get("warnings", []) if "collar" not in w]
+        sc["note"] = "sculpt skin: hub collar / crown collar items n/a (not built)"
+        info = dict(info, skin_contract=sc)
+    return info
+
+
 def model_report(M: Model, bodies: dict) -> dict:
     p = M.params
     rep = {"skin": M.skin.name, "variant": p.variant, "pose": {"phi": p.phi_print, "psi": p.psi_print},
-           "D": p.D, "P": p.P, "pallets": p.pallets, "info": M.info,
+           "D": p.D, "P": p.P, "pallets": p.pallets, "info": _info(M),
            "sections": _sections(M), "bodies": {}}
     for k, b in bodies.items():
         bb = _bbox(b)
@@ -77,6 +98,10 @@ def render_model(M: Model, bodies: dict, out_prefix: Path, views=None, sections:
     from .assemble import colour_parts, palette_of
     pal = palette_of(M.skin)
     parts = {k: (bodies[k], pal.get(k, "#cccccc")) for k in ("frame", "wheel", "head")}
+    if (M.info or {}).get("sculpt") and parts["head"][1].lower() == parts["frame"][1].lower():
+        # a sculpt head prints in the frame's colour: the section views shade it darker so the seams read
+        c = parts["head"][1].lstrip("#")
+        parts["head"] = (bodies["head"], "#" + "".join(f"{int(int(c[i:i + 2], 16) * 0.8):02x}" for i in (0, 2, 4)))
     # views in the multi-colour palette (cushion, body, ball, face details, accents)
     cparts = {k: (m, pal[c]) for k, (m, c) in colour_parts(M).items()}
     out = []
@@ -115,26 +140,26 @@ def build_one(skin: str, variant: str, stl_dir: Path, render_dir: Path | None, v
     base = f"purrbobble_{M.skin.name}_{variant}"
     files = []
     ntri = write_stl(stl_dir / f"{base}.stl", bodies)
-    files.append(str((stl_dir / f"{base}.stl").relative_to(REPO)))
+    files.append(_rel(stl_dir / f"{base}.stl"))
     per_body = (variant == "nominal") if per_body is None else per_body
     threemf = (variant == "nominal") if threemf is None else threemf
     if per_body:
         for k, b in bodies.items():
             write_stl(stl_dir / f"{base}_{k}.stl", {k: b})
-            files.append(str((stl_dir / f"{base}_{k}.stl").relative_to(REPO)))
+            files.append(_rel(stl_dir / f"{base}_{k}.stl"))
     if threemf:
         write_3mf(stl_dir / f"{base}.3mf", bodies, name=base)
-        files.append(str((stl_dir / f"{base}.3mf").relative_to(REPO)))
+        files.append(_rel(stl_dir / f"{base}.3mf"))
         # multi-colour version: one volume per colour region with its filament slot (assemble.colour_slots)
         write_3mf_multicolour(stl_dir / f"{base}_multicolour.3mf", M, name=base + "_multicolour")
-        files.append(str((stl_dir / f"{base}_multicolour.3mf").relative_to(REPO)))
+        files.append(_rel(stl_dir / f"{base}_multicolour.3mf"))
     t_export = time.time() - t0
     renders = []
     if render_dir is not None:
         render_dir.mkdir(parents=True, exist_ok=True)
         views = VIEWS if variant == "nominal" else {"face": VIEWS["face"], "three_quarter": VIEWS["three_quarter"]}
         renders = render_model(M, bodies, render_dir / base, views, sections=(variant == "nominal"))
-        renders = [str(r.relative_to(REPO)) for r in renders]
+        renders = [_rel(r) for r in renders]
         tmp = render_dir / "_tmp"
         if tmp.exists() and tmp.is_dir():
             for f in tmp.iterdir():

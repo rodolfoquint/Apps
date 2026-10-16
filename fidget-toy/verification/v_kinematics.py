@@ -33,7 +33,9 @@ Sculpt skins (the skin has a sculpt() method; purrbobble/sculpt.py builds the th
 around the unchanged mechanism core): no roof, I3 slot, face layers, paw lips or knob.  Their checks are replaced by
 the equivalent checks of what is built: head body above the band <-> frame (XY slices + 3-D, swept), cap <-> static
 yarn ring, the umbrella rim / skid rings / cap <-> frame, the frame covers over the band and the static ring over the
-skid rings as the designed Z gaps and lift stops (gated on ``sculpt``; classic skins are unchanged).
+skid rings as the designed Z gaps and lift stops (gated on ``sculpt``; classic skins are unchanged).  Their bodies are
+~10x denser meshes: the head x wheel sweep keeps one head pose in memory at a time, V7 measures the print-pose gaps
+with a 1 mm search, and zero-volume fragments in the exported STL fail V7.shells without stopping the other V7 checks.
 """
 from __future__ import annotations
 
@@ -424,13 +426,16 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
     if sculpt:
         # the head body rises continuously from its floors (z 3.0 .. 14) to the sculpt surface: XY on slices over
         # its whole height above the band (levels at .075 mod 0.2: >= 0.02 off the floors .037, cut flats .023,
-        # covers .014 / .184, static ring .114; post tops cut out), and 3-D from just under the band top (designed
-        # Z gaps: band top -> covers, floors -> frame flats; posts and pads cut out)
+        # covers .014 / .184, static ring .114; post tops cut out; the band layer itself is V6.head_fill), and 3-D
+        # over the whole head from just above the band bottom (designed Z gaps: band tops -> covers, floors ->
+        # frame flats; posts and pads cut out)
         up_levels = [round(float(z), 4) for z in np.arange(zh1 + 0.075, H.bounding_box()[5], 0.2)]
         F_upx = F - (cyl(O, 6.0, -1, p.post_z1 + 0.05) + cyl(P, 6.0, -1, p.post_z1 + 0.05))
         up_f = [slice_sh(F_upx, z) for z in up_levels]
         up_h = [slice_sh(H, z) for z in up_levels]
         F_up = F - posts_zone - pad_zone
+        H_up = zb(zh0 + 0.05, 60)          # (3-D: the band and the floors below its top too: lowered legs <-> covers;
+        #                                    search 0.6: > every designed Z gap, ~4x faster than 1.0 on these meshes)
     else:
         F_mid = F ^ zb(p.z_roof0 + 0.05, p.z_roof1 - 0.05)       # roof (+ fill) band seen by the face-mid layer
         F_front = F ^ zb(p.z_front0 + lift + 0.05, p.z_knob_top + 1)
@@ -445,7 +450,7 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
         r = {"psi": float(psi), "overlap": ov(F, h), "gap_all": gap(F, h, 1.0),
              "gap_nonpad": xy_gap(F_band_np, hb, band_levels), "gap_pads": gap(F_pads, hb, 3.0)}
         if sculpt:
-            r.update(gap_up_xy=xy_gap_rot(up_f, up_h, P, psi), gap_up_3d=gap(F_up, h ^ zb(zh1 - 0.05, 60), 1.0))
+            r.update(gap_up_xy=xy_gap_rot(up_f, up_h, P, psi), gap_up_3d=gap(F_up, h ^ H_up, 0.6))
         else:
             r.update(gap_mid=gap(F_mid, h ^ zb(p.z_roof0 + 0.05, p.z_roof1 - 0.05), 2.0),
                      gap_front=gap(F_front, h ^ zb(p.z_front0 + lift + 0.05, p.z_feat + lift + 1), 5.0))
@@ -517,23 +522,35 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
             wheels[k] = M.wheel_at(phi)
         return wheels[k]
 
-    hw = []
-    for i, j in np.argwhere(free):
-        phi, psi = float(phis_c[i]), float(psis[j])
-        h, w = head_at(j, psi), wheel_at(phi)
-        hw.append((phi, psi, float(C[i, j]), ov(h, w), gap(h, w, z_pal_plate + 0.1)))
-    hw = np.array(hw)
+    def hw_rows(poses, search):
+        """(phi, psi, c, overlap, gap) per (phi, i, j) pose, in the given order.  Sculpt: its bodies are ~10x denser
+        (~0.5 M triangles per head pose; 101 cached head poses plus the wheel poses do not fit in memory), so one
+        head pose at a time (poses visited grouped by psi) and the wheel rotated per pose, nothing cached"""
+        out = [None] * len(poses)
+        order = sorted(range(len(poses)), key=lambda k: poses[k][2]) if sculpt else range(len(poses))
+        hj = h = None
+        for k in order:
+            phi, i, j = poses[k]
+            if sculpt:
+                if j != hj:
+                    hj, h = j, M.head_at(float(psis[j]))
+                w = M.wheel_at(phi)
+            else:
+                h, w = head_at(j, float(psis[j])), wheel_at(phi)
+            out[k] = (phi, float(psis[j]), float(C[i, j]), ov(h, w), gap(h, w, search))
+        return out
+
+    hw = np.array(hw_rows([(float(phis_c[i]), int(i), int(j)) for i, j in np.argwhere(free)], z_pal_plate + 0.1))
     # the 0..358 sweep (knob / face / relief), three free psi per phi
-    hw360 = []
+    poses360 = []
     for phi in range(0, 360, 2):
         i = int(round((phi % 45) / 0.5))
         js = np.nonzero(free[i])[0]
         if len(js) == 0:
             continue
         for j in sorted({int(js[0]), int(js[np.argmax(C[i, js])]), int(js[-1])}):
-            h, w = head_at(j, float(psis[j])), wheel_at(float(phi))
-            hw360.append((float(phi), float(psis[j]), float(C[i, j]), ov(h, w), gap(h, w, 3.0)))
-    hw360 = np.array(hw360)
+            poses360.append((float(phi), i, j))
+    hw360 = np.array(hw_rows(poses360, 3.0))
     hw_ovmax = float(max(hw[:, 3].max(), hw360[:, 3].max()))
     R.add("V5.head_wheel_free", "head x wheel overlap at every C-space-free (phi, psi)",
           status_of(hw_ovmax <= OV_EPS),
@@ -620,10 +637,11 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
               f">= {SPEC['head_fill_min']} (SPEC V6 head<->fill; sculpt: replaces face mid <-> roof, every 0.2 mm "
               f"from the band top up, all psi)")
         gf = [r["gap_up_3d"] for r in rows]
-        R.add("V6.face_front_frame", "head above the band top <-> frame, 3-D (band top under the covers, floors over "
-                                     "the frame's cut flats; posts and stop pads excluded), swept",
+        R.add("V6.face_front_frame", "head (band and body, from z_band0 + 0.05 up) <-> frame, 3-D (band tops under "
+                                     "the covers, floors over the frame's cut flats; posts and stop pads excluded), "
+                                     "swept",
               status_of(min(gf) >= sk.gap_z - SPEC["rib_tol"]),
-              {"min_capped_at_1": r4(min(gf)), "at_psi": r4(rows[int(np.argmin(gf))]["psi"]),
+              {"min_capped_at_0.6": r4(min(gf)), "at_psi": r4(rows[int(np.argmin(gf))]["psi"]),
                "designed_z": [sk.gap_z, r4(gz)]},
               f">= {sk.gap_z - SPEC['rib_tol']:.4f} (nothing closer than the designed Z gaps gap_z {sk.gap_z} / "
               f"{gz:.4f}; sculpt: replaces face front layer <-> paws / decor)")
@@ -742,19 +760,22 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
         # cap) against the head above the band.  The chin faces the STATIC yarn ring (frame), so the classic upper
         # bound (an exposed head <-> ball slit < 2 mm) has no head <-> wheel counterpart: that slit is a head <->
         # frame boundary (V6.facemid_roof here, V12 pinch in v_safety)
+        # (search 6.0: the true distance, ~4 mm, is reported instead of the 3.0 cap)
         W_ball = W
+        fb_search = 6.0
     else:
         W_ball = (W ^ zb(p.z_teeth1 + lift - 0.1, p.z_umb_top + lift + 0.1)) - cyl((p.r_k, 0), 6.5, -1, 30)
+        fb_search = 3.0
     H_face = H ^ zb(p.z_band1 + lift + 0.05, p.z_feat + lift + 1)
     fb = []
     for psi in psis:
         hf = H_face.translate((-P[0], -P[1], 0)).rotate((0, 0, float(psi))).translate((P[0], P[1], 0))
-        fb.append(min(gap(hf, W_ball.rotate((0, 0, float(ph))), 3.0) for ph in (0.0, 22.5)))
+        fb.append(min(gap(hf, W_ball.rotate((0, 0, float(ph))), fb_search) for ph in (0.0, 22.5)))
     lo_fb, hi_fb = SPEC["face_ball"]
     if sculpt:
         R.add("V6.face_ball", "head above the band <-> wheel (umbrella / skid rings / cap) over the swing",
               status_of(min(fb) >= lo_fb),
-              {"min_capped_at_3": r4(min(fb)), "max_of_min": r4(max(fb)), "at_psi_min": r4(psis[int(np.argmin(fb))]),
+              {"min_capped_at_6": r4(min(fb)), "max_of_min": r4(max(fb)), "at_psi_min": r4(psis[int(np.argmin(fb))]),
                "ball_keep_r": sk.ball_keep_r, "R_u": p.R_u},
               f">= {lo_fb} at every psi (sculpt: the upper bound {hi_fb} is n/a - the chin faces the static yarn ring, "
               f"not the wheel)")
@@ -899,9 +920,10 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
         g_lip = census_select(cl, "wheel", None, "frame", None)[0]          # ball rim / knob -> paw lips (field)
         want_legs = p.z_roof0 - p.z_band1 - lift
         want_lip = 1.0 - lift - 0.02
+        # (a missing roof <-> cone interface returns inf: it must fail, not pass)
         R.add("V6.designed_z_gaps", "other designed Z gaps (SPEC 3.2) from the ray census at phi 0 / psi 0",
               status_of(abs(g_legs - want_legs) <= 0.02 and abs(g_pal - z_pal_plate) <= 0.02
-                        and g_cone >= SPEC["wheel_frame_z_min"] and g_lip >= want_lip),
+                        and math.isfinite(g_cone) and g_cone >= SPEC["wheel_frame_z_min"] and g_lip >= want_lip),
               {"head_band_top_to_roof_underside": r4(g_legs), "pallet_top_to_umbrella_plate": r4(g_pal),
                "roof_top_to_umbrella_cone_vertical": r4(g_cone), "ball_rim_to_paw_lip_vertical": r4(g_lip),
                "ridge_axial_play_vertical_(info)": r4(g_ridge)},
@@ -966,12 +988,29 @@ def v7(R: Report, M, skin: str, variant: str):
             err = str(e)
     ok_shells = len(shells_tm) == 3 and all(wt) and all(wc) and err is None and all(
         len(s.decompose()) == 1 for s in shells)
+    det = {"file": str(stl.relative_to(REPO)), "shells": len(shells_tm), "watertight": wt, "winding_consistent": wc,
+           "to_manifold_error": err, "volumes": [r4(s.volume) for s in shells_tm]}
+    frag_only = False
+    if hasattr(M.skin, "sculpt") and not ok_shells and len(shells_tm) > 3:
+        # sculpt: shells beyond the three bodies are reported with their location (V7.shells stays failed); when
+        # they are only zero-volume fragments (triangles collapsed by the float32 STL coordinates split off the
+        # dense bodies) and the three largest shells are valid bodies, the other V7 checks still run on those three
+        extra = shells_tm[3:]
+        det["extra_shells"] = {"n": len(extra), "faces": int(sum(len(s.faces) for s in extra)),
+                               "max_abs_volume_mm3": r4(max(abs(float(s.volume)) for s in extra)),
+                               "bbox_centres": [[r4(v) for v in s.bounds.mean(axis=0)] for s in extra[:8]]}
+        try:
+            main = [Manifold(_m3d_mesh(s)) for s in shells_tm[:3]]
+            frag_only = (all(wt[:3]) and all(wc[:3]) and all(len(m.decompose()) == 1 for m in main)
+                         and all(abs(float(s.volume)) < 1e-3 for s in extra))
+        except Exception:  # noqa: BLE001
+            main = []
+        det["remaining_V7_checks_on_the_3_body_shells"] = frag_only
+        if frag_only:
+            shells = main
     R.add("V7.shells", "exported STL = three watertight, consistently wound, single-component shells",
-          status_of(ok_shells), {"file": str(stl.relative_to(REPO)), "shells": len(shells_tm), "watertight": wt,
-                                 "winding_consistent": wc, "to_manifold_error": err,
-                                 "volumes": [r4(s.volume) for s in shells_tm]},
-          "3 shells, each watertight + valid manifold")
-    if not ok_shells:
+          status_of(ok_shells), det, "3 shells, each watertight + valid manifold")
+    if not ok_shells and not frag_only:
         return
     model = M.print_pose()
     B = _identify(shells, model)
@@ -983,17 +1022,20 @@ def v7(R: Report, M, skin: str, variant: str):
     pair = {}
     gmin = math.inf
     disjoint = True
+    # (sculpt: its bodies face each other across 0.41 / 0.5 mm seams over their whole interface, and a 5 mm search
+    # takes ~10 min on frame | head; 1 mm finds the same minimum, and gaps above 1 mm then read 1.0)
+    srch = 1.0 if hasattr(M.skin, "sculpt") else 5.0
     for i in range(3):
         for j in range(i + 1, 3):
             a, b = B[names[i]], B[names[j]]
             v = ov(a, b)
-            g = 0.0 if v > OV_EPS else gap(a, b, 5.0)
+            g = 0.0 if v > OV_EPS else gap(a, b, srch)
             pair[f"{names[i]}|{names[j]}"] = {"overlap_mm3": r4(v), "min_gap": r4(g)}
             disjoint &= v <= OV_EPS
             gmin = min(gmin, g)
     R.add("V7.disjoint_min_gap", "print pose: pairwise disjoint, global minimum gap",
           status_of(disjoint and gmin >= SPEC["print_gap_min"] - SPEC["print_gap_tol"]),
-          {"global_min_gap": r4(gmin), "pairs": pair},
+          dict({"global_min_gap": r4(gmin), "pairs": pair}, **({"gap_search_mm": srch} if srch != 5.0 else {})),
           f"overlap 0; gap >= {SPEC['print_gap_min']} (tol {SPEC['print_gap_tol']} for the exactly-0.35 journals)")
     z0, z1 = p.z_band0 + p.z_lift + 0.05, p.z_band1 + p.z_lift - 0.05
     g_pt = gap(B["head"] ^ zb(z0, z1), B["wheel"] ^ zb(z0, z1), 5.0)

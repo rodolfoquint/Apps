@@ -1,11 +1,11 @@
 {
- "date": "2026-10-15 18:08:45",
+ "date": "2026-10-15 20:33:45",
  "all_pass": false,
  "skins": {
   "kitty": {
    "escapement": "pass",
    "kinematics": "warn",
-   "printability": "warn",
+   "printability": "fail",
    "safety": "fail"
   },
   "bee": {
@@ -21,21 +21,40 @@
    "safety": "fail"
   }
  },
+ "dates": {
+  "bee": "2026-10-15 18:08:45",
+  "robot": "2026-10-15 18:08:45"
+ },
  "failing": [
+  "Purr Kitty printability: a wall-thickness rule [V8_walls_raycast], a wall-thickness rule [V8_walls_layers], a wall-thickness rule [V8_slivers_frame_layers]",
+  "Purr Kitty printability (loose): a wall-thickness rule [V8_walls_raycast], a wall-thickness rule [V8_walls_layers], a wall-thickness rule [V8_slivers_frame_layers]",
   "Purr Kitty safety: a pinch-point rule (see Safety) [V12.pinch_00], a pinch-point rule (see Safety) [V12.pinch_01]",
   "Bumble safety: a pinch-point rule (see Safety) [V12.pinch_00]",
   "Pip the Robot safety: a pinch-point rule (see Safety) [V12.pinch_00], a pinch-point rule (see Safety) [V12.pinch_01]"
  ],
- "note": "Full run of 2026-10-15, about 40 minutes on 4 CPUs. Still failing: Purr Kitty safety: a pinch-point rule (see Safety) [V12.pinch_00], a pinch-point rule (see Safety) [V12.pinch_01]; Bumble safety: a pinch-point rule (see Safety) [V12.pinch_00]; Pip the Robot safety: a pinch-point rule (see Safety) [V12.pinch_00], a pinch-point rule (see Safety) [V12.pinch_01]. Warnings and their reasons are in verification/reports/SUMMARY.md.",
+ "failing_by_skin": {
+  "kitty": [
+   "Purr Kitty printability: a wall-thickness rule [V8_walls_raycast], a wall-thickness rule [V8_walls_layers], a wall-thickness rule [V8_slivers_frame_layers]",
+   "Purr Kitty printability (loose): a wall-thickness rule [V8_walls_raycast], a wall-thickness rule [V8_walls_layers], a wall-thickness rule [V8_slivers_frame_layers]",
+   "Purr Kitty safety: a pinch-point rule (see Safety) [V12.pinch_00], a pinch-point rule (see Safety) [V12.pinch_01]"
+  ],
+  "bee": [
+   "Bumble safety: a pinch-point rule (see Safety) [V12.pinch_00]"
+  ],
+  "robot": [
+   "Pip the Robot safety: a pinch-point rule (see Safety) [V12.pinch_00], a pinch-point rule (see Safety) [V12.pinch_01]"
+  ]
+ },
+ "note": "Quick run of 2026-10-15, 15 minutes (Bumble, Pip the Robot: run of 2026-10-15 18:08). Still failing: Purr Kitty printability: a wall-thickness rule [V8_walls_raycast], a wall-thickness rule [V8_walls_layers], a wall-thickness rule [V8_slivers_frame_layers]; Purr Kitty printability (loose): a wall-thickness rule [V8_walls_raycast], a wall-thickness rule [V8_walls_layers], a wall-thickness rule [V8_slivers_frame_layers]; Purr Kitty safety: a pinch-point rule (see Safety) [V12.pinch_00], a pinch-point rule (see Safety) [V12.pinch_01]; Bumble safety: a pinch-point rule (see Safety) [V12.pinch_00]; Pip the Robot safety: a pinch-point rule (see Safety) [V12.pinch_00], a pinch-point rule (see Safety) [V12.pinch_01]. Warnings and their reasons are in verification/reports/SUMMARY.md.",
  "facts": {
   "kitty": {
    "size_mm": [
-    59.74,
-    90.79,
-    18.3
+    66.32,
+    85.44,
+    21.51
    ],
-   "mass_g": 44.4,
-   "print_time": "5 h 37 min"
+   "mass_g": 50.8,
+   "print_time": "6 h 24 min"
   },
   "bee": {
    "size_mm": [

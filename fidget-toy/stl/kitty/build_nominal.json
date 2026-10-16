@@ -21,12 +21,11 @@
   ]
  ],
  "info": {
-  "t_sections_s": 13.8,
-  "t_solids_s": 0.03,
+  "t_sections_s": 19.64,
+  "t_solids_s": 0.04,
   "skin_contract": {
    "warnings": [
     "B_i only 1.32 mm inside Face2D (contract 3.0)",
-    "disc(P, 7.5) not inside Face2D (24.1 mm^2 outside); hub collar z 7.4-8.4 added",
     "Face2D has 5.6 mm^2 narrower than 6.0 mm"
    ],
    "leg_B_margin": [
@@ -35,26 +34,14 @@
    ],
    "hub_disc_outside_area": 24.129,
    "narrower_than_6mm_area": 5.55,
-   "crown_collar": {
-    "applied": true,
-    "pieces_beyond": 2,
-    "bad_rays": 0,
-    "thin_cap_at_notch_deg": [
-     89.25
-    ],
-    "clamped_to_step_rule": false,
-    "range_deg": [
-     42.57,
-     90.0
-    ]
-   },
    "stop_pad_area_ratio": 0.867,
    "stop_pad_contact_mm": [
     4.93,
     5.97,
     5.91,
     4.93
-   ]
+   ],
+   "note": "sculpt skin: hub collar / crown collar items n/a (not built)"
   },
   "face_features": [],
   "head_base": null,
@@ -123,7 +110,8 @@
     "14.037": 0.0
    },
    "frame_pinches_before_weld": 135,
-   "t_sculpt_s": 126.1
+   "t_sculpt_s": 130.7,
+   "cache": "hit"
   }
  },
  "sections": {
@@ -233,13 +221,13 @@
     "a": "frame",
     "b": "wheel",
     "overlap_mm3": 0.0,
-    "min_gap": 0.3500276189429935
+    "min_gap": 0.350027583646194
    },
    {
     "a": "frame",
     "b": "head",
     "overlap_mm3": 0.0,
-    "min_gap": 0.3500194891453687
+    "min_gap": 0.35001912541662145
    },
    {
     "a": "wheel",
@@ -248,7 +236,7 @@
     "min_gap": 1.0
    }
   ],
-  "global_min_gap": 0.3500194891453687
+  "global_min_gap": 0.35001912541662145
  },
  "stl_triangles": 1341584,
  "files": [
@@ -259,7 +247,15 @@
   "stl/kitty/purrbobble_kitty_nominal.3mf",
   "stl/kitty/purrbobble_kitty_nominal_multicolour.3mf"
  ],
- "renders": [],
- "time_build_export_s": 162.15,
- "time_total_s": 162.38
+ "renders": [
+  "renders/kitty/purrbobble_kitty_nominal_face.png",
+  "renders/kitty/purrbobble_kitty_nominal_three_quarter.png",
+  "renders/kitty/purrbobble_kitty_nominal_iso.png",
+  "renders/kitty/purrbobble_kitty_nominal_top_down.png",
+  "renders/kitty/purrbobble_kitty_nominal_back.png",
+  "renders/kitty/purrbobble_kitty_nominal_section_x0.png",
+  "renders/kitty/purrbobble_kitty_nominal_section_z5.png"
+ ],
+ "time_build_export_s": 44.44,
+ "time_total_s": 71.52
 }

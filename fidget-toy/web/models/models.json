@@ -15,30 +15,10 @@
    5.96
   ],
   "files": {
-   "frame_plate": {
-    "file": "kitty_frame_plate.json",
-    "body": "frame",
-    "color": "#74cfae"
-   },
-   "frame_accent": {
-    "file": "kitty_frame_accent.json",
-    "body": "frame",
-    "color": "#f2787d"
-   },
    "frame_body": {
     "file": "kitty_frame_body.json",
     "body": "frame",
     "color": "#f6e7d3"
-   },
-   "head_details": {
-    "file": "kitty_head_details.json",
-    "body": "head",
-    "color": "#3a2723"
-   },
-   "head_accent": {
-    "file": "kitty_head_accent.json",
-    "body": "head",
-    "color": "#f2787d"
    },
    "head_body": {
     "file": "kitty_head_body.json",
@@ -53,14 +33,14 @@
   },
   "bbox": [
    [
-    -29.58,
-    -27.28,
+    -33.7,
+    -26.54,
     0.0
    ],
    [
-    30.16,
-    63.51,
-    18.3
+    32.63,
+    58.9,
+    21.51
    ]
   ]
  },

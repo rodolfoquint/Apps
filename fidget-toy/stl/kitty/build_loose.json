@@ -21,12 +21,11 @@
   ]
  ],
  "info": {
-  "t_sections_s": 7.97,
+  "t_sections_s": 18.13,
   "t_solids_s": 0.03,
   "skin_contract": {
    "warnings": [
     "B_i only 1.32 mm inside Face2D (contract 3.0)",
-    "disc(P, 7.5) not inside Face2D (24.1 mm^2 outside); hub collar z 7.4-8.4 added",
     "Face2D has 5.6 mm^2 narrower than 6.0 mm"
    ],
    "leg_B_margin": [
@@ -35,26 +34,14 @@
    ],
    "hub_disc_outside_area": 24.129,
    "narrower_than_6mm_area": 5.55,
-   "crown_collar": {
-    "applied": true,
-    "pieces_beyond": 2,
-    "bad_rays": 0,
-    "thin_cap_at_notch_deg": [
-     89.25
-    ],
-    "clamped_to_step_rule": false,
-    "range_deg": [
-     42.62,
-     90.0
-    ]
-   },
    "stop_pad_area_ratio": 0.854,
    "stop_pad_contact_mm": [
     4.74,
     5.91,
     5.69,
     4.75
-   ]
+   ],
+   "note": "sculpt skin: hub collar / crown collar items n/a (not built)"
   },
   "face_features": [],
   "head_base": null,
@@ -123,7 +110,8 @@
     "14.037": 0.0
    },
    "frame_pinches_before_weld": 104,
-   "t_sculpt_s": 111.4
+   "t_sculpt_s": 111.4,
+   "cache": "hit"
   }
  },
  "sections": {
@@ -233,13 +221,13 @@
     "a": "frame",
     "b": "wheel",
     "overlap_mm3": 0.0,
-    "min_gap": 0.40002771222687283
+    "min_gap": 0.4000274434307874
    },
    {
     "a": "frame",
     "b": "head",
     "overlap_mm3": 0.0,
-    "min_gap": 0.40001955340873724
+    "min_gap": 0.4000189822588591
    },
    {
     "a": "wheel",
@@ -248,13 +236,13 @@
     "min_gap": 1.0
    }
   ],
-  "global_min_gap": 0.40001955340873724
+  "global_min_gap": 0.4000189822588591
  },
  "stl_triangles": 1307452,
  "files": [
   "stl/kitty/purrbobble_kitty_loose.stl"
  ],
  "renders": [],
- "time_build_export_s": 125.0,
- "time_total_s": 125.21
+ "time_build_export_s": 26.03,
+ "time_total_s": 26.24
 }

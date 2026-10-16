@@ -188,7 +188,8 @@ def colour_parts(M, phi: float | None = None, psi: float | None = None) -> dict:
     Returns {name: (Manifold, colour_key)} with names frame_plate, frame_body, frame_accent, head_body,
     head_details, head_accent, wheel; colour keys index ``skin.palette()`` (+ "accent").  Regions are cut with
     prisms over the skin's coloured features (Feature.color) above the surface they sit on, so a dimple cut into
-    a dark eye (the highlight) stays in the body colour."""
+    a dark eye (the highlight) stays in the body colour.  A sculpt skin (purrbobble/sculpt.py) has no colour
+    regions of its own: frame_body, head_body and wheel, one colour each."""
     p, sk = M.params, M.skin
     phi = p.phi_print if phi is None else phi
     psi = p.psi_print if psi is None else psi
@@ -200,17 +201,23 @@ def colour_parts(M, phi: float | None = None, psi: float | None = None) -> dict:
     zs = p.z_bp + 1e-3
     from . import geom2d as g2
     S = M.sections
-    # the plate, plus the skid ribs where they lie on the exposed cushion (outside the body): cushion colour
-    exposed = g2.difference(S["backdrop2d"], g2.grow(S["body2d"], 0.05, 0.005))
-    pd = S.get("plate_decor2d")
-    if pd is not None and not pd.is_empty():
-        exposed = g2.difference(exposed, g2.grow(pd, 0.05, 0.005))        # a tail on the cushion stays cream
-    # the cushion: the plate, its raised quilting / piping and the skid ribs where they lie on the exposed cushion
-    z_cush = p.z_bp + max(p.rib_h, PLATE_RELIEF_MAX) + 0.05
-    pmask = Manifold.cube((400.0, 400.0, zs + 200.0)).translate((-200.0, -200.0, -200.0)) + \
-        _prism(exposed, zs - 0.01, z_cush)
-    out["frame_plate"] = (F ^ pmask, "plate")
-    body = F - pmask
+    if (M.info or {}).get("sculpt"):
+        # the sculpt's cushion is its own surface, not the classic backdrop2d - body2d (still in S, but not in the
+        # bodies): no plate region.  The skin has no decor, paw or face features (and no torso2d), so the frame,
+        # head and wheel come out whole, one colour each (frame / head cream, wheel coral)
+        body = F
+    else:
+        # the plate, plus the skid ribs where they lie on the exposed cushion (outside the body): cushion colour
+        exposed = g2.difference(S["backdrop2d"], g2.grow(S["body2d"], 0.05, 0.005))
+        pd = S.get("plate_decor2d")
+        if pd is not None and not pd.is_empty():
+            exposed = g2.difference(exposed, g2.grow(pd, 0.05, 0.005))        # a tail on the cushion stays cream
+        # the cushion: the plate, its raised quilting / piping and the skid ribs where they lie on the exposed cushion
+        z_cush = p.z_bp + max(p.rib_h, PLATE_RELIEF_MAX) + 0.05
+        pmask = Manifold.cube((400.0, 400.0, zs + 200.0)).translate((-200.0, -200.0, -200.0)) + \
+            _prism(exposed, zs - 0.01, z_cush)
+        out["frame_plate"] = (F ^ pmask, "plate")
+        body = F - pmask
     acc = {"accent": [], "details": []}
     for f in sk.body_decor_features(p) or []:
         if f.color in acc:

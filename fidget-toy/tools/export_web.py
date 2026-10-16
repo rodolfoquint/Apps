@@ -7,6 +7,8 @@ quantised to int16 over the body's bounding box and triangle indices, both base6
 not GLB); normals are computed in the browser, and vertices are split along sharp edges so creases stay crisp.
 plus <out>/models.json with the pivots the viewer animates about: the wheel turns about O = (0, 0)
 and the head swings about P = (0, D), both about the +Z axis (Z = print direction, face toward +Z).
+Skins not exported in this run keep their models.json entry; an exported skin's region files that its colour
+regions no longer produce (e.g. the classic kitty's plate and face details) are removed.
 Meshes are decimated with fast-simplification; they are for viewing only, never for printing.
 """
 from __future__ import annotations
@@ -61,7 +63,10 @@ def main():
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    meta = {}
+    try:
+        meta = json.loads((out / "models.json").read_text())       # entries of the skins not exported now stay
+    except (OSError, ValueError):
+        meta = {}
     for skin in a.skins.split(","):
         M = build(skin, "nominal")
         p = M.params
@@ -71,6 +76,11 @@ def main():
         pal = palette_of(M.skin)
         # one mesh per colour region (design frame: phi = psi = 0); "body" says which pivot it moves with
         for name, (m, ckey) in colour_parts(M, phi=0.0, psi=0.0).items():
+            if M.info.get("sculpt"):
+                # the sculpt bodies' slivers (integration booleans) stall the quadric decimation far above the
+                # budget, with mm-size spikes (head: 510k -> 322k faces, max error 2.6 mm): merge within 0.01 mm
+                # first (manifold's own simplify; the budget is then met within ~0.1 mm)
+                m = m.simplify(0.01)
             tm = to_trimesh(m)
             tm.merge_vertices()
             body = name.split("_")[0]
@@ -86,6 +96,14 @@ def main():
             np.max([getattr(M, b).bounding_box()[3:] for b in BODIES], 0)
         entry["bbox"] = [lo.round(2).tolist(), hi.round(2).tolist()]
         meta[skin] = entry
+        # region files of this skin from an earlier export that are not in the entry now (<skin>_<region>.json;
+        # the region test keeps e.g. kitty_classic_*.json when exporting kitty)
+        keep = {e["file"] for e in entry["files"].values()}
+        for f in out.glob(f"{skin}_*.json"):
+            region = f.stem[len(skin) + 1:]
+            if f.name not in keep and (region == "wheel" or region.startswith(("frame_", "head_"))):
+                f.unlink()
+                print(f"{skin:6s} removed stale {f.name}")
     (out / "models.json").write_text(json.dumps(meta, indent=1))
     print(json.dumps(meta, indent=1))
 

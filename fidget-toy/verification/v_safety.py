@@ -39,6 +39,21 @@ V14  Renders (OpenSCAD on exported meshes): front, back, three-quarter at psi = 
 Design review (warn level, numbers measured on the solids): face-feature heights and line widths (raised >= 0.6,
 grooves / lines >= 0.8 wide, debosses >= 0.4 deep = 2 layers), eye size and placement versus the face,
 head / ball size ratio, ear proportions, colour-swap side effects, giggle amplitude at the ear tips.
+
+Sculpt skins (purrbobble/sculpt.py: frame and head cut from a sculpted mesh; no roof, knob, face layers, paws or
+decor in the bodies, although the sections still hold them) are judged on what is built instead:
+    * V10: the protrusion above the umbrella is the sculpted cap (dish drive); the frame's towers are the parts that
+      stand >= 3 mm above where they merge into the organic body (prominence, no body-top plane); the head's lobes
+      are hidden only where the frame lies over them (legs under the chest), lobes < 3 mm long are outline bumps
+      (listed, not analysed), and a lobe's sections leave out slivers of other parts of the body that the plane
+      also cuts (< 1 mm2 and < 5 %; the all-pieces stress is kept in the record); the back-plate panel keeps the
+      holes of the body's plan (the cushion encloses it) and only the panel under the head is checked; plus
+      V10.static_ring, the yarn ball's static ring over the umbrella (thickness >= 2.0, warn level);
+    * V12: corners must persist 0.5 above or below (vertical edges); a single-slice corner where a seam crosses the
+      sloping surface is left to the sharp-point test; pinch fixes are sculpt-specific;
+    * design review: no face / paw / decor planes (the scans run on the back plate and the umbrella top only); eyes,
+      nose, ears and the colour swap are 'n/a' (the owner's single-colour sculpt); head vs ball uses the head's blob
+      and the visible 36 mm yarn ball; V14 renders tint the head to set it off from the frame.
 """
 from __future__ import annotations
 
@@ -395,7 +410,11 @@ def _plane_section(body: Manifold, c, n) -> CrossSection:
 
 
 def inplane_protrusions(body_name: str, body: Manifold, plan: CrossSection, t_open: float, F: float,
-                        hidden: CrossSection | None = None, min_area: float = 4.0, label: str = "") -> list[dict]:
+                        hidden: CrossSection | None = None, min_area: float = 4.0, label: str = "",
+                        min_len: float = 0.0, drop_slivers: bool = False) -> list[dict]:
+    """Lobes of `plan` narrower than t_open.  Lobes mostly inside `hidden` and lobes protruding less than min_len
+    from the opened outline (bumps of an organic outline: nothing to grip) are listed but not analysed.
+    drop_slivers: sliver pieces of a station's section (< 1 mm2, < 5 %) are left out (sculpt skins)."""
     core = g2.opening(plan, t_open, 0.02)
     prot = g2.difference(plan, g2.grow(core, 0.05, 0.02))
     core_shp = to_shp(core)
@@ -439,6 +458,12 @@ def inplane_protrusions(body_name: str, body: Manifold, plan: CrossSection, t_op
         L = float(proj.max())
         if L < 1.0:
             continue
+        if L < min_len:
+            out.append({"name": f"{label}lobe@({cen.x:.1f},{cen.y:.1f})", "kind": "in-plane", "body": body_name,
+                        "too_short": True, "length_mm": round(L, 2), "area_mm2": round(q.area(), 2),
+                        "notes": f"protrudes only {L:.2f} mm from the opened outline (< {min_len}): a bump of the "
+                                 "sculpted outline, too short to grip (not analysed)"})
+            continue
         tip = bpts[np.argmax(proj)]
         stations = []
         root_dims = (0.0, 0.0)
@@ -450,9 +475,24 @@ def inplane_protrusions(body_name: str, body: Manifold, plan: CrossSection, t_op
                 continue
             us = (np.asarray(shapely.get_coordinates(line)) - c) @ e
             u0, u1 = float(us.min()), float(us.max())
-            sec = _plane_section(body, c, n)
             clip = CrossSection.square((400.0, u1 - u0 + 0.6)).translate((-200.0, u0 - 0.3))
-            sec = sec ^ clip
+            sec = _plane_section(body, c, n) ^ clip
+            extra = {}
+            if drop_slivers:
+                # (sculpt) the plane also cuts slivers of other parts of the body (the thin edge of the head's low
+                # floors under a lobe): tiny pieces far from the lobe's own section that carry nothing but would set
+                # the extreme-fibre distance.  Pieces < 1 mm2 and < 5 % of the section are dropped (never the
+                # largest); the all-pieces stress is kept for reference
+                pcs = sec.decompose()
+                tot = sum(q.area() for q in pcs)
+                keep = [q for q in pcs if q.area() >= 1.0 or q.area() >= 0.05 * tot or q.area() == max(
+                    x.area() for x in pcs)]
+                if len(keep) < len(pcs):
+                    pr_all = poly_props(sec)
+                    extra = {"sigma_all_pieces_MPa": round(max_bending_stress(pr_all, F * (L - s_))[0], 3),
+                             "slivers_dropped_mm2": sorted(round(q.area(), 3) for q in pcs
+                                                           if not any(q is k_ for k_ in keep))}
+                    sec = CrossSection.compose(keep)
             pr = poly_props(sec)
             if pr is None:
                 continue
@@ -462,7 +502,7 @@ def inplane_protrusions(body_name: str, body: Manifold, plan: CrossSection, t_op
             if k == 0:
                 root_dims = dims
             stations.append({"s": round(float(s_), 2), "area_mm2": round(pr["A"], 2), "dims_mm": rl(dims, 2),
-                             "moment_Nmm": round(Mz, 1), "sigma_MPa": round(sg, 3)})
+                             "moment_Nmm": round(Mz, 1), "sigma_MPa": round(sg, 3), **extra})
         # fragment if snapped at the root: body beyond the root plane, inside the piece footprint (+1 mm)
         bb_ = shapely.geometry.polygon.orient(big.buffer(1.0), 1.0)
         cut = CrossSection([[tuple(p_) for p_ in np.asarray(bb_.exterior.coords)[:-1]]])
@@ -478,13 +518,19 @@ def inplane_protrusions(body_name: str, body: Manifold, plan: CrossSection, t_op
     return out
 
 
-def thin_panels(frame: Manifold, z_thin: float, F: float, head: Manifold | None = None) -> list[dict]:
+def thin_panels(frame: Manifold, z_thin: float, F: float, head: Manifold | None = None,
+                fill_holes: bool = True) -> list[dict]:
     """Regions of the frame that are only the back plate (+ skid ribs): cantilever plate estimate for a load F
     normal to the plate at the point farthest from the supporting body.  Islands standing on the plate (e.g. a
-    post) are load points, not supports."""
+    post) are load points, not supports.
+    fill_holes=False (sculpt skins): the thick part's plan keeps its holes.  The sculpt's cushion closes around the
+    head, so the plate-only region under it is a hole of that plan; filling it (classic) leaves no panel at all."""
     plate = silhouette(frame)
-    thick_all = silhouette(frame.trim_by_plane((0, 0, 1), z_thin))
+    up = frame.trim_by_plane((0, 0, 1), z_thin)
+    thick_all = silhouette(up) if fill_holes else up.project()
     comps = sorted(thick_all.decompose(), key=lambda q: -q.area())
+    if not fill_holes:
+        comps = [q for q in comps if q.area() >= 0.5]       # (zero-area slivers of the organic surface)
     if not comps:
         return []
     support = comps[0]
@@ -543,6 +589,84 @@ def thin_panels(frame: Manifold, z_thin: float, F: float, head: Manifold | None 
                                                 "sigma_axial_pull_MPa": round(s_isl, 1)})
         out.append(rec)
     return out
+
+
+def summit_parts(body: Manifold, z_lo: float, dz: float = 0.25) -> list[dict]:
+    """Parts of an organic body that stand up on their own (sculpt skins: there is no flat body-top plane).
+    Walking down from the top in dz steps, the body above z splits into 3-D components; where two of them merge,
+    the one with the lower summit ends: it stands on the body from that level (its root) up to its summit
+    (topographic prominence).  Returns every ended part, plus the parts still separate at z_lo (root z_lo); the
+    main body (highest summit) is not a part."""
+    zt = body.bounding_box()[5]
+    tracks, parts, prev = [], [], []          # prev: (track index, component above the previous level)
+    for z in np.arange(z_lo, zt, dz)[::-1]:
+        comps = [q for q in body.trim_by_plane((0, 0, 1), float(z)).decompose() if q.volume() > 1e-3]
+        bbs = [np.asarray(q.bounding_box()) for q in comps]
+        owner = {}
+        for ti, U in prev:                    # the lower component that contains each upper one
+            ub = np.asarray(U.bounding_box())
+            cand = [j for j, b in enumerate(bbs) if np.all(b[:3] <= ub[:3] + 1e-4) and np.all(b[3:] >= ub[3:] - 1e-4)]
+            if len(cand) > 1:
+                cand = [max(cand, key=lambda j: (comps[j] ^ U).volume())]
+            if cand:
+                owner.setdefault(cand[0], []).append((ti, U))
+        cur = []
+        for j, q in enumerate(comps):
+            ups = sorted(owner.get(j, []), key=lambda t: -tracks[t[0]])
+            if not ups:
+                tracks.append(float(bbs[j][5]))
+                cur.append((len(tracks) - 1, q))
+                continue
+            for ti, U in ups[1:]:
+                parts.append({"root_z": float(z + dz), "summit_z": tracks[ti], "comp": U})
+            cur.append((ups[0][0], q))
+        prev = cur
+    if prev:
+        main = max(prev, key=lambda t: tracks[t[0]])[0]
+        parts += [{"root_z": float(z_lo), "summit_z": tracks[ti], "comp": U, "separate_at_z_lo": True}
+                  for ti, U in prev if ti != main]
+    for d in parts:
+        d["h"] = d["summit_z"] - d["root_z"]
+    return parts
+
+
+def ring_thickness(frame: Manifold, r_in: float, r_out: float, z0: float, F: float, r_load: float) -> dict:
+    """Thickness of the frame over an annulus about O (sculpt skins: the yarn ball's static ring over the wheel's
+    umbrella): vertical columns every 5 deg x 1 mm in radius; per column the first solid run above z0 (its
+    underside clears the umbrella / skid rings, its top is the sculpt).  Also a pull-out estimate: F up on the wheel
+    bears on the ring's underside at r_load (the inner skid ring) and bends the ring as a strip clamped at r_out:
+    sigma = 6 m / t_min^2, m = F (r_out - r_load) / (2 pi r_out) per mm of the clamped edge (hoop action ignored)."""
+    th = np.radians(np.arange(0.0, 360.0, 5.0))
+    rr, tt = np.meshgrid(np.arange(r_in + 0.25, r_out, 1.0), th)
+    pts = np.stack([(rr * np.cos(tt)).ravel(), (rr * np.sin(tt)).ravel()], axis=1)
+    zs = np.arange(z0 + 0.025, frame.bounding_box()[5], 0.05)
+    occ = np.zeros((len(zs), len(pts)), bool)
+    for i, z in enumerate(zs):
+        occ[i] = shapely.contains_xy(to_shp(frame.slice(float(z))), pts[:, 0], pts[:, 1])
+    t = np.full(len(pts), np.nan)
+    zr = np.full((len(pts), 2), np.nan)
+    for j in range(len(pts)):
+        col = occ[:, j]
+        if not col.any():
+            continue
+        i0 = i1 = int(np.argmax(col))
+        while i1 + 1 < len(col) and col[i1 + 1]:
+            i1 += 1
+        t[j] = (i1 - i0 + 1) * 0.05
+        zr[j] = (zs[i0] - 0.025, zs[i1] + 0.025)
+    n_open = int(np.isnan(t).sum())
+    if n_open == len(t):
+        return {"n_columns": len(t), "n_open": n_open, "t_min_mm": None}
+    k = int(np.nanargmin(t))
+    m = F * (r_out - r_load) / (2.0 * math.pi * r_out)
+    worst = sorted(range(len(t)), key=lambda j: t[j] if np.isfinite(t[j]) else 1e9)[:8]
+    return {"annulus_r": [round(r_in, 2), round(r_out, 2)], "z_from": round(z0, 3), "n_columns": len(t),
+            "n_open": n_open, "t_min_mm": round(float(t[k]), 2), "at": rl(pts[k], 2),
+            "z_range_at_min": rl(zr[k], 2), "t_median_mm": round(float(np.nanmedian(t)), 2),
+            "n_below_2.0": int(np.sum(t < 2.0 - 1e-6)),
+            "pull_out_sigma_MPa": round(6.0 * m / float(t[k]) ** 2, 2), "pull_out_load_N": F,
+            "pull_out_r_load": round(r_load, 2),
+            "thinnest": [{"at": rl(pts[j], 2), "t": round(float(t[j]), 2), "z": rl(zr[j], 2)} for j in worst]}
 
 
 # --------------------------------------------------------------------------------------------- V12 machinery
@@ -993,9 +1117,19 @@ def plot_cluster(W: World, ser: dict, c: dict, path: Path, title: str):
 V14_VIEWS = {"front": (12, 0, 6), "back": (155, 0, 190), "three_quarter": (40, 0, 28)}
 
 
+def render_colors(M) -> dict:
+    """Body colours for the V14 renders and the pinch close-ups.  (sculpt: the skin paints frame and head the same
+    cream, so the swinging head and the seams V14 is meant to show would read as shading only: the head gets a
+    contrasting tint in these renders)"""
+    cols = M.skin.colors
+    if hasattr(M.skin, "sculpt"):
+        cols = dict(cols, head="#e8b98c")
+    return cols
+
+
 def v14_renders(M, out_dir: Path, tag: str, R: Report) -> list[dict]:
     from render import render_views
-    cols = M.skin.colors
+    cols = render_colors(M)
     p = M.params
     pb = round(p.psi_b, 2)
     poses = [(0.0, -pb), (120.0, 0.0), (240.0, pb)]
@@ -1258,36 +1392,80 @@ def run_v10(R: Report, M) -> dict:
           {k: v["min_enclosing_d"] for k, v in out["bodies"].items()}, "min enclosing D > 31.7 for every body")
     # ---- protrusions
     prot = []
-    if M.wheel.bounding_box()[5] > p.z_umb_top + p.z_lift + 1.0:          # a protruding knob (not a finger well)
+    sculpt = hasattr(M.skin, "sculpt")
+    if sculpt:
+        # (sculpt, wheel_drive 'dish': no knob; the spinning part above the umbrella is the sculpted cap, the yarn
+        # ball's centre r cap_r with the finger dish in it - the whole cap is the protrusion; the skid rings at
+        # r >= cap_r + cap_gap + 1.2 - rib_w / 2 stay outside the region)
+        prot.append(vertical_protrusion("cap", "wheel", M.wheel, disc((0.0, 0.0), M.skin.cap_r + 0.3),
+                                        p.z_umb_top + p.z_lift + 0.02, M.wheel.bounding_box()[5], F,
+                                        notes="sculpted spinning cap (dish drive), 50 N horizontal at its top, "
+                                              "wheel frame"))
+    elif M.wheel.bounding_box()[5] > p.z_umb_top + p.z_lift + 1.0:          # a protruding knob (not a finger well)
         prot.append(vertical_protrusion("knob", "wheel", M.wheel,
                                         disc((p.r_k, 0.0), p.knob_d / 2 + p.knob_root_fillet + 0.6),
                                         p.z_umb_top + p.z_lift + 0.02, M.wheel.bounding_box()[5], F,
                                         notes="50 N horizontal at the knob top, wheel frame"))
-    z0 = p.z_roof1 + 0.05
-    up = M.frame.trim_by_plane((0, 0, 1), z0)
     low_reliefs = []
-    for q in up.decompose():
-        bb = q.bounding_box()
-        h = bb[5] - z0
-        c = ((bb[0] + bb[3]) / 2, (bb[1] + bb[4]) / 2)
-        if h >= 3.0:
-            reg = g2.grow(q.project(), 0.5, 0.02)
-            prot.append(vertical_protrusion(f"frame tower@({c[0]:.1f},{c[1]:.1f})", "frame", M.frame, reg, z0, bb[5],
-                                            F, notes="part standing on the body top (paw ...), 50 N at its top"))
-        else:
-            low_reliefs.append({"centre": rl(c, 1), "height_mm": round(h, 2), "volume_mm3": round(q.volume(), 1)})
+    if sculpt:
+        # (sculpt: no body-top plane - z_roof1 is the classic roof, the sculpt frame above it is one piece.  The parts
+        # standing up on the organic body are found by their prominence: a part of the frame above z that merges
+        # into the main body only below z; >= 3 mm tall above that root it is a tower (paws ...).  Walked down to
+        # just above the posts' tops)
+        z_lo = max(p.post_z1, p.z_band1) + p.z_lift + 0.25
+        for d in summit_parts(M.frame, z_lo):
+            q, z0, ztop = d["comp"], d["root_z"], d["summit_z"]
+            bb = q.bounding_box()
+            c = ((bb[0] + bb[3]) / 2, (bb[1] + bb[4]) / 2)
+            if d["h"] >= 3.0:
+                # its own footprint (grown 0.5), minus the rest of the body above the root: the root section is the
+                # part's alone
+                rest = M.frame.trim_by_plane((0, 0, 1), z0) - q
+                reg = g2.difference(g2.grow(q.project(), 0.5, 0.02), rest.project()) if not rest.is_empty() \
+                    else g2.grow(q.project(), 0.5, 0.02)
+                prot.append(vertical_protrusion(f"frame tower@({c[0]:.1f},{c[1]:.1f})", "frame", M.frame, reg,
+                                                z0 + 0.02, ztop, F,
+                                                notes=f"part standing on the sculpted body from its root z {z0:.2f} "
+                                                      f"(where it merges into the body) to z {ztop:.2f}, 50 N at "
+                                                      "its top"))
+            elif d["h"] >= 1.0:
+                low_reliefs.append({"centre": rl(c, 1), "root_z": round(z0, 2), "height_mm": round(d["h"], 2),
+                                    "volume_mm3": round(q.volume(), 1)})
+    else:
+        z0 = p.z_roof1 + 0.05
+        up = M.frame.trim_by_plane((0, 0, 1), z0)
+        for q in up.decompose():
+            bb = q.bounding_box()
+            h = bb[5] - z0
+            c = ((bb[0] + bb[3]) / 2, (bb[1] + bb[4]) / 2)
+            if h >= 3.0:
+                reg = g2.grow(q.project(), 0.5, 0.02)
+                prot.append(vertical_protrusion(f"frame tower@({c[0]:.1f},{c[1]:.1f})", "frame", M.frame, reg, z0,
+                                                bb[5], F,
+                                                notes="part standing on the body top (paw ...), 50 N at its top"))
+            else:
+                low_reliefs.append({"centre": rl(c, 1), "height_mm": round(h, 2), "volume_mm3": round(q.volume(), 1)})
     for c, nm in ((p.O, "post O"), (p.P, "post P")):
         prot.append(vertical_protrusion(nm, "frame", M.frame, disc(c, p.post_r + p.post_root_fillet + 0.3),
                                         p.z_bp + 0.02, p.post_z1, F,
                                         notes="hidden; 50 N side yank on the moving body applied at the post top"))
-    prot += inplane_protrusions("head", M.head, silhouette(M.head), 20.0, F, hidden=M.sections["body2d"],
-                                label="head ")
+    if sculpt:
+        # (sculpt: the classic Body2D is not what covers the head - the sculpted head is the exposed top.  Hidden =
+        # where the frame lies over the head's band / legs: the frame's plan above the band's bottom outside the
+        # head's blob (the legs under the chest); lobes shorter than 3 mm are bumps of the sculpted outline)
+        hid = g2.difference(M.frame.trim_by_plane((0, 0, 1), p.z_band0 + p.z_lift).project(),
+                            g2.grow(M.skin.head_blob(), 0.5, 0.01))
+        prot += inplane_protrusions("head", M.head, silhouette(M.head), 20.0, F, hidden=hid, label="head ",
+                                    min_len=3.0, drop_slivers=True)
+    else:
+        prot += inplane_protrusions("head", M.head, silhouette(M.head), 20.0, F, hidden=M.sections["body2d"],
+                                    label="head ")
     prot += inplane_protrusions("frame", M.frame, silhouette(M.frame.trim_by_plane((0, 0, 1), p.z_bp + 0.7)),
-                                12.0, F, label="frame ")
+                                12.0, F, label="frame ", drop_slivers=sculpt)
     out["protrusions"] = prot
     out["low_reliefs_on_body_top"] = low_reliefs
     for r in prot:
-        if r.get("hidden"):
+        if r.get("hidden") or r.get("too_short"):
             continue
         ok = r["root_ok"] and r["stress_ok"]
         frag = r["fragment_if_snapped"]
@@ -1297,19 +1475,52 @@ def run_v10(R: Report, M) -> dict:
               length_mm=r["length_mm"], worst_station=r["worst_station"],
               fragment_fits_small_parts=frag.get("fits_small_parts_cylinder"), notes=r["notes"])
     # ---- thin back-plate panels
-    panels = thin_panels(M.frame, p.z_bp + p.rib_h + 0.15, F, head=M.head)
+    panels = thin_panels(M.frame, p.z_bp + p.rib_h + 0.15, F, head=M.head, fill_holes=not sculpt)
+    if sculpt:
+        # (sculpt: the plan keeps its holes, so the wheel's pocket (post O at its centre) is a plate-only region too.
+        # It is not the panel this check is about - classic builds fill it as a hole of the body - and its far point
+        # falls on post O, so its cantilever numbers mean nothing: listed, not checked)
+        out["panels_not_checked"] = [dict(pn, reason="not under the head (the wheel's pocket around post O)")
+                                     for pn in panels if (pn["fraction_under_head"] or 0.0) < 0.5]
+        panels = [pn for pn in panels if (pn["fraction_under_head"] or 0.0) >= 0.5]
     out["panels"] = panels
     for i, pn in enumerate(panels):
         warn = pn["sigma_MPa"] >= SPEC["stress_max"]
+        if sculpt:
+            t_ = pn["thickness_mm"]
+            s3 = pn["sigma_MPa"] * (t_ / (t_ + 1.0)) ** 2 if t_ > 0 else float("nan")
+            crit = ("plate cantilever under 50 N normal at the far point < 10 MPa (warn level: the panel lies under "
+                    "the head, which bears on the back ribs and post P; the cushion encloses the panel, so the "
+                    "cantilever from its nearest support is an upper bound)")
+            fix = (f"the {t_:.1f} mm plate under the head carries post P and is the thinnest load-bearing frame "
+                   f"part.  A plate 1.0 thicker (z_bp + 1.0, every mechanism level up 1.0 under the sculpt) -> sigma "
+                   f"x (t / (t + 1))^2 = {s3:.0f} MPa; or accept and add an inspection note.")
+        else:
+            crit = ("plate cantilever under 50 N normal at the far edge < 10 MPa (warn level: the panel lies under the "
+                    "head; load reaches it through the head's back ribs)")
+            fix = ("the 2.0 mm plate behind the head is the weakest structural element (est. crack at "
+                   "~100 N on the top edge; the head post P stands on it).  Raise every Z level by 1.0 "
+                   "(plate 3.0): sigma x (2/3)^2 -> ~17 MPa, depth 19.3 mm; or accept and add an "
+                   "inspection note.")
         R.add(f"V10.back_panel_{i}", "back-plate-only panel (cantilever from the body; carries the head post)",
               "warn" if warn else "pass", {"sigma_MPa": pn["sigma_MPa"], "L_mm": pn["cantilever_L_mm"],
                                            "t_mm": pn["thickness_mm"]},
-              "plate cantilever under 50 N normal at the far edge < 10 MPa (warn level: the panel lies under the "
-              "head; load reaches it through the head's back ribs)", panel=pn,
-              proposed_fix="the 2.0 mm plate behind the head is the weakest structural element (est. crack at "
-                           "~100 N on the top edge; the head post P stands on it).  Raise every Z level by 1.0 "
-                           "(plate 3.0): sigma x (2/3)^2 -> ~17 MPa, depth 19.3 mm; or accept and add an "
-                           "inspection note.")
+              crit, panel=pn, proposed_fix=fix)
+    if sculpt:
+        # ---- (sculpt) the yarn ball's static ring over the wheel's umbrella: the frame's thinnest designed overhang
+        # (>= 2.0 by design) and the wheel's capture upwards
+        sk = M.skin
+        ring_r = [float(r) for r in np.arange(sk.cap_r + sk.cap_gap + 1.2, p.R_u - 1.0 + 1e-6, sk.ring_pitch)]
+        rg = ring_thickness(M.frame, sk.cap_r + sk.cap_gap, p.R_u + p.gap_xy, p.z_umb_top + p.z_lift + 0.05, F,
+                            r_load=min(ring_r) if ring_r else sk.cap_r + sk.cap_gap)
+        out["static_ring"] = rg
+        ok = rg["t_min_mm"] is not None and rg["n_open"] == 0 and rg["t_min_mm"] >= 2.0 - 1e-6
+        R.add("V10.static_ring", "static yarn-ball ring over the wheel's umbrella: thickness (sculpt)",
+              status(True, not ok),
+              {"t_min_mm": rg["t_min_mm"], "at": rg.get("at"), "open_columns": rg["n_open"],
+               "pull_out_sigma_MPa": rg.get("pull_out_sigma_MPa")},
+              "frame over the annulus cap_r + cap_gap .. R_u + gap_xy is closed and >= 2.0 thick (warn level: the "
+              "design value); it is what keeps the wheel in", ring=rg)
     return out
 
 
@@ -1358,7 +1569,7 @@ def pinch_closeups(M, W: World, ser: dict, c: dict, path: Path) -> str | None:
     x = np.asarray(w["x"])
     th = math.degrees(math.atan2(x[1] - 15.0, x[0]))
     box = Manifold.cube((34.0, 34.0, 30.0)).translate((float(x[0]) - 17.0, float(x[1]) - 17.0, -1.0))
-    cols = M.skin.colors
+    cols = render_colors(M)
     imgs = []
     fphi, fpsi = ser["fixed"]
     for t in (w["tmax"], w["tmin"]):
@@ -1425,7 +1636,8 @@ def run_v12(R: Report, M, W: World, fast: bool, rep_dir: Path, tag: str, render:
               kind=c["kind"], series=sorted({x["series"] for x in g}), cells=int(sum(x["n_cells"] for x in g)),
               cells_shear=int(sum(x["n_cells_shear"] for x in g)), xy_bbox=c["xy_bbox"],
               pose_at_gap_min=c["pose_at_gap_min"], pose_at_gap_max=c["pose_at_gap_max"], plot=str(png),
-              closeup_3d=closeup, proposed_fix=FIXES.get((c["mover"], c["neighbour"]), ""),
+              closeup_3d=closeup, proposed_fix=(SCULPT_FIXES if hasattr(M.skin, "sculpt") else FIXES).get(
+                  (c["mover"], c["neighbour"]), ""),
               locations=[{"worst_cell": x["worst_cell"], "z_range": x["z_range"], "series": x["series"],
                           "gap": [x["gap_min_at_worst_cell"], x["gap_max_at_worst_cell"]]} for x in g])
     if isolated:
@@ -1483,31 +1695,63 @@ def run_edges(R: Report, M, W: World) -> dict:
     out = {"corners": {}, "sharp": {}}
     # (a) plan corners of exposed outlines, every 1.0 mm in Z
     worst_r = {}
+    sculpt = hasattr(M.skin, "sculpt")
+    if sculpt:
+        out["corners_sloped"] = {}
     for b, body in M.bodies.items():
         bb = body.bounding_box()
-        found = []
+        found, sloped = [], []
         for z in np.arange(math.floor(bb[2]) + 0.5, bb[5], 1.0):
             k = int(np.argmin(np.abs(np.asarray(W.zs) - z)))
 
             def exp_fn(tip, b=b, z=z):
                 return bool(touched(W, masks, poses, b, np.array([[tip[0], tip[1], z]]))[0])
-            for c in convex_corner_report(body.slice(float(z)), SPEC["edge_r_ext"], exp_fn):
+            cs_z = convex_corner_report(body.slice(float(z)), SPEC["edge_r_ext"], exp_fn)
+            if sculpt and cs_z:
+                # (sculpt: the seams are vertical cuts through the sloping sculpt surface, so a slice also shows a
+                # sharp 2-D corner where it crosses a SLOPED edge (seam wall x sculpt surface) - its 3-D sharpness is
+                # the dihedral, which the ball test (b) measures.  A vertical edge persists: keep a corner only if the
+                # slice 0.5 above or below has one within 0.3 mm)
+                nb = [np.array(c["at"]) for dz in (-0.5, 0.5) if bb[2] < z + dz < bb[5]
+                      for c in convex_corner_report(body.slice(float(z + dz)), SPEC["edge_r_ext"])]
+                for c in cs_z:
+                    c["z"] = float(z)
+                    if any(np.linalg.norm(np.array(c["at"]) - a) <= 0.3 for a in nb):
+                        found.append(c)
+                    else:
+                        sloped.append(c)
+                continue
+            for c in cs_z:
                 c["z"] = float(z)
                 found.append(c)
         out["corners"][b] = found
+        if sculpt:
+            out["corners_sloped"][b] = sloped
         worst_r[b] = min((c["est_corner_r_mm"] for c in found), default=None)
     allc = [(b, c) for b, lst in out["corners"].items() for c in lst]
     sharp_c = [(b, c) for b, c in allc if c["est_corner_r_mm"] < SPEC["edge_r_min"] - 0.05]
     soft_c = [(b, c) for b, c in allc if SPEC["edge_r_min"] - 0.05 <= c["est_corner_r_mm"] < SPEC["edge_r_ext"] - 0.1]
+    if sculpt:
+        n_sl = {b: len(v) for b, v in out["corners_sloped"].items()}
+        fix_c = ("round the listed near-vertical convex corners (the seams the head's swept envelope, the stop pads "
+                 "and the neck cut leave in the sculpt; r >= 1.0, exterior 1.5).  Removing material only increases "
+                 "clearances.") if (sharp_c or soft_c) else ""
+        extra = {"sloped_edge_corners_not_counted": n_sl,
+                 "sloped_note": "single-slice corners where a vertical seam meets the sloping sculpt surface: their "
+                                "sharpness is the 3-D dihedral, judged by V12.sharp_points"}
+    else:
+        fix_c = ("round the listed convex plan corners: FaceMid2D = open(FaceUp - RoofSweepInv, 2.0) "
+                 "(r 1.0; today 1.0 -> r 0.5 at the I3 slot mouth) and round the exposed fill-finger tips at "
+                 "the cavity mouth (Fill2D open 2.0 / r 1.0 convex rounding outside the stop pads).  Removing "
+                 "material only increases clearances.")
+        extra = {}
     R.add("V12.corners", "exposed convex plan corners (vertical edges) r >= 1.0 (exterior >= 1.5)",
           "fail" if sharp_c else ("warn" if soft_c else "pass"),
           {"below_1.0": len(sharp_c), "1.0_to_1.5": len(soft_c), "min_r_by_body": worst_r},
           "no exposed convex corner sharper than r 1.0; r 1.0-1.5 is a warning",
-          proposed_fix="round the listed convex plan corners: FaceMid2D = open(FaceUp - RoofSweepInv, 2.0) "
-                       "(r 1.0; today 1.0 -> r 0.5 at the I3 slot mouth) and round the exposed fill-finger tips at "
-                       "the cavity mouth (Fill2D open 2.0 / r 1.0 convex rounding outside the stop pads).  Removing "
-                       "material only increases clearances.",
-          worst=_dedupe_xy([{"body": b, **c} for b, c in sorted(allc, key=lambda t: t[1]["est_corner_r_mm"])])[:12])
+          proposed_fix=fix_c,
+          worst=_dedupe_xy([{"body": b, **c} for b, c in sorted(allc, key=lambda t: t[1]["est_corner_r_mm"])])[:12],
+          **extra)
     # (b) sharp points: ball fraction at convex mesh corners / acute edges on the touchable surface
     allpts = []
     for b, body in M.bodies.items():
@@ -1540,9 +1784,19 @@ def run_design(R: Report, M) -> dict:
     S = M.sections
     out = {}
     feats = []
-    feats += surface_features(M.head, p.z_front1 + p.z_lift, "face top")
-    feats += surface_features(M.frame, p.paw_z1, "paw tops")
-    feats += surface_features(M.frame, p.z_decor1, "decor top")
+    sculpt = hasattr(M.skin, "sculpt")
+    if sculpt:
+        # (sculpt: no flat feature planes - the face front layer z_front1, the paw tops paw_z1 and the decor top
+        # z_decor1 are classic levels; slicing the organic surface there finds bumps and crevices of the sculpt, not
+        # features.  The skin has no face features; the sculpt carries its own relief)
+        out["surfaces_not_scanned"] = {"face top": p.z_front1 + p.z_lift, "paw tops": p.paw_z1,
+                                       "decor top": p.z_decor1,
+                                       "reason": "sculpt skin: no flat feature planes; the sculpted relief is the "
+                                                 "owner's mesh (face_features() is empty)"}
+    else:
+        feats += surface_features(M.head, p.z_front1 + p.z_lift, "face top")
+        feats += surface_features(M.frame, p.paw_z1, "paw tops")
+        feats += surface_features(M.frame, p.z_decor1, "decor top")
     feats += [f for f in surface_features(M.frame, p.z_bp, "back plate") if f["type"] == "deboss"]
     wf = surface_features(M.wheel, p.z_umb_top + p.z_lift, "ball top", deep=0.9)
     wg = [f for f in wf if f["type"] == "deboss"]
@@ -1567,6 +1821,8 @@ def run_design(R: Report, M) -> dict:
     R.add("DR.deboss_depth", "debossed features >= 0.4 deep (2 layers at 0.2)", status(True, bool(shallow)),
           [{"surface": f["surface"], "at": f["centroid"], "d": f["depth_mm"]} for f in shallow],
           ">= 0.4 mm", n_shallow=len(shallow))
+    if sculpt:
+        return _design_sculpt(R, M, out)
     # ---- face proportions (generic: from Face2D / FaceUp2D and the raised features)
     face = to_shp(S["faceup2d"])
     fb = face.bounds
@@ -1647,6 +1903,48 @@ def run_design(R: Report, M) -> dict:
     return out
 
 
+def _design_sculpt(R: Report, M, out: dict) -> dict:
+    """Design review, face / proportions part, for a sculpt skin: the face is the owner's fixed sculpt (no FaceUp2D
+    front layer, no face features, one colour), so only what the bodies show is measured: the head's plan (its
+    blob: ears and bow included) against the visible yarn ball, and the giggle at the head's farthest point."""
+    p = M.params
+    sk = M.skin
+    na = "n/a: sculpted face - "
+    R.add("DR.eyes", "kawaii eye size / placement", "n/a", None, "eye D >= 0.25 x face width (classic face features)",
+          note=na + "the eyes are relief of the owner's sculpt, not separate features (face_features() is empty); the "
+                    "classic rule measures raised pieces on the z_front1 face layer, which is not built")
+    R.add("DR.nose", "nose readable at arm's length", "n/a", None, "nose width >= 3.0 mm (classic face features)",
+          note=na + "no separate nose feature (see DR.eyes)")
+    R.add("DR.ears", "ears tall enough to read as cat ears", "n/a", None,
+          "ear tips >= 6 mm above the crown (classic FaceUp2D crown, head radius 16)",
+          note=na + "the crown is taken from the classic FaceUp2D outline, which is not built; the sculpted head's "
+                    "plan top is its bow, not an ear tip")
+    head_sil = to_shp(silhouette(M.head))
+    hbb = to_shp(sk.head_blob()).bounds
+    face_w = hbb[2] - hbb[0]
+    # the visible yarn ball: the sculpt is scaled so that its ball (r 15.8 in the source) is r 18 (skin.scale); the
+    # wheel's own umbrella (R_u 15) hides under it
+    ball_d = 2.0 * getattr(sk, "ball_r", 15.8 * sk.scale)
+    hb = {"head_blob_w": round(face_w, 2), "ball_d": round(ball_d, 2), "ratio": round(face_w / ball_d, 3)}
+    out["face"] = {"head_blob_w": round(face_w, 2), "head_blob_h": round(hbb[3] - hbb[1], 2)}
+    R.add("DR.head_vs_ball", "head reads as the biggest shape (kawaii: big head, small body)",
+          status(True, face_w < ball_d), hb, "sculpted head width (plan, ears and bow included) >= ball diameter")
+    Py = p.P[1]
+    xy = np.asarray(shapely.get_coordinates(head_sil))
+    tip_r = float(np.max(np.hypot(xy[:, 0], xy[:, 1] - Py)))
+    giggle = {"farthest_point_from_P_mm": round(tip_r, 2),
+              "tip_travel_each_way_mm": round(tip_r * math.radians(p.psi_b), 2),
+              "tip_travel_p2p_mm": round(2 * tip_r * math.radians(p.psi_b), 2)}
+    out["ears_giggle"] = giggle
+    R.add("DR.giggle", "head shiver amplitude visible as a giggle", status(True, giggle["tip_travel_p2p_mm"] < 8.0),
+          {"ear_tip_travel_p2p_mm": giggle["tip_travel_p2p_mm"]}, ">= 8 mm peak-to-peak at the ear tips")
+    R.add("DR.colour_swap", "optional colour swap colours exactly the face features", "n/a", None,
+          "only the eyes / nose / mouth change colour",
+          note="n/a: single-colour sculpt, no swap layer (no face features, no head feature parts / frame colour "
+               "masks)")
+    return out
+
+
 FIXES = {
     ("head", "frame"): "Cheek / roof-lobe jaw: where the roof lobes enter the head's I3 slot the slot back wall closes on "
                        "the lobe end (gap 0.55 at one bank, several mm at the other) and the slot mouth is reachable "
@@ -1669,6 +1967,24 @@ FIXES = {
                        "the gap at fixed points varies 2.5-5.6 mm as the head banks.  Keep the chin-to-rim gap "
                        "< 2.0 along the whole crescent (FaceUp = Face - (BallEx (+) 0.5) only where the face is "
                        "within 4 mm of the rim, i.e. a rim-concentric chin) and remove the knob (finger well).",
+}
+
+
+# (sculpt skins: none of the classic features of FIXES - roof lobes, I3 slot, knob, paw lips, FaceUp chin - exist)
+SCULPT_FIXES = {
+    ("head", "frame"): "The sculpted head's edge is the sculpt's organic outline, not an arc about P: as it swings, "
+                       "the gap between it and the static sculpt beside it (chin corners against the chest and the "
+                       "yarn ball's flank, the back of the head against the recess its sweep cuts in the cushion) "
+                       "opens to ~r x 2 psi_b on the trailing side and closes on the leading side.  Where a fingertip "
+                       "reaches it, make that part of the head's edge a circular arc about P over the whole swing "
+                       "(its distance from any fixed point is then constant, and the recess wall cut by its sweep "
+                       "becomes the concentric arc + gap_xy), e.g. trim the chin corners to an arc about P; or keep "
+                       "the gap out of the probe's reach (recess < ~2 mm deep) or < 2.0 at every pose.",
+    ("wheel", "frame"): "Cap vs static ring: the seam r cap_r / cap_r + cap_gap cuts a sculpted surface that is not "
+                        "axisymmetric, so at a fixed height the cap's section comes and goes as it turns and the gap "
+                        "at a point varies around 1-2 mm (never a fingertip opening).  A level rim (the cap's and "
+                        "the ring's top flattened to a common height for ~1 mm on both sides of the seam) makes it "
+                        "constant 0.5.",
 }
 
 
@@ -1711,6 +2027,8 @@ def run(skin: str, variant: str, probe: float, fast: bool, render: bool, quiet: 
     out["n_pass"] = sum(c["status"] == "pass" for c in R.checks)
     out["n_warn"] = sum(c["status"] == "warn" for c in R.checks)
     out["n_fail"] = sum(c["status"] == "fail" for c in R.checks)
+    if any(c["status"] == "n/a" for c in R.checks):          # (sculpt skins: checks of classic-only features)
+        out["n_na"] = sum(c["status"] == "n/a" for c in R.checks)
     out["pass"] = out["n_fail"] == 0
     out["time_s"] = round(time.time() - R.t0, 1)
     return out
@@ -1735,6 +2053,7 @@ def main(argv=None):
                       "n_warn": rep["n_warn"], "n_fail": rep["n_fail"], "time_s": rep["time_s"],
                       "failed": [c["id"] for c in rep["checks"] if c["status"] == "fail"],
                       "warned": [c["id"] for c in rep["checks"] if c["status"] == "warn"],
+                      **({"n_a": [c["id"] for c in rep["checks"] if c["status"] == "n/a"]} if rep.get("n_na") else {}),
                       "report": str(out)}, indent=1))
     sys.exit(0 if rep["pass"] else 1)
 

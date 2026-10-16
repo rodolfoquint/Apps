@@ -6,7 +6,8 @@ For each skin (nominal variant) this runs the same 6-DOF contact-dynamics model 
 (verification/v_escapement.simulate) on the as-modelled CAD profiles and mass properties, at several
 finger torques, and stores a steady-state window of wheel angle phi(t) and head angle psi(t).  It also
 stores the 2-D star wheel outline (wheel frame) and the head band outline (head frame) at the pallet
-contact height, so the page can draw the mechanism from the same geometry.
+contact height, so the page can draw the mechanism from the same geometry.  Skins not exported in this run keep
+their entry in the output file.
 """
 from __future__ import annotations
 
@@ -64,7 +65,14 @@ def export_skin(skin: str) -> dict:
                      "phi_deg": np.round(phi, 2).tolist(), "psi_deg": np.round(psi, 2).tolist()})
         print(f"{skin:6s} T={T:5.1f} N*mm  {r['rps']:.2f} rev/s  head {r['f_head']:.1f} Hz  "
               f"swing {r['swing']:.1f} deg  {r['status']}  ({len(t)} samples)", flush=True)
-    band = [ring(g.exterior.coords) for g in ve.parts(cad["head_band_poly"])]
+    band_poly = cad["head_band_poly"]
+    if M.info.get("sculpt"):
+        # a sculpt head's legs under thin sculpt are lowered (top 3.97, below the contact height) and its sculpted
+        # body reaches down around the band: draw the head's slices over the band height (legs included) inside
+        # the band outline
+        hb = ve.cs_to_shapely(M.sections["headband2d"], holes=False).buffer(0.05)
+        band_poly = cad["head_full_poly"].intersection(hb)
+    band = [ring(g.exterior.coords) for g in ve.parts(band_poly)]
     return {"P": [float(cad["P"][0]), float(cad["P"][1])], "psi_b": float(cad["psi_b"]),
             "rp": float(cad["rp"]), "pins": [list(map(float, c)) for c in cad["pins"]],
             "star": ring(cad["star_poly"].exterior.coords, 0.15), "head_band": band,
@@ -78,7 +86,11 @@ def main():
     a = ap.parse_args()
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    data = {s: export_skin(s) for s in a.skins.split(",")}
+    try:
+        data = json.loads(out.read_text())          # entries of the skins not exported now stay
+    except (OSError, ValueError):
+        data = {}
+    data.update({s: export_skin(s) for s in a.skins.split(",")})
     out.write_text(json.dumps(data, separators=(",", ":")))
     print(f"wrote {out} ({out.stat().st_size / 1e3:.0f} kB)")
 

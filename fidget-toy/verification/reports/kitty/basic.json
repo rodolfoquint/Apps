@@ -1,7 +1,7 @@
 {
  "skin": "kitty",
  "variant": "nominal",
- "build_time_s": 16.37,
+ "build_time_s": 21.73,
  "params": {
   "skin": "kitty",
   "variant": "nominal",
@@ -205,7 +205,7 @@
    5.91,
    4.93
   ],
-  "note": "sculpt skin: hub collar / crown collar items n/a (not built); bore wall: V1 cad_bore_wall_P"
+  "note": "sculpt skin: hub collar / crown collar items n/a (not built), bore wall: V1 cad_bore_wall_P; Face2D (the sculpt's face slice) only shapes the band's face part, the head is the sculpt's head blob"
  },
  "sculpt": true,
  "sculpt_info": {
@@ -381,23 +381,39 @@
     "pass": true
    },
    "cad_bore_wall_P": {
-    "wall_in_head": 0.96891,
-    "roof_in_head": 0.9324,
-    "r_wall": 6.85,
-    "wall_mm": 2.5,
-    "roof_mm": 0.4,
-    "spec": 0.999,
+    "min_wall_mm": 1.251,
+    "at_z": 7.55,
+    "at_deg_about_P": 257.6,
+    "z_below_spec": [
+     7.45,
+     7.95
+    ],
+    "deg_below_spec": [
+     222.5,
+     317.4
+    ],
+    "air_inside_spec_wall_mm2": 10.02,
+    "spec_wall_mm": 2.5,
+    "roof_in_head": 1.0,
+    "spec_roof_mm": 0.4,
+    "note": "deg about P from +x (270 = towards O); spec = classic hub collar disc(P, 6.90) wall - 0.05; air_inside = largest per-slice area of air inside that wall",
     "pass": false
    },
    "cad_pallet_body_L": {
-    "in_head": 1.0,
+    "contact_half_in_head": 1.0,
+    "full_disc_in_head": 1.0,
     "spec": 0.999,
+    "outer_half_beyond_tip_circle": true,
     "pass": true
    },
    "cad_pallet_body_R": {
-    "in_head": 0.95023,
+    "contact_half_in_head": 1.0,
+    "full_disc_in_head": 0.95023,
     "spec": 0.999,
-    "pass": false
+    "outer_half_beyond_tip_circle": true,
+    "pass": true,
+    "status": "warn",
+    "note": "outer half: 2.61 mm^3 of the pin not in the head at x 13.56..15.08, y 8.24..10.69, z 3.97..6.85"
    }
   },
   "pass": false
@@ -577,8 +593,8 @@
   ],
   "headband_area": 1000.7,
   "stoppads_area": 13.68,
-  "note": "sculpt bodies: classic I3 slot / face / fill / roof / bridge sections not built"
+  "note": "sculpt bodies: classic I3 slot / face / fill / roof / bridge sections not built; headband_area is the section the sculpt band is cut from"
  },
  "pass": false,
- "time_s": 557.52
+ "time_s": 687.2
 }

@@ -35,6 +35,11 @@ V4  6-DOF dynamics (port of ideation ``esc_dyn3.simulate``; self-validated again
     within +-25 % of the SPEC 2.4 table.  Extras (reported, not SPEC-gated): bare-wheel inertia (finger lifted),
     mu 0.2, gravity orientations (flat / inverted / sideways), release coast-down, direction symmetry.
 V13 mass properties: I_h about P in [4, 8]e-6 kg m^2, COM 8..14 mm above P, as-printed mass <= MASS_LIMIT_G.
+
+Sculpt skins (``M.info["sculpt"]``): the finger drives the cap's dish at r_k (5, a skin param override, so V4's
+finger side load uses that lever arm); V13 adds |COM_x - P_x| <= 0.3 mm, takes the skin's mass budget and accepts
+I_h / COM height outside the classic tuning band only when V4 passes with exactly those values; the extra
+x_finger_r2 runs (finger inertia scaled to the dish lever arm) also report the f(T) table.
 """
 from __future__ import annotations
 
@@ -178,6 +183,8 @@ def extract_cad(M) -> dict:
         out["R_u"] = float(M.skin.cap_r)
         out["knob_r"] = float(M.skin.dish_d) / 2
         out["rim_name"] = "spinning cap rim"
+        # the head slice at z_c is the band plus the sculpted head where its floors are below z_c
+        out["band_name"] = f"head slice z {zc:.1f} solid (band + low head floors);\nhead at z {zf:.1f}"
     out["profile_consistency"] = {"z_samples": [float(z) for z in zs], "wheel_xor_vs_zc_max_mm2": round(w_xor, 6),
                                   "head_full_minus_band_mm2": round(head_full.difference(head_c).area, 6)}
     # ---- pallet tips: fit circles to the CAD arcs near the design centres
@@ -327,9 +334,14 @@ def mass_properties(M) -> dict:
         "I_h": {"measured": h["I_P_kgm2"], "criterion": "4.0e-6 <= I_h <= 8.0e-6 kg m^2",
                 "pass": bool(4.0e-6 <= h["I_P_kgm2"] <= 8.0e-6)},
         "com_above_P": {"measured": float(dy), "criterion": "8 <= COM_y - P_y <= 14 mm", "pass": bool(8.0 <= dy <= 14.0)},
+    }
+    if M.info.get("sculpt"):
         # an off-centre head is a constant gravity torque when the toy is held up (V4: one direction slow, a jam at
-        # mu 0.5); the classic faces are symmetric, the sculpt kitty's bow is balanced by its mech_dx offset
-        "com_lateral": {"measured": float(dx), "criterion": "|COM_x - P_x| <= 0.3 mm", "pass": bool(abs(dx) <= 0.3)},
+        # mu 0.5); the classic faces are mirror-symmetric by construction, the sculpt kitty's bow is balanced by its
+        # mech_dx offset
+        checks["com_lateral"] = {"measured": float(dx), "criterion": "|COM_x - P_x| <= 0.3 mm",
+                                 "pass": bool(abs(dx) <= 0.3)}
+    checks |= {
         "total_mass": {"measured": float(printed),
                        "criterion": f"as printed <= {lim:g} g (estimate: head + wheel solid, frame {FRAME_SHELL_MM} mm "
                                     f"shell + {FRAME_INFILL:.0%} infill; all-solid upper bound {total:.1f} g)",
@@ -889,7 +901,7 @@ def _port_selftest() -> dict:
 
 
 # ============================================================================ V4 orchestration
-def v4_jobs(base: dict, c_r_cad: float, quick: bool) -> list:
+def v4_jobs(base: dict, c_r_cad: float, quick: bool, sculpt: bool = False) -> list:
     J = []
 
     def add(tag, T, d, t_end, **kw):
@@ -928,9 +940,10 @@ def v4_jobs(base: dict, c_r_cad: float, quick: bool) -> list:
                 add("x_gravity_" + gname, T, d, t_cor.get(T, 0.45), c_r=c_r_cad, gvec=gv)
         for T, d in itertools.product((3, 20), (1, -1)):
             add("x_release", T, d, 0.5, c_r=c_r_cad, t_release=0.3)
-        if abs(base.get("r_k", 12.5) - 12.5) > 0.5:
-            # SPEC 2.4(b) books the finger as J 3e-6 at the knob (r 12.5); a fingertip pushing at a shorter lever arm
-            # adds ~ (r_k / 12.5)^2 of that (reported, not gated)
+        if sculpt and abs(base.get("r_k", 12.5) - 12.5) > 0.5:
+            # SPEC 2.4(b) books the finger as J 3e-6 at the knob (r 12.5); a fingertip pushing in the sculpt's cap
+            # dish at a shorter lever arm adds ~ (r_k / 12.5)^2 of that (reported, not gated; the classic skins keep
+            # the SPEC's r_k 11 / J_FINGER pair and their run set unchanged)
             jf = J_FINGER * (base["r_k"] / 12.5) ** 2
             for T, d in itertools.product((1, 3, 20, 40), (1, -1)):
                 add("x_finger_r2", T, d, t_nom.get(T, 0.6), c_r=c_r_cad, J_w=base["J_w"] - J_FINGER + jf)
@@ -1018,6 +1031,18 @@ def v4_evaluate(rows: list) -> dict:
             extras[g]["max_coast_deg"] = max(abs(r["coast_deg"]) for r in rows if r["group"] == g)
         else:
             extras[g] = gate(g)
+        if g == "x_finger_r2":
+            # the SPEC 2.4 f(T) comparison again with the finger inertia scaled to the dish lever arm (info: how much
+            # of the nominal_f_table verdict rests on the SPEC's finger model)
+            ft = []
+            for r in sorted((r for r in rows if r["group"] == g), key=lambda r: (r["T"], r["dir"])):
+                spec = SPEC_TABLE.get(r["T"])
+                ok = spec is None or (1 - V4_F_TOL) * spec[1][0] <= r["f_head"] <= (1 + V4_F_TOL) * spec[1][1]
+                ft.append({"T": r["T"], "dir": r["dir"], "f_head": r["f_head"], "spec_f": spec[1] if spec else None,
+                           "f_within_25pct": bool(ok)})
+            extras[g]["J_w"] = next(r["J_w"] for r in rows if r["group"] == g)
+            extras[g]["f_table"] = ft
+            extras[g]["f_table_outside_25pct"] = [(x["T"], x["dir"], x["f_head"]) for x in ft if not x["f_within_25pct"]]
     return {"checks": checks, "direction_symmetry": sym, "extras": extras,
             "pass": all(c["pass"] for c in checks.values())}
 
@@ -1115,7 +1140,8 @@ def make_gif(path, cad, base, T=2.0, direction=1, fps=15, n_frames=64):
     cur3 = ax3.axvline(0, color="k", lw=0.8)
     slow = n_frames / fps / max(t[idx[-1]] - t[idx[0]], 1e-9)
     fig.text(0.60, 0.97, f"Purr-Bobble escapement (as-modelled CAD profiles)\nT = {T:g} N*mm, one tooth cycle, "
-             f"slowed {slow:.0f}x\nband layer z 3-7.4 solid; face and {cad.get('rim_name', 'ball rim')} dashed", fontsize=7, va="top")
+             f"slowed {slow:.0f}x\n{cad.get('band_name', 'band layer z 3-7.4 solid; face')} and "
+             f"{cad.get('rim_name', 'ball rim')} dashed", fontsize=7, va="top")
 
     def upd(k):
         s = idx[k]
@@ -1341,7 +1367,7 @@ def main(argv=None):
     rep["V4_inputs"] = {k: v for k, v in base.items()} | {"J_w_note": f"J_O(CAD wheel) {w['J_O_kgm2']:.3e} + finger "
                                                           f"{J_FINGER:.1e} (SPEC 2.4b: J_w 4e-6 finger included)",
                                                           "c_r_cad": cad["c_r"]}
-    jobs = v4_jobs(base, cad["c_r"], a.quick)
+    jobs = v4_jobs(base, cad["c_r"], a.quick, sculpt=bool(M.info.get("sculpt")))
     t2 = time.time()
     results = list(pool.imap_unordered(_job, jobs, chunksize=1))
     st = {"status": "not-run"} if st_async is None else st_async.get()
@@ -1407,6 +1433,11 @@ def main(argv=None):
             warns.append(f"V4 extra {g}: {e['failed']}/{e['runs']} runs fail the V4 gates: "
                          + "; ".join(f"T {x['T']} dir {x['dir']} dD {x.get('dD')} drp {x.get('drp')} rps {x['rps']} "
                                      f"swing {x['swing']} ({','.join(x['fails'])})" for x in e["failures"][:4]))
+    xf = v4["extras"].get("x_finger_r2", {})
+    if xf.get("f_table_outside_25pct"):
+        warns.append(f"V4 extra x_finger_r2 (finger inertia scaled to the r_k {base['r_k']:g} lever arm, J_w "
+                     f"{xf['J_w']:.2e}): f_head outside the SPEC 2.4 table +-25 % at (T, dir, f) "
+                     + ", ".join(f"({T}, {d:+d}, {f})" for T, d, f in xf["f_table_outside_25pct"]))
     if "x_release" in v4["extras"] and v4["extras"]["x_release"]["max_coast_deg"] > 45.0:
         warns.append(f"wheel coasts {v4['extras']['x_release']['max_coast_deg']} deg after release (> 1 pitch)")
     for k in ("tolerance_corners", "friction_mu0.5"):
@@ -1430,8 +1461,9 @@ def main(argv=None):
                                                 c["pass"] for k, c in v4["checks"].items()},
                "criterion": "SPEC V4 (see V4.checks)"},
         "V13": {"pass": mp_["pass"], "measured": {k: c["measured"] for k, c in mp_["checks"].items()},
-                "criterion": f"I_h in [4,8]e-6, COM 8..14 above P, |COM_x| <= 0.3, total <= {mass_limit_g(M):g} g"
-                             + (" (sculpt: I_h / COM height accepted on V4)" if M.info.get("sculpt") else "")},
+                "criterion": f"I_h in [4,8]e-6, COM 8..14 above P, total <= {mass_limit_g(M):g} g"
+                             + (", |COM_x| <= 0.3 (sculpt: I_h / COM height accepted on V4)"
+                                if M.info.get("sculpt") else "")},
     }
     if st.get("status") == "fail":
         rep["checks"]["V4_port_selftest"] = {"pass": False, "measured": st.get("rows"), "criterion": st.get("criterion")}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run the whole verification suite for every skin and write one summary.
 
-    python3 verification/run_all.py                    # build + all checks, kitty / bee / robot
+    python3 verification/run_all.py                    # build + all checks, kitty / bee / robot / kitty_classic
     python3 verification/run_all.py --skins kitty      # one skin (comma list)
     python3 verification/run_all.py --quick            # development run (see below)
     python3 verification/run_all.py --no-build         # re-check the exports already in stl/ (must be current)
@@ -25,7 +25,10 @@ check failed (warnings allowed).
 
 Jobs run in parallel on --jobs CPU slots (default: all CPUs); each job declares how many slots it uses (the
 escapement check runs its V4 simulations on 2 worker processes), so the machine is never oversubscribed.  A full
-run of the three skins takes about 30-40 min on 4 CPUs.
+run of the three classic skins takes about 30-40 min on 4 CPUs; the sculpt kitty's bodies are about 10x denser
+meshes (its build alone takes 4-6 min per variant when not cached in build_cache/), so its jobs get longer timeouts.
+kitty_classic (the round-4 kitty) is in the default set: it is the only skin that runs the classic draped-feature,
+crown, paw and lip code, which the sculpt skin no longer exercises.
 """
 from __future__ import annotations
 
@@ -41,8 +44,7 @@ REPO = Path(__file__).resolve().parents[1]
 VER = REPO / "verification"
 REPORTS = VER / "reports"
 LOGS = REPORTS / "run_all"
-SKINS = ("kitty", "bee", "robot")
-OPTIONAL_SKINS = ("kitty_classic",)     # the round-4 concept kitty: --skins kitty_classic
+SKINS = ("kitty", "bee", "robot", "kitty_classic")     # kitty = the sculpt kitty; kitty_classic = the round-4 one
 PY = sys.executable or "python3"
 
 
@@ -87,7 +89,8 @@ def make_jobs(skins, quick, build, render, slicer):
         jobs.append(Job(s, "basic", "nominal", cmd, rep / "basic.json", after=bkey, timeout=int(3600 * tx)))
         cmd = [PY, str(VER / "v_escapement.py"), "--skin", s, "--variant", "nominal", "--jobs", "2", "--no-gif"]
         cmd += ["--quick"] if quick else []
-        jobs.append(Job(s, "escapement", "nominal", cmd, rep / "escapement.json", slots=2, after=bkey, timeout=int(5400 * tx)))
+        jobs.append(Job(s, "escapement", "nominal", cmd, rep / "escapement.json", slots=2, after=bkey,
+                        timeout=int(5400 * tx)))
         for v in ("nominal", "loose"):
             sfx = "" if v == "nominal" else f"_{v}"
             cmd = [PY, str(VER / "v_kinematics.py"), "--skin", s, "--variant", v, "-q"]
@@ -206,10 +209,16 @@ def parse_report(job):
                 notes.append(f"[WARN] head_inertia: I_P {hi.get('I_P_kgm2')} kg m^2 (spec 4.0-8.0e-6), COM "
                              f"{hi.get('com_above_P_mm')} mm above P (spec 8-14): {hi.get('note', '')}")
         # (the face contract describes the classic face / collar / crown build; a sculpt skin's bodies do not have
-        # them, v_basic probes its bore wall and pallets on the bodies instead: V1 cad_*)
+        # them, v_basic probes its bore wall and pallets on the bodies instead: V1 cad_*, listed when not pass)
         if not d.get("sculpt"):
             for w in (d.get("skin_contract") or {}).get("warnings", []):
                 notes.append(f"[NOTE] skin contract: {w}")
+        else:
+            for k in ("V1", "V7"):
+                for cid, c in ((d.get(k) or {}).get("checks") or {}).items():
+                    st = _status_of(c)
+                    if st in ("fail", "warn"):
+                        notes.append(f"[{st.upper()}] {k} {cid}: {json.dumps(c, default=str)[:300]}")
     if job.check == "escapement":
         for k in ("V2", "V3", "V4", "V13"):
             if k in d and k not in checks:
@@ -238,11 +247,11 @@ def summarise(done, wall, args):
                      "report": str(j.report.relative_to(REPO)) if j.report else None,
                      "log": str(j.log_path.relative_to(REPO))})
     order = {c: i for i, c in enumerate(("build", "basic", "escapement", "kinematics", "printability", "safety"))}
-    rows.sort(key=lambda r: ((SKINS + OPTIONAL_SKINS).index(r["skin"]) if r["skin"] in SKINS + OPTIONAL_SKINS else 9, order.get(r["check"], 9),
+    rows.sort(key=lambda r: (SKINS.index(r["skin"]) if r["skin"] in SKINS else 9, order.get(r["check"], 9),
                              r["variant"] != "nominal", r["variant"]))
     all_pass = all(r["status"] in ("pass", "warn") for r in rows)
     js = {"date": time.strftime("%Y-%m-%d %H:%M:%S"), "quick": args.quick, "slicer": not args.quick and not args.no_slicer,
-          "skins": args.skins, "not_run": [s for s in SKINS + OPTIONAL_SKINS if s not in args.skins],
+          "skins": args.skins, "not_run": [s for s in SKINS if s not in args.skins],
           "wall_time_s": round(wall, 1), "all_pass": all_pass, "jobs": rows}
     REPORTS.mkdir(parents=True, exist_ok=True)
     (REPORTS / "SUMMARY.json").write_text(json.dumps(js, indent=1, default=str))
@@ -296,7 +305,7 @@ def summarise(done, wall, args):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--skins", default=",".join(SKINS), help="comma list (default: kitty,bee,robot)")
+    ap.add_argument("--skins", default=",".join(SKINS), help=f"comma list (default: {','.join(SKINS)})")
     ap.add_argument("--quick", action="store_true", help="development run: reduced V4, half pinch poses, no slicer")
     ap.add_argument("--no-build", action="store_true", help="use the current exports (stl/) instead of rebuilding")
     ap.add_argument("--render", action="store_true", help="also re-render while building")
@@ -307,8 +316,8 @@ def main(argv=None):
     args = ap.parse_args(argv)
     args.skins = [s.strip() for s in args.skins.split(",") if s.strip()]
     for s in args.skins:
-        if s not in SKINS + OPTIONAL_SKINS:
-            ap.error(f"unknown skin {s!r} (known: {', '.join(SKINS + OPTIONAL_SKINS)})")
+        if s not in SKINS:
+            ap.error(f"unknown skin {s!r} (known: {', '.join(SKINS)})")
     slicer = not args.quick and not args.no_slicer
     jobs = make_jobs(args.skins, args.quick, not args.no_build, args.render, slicer)
     if args.checks:

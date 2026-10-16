@@ -9,7 +9,8 @@ V1  D = 24.710 +- 0.001, pallets (+-12.983, 8.675) +- 0.001 (nominal; other vari
     plus a cross-check that the CAD sections carry exactly these values (pallet disc centres, post spacing).
     Sculpt skins (purrbobble/sculpt.py rebuilds all three bodies from the sculpt): the bodies themselves are probed
     as well - posts at O and P in the frame, both bores clear, the head bore walled (>= the classic hub collar's
-    2.5 mm, SPEC 4.3 disc(P, 7.5)) and roofed (0.4), the pallet pins' contact halves in the head.
+    2.5 mm, SPEC 4.3 disc(P, 7.5)) and roofed (0.4), the pallet pins' contact halves in the head (a pin whose outer
+    half is not all head is a warning).
 V7  print pose (phi 12.0, psi 5.96): three disjoint, valid, watertight, single-component shells (also after an
     STL round trip through trimesh); global minimum gap >= 0.35; pallet <-> tooth gap >= 1.3.
 Also: bbox / volume / solid PLA mass per body, overall size, head I_h about P and COM height above P
@@ -98,7 +99,8 @@ def v1_sculpt_bodies(M) -> dict:
       heads that miss it get the hub collar disc(P, R_hub_cut - swept_gap - 0.05) up to z_roof0): minimum radial
       wall from the bore profile over the bore height >= that collar's wall - 0.05, and a roof >= 0.4 over the bore;
     * cad_pallet_body_L / _R: the pallet pins' wheel-facing halves (the contact arcs v_escapement fits; the other
-      half lies in the finger) are in the head over the band height up to z_pallet_top.
+      half lies beyond the tooth tip circle, in the finger) are in the head over the band height up to
+      z_pallet_top; an outer half not all head (the finger's tip) is reported as a warning with where it is short.
     Floating bodies are probed at their lifted z."""
     from shapely.geometry import Point
     from shapely.ops import nearest_points
@@ -122,7 +124,7 @@ def v1_sculpt_bodies(M) -> dict:
     r_col = p.R_hub_cut - p.swept_gap - 0.05
     spec_w = round(r_col - p.bore_r - 0.05, 3)
     dz = p.groove_apex_r - p.bore_r
-    worst, thin = (math.inf, None, None), []
+    worst, thin, thin_deg, air_in = (math.inf, None, None), [], [], 0.0
     for z in np.arange(p.z_band0 + zl + p.bore_chamfer + 0.05, p.bore_roof_z + zl - 0.02, 0.1):
         rb = p.bore_r + max(0.0, dz - abs(z - p.ridge_z))
         air = g2.difference(g2.circle(P, rb + 4.0, 0.005), M.head.slice(float(z)), g2.circle(P, rb + 0.02, 0.001))
@@ -135,24 +137,57 @@ def v1_sculpt_bodies(M) -> dict:
             worst = (w, float(z), ang)
         if w < spec_w:
             thin.append(float(z))
+            # where and how much: the air inside the spec wall (its angles about P, its area per slice)
+            short = g2.to_shapely(g2.intersect(air, g2.circle(P, p.bore_r + spec_w, 0.005)))
+            air_in = max(air_in, float(short.area))
+            for g in getattr(short, "geoms", [short]):
+                thin_deg += [math.degrees(math.atan2(y - P[1], x - P[0])) % 360 for x, y in g.exterior.coords]
     roof = _probe(P, 0.0, p.bore_r - 0.05, p.bore_roof_z + zl + 0.05, p.z_roof0 + zl - 0.05)
     fr = inside(M.head, roof)
     out["cad_bore_wall_P"] = {"min_wall_mm": round(worst[0], 3) if worst[1] is not None else ">= 4",
                               "at_z": None if worst[1] is None else round(worst[1], 2),
                               "at_deg_about_P": None if worst[2] is None else round(worst[2], 1),
                               "z_below_spec": [round(min(thin), 2), round(max(thin), 2)] if thin else [],
+                              "deg_below_spec": _arc(thin_deg),
+                              "air_inside_spec_wall_mm2": round(air_in, 2),
                               "spec_wall_mm": spec_w, "roof_in_head": round(fr, 5),
                               "spec_roof_mm": round(p.z_roof0 - p.bore_roof_z, 3),
                               "note": "deg about P from +x (270 = towards O); spec = classic hub collar "
-                                      f"disc(P, {r_col:.2f}) wall - 0.05",
+                                      f"disc(P, {r_col:.2f}) wall - 0.05; air_inside = largest per-slice area of "
+                                      "air inside that wall",
                               "pass": bool((worst[1] is None or worst[0] >= spec_w) and fr >= PROBE_MIN)}
+    # (u points from O to the pin centre: the kept half u . X <= |pin| - 0.05 holds every point a tooth can reach,
+    # the other half lies beyond the tooth tip circle)
+    star = g2.to_shapely(M.sections["star2d"])
+    r_tip = max(math.hypot(x, y) for g in getattr(star, "geoms", [star]) for x, y in g.exterior.coords)
     for i, ((x, y), u) in enumerate(zip(p.pallets, p.u)):
         pin = _probe((x, y), 0.0, p.rp - 0.05, p.z_band0 + zl + 0.05, p.z_pallet_top + zl - 0.05)
         half = pin.trim_by_plane((-u[0], -u[1], 0.0), -(x * u[0] + y * u[1]) + 0.05)
         f, f_disc = inside(M.head, half), inside(M.head, pin)
-        out[f"cad_pallet_body_{'LR'[i]}"] = {"contact_half_in_head": round(f, 5), "full_disc_in_head": round(f_disc, 5),
-                                             "spec": PROBE_MIN, "pass": bool(f >= PROBE_MIN)}
+        c = {"contact_half_in_head": round(f, 5), "full_disc_in_head": round(f_disc, 5), "spec": PROBE_MIN,
+             "outer_half_beyond_tip_circle": bool(math.hypot(x, y) - 0.05 > r_tip), "pass": bool(f >= PROBE_MIN)}
+        c["pass"] &= c["outer_half_beyond_tip_circle"]
+        if c["pass"] and f_disc < PROBE_MIN:
+            # the outer half is the finger's tip, not a contact surface: a warning, with where the head is short
+            # (the finger's own section is V8's, v_printability.py)
+            miss = pin - M.head
+            b = miss.bounding_box()
+            c["status"] = "warn"
+            c["note"] = (f"outer half: {miss.volume():.2f} mm^3 of the pin not in the head at "
+                         f"x {b[0]:.2f}..{b[3]:.2f}, y {b[1]:.2f}..{b[4]:.2f}, z {b[2]:.2f}..{b[5]:.2f}")
+        out[f"cad_pallet_body_{'LR'[i]}"] = c
     return out
+
+
+def _arc(deg) -> list:
+    """Smallest arc [a0, a1] (deg about P, a1 may pass 360) holding every angle in deg; [] if none."""
+    a = sorted(set(round(x, 1) % 360.0 for x in deg))
+    if not a:
+        return []
+    gaps = [(a[(k + 1) % len(a)] - a[k]) % 360.0 for k in range(len(a))]
+    k = max(range(len(a)), key=lambda k: gaps[k])      # the widest empty gap is from a[k] to a[k + 1]
+    a0, a1 = a[(k + 1) % len(a)], a[k]
+    return [a0, a1 + 360.0 if a1 < a0 else a1]
 
 
 def v7(M, bodies) -> dict:
@@ -241,7 +276,8 @@ def mass_props(M, bodies) -> dict:
         hi = out["head_inertia"]
         hi["status"] = "pass" if hi["pass"] else "warn"
         if not hi["pass"]:
-            hi["note"] = "sculpt skin: outside the SPEC 4.3 band; gated by V13 in v_escapement (accepted only if V4 passes)"
+            hi["note"] = ("sculpt skin: outside the SPEC 4.3 band; gated by V13 in v_escapement (accepted only if V4 "
+                          "passes)")
     vw, fw = mesh_arrays(M.wheel)
     tw = trimesh.Trimesh(vw, fw, process=True)
     tw.density = p.rho_pla * 1e-3
@@ -299,11 +335,14 @@ def main(argv=None):
     if sculpt:
         # the classic face contract's hub collar and crown collar are not built in a sculpt head / frame (the bore
         # wall they stood for is probed on the head itself: V1 cad_bore_wall_P); the face / leg / stop pad items stay
-        # (the sculpt band and pads are still cut from those sections)
+        # (the sculpt band and pads are still cut from those sections).  run_all leaves these classic notes out of
+        # the summary for a sculpt skin ("sculpt": true)
         sc = dict(rep["skin_contract"] or {})
         sc.pop("crown_collar", None)
         sc["warnings"] = [w for w in sc.get("warnings", []) if "collar" not in w]
-        sc["note"] = "sculpt skin: hub collar / crown collar items n/a (not built); bore wall: V1 cad_bore_wall_P"
+        sc["note"] = ("sculpt skin: hub collar / crown collar items n/a (not built), bore wall: V1 cad_bore_wall_P; "
+                      "Face2D (the sculpt's face slice) only shapes the band's face part, the head is the sculpt's "
+                      "head blob")
         rep["skin_contract"] = sc
         rep["sculpt"] = True
         rep["sculpt_info"] = M.info["sculpt"]
@@ -317,7 +356,8 @@ def main(argv=None):
         for k in ("i3_area", "faceup_area", "facemid_area", "fill_area", "roof_area", "fill_slivers_removed_area",
                   "max_bridge_width", "n_bridge_pieces"):
             rep["section_report"].pop(k, None)
-        rep["section_report"]["note"] = "sculpt bodies: classic I3 slot / face / fill / roof / bridge sections not built"
+        rep["section_report"]["note"] = ("sculpt bodies: classic I3 slot / face / fill / roof / bridge sections not "
+                                         "built; headband_area is the section the sculpt band is cut from")
     if a.slice:
         rep["slice"] = slice_check(M, bodies)
     rep["pass"] = rep["V1"]["pass"] and rep["V7"]["pass"]
@@ -326,13 +366,17 @@ def main(argv=None):
     out_dir.mkdir(parents=True, exist_ok=True)
     name = "basic.json" if a.variant == "nominal" else f"basic_{a.variant}.json"
     (out_dir / name).write_text(json.dumps(rep, indent=1, default=_json_default))
-    print(json.dumps({"V1": rep["V1"]["pass"], "V7": rep["V7"]["pass"],
-                      "global_min_gap": rep["V7"]["checks"]["global_min_gap"]["value"],
-                      "pallet_tooth": rep["V7"]["checks"]["pallet_tooth_gap"],
-                      "overall": rep["mass"]["overall_size_WxHxD"],
-                      "head_inertia": rep["mass"]["head_inertia"],
-                      "slice": rep.get("slice"), "report": str((out_dir / name).relative_to(REPO))}, indent=1,
-                     default=_json_default))
+    short = {"V1": rep["V1"]["pass"], "V7": rep["V7"]["pass"],
+             "global_min_gap": rep["V7"]["checks"]["global_min_gap"]["value"],
+             "pallet_tooth": rep["V7"]["checks"]["pallet_tooth_gap"],
+             "overall": rep["mass"]["overall_size_WxHxD"],
+             "head_inertia": rep["mass"]["head_inertia"],
+             "slice": rep.get("slice"), "report": str((out_dir / name).relative_to(REPO))}
+    if sculpt:
+        # (the body probes behind V1 / V7 that did not pass, with their numbers)
+        short["non_pass"] = {f"{k} {cid}": c for k in ("V1", "V7") for cid, c in rep[k]["checks"].items()
+                             if c.get("status", "pass" if c["pass"] else "fail") != "pass"}
+    print(json.dumps(short, indent=1, default=_json_default))
     sys.exit(0 if rep["pass"] else 1)
 
 
