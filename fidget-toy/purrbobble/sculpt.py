@@ -209,6 +209,23 @@ def stack_sections(slabs: list[tuple[float, float, CrossSection]], eps: float) -
     return Manifold.batch_boolean(parts, _ADD) if len(parts) > 1 else (parts[0] if parts else Manifold())
 
 
+def _finish_trimmed(m: Manifold, near_at, z0: float, p, name: str, info: dict, log) -> Manifold:
+    """trim_feathers(m) over [z0, top] then weld and validate; if the trimmed mesh keeps pinch vertices the weld
+    cannot remove, the untrimmed body is kept (and the fact recorded in info)."""
+    from . import solids
+    if near_at is not None:
+        mt, a_ = trim_feathers(m, near_at, z0, m.bounding_box()[5])
+        log(f"{name} feathers: {a_:.1f} mm^2 of slab sections cut")
+        try:
+            out = solids.finish(weld_pinches(mt), p, name)
+            info[f"{name}_feathers_cut_mm2"] = round(a_, 1)
+            return out
+        except AssertionError as e:
+            info[f"{name}_feathers_cut_mm2"] = f"not applied ({str(e)[:120]})"
+            log(f"{name} feathers not applied: {e}")
+    return solids.finish(weld_pinches(m), p, name)
+
+
 def trim_feathers(m: Manifold, near_at, z0: float, z1: float, w: float = 0.6, h: float = 0.1) -> tuple:
     """Remove the parts of body ``m`` narrower than ``w`` in its horizontal slices (every ``h`` mm over [z0, z1])
     that lie in ``near_at(z)`` (a seam's neighbourhood): the knife edges a vertical seam wall leaves where it runs
@@ -562,14 +579,14 @@ def integrate(M, verbose: bool = False) -> dict:
     if zl:
         band = band.translate((0.0, 0.0, zl))
     head = band + (body - solids.bore(p, P).translate((0.0, 0.0, zl)))
+    info["head_pinches_before_weld"] = len(solids.pinch_vertices(head))
     # knife edges along the neck line, where the chin's cliff runs just inside the straight cut (above the collar)
+    near = None
     if getattr(sk, "neck_y", None) is not None:
         neck = g2.intersect(g2.grow(HB, 0.5, 0.01), g2.poly([(-80, sk.neck_y - 1.0), (80, sk.neck_y - 1.0),
                                                               (80, sk.neck_y + 1.5), (-80, sk.neck_y + 1.5)]))
-        head, a_ = trim_feathers(head, lambda z: neck, p.z_roof0 + zl + 0.05, head.bounding_box()[5])
-        info["head_feathers_cut_mm2"] = round(a_, 1)
-    info["head_pinches_before_weld"] = len(solids.pinch_vertices(head))
-    head = solids.finish(weld_pinches(head), p, "head")
+        near = lambda z: neck                                                     # noqa: E731
+    head = _finish_trimmed(head, near, p.z_roof0 + zl + 0.05, p, "head", info, log)
     info.update({"head_blob_mm2": round(HB.area(), 1), "legs_lowered_mm2": round(low2d.area(), 1),
                  "head_always_covered_mm2": round(C.area(), 1),
                  "floor_area_mm2": {float(L): round(R[L].area(), 1) for L in levels[1:]}})
@@ -581,7 +598,8 @@ def integrate(M, verbose: bool = False) -> dict:
     # the rest to the band top; the collar's (a disc about P: its own sweep) over it
     band_env = [(p.z_bp, z_fl, sw_band), (z_fl, p.z_band1 + zl + gz, sw(keep))]
     Ec = ext(g2.circle(P, p.R_hub_cut, 0.005, hole=True), p.z_band1 + zl, p.z_roof0 + zl + gz)
-    Eh = solids.union3([stack_sections(band_env, p.eps_stack), nested_stack(env_slabs, p.eps_stack, grows_up=True), Ec])
+    Ef = nested_stack(env_slabs, p.eps_stack, grows_up=True)                  # (the head body's floors)
+    Eh = solids.union3([stack_sections(band_env, p.eps_stack), Ef, Ec])
     log("head envelope")
     # the wheel's envelope: per layer below the umbrella top, exact above it (layer rounding would leave the
     # static ring 0.7 above the skid rings instead of gap_z): the umbrella disc to its top + gz, the skid rings
@@ -594,17 +612,22 @@ def integrate(M, verbose: bool = False) -> dict:
                         ext(g2.circle(O, sk.cap_r + cap_gap, 0.005, hole=True), zt + p.rib_h + gz - 0.05, 60.0)])
     log("wheel envelope")
     # under the band and the wheel the cavities reach down to the plate top (back ribs added again below)
-    E = solids.union3([Eh, Ew])
-    Kf = Ks - E
+    Kf = Ks - solids.union3([Eh, Ew])
     frame = solids.union3([Kf, ribs_back, posts, pads])
-    # knife edges where the envelopes' walls cut the sculpt's slopes (cushion at the head's envelope, yarn strands at
-    # the cap's seam), above the back ribs
-    frame, a_ = trim_feathers(frame, lambda z: g2.grow(E.slice(z), 0.45, 0.01), p.z_bp + p.rib_h + 0.1,
-                              frame.bounding_box()[5])
-    info["frame_feathers_cut_mm2"] = round(a_, 1)
-    log("frame feathers")
     info["frame_pinches_before_weld"] = len(solids.pinch_vertices(frame))
-    frame = solids.finish(weld_pinches(frame), p, "frame")
+    # knife edges where the cosmetic seams cut the sculpt's slopes: the yarn strands at the cap's seam (above the
+    # umbrella's skid rings) and the cushion at the head body's floor envelope (clear of the mechanism: the band's
+    # channel, the wheel's cavity and the collar keep their designed walls)
+    seam = g2.difference(g2.circle(O, sk.cap_r + cap_gap + 1.2, 0.01), g2.circle(O, sk.cap_r + cap_gap - 0.2, 0.01))
+    mech = g2.union([g2.grow(sw_band, 0.6, 0.01), g2.circle(O, p.R_u + gxy + 0.6, 0.01),
+                     g2.circle(P, p.R_hub_cut + 0.6, 0.01), g2.grow(S["stoppads2d"], sk.pad_back + 0.6, 0.01)])
+    z_ring = zt + p.rib_h + gz
+
+    def near_frame(z):
+        nr = g2.difference(g2.grow(Ef.slice(z), 0.45, 0.01), mech) if z > sk.float_z - gzf - 0.5 else CrossSection()
+        return g2.union([nr, seam]) if z >= z_ring else nr
+
+    frame = _finish_trimmed(frame, near_frame, p.z_bp + p.rib_h + 0.1, p, "frame", info, log)
     log("frame")
     M.frame, M.head, M.wheel = frame, head, wheel
     info.update({"t_sculpt_s": round(time.time() - t0, 1)})
