@@ -257,10 +257,24 @@ def seam_chamfer(K: Manifold, r_s: float, c: float, z_lo: float, n: int = 720) -
     return out
 
 
+def _watertight_merged(v: np.ndarray, f: np.ndarray) -> bool:
+    """Is the float32 mesh still closed once a reader merges its vertices by position (trimesh's merge, as the
+    checkers and slicers do)?  True when trimesh is not installed."""
+    try:
+        import trimesh
+    except ImportError:
+        return True
+    t = trimesh.Trimesh(vertices=v, faces=f, process=False)
+    t.merge_vertices()
+    return bool(t.is_watertight)
+
+
 def float32_stable(m: Manifold, p, name: str, rounds: int = 6) -> Manifold:
     """The body as it is exported (float32 vertices: STL, 3MF and the build cache): round-trip it until the float32
-    mesh is itself one clean shell.  Rounding can collapse sub-micron sliver triangles (trim and weld cuts) into
-    zero-volume shells or pinch vertices; the shells are dropped as crumbs and the pinches welded, then again."""
+    mesh is itself one clean shell that stays closed when a reader merges its vertices by position.  Rounding can
+    collapse sub-micron sliver triangles (trim and weld cuts) into zero-volume shells, pinch vertices or nearly
+    coincident vertices; the shells are dropped as crumbs, the pinches welded and short edges simplified away, then
+    again."""
     from . import solids
     for _ in range(rounds):
         mesh = m.to_mesh()
@@ -268,8 +282,14 @@ def float32_stable(m: Manifold, p, name: str, rounds: int = 6) -> Manifold:
         f = np.array(np.asarray(mesh.tri_verts), dtype=np.uint32, order="C", copy=True)
         r = Manifold(Mesh(vert_properties=v, tri_verts=f))
         parts = r.decompose()
-        if len(parts) == 1 and not len(solids.pinch_vertices(r)):
+        # distinct vertices closer than ~1e-6: a reader that merges them by position (trimesh, slicers) collapses
+        # the triangles between them and finds the mesh open; Manifold.simplify merges such short edges
+        near = not _watertight_merged(v, f)
+        if len(parts) == 1 and not len(solids.pinch_vertices(r)) and not near:
             return solids.check_solid(r, name)
+        if near and len(parts) == 1:
+            m = r.simplify(max(p.mesh_simplify, 1e-5))
+            continue
         keep = [q for q in parts if abs(q.volume()) > p.min_crumb_mm3]
         m = keep[0] if len(keep) == 1 else Manifold.compose(keep)
         if len(solids.pinch_vertices(m)):
@@ -311,7 +331,7 @@ def trim_feathers(m: Manifold, near_at, z0: float, z1: float, w: float = 0.6, h:
         nr = near_at(zc)
         if nr is None or nr.is_empty():
             continue
-        thin = g2.drop_small(g2.intersect(g2.difference(sl, g2.opening(sl, w / 2.0, 0.005)), nr), 0.002)
+        thin = g2.drop_small(g2.intersect(g2.difference(sl, g2.opening(sl, w, 0.005)), nr), 0.002)
         if thin.is_empty():
             continue
         area += thin.area()
@@ -463,17 +483,27 @@ def integrate(M, verbose: bool = False) -> dict:
     for a_ in np.linspace(-p.psi_b, p.psi_b, 41):
         C = g2.intersect(C, g2.rot_about(HB, float(a_), P))
     C = g2.grow(C, -gxy, 0.01)
+    # the head band: its functional parts (hub, legs, pallet fingers) and, of the face part, only what the head
+    # always covers (inside it the head body reaches the band level anyway; beyond it the band would sweep a slot
+    # down to the plate through the cushion around the head)
+    mech2d = g2.union([S["hub2d"], S["legs2d"], S["fingers2d"]])
+    band2d = g2.intersect(S["headband2d"], g2.union([g2.grow(C, -0.5, 0.01), g2.grow(mech2d, 0.05, 0.01)]))
+    band2d = g2.clean(g2.opening(band2d, 0.5, 0.005), "solid")
+    band2d = max(g2.pieces(band2d), key=lambda q: q.area())
     # pads under the head (any overlap with its blob: one classification for the pads and the floors over them) stop
     # 0.05 under the moat floor (float_z - gzf: the head's lowest float floor clears them); the others keep the full
     # band height (the chest covers them).  Backing corners rounded r 1.
     pad_low_top = sm["pad_low_top"]
+    # the legs bank on the pads with 3 eps_stack of play (as the classic skins): the pads are trimmed by the band at
+    # +-psi_b grown that much (V5: no overlap at the stops)
+    bank = g2.union([g2.grow(g2.rot_about(band2d, s_ * p.psi_b, P), 3 * p.eps_stack, 0.001) for s_ in (-1, 1)])
     pad_pcs = g2.pieces(S["stoppads2d"])
     pad_low = [not g2.intersect(pc, HB).is_empty() for pc in pad_pcs]
     pads = []
     for pad, low in zip(pad_pcs, pad_low):
         blk = g2.union([pad, g2.intersect(S["fill2d"], g2.grow(pad, sk.pad_back, 0.01))])
         blk = g2.clean(g2.drop_small(g2.opening(blk, 0.4, 0.005), 0.5), "solid")
-        blk = g2.clean(g2.union([pad, g2.opening(blk, 1.0, 0.005)]), "solid")
+        blk = g2.clean(g2.difference(g2.union([pad, g2.opening(blk, 2.0, 0.005)]), bank), "solid")   # (r 1)
         pads.append(ext(blk, p.z_bp - EPS, pad_low_top if low else p.z_band1))
     pads = solids.union3(pads)
     pads_low2d = g2.union([pc for pc, low in zip(pad_pcs, pad_low) if low] or [CrossSection()])
@@ -482,20 +512,13 @@ def integrate(M, verbose: bool = False) -> dict:
     log("pads / posts")
 
     # ---------------- head
-    # the head band: its functional parts (hub, legs, pallet fingers) and, of the face part, only what the head
-    # always covers (inside it the head body reaches the band level anyway; beyond it the band would sweep a slot
-    # down to the plate through the cushion around the head)
-    mech2d = g2.union([S["hub2d"], S["legs2d"], S["fingers2d"]])
-    band2d = g2.intersect(S["headband2d"], g2.union([g2.grow(C, -0.5, 0.01), g2.grow(mech2d, 0.05, 0.01)]))
-    band2d = g2.clean(g2.opening(band2d, 0.5, 0.005), "solid")
-    band2d = max(g2.pieces(band2d), key=lambda q: q.area())
     # under the band's sweep and the wheel the frame is cut down to the plate top, with the back ribs inside
     # (the band's own cavity is the first slab of its envelope below, which starts at the plate top); ribs clipped
     # to a sliver at the cavity edge are dropped
     sw_band = g2.grow(swept(band2d, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01)
     low2d_cav = g2.union([sw_band, g2.circle(O, p.wheel_ex_r, 0.01)])
     rib2d = g2.intersect(S["ribs_back2d"], g2.grow(low2d_cav, -0.3, 0.01))
-    rib2d = g2.drop_small(g2.opening(rib2d, 0.45 * p.rib_w, 0.005), 0.1)
+    rib2d = g2.drop_small(g2.opening(rib2d, 0.9 * p.rib_w, 0.005), 0.1)       # (opening takes a width)
     ribs_back = ext(rib2d, p.z_bp - EPS, p.z_bp + p.rib_h)
     # legs lowered where their sweep passes under sculpt thinner than cover_min (outside the head and the ball)
     foot = K.slice(0.3)
@@ -505,15 +528,17 @@ def integrate(M, verbose: bool = False) -> dict:
     # out below the neck line; the always-covered face part never leaves the blob)
     low2d = g2.drop_small(g2.intersect(band2d, swept(g2.grow(thin, gxy, 0.01), P, p.psi_b, p.n_sweep, allowance=0.05)),
                           0.2)
-    # the frame over the lowered legs keeps >= cover_t above their swept envelope: outside the head blob a low boss
-    # fills the sculpt up to cov_top where it is thinner (cushion valleys beside the chin), inside it the head's
-    # floors over the sweep stay above cov_top (hard requirement below; not in C, where the head covers it anyway)
+    # the frame over the lowered legs keeps >= cover_t above their swept envelope: a low boss fills the sculpt up to
+    # cov_top where it is thinner (cushion valleys beside the chin, crevices), and the head's floors over the sweep
+    # stay above cov_top (hard requirement below; not in C, where the head covers it anyway)
     z_fl, cov_top = sm["lowered_env_top"], sm["lowered_cover_top"]     # lowered legs' envelope top, cover top
     sw_low_all = g2.grow(swept(low2d, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01) if not low2d.is_empty() \
         else CrossSection()
-    sw_low = g2.difference(sw_low_all, g2.grow(HB, 0.3, 0.01)) if not low2d.is_empty() else CrossSection()
-    boss2d = g2.drop_small(g2.difference(sw_low, TV.at(cov_top, up=True)), 0.05) if not sw_low.is_empty() \
-        else CrossSection()
+    # (where the sculpt is not solid all the way from the envelope top to cov_top: thin cushion, and hairline crevices
+    # under the ball flank, arms and cheeks, which a top view cannot see; not in C, which the head always covers)
+    sw_low = g2.difference(sw_low_all, C) if not low2d.is_empty() else CrossSection()
+    boss2d = g2.drop_small(g2.difference(sw_low, solid_through(z_fl + 0.01, cov_top)), 0.05) \
+        if not sw_low.is_empty() else CrossSection()
     Ks = K
     if not boss2d.is_empty():
         boss2d = g2.intersect(g2.closing(g2.grow(boss2d, 0.4, 0.01), 0.5, 0.01), g2.grow(foot, -0.5, 0.01))
@@ -523,11 +548,12 @@ def integrate(M, verbose: bool = False) -> dict:
     # stacked slabs, each section strictly inside the one below (eps_stack): the full band up to leg_low_top, the
     # band without the lowered legs up to the pallet top, then without the pallet fingers (they run under the
     # umbrella) up to the band top, then the hub collar over the bore (to z_roof0, as in the classic head).  (A cut
-    # instead would leave walls meeting the band's outline at single points: pinch vertices.)  The lowest slab is
-    # inset 3 eps: the legs bank on the stop pads with that much play (V5).
+    # instead would leave walls meeting the band's outline at single points: pinch vertices.)  The lowest slab is the
+    # exact band: it carries the pallet pins (their radius is the escapement's; the banking play is taken off the
+    # stop pads instead).
     eps = p.eps_stack
-    b0 = g2.clean(g2.grow(band2d, -3 * eps, 0.001), "solid")
-    keep = g2.clean(g2.grow(g2.difference(band2d, low2d), -4 * eps, 0.001), "solid")
+    b0 = g2.clean(band2d, "solid")
+    keep = g2.clean(g2.grow(g2.difference(band2d, low2d), -eps, 0.001), "solid")
     top = g2.clean(g2.grow(g2.difference(keep, g2.grow(S["wheelex2d"], 0.05, 0.005)), -eps, 0.001), "solid")
     collar2d = g2.circle(P, p.R_hub_cut - p.swept_gap - 0.05, g2.TOL_FUNC)
     band = solids.union3([ext(b0, p.z_band0, sk.leg_low_top), ext(keep, sk.leg_low_top, p.z_pallet_top),
