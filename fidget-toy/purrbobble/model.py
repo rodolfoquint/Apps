@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from manifold3d import Manifold
 
@@ -69,18 +70,32 @@ def build(skin: str | Skin = "kitty", variant: str = "nominal", params: Params |
     S = core2d.build_sections(p, sk, verbose=verbose)
     t1 = time.time()
     wheel, winfo = solids.build_wheel(p, S, sk)
-    head, hinfo = solids.build_head(p, S, sk)
-    frame, finfo = solids.build_frame(p, S, sk)
     S["wheel_relief2d"] = winfo["relief2d"]
-    S["collar2d"] = hinfo["collar2d"]
+    if hasattr(sk, "sculpt"):
+        # the classic head and frame are not used by a sculpt skin (purrbobble/sculpt.py builds both from the
+        # sculpt and the sections), so they are not built
+        head, hinfo = Manifold(), {"features": [], "collar2d": None}
+        frame, finfo = Manifold(), {}
+    else:
+        head, hinfo = solids.build_head(p, S, sk)
+        frame, finfo = solids.build_frame(p, S, sk)
+        S["collar2d"] = hinfo["collar2d"]
     t2 = time.time()
     sinfo = {}
     if hasattr(sk, "sculpt"):
-        # round 5: the mechanism goes inside the skin's sculpted mesh (purrbobble/sculpt.py)
+        # round 5: the mechanism goes inside the skin's sculpted mesh (purrbobble/sculpt.py).  The integration takes
+        # a few minutes, so its bodies are cached on disk under a hash of every input (see _sculpt_cache)
         from . import sculpt as _sc
-        M0 = Model(frame=frame, wheel=wheel, head=head, params=p, sections=S, skin=sk, info={})
-        sinfo = _sc.integrate(M0, verbose=verbose)
-        frame, wheel, head = M0.frame, M0.wheel, M0.head
+        hit = _sculpt_cache(sk, p)
+        if hit is not None and hit[0].exists():
+            frame, wheel, head, sinfo = _cache_load(hit[0])
+            sinfo = dict(sinfo, cache="hit")
+        else:
+            M0 = Model(frame=frame, wheel=wheel, head=head, params=p, sections=S, skin=sk, info={})
+            sinfo = _sc.integrate(M0, verbose=verbose)
+            frame, wheel, head = M0.frame, M0.wheel, M0.head
+            if hit is not None:
+                _cache_save(hit[0], frame, wheel, head, sinfo)
         hinfo = dict(hinfo, head_base=None, feature_parts={})
     info = {"t_sections_s": round(t1 - t0, 2), "t_solids_s": round(t2 - t1, 2),
             "skin_contract": S.get("skin_contract"), "face_features": [f.name for f in hinfo["features"]],
@@ -91,3 +106,58 @@ def build(skin: str | Skin = "kitty", variant: str = "nominal", params: Params |
     if verbose:
         print(f"  [model] sections {t1 - t0:.1f}s, solids {t2 - t1:.1f}s", flush=True)
     return Model(frame=frame, wheel=wheel, head=head, params=p, sections=S, skin=sk, info=info)
+
+
+# ------------------------------------------------------------------------------------------------ sculpt body cache
+CACHE_DIR = Path(__file__).resolve().parents[1] / "build_cache"
+
+
+def _sculpt_cache(sk, p: Params):
+    """(path, key) of the cached integrated bodies for this skin and parameter set, or None if caching is off
+    (PURRBOBBLE_NO_CACHE=1).  The key hashes every source file of the package, the sculpt file, the skin's class
+    attributes and the full parameter set, so any change rebuilds."""
+    import hashlib
+    import os
+    if os.environ.get("PURRBOBBLE_NO_CACHE"):
+        return None
+    h = hashlib.sha1()
+    pkg = Path(__file__).resolve().parent
+    for f in sorted(pkg.rglob("*.py")):
+        h.update(f.relative_to(pkg).as_posix().encode())
+        h.update(f.read_bytes())
+    src = Path(__file__).resolve().parents[1] / sk.source
+    st = src.stat()
+    h.update(f"{src.name}:{st.st_size}:{int(st.st_mtime)}".encode())
+    attrs = {k: getattr(type(sk), k) for k in dir(type(sk)) if not k.startswith("_")
+             and not callable(getattr(type(sk), k))}
+    h.update(repr(sorted((k, repr(v)) for k, v in attrs.items())).encode())
+    h.update(repr(p).encode())
+    key = h.hexdigest()[:16]
+    return CACHE_DIR / f"{sk.name}_{p.variant}_{key}.npz", key
+
+
+def _cache_save(path: Path, frame, wheel, head, info: dict) -> None:
+    import json
+    import numpy as np
+    path.parent.mkdir(parents=True, exist_ok=True)
+    arrs = {}
+    for name, m in (("frame", frame), ("wheel", wheel), ("head", head)):
+        mesh = m.to_mesh()
+        arrs[name + "_v"] = np.asarray(mesh.vert_properties, dtype=np.float32)[:, :3]
+        arrs[name + "_f"] = np.asarray(mesh.tri_verts, dtype=np.uint32)
+    tmp = path.with_suffix(".tmp.npz")
+    np.savez_compressed(tmp, info=np.array(json.dumps(info, default=str)), **arrs)
+    tmp.replace(path)
+
+
+def _cache_load(path: Path):
+    import json
+    import numpy as np
+    from manifold3d import Mesh
+    d = np.load(path)
+    out = []
+    for name in ("frame", "wheel", "head"):
+        v = np.array(d[name + "_v"], dtype=np.float32, order="C", copy=True)
+        f = np.array(d[name + "_f"], dtype=np.uint32, order="C", copy=True)
+        out.append(Manifold(Mesh(vert_properties=v, tri_verts=f)))
+    return out[0], out[1], out[2], json.loads(str(d["info"]))

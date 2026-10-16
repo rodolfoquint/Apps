@@ -56,6 +56,7 @@ class SculptKittySkin(Skin):
     t_min = 0.8             # the head keeps at least this much material under its surface (else: pocket)
     cover_min = 8.8         # legs whose sweep passes under sculpt thinner than this are lowered to leg_low_top;
     leg_low_top = 3.97      # the others keep a cover >= cover_min - z_band1 - gap_z above them
+    cover_t = 1.2           # frame over the lowered legs: at least this thick (low bosses where the sculpt is thinner)
     ball_keep_r = 18.5      # the head body never swings over the yarn ball (r <= this about O)
     pad_back = 2.0          # stop pad backing (fill around each pad)
     gap_xy, gap_z = 0.5, 0.4137      # (gap_z off round numbers too, see sculpt.GRID_OFFSET)

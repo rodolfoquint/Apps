@@ -72,6 +72,8 @@ def clean_sculpt(m: Manifold) -> Manifold:
     internal voids, which come out as separate inverted shells), then weld every point where two parts of the
     surface touch (a pinch vertex: fine in memory, non-manifold once written to STL) with a 0.06 mm sphere."""
     main = max(m.decompose(), key=lambda q: q.volume())
+    # the back is printed on the bed: fill its shallow dips (up to ~0.3 mm on the owner's model) so it is flat
+    main = main + main.slice(0.3).extrude(0.3)
     return weld_pinches(main)
 
 
@@ -219,8 +221,10 @@ def head_envelope(head: Manifold, P, psi_b: float, n: int, gap_xy: float, gap_z:
     return stack(slabs, gap_z)
 
 
-def wheel_envelope(wheel: Manifold, gap_xy: float, gap_z: float, h: float = 0.2, nseg: int = 360) -> Manifold:
-    """Region the wheel sweeps turning about O (per layer: the disc of its largest radius), grown, dilated."""
+def wheel_envelope(wheel: Manifold, gap_xy: float, gap_z: float, h: float = 0.2, nseg: int = 360,
+                   z_floor: float | None = None) -> Manifold:
+    """Region the wheel sweeps turning about O (per layer: the disc of its largest radius), grown, dilated.
+    z_floor: the lowest prism reaches down to there (a cavity with straight walls down to the plate)."""
     bb = wheel.bounding_box()
     slabs = []
     for za, zb in _layers(bb[2], bb[5], h):
@@ -238,7 +242,8 @@ def wheel_envelope(wheel: Manifold, gap_xy: float, gap_z: float, h: float = 0.2,
         j = k
         while j + 1 < len(slabs) and rad[j + 1] == rad[k]:
             j += 1
-        z0 = slabs[k][0] - (gap_z if k == 0 else 0.0)
+        z0 = (min(z_floor, slabs[k][0] - gap_z) if z_floor is not None else slabs[k][0] - gap_z) if k == 0 \
+            else slabs[k][0]
         z1 = slabs[j][1] + (gap_z if j == len(slabs) - 1 else 0.0)
         parts.append(circles[rad[k]].extrude(z1 - z0).translate((0.0, 0.0, z0)))
         k = j + 1
@@ -333,15 +338,29 @@ def integrate(M, verbose: bool = False) -> dict:
     # under the band's sweep and the wheel the frame is cut down to the plate top, with the back ribs inside
     # (the band's own cavity is the first slab of its envelope below, which starts at the plate top)
     sw_band = g2.grow(swept(band2d, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01)
-    low2d_cav = g2.union([sw_band, g2.circle(O, p.wheel_ex_r + gxy, 0.01)])
+    low2d_cav = g2.union([sw_band, g2.circle(O, p.wheel_ex_r, 0.01)])
     ribs_back = ext(g2.intersect(S["ribs_back2d"], g2.grow(low2d_cav, -0.3, 0.01)), p.z_bp - EPS, p.z_bp + p.rib_h)
     # legs lowered where their sweep passes under sculpt thinner than cover_min (outside the head and the ball)
-    band_ex = g2.difference(band2d, g2.grow(HB, -0.3, 0.01))
     foot = K.slice(0.3)
     TV = TopView(K, 2.5, 0.1)                  # top-view height regions (undercut-aware)
     thin = g2.difference(foot, TV.at(sk.cover_min, up=True), g2.grow(HB, 0.3, 0.01), g2.circle(O, p.R_u - 0.5, 0.01))
-    low2d = g2.drop_small(g2.intersect(band_ex, swept(g2.grow(thin, gxy, 0.01), P, p.psi_b, p.n_sweep, allowance=0.05)),
+    # (any band part whose sweep passes over thin sculpt, also the parts of the legs inside the head blob that swing
+    # out below the neck line; the always-covered face part never leaves the blob)
+    low2d = g2.drop_small(g2.intersect(band2d, swept(g2.grow(thin, gxy, 0.01), P, p.psi_b, p.n_sweep, allowance=0.05)),
                           0.2)
+    # the frame over the lowered legs keeps >= cover_t above their swept envelope; where the sculpt is thinner than
+    # that (cushion valleys beside the chin) a low boss fills it up to cover_t (the head's floors clear it too)
+    cov_top = sk.leg_low_top + zl + sk.gap_z + sk.cover_t
+    sw_low = g2.difference(g2.grow(swept(low2d, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01),
+                           g2.grow(HB, 0.3, 0.01)) if not low2d.is_empty() else CrossSection()
+    boss2d = g2.drop_small(g2.difference(sw_low, TV.at(cov_top, up=True)), 0.05) if not sw_low.is_empty() \
+        else CrossSection()
+    Ks = K
+    if not boss2d.is_empty():
+        boss2d = g2.intersect(g2.closing(g2.grow(boss2d, 0.4, 0.01), 0.5, 0.01), g2.grow(foot, -0.5, 0.01))
+        Ks = K + ext(boss2d, 0.0, cov_top)
+        TV = TopView(Ks, 2.5, 0.1)
+    info["cover_boss_mm2"] = round(boss2d.area(), 1)
     # stacked slabs, each section strictly inside the one below (eps_stack): the full band up to leg_low_top, the
     # band without the lowered legs up to the pallet top, then without the pallet fingers (they run under the
     # umbrella) up to the band top.  (A cut instead would leave walls meeting the band's outline at single
@@ -374,7 +393,7 @@ def integrate(M, verbose: bool = False) -> dict:
     pads_low2d = g2.union([g2.pieces(S["stoppads2d"])[k] for k in range(len(g2.pieces(S["stoppads2d"])))
                            if g2.intersect(g2.pieces(S["stoppads2d"])[k], HB).area() > 0])
     pads_full2d = g2.difference(S["stoppads2d"], pads_low2d)
-    hard = [(sk.cover_min + gz, legs_cov), (p.z_band1 + gz, g2.grow(pads_full2d, sk.pad_back, 0.01)),
+    hard = [(sk.cover_min + gz, legs_cov), (cov_top + gz, sw_low), (p.z_band1 + gz, g2.grow(pads_full2d, sk.pad_back, 0.01)),
             (pad_low_top + gz, g2.grow(pads_low2d, sk.pad_back, 0.01))]
     # (floor levels sit off the sculpt's flats - its cushion top is flat at 5.60-5.62 - by FLOOR_OFFSET: a floor
     # coplanar with a flat leaves thousands of pinch vertices)
@@ -431,11 +450,19 @@ def integrate(M, verbose: bool = False) -> dict:
     band_env = [(p.z_bp, z_fl + zl, sw_band), (z_fl + zl, p.z_band1 + zl + sk.gap_z, sw(keep))]
     Eh = solids.union3([stack_sections(band_env, p.eps_stack), nested_stack(env_slabs, p.eps_stack, grows_up=True)])
     log("head envelope")
-    Ew = wheel_envelope(wheel, gxy, gz)
+    # the wheel's envelope: per layer below the umbrella top, exact above it (layer rounding would leave the
+    # static ring 0.7 above the skid rings instead of gap_z): the umbrella disc to its top + gap_z, the skid rings
+    # to their tops + gap_z, the cap with its radial gap
+    zc = zt - 0.25
+    Ew = wheel_envelope(wheel ^ ext(CrossSection.circle(40.0, 64), -1.0, zc), gxy, gz, z_floor=p.z_bp)
+    r_ring = (max(np.arange(sk.cap_r + sk.cap_gap + 1.2, p.R_u - 1.0 + 1e-6, sk.ring_pitch)) + p.rib_w / 2
+              if rings else sk.cap_r)
+    Ew = solids.union3([Ew, ext(g2.circle(O, p.R_u + gxy, 0.005), zc - 0.05, zt + gz),
+                        ext(g2.circle(O, r_ring + gxy, 0.005), zt + gz - 0.05, zt + p.rib_h + gz),
+                        ext(g2.circle(O, sk.cap_r + sk.cap_gap, 0.005), zt + p.rib_h + gz - 0.05, 60.0)])
     log("wheel envelope")
     # under the band and the wheel the cavities reach down to the plate top (back ribs added again below)
-    lowcav = ext(g2.circle(O, p.wheel_ex_r + gxy, 0.01), p.z_bp, p.z_band0)
-    Kf = K - solids.union3([Eh, Ew, lowcav])
+    Kf = Ks - solids.union3([Eh, Ew])
     frame = solids.union3([Kf, ribs_back, posts, pads])
     info["frame_pinches_before_weld"] = len(solids.pinch_vertices(frame))
     frame = solids.finish(weld_pinches(frame), p, "frame")

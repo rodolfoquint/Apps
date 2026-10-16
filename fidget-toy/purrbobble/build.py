@@ -45,11 +45,21 @@ def _bbox(m: Manifold) -> list:
     return [round(float(x), 3) for x in bb]
 
 
+def _sections(M: Model) -> dict:
+    sec = core2d.section_report(M.params, M.sections)
+    if (M.info or {}).get("sculpt"):
+        # a sculpt skin builds no roof, face layers, fill walls or bridges: keep the sections that are in its bodies
+        sec = {k: sec[k] for k in ("overall_W", "overall_H", "backdrop_bounds", "headband_area", "stoppads_area")
+               if k in sec}
+        sec["classic_sections_not_in_bodies"] = ["roof2d", "i3", "faceup2d", "facemid2d", "fill2d", "bridges"]
+    return sec
+
+
 def model_report(M: Model, bodies: dict) -> dict:
     p = M.params
     rep = {"skin": M.skin.name, "variant": p.variant, "pose": {"phi": p.phi_print, "psi": p.psi_print},
            "D": p.D, "P": p.P, "pallets": p.pallets, "info": M.info,
-           "sections": core2d.section_report(p, M.sections), "bodies": {}}
+           "sections": _sections(M), "bodies": {}}
     for k, b in bodies.items():
         bb = _bbox(b)
         rep["bodies"][k] = {"volume_mm3": round(b.volume(), 1), "mass_solid_g": round(b.volume() * p.rho_pla, 2),
@@ -98,7 +108,9 @@ def build_one(skin: str, variant: str, stl_dir: Path, render_dir: Path | None, v
     t0 = time.time()
     M = build(skin, variant, verbose=verbose)
     bodies = M.print_pose()
-    chk = check_print_pose(bodies, min_gap=0.35)
+    # (the sculpt bodies face each other across 0.41 / 0.5 mm seams over their whole interface: a 1 mm search finds
+    # the same minimum ~30x faster; gaps above 1 mm then read 1.0)
+    chk = check_print_pose(bodies, min_gap=0.35, search=1.0 if (M.info or {}).get("sculpt") else 3.0)
     stl_dir.mkdir(parents=True, exist_ok=True)
     base = f"purrbobble_{M.skin.name}_{variant}"
     files = []

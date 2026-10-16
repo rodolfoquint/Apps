@@ -11,3 +11,5 @@ web/models/*.glb
 web/models/*_*.json
 # cached face-up copy of the sculpt (purrbobble/sculpt.load_sculpt)
 sculpt/*.npz
+# integrated sculpt bodies (purrbobble/model.py: keyed by a hash of every input, rebuilt when anything changes)
+build_cache/
