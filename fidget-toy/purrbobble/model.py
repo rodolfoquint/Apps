@@ -110,20 +110,27 @@ def build(skin: str | Skin = "kitty", variant: str = "nominal", params: Params |
 
 # ------------------------------------------------------------------------------------------------ sculpt body cache
 CACHE_DIR = Path(__file__).resolve().parents[1] / "build_cache"
+CACHE_VERSION = 1           # bump to invalidate every cached body (e.g. after changing build() itself)
+# modules that cannot change the bodies (colours, export, reports): edits there keep the cache
+NON_GEOMETRY = {"assemble.py", "build.py", "__init__.py", "model.py"}
 
 
 def _sculpt_cache(sk, p: Params):
     """(path, key) of the cached integrated bodies for this skin and parameter set, or None if caching is off
-    (PURRBOBBLE_NO_CACHE=1).  The key hashes every source file of the package, the sculpt file, the skin's class
-    attributes and the full parameter set, so any change rebuilds."""
+    (PURRBOBBLE_NO_CACHE=1).  The key hashes every geometry source file of the package (not NON_GEOMETRY; bump
+    CACHE_VERSION when build() itself changes), the sculpt file, the skin's class attributes and the full parameter
+    set, so any change to the geometry rebuilds."""
     import hashlib
     import os
     if os.environ.get("PURRBOBBLE_NO_CACHE"):
         return None
-    h = hashlib.sha1()
+    h = hashlib.sha1(f"v{CACHE_VERSION}".encode())
     pkg = Path(__file__).resolve().parent
     for f in sorted(pkg.rglob("*.py")):
-        h.update(f.relative_to(pkg).as_posix().encode())
+        rel = f.relative_to(pkg).as_posix()
+        if rel in NON_GEOMETRY:
+            continue
+        h.update(rel.encode())
         h.update(f.read_bytes())
     src = Path(__file__).resolve().parents[1] / sk.source
     st = src.stat()
