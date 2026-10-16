@@ -1,7 +1,7 @@
 {
  "skin": "kitty",
  "variant": "nominal",
- "build_time_s": 29.32,
+ "build_time_s": 33.32,
  "params": {
   "skin": "kitty",
   "variant": "nominal",
@@ -188,10 +188,7 @@
   "rho_pla": 0.00124
  },
  "skin_contract": {
-  "warnings": [
-   "B_i only 1.32 mm inside Face2D (contract 3.0)",
-   "Face2D has 5.6 mm^2 narrower than 6.0 mm"
-  ],
+  "warnings": [],
   "leg_B_margin": [
    1.324,
    1.324
@@ -205,63 +202,70 @@
    5.91,
    4.93
   ],
-  "note": "sculpt skin: hub collar / crown collar items n/a (not built), bore wall: V1 cad_bore_wall_P; Face2D (the sculpt's face slice) only shapes the band's face part, the head is the sculpt's head blob"
+  "warnings_na_sculpt": [
+   "B_i only 1.32 mm inside Face2D (contract 3.0)",
+   "disc(P, 7.5) not inside Face2D (24.1 mm^2 outside); hub collar z 7.4-8.4 added",
+   "Face2D has 5.6 mm^2 narrower than 6.0 mm"
+  ],
+  "note": "sculpt skin: crown collar n/a (not built), bore wall: V1 cad_bore_wall_P; Face2D (the sculpt's face slice) only shapes the band's face part, the head is the sculpt's head blob: B_i / Face2D width items n/a (listed in warnings_na_sculpt)"
  },
  "sculpt": true,
  "sculpt_info": {
-  "cover_boss_mm2": 132.4,
+  "cover_boss_mm2": 188.6,
+  "relief_mm2": 38.3,
   "film_raised_mm2": 841.7,
-  "terrace_raised_mm2": 50.0,
-  "head_pinches_before_weld": 110,
-  "head_feathers_cut_mm2": 15.6,
+  "terrace_raised_mm2": 760.1,
+  "frame_thin_cut_mm2": 38.5,
+  "head_pinches_before_weld": 150,
+  "head_feathers_cut_mm2": 16.0,
   "head_blob_mm2": 1154.7,
   "legs_lowered_mm2": 194.5,
   "head_always_covered_mm2": 826.2,
   "floor_area_mm2": {
-   "3.437": 553.4,
-   "3.637": 553.4,
-   "3.837": 553.4,
-   "4.037": 553.4,
-   "4.237": 553.4,
-   "4.437": 553.4,
-   "4.637": 553.3,
-   "4.837": 552.8,
-   "5.037": 552.4,
-   "5.237": 552.0,
-   "5.437": 550.9,
-   "5.637": 398.1,
-   "5.837": 383.0,
-   "6.037": 378.2,
-   "6.237": 366.2,
-   "6.437": 361.5,
-   "6.637": 352.4,
-   "6.837": 210.8,
-   "7.037": 168.4,
-   "7.237": 105.7,
-   "7.437": 62.8,
-   "7.637": 53.3,
-   "7.837": 53.0,
-   "8.037": 53.0,
-   "8.237": 35.5,
-   "8.437": 34.9,
-   "8.637": 34.7,
-   "8.837": 34.3,
-   "9.037": 34.0,
-   "9.237": 33.5,
-   "9.437": 33.1,
-   "9.637": 32.5,
-   "9.837": 31.9,
-   "10.037": 31.2,
-   "10.237": 30.4,
-   "10.437": 29.4,
-   "10.637": 28.2,
-   "10.837": 26.8,
-   "11.037": 25.3,
-   "11.237": 23.7,
-   "11.437": 22.0,
-   "11.637": 20.3,
-   "11.837": 18.4,
-   "12.037": 16.4,
+   "3.437": 528.1,
+   "3.637": 528.1,
+   "3.837": 528.1,
+   "4.037": 528.1,
+   "4.237": 528.1,
+   "4.437": 528.1,
+   "4.637": 527.9,
+   "4.837": 527.4,
+   "5.037": 527.0,
+   "5.237": 526.6,
+   "5.437": 525.5,
+   "5.637": 395.8,
+   "5.837": 385.8,
+   "6.037": 377.2,
+   "6.237": 362.3,
+   "6.437": 356.4,
+   "6.637": 321.5,
+   "6.837": 181.1,
+   "7.037": 132.0,
+   "7.237": 104.5,
+   "7.437": 92.7,
+   "7.637": 85.2,
+   "7.837": 78.5,
+   "8.037": 73.1,
+   "8.237": 68.6,
+   "8.437": 67.7,
+   "8.637": 66.7,
+   "8.837": 65.9,
+   "9.037": 65.5,
+   "9.237": 65.1,
+   "9.437": 64.6,
+   "9.637": 63.6,
+   "9.837": 60.8,
+   "10.037": 59.2,
+   "10.237": 58.4,
+   "10.437": 54.5,
+   "10.637": 48.0,
+   "10.837": 41.0,
+   "11.037": 34.3,
+   "11.237": 28.6,
+   "11.437": 24.8,
+   "11.637": 21.9,
+   "11.837": 19.3,
+   "12.037": 16.7,
    "12.237": 14.3,
    "12.437": 12.2,
    "12.637": 9.5,
@@ -274,9 +278,8 @@
    "14.037": 0.0
   },
   "seam_chamfer_mm3": 408.7,
-  "frame_pinches_before_weld": 88,
-  "frame_feathers_cut_mm2": 4.8,
-  "t_sculpt_s": 521.9,
+  "frame_pinches_before_weld": 1141,
+  "t_sculpt_s": 560.5,
   "cache": "hit"
  },
  "V1": {
@@ -407,12 +410,12 @@
    },
    "cad_pallet_body_R": {
     "contact_half_in_head": 1.0,
-    "full_disc_in_head": 0.95424,
+    "full_disc_in_head": 0.9551,
     "spec": 0.999,
     "outer_half_beyond_tip_circle": true,
     "pass": true,
     "status": "warn",
-    "note": "outer half: 2.40 mm^3 of the pin not in the head at x 13.54..15.08, y 8.23..10.69, z 4.27..6.85"
+    "note": "outer half: 2.35 mm^3 of the pin not in the head at x 13.55..15.08, y 8.24..10.69, z 4.27..6.85"
    }
   },
   "pass": true
@@ -426,11 +429,11 @@
    "frame": {
     "status": "Error.NoError",
     "components": 1,
-    "genus": 86,
+    "genus": 71,
     "watertight": true,
     "winding_consistent": true,
-    "volume_mm3": 32259.02,
-    "triangles": 811490,
+    "volume_mm3": 32201.57,
+    "triangles": 878394,
     "pass": true
    },
    "wheel": {
@@ -446,12 +449,12 @@
    "head": {
     "status": "Error.NoError",
     "components": 1,
-    "genus": 27,
-    "watertight": false,
+    "genus": 26,
+    "watertight": true,
     "winding_consistent": true,
-    "volume_mm3": 12076.85,
-    "triangles": 632968,
-    "pass": false
+    "volume_mm3": 12123.23,
+    "triangles": 434538,
+    "pass": true
    }
   },
   "pairs": [
@@ -476,7 +479,7 @@
   ],
   "checks": {
    "three_valid_shells": {
-    "pass": false
+    "pass": true
    },
    "disjoint": {
     "pass": true
@@ -490,7 +493,7 @@
    "pallet_tooth_gap": {
     "pallet_2d": 1.3776,
     "headband_2d": 1.3776,
-    "band_slab_3d": 1.3836,
+    "band_slab_3d": 1.3776,
     "spec": 1.3,
     "pass": true
    }
@@ -499,7 +502,7 @@
    "shells": 3,
    "all_watertight": true
   },
-  "pass": false
+  "pass": true
  },
  "mass": {
   "frame": {
@@ -516,8 +519,8 @@
     85.44,
     20.79
    ],
-   "volume_mm3": 32259.0,
-   "mass_solid_pla_g": 40.0
+   "volume_mm3": 32201.6,
+   "mass_solid_pla_g": 39.93
   },
   "wheel": {
    "bbox": [
@@ -539,31 +542,31 @@
   "head": {
    "bbox": [
     -23.728,
-    5.275,
+    5.269,
     3.0,
-    22.214,
+    22.22,
     50.061,
     19.5
    ],
    "size": [
-    45.94,
+    45.95,
     44.79,
     16.5
    ],
-   "volume_mm3": 12076.9,
-   "mass_solid_pla_g": 14.98
+   "volume_mm3": 12123.2,
+   "mass_solid_pla_g": 15.03
   },
   "overall_size_WxHxD": [
    66.32,
    85.44,
    21.51
   ],
-  "total_mass_solid_g": 63.08,
+  "total_mass_solid_g": 63.06,
   "head_inertia": {
-   "mass_g": 14.98,
-   "I_P_kgm2": 3.314e-06,
+   "mass_g": 15.03,
+   "I_P_kgm2": 3.331e-06,
    "com_above_P_mm": 6.98,
-   "com_x_mm": -0.02,
+   "com_x_mm": -0.064,
    "spec_I_range": [
     4e-06,
     8e-06
@@ -596,11 +599,11 @@
  },
  "slice": {
   "ok": true,
-  "filament_g": "0.00",
-  "filament_mm": "17529.55",
-  "time": "5h 9m 1s",
+  "filament_g": "52.27",
+  "filament_mm": "17525.59",
+  "time": "5h 8m 24s",
   "support_material": false
  },
- "pass": false,
- "time_s": 1716.56
+ "pass": true,
+ "time_s": 1682.37
 }
