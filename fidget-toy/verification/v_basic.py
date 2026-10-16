@@ -7,10 +7,15 @@ non-zero if any check fails.
 
 V1  D = 24.710 +- 0.001, pallets (+-12.983, 8.675) +- 0.001 (nominal; other variants report the recomputed values),
     plus a cross-check that the CAD sections carry exactly these values (pallet disc centres, post spacing).
+    Sculpt skins (purrbobble/sculpt.py rebuilds all three bodies from the sculpt): the bodies themselves are probed
+    as well - posts at O and P in the frame, both bores clear, the head bore walled and roofed as the classic hub
+    collar did (r 6.85, up to z 8.35), the pallet pins in the head.
 V7  print pose (phi 12.0, psi 5.96): three disjoint, valid, watertight, single-component shells (also after an
     STL round trip through trimesh); global minimum gap >= 0.35; pallet <-> tooth gap >= 1.3.
 Also: bbox / volume / solid PLA mass per body, overall size, head I_h about P and COM height above P
-(SPEC 4.3: I_h in [4.0, 8.0]e-6 kg m^2, COM 8-14 mm above P), optional PrusaSlicer slice of the 3MF.
+(SPEC 4.3: I_h in [4.0, 8.0]e-6 kg m^2, COM 8-14 mm above P), optional PrusaSlicer slice of the 3MF.  The exit
+status gates V1 and V7; the head inertia is gated by run_all (classic skins) and by V13 in v_escapement.py.  A sculpt
+head outside that band is reported as a warning here: V13 accepts it only if V4 passes with the measured values.
 """
 from __future__ import annotations
 
@@ -31,6 +36,7 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "tools"))
 
 import trimesh  # noqa: E402
+from manifold3d import Manifold  # noqa: E402
 
 from purrbobble import escapement as esc  # noqa: E402
 from purrbobble import geom2d as g2  # noqa: E402
@@ -43,6 +49,7 @@ TOL_V1 = 1e-3
 GAP_MIN = 0.35
 GAP_TOL = 2e-3          # float / faceting tolerance on the 0.35 journal and ridge gaps
 PALLET_MIN = 1.3
+PROBE_MIN = 0.999       # sculpt body probes: share of the probe inside the body (faceting allowance)
 
 
 def v1(M) -> dict:
@@ -67,7 +74,51 @@ def v1(M) -> dict:
         err = math.hypot(c[0] - want[0], c[1] - want[1])
         out["checks"][f"cad_pallet_{'LR'[i]}"] = {"centre": c, "err": err, "pass": err <= TOL_V1}
     out["checks"]["cad_P"] = {"value": M.P, "pass": abs(M.P[1] - p.D) < 1e-12}
+    if M.info.get("sculpt"):
+        out["checks"].update(v1_sculpt_bodies(M))
     out["pass"] = all(c["pass"] for c in out["checks"].values())
+    return out
+
+
+def _probe(c, r0, r1, z0, z1, n=96) -> Manifold:
+    """Vertical cylinder (r0 = 0) or annulus r0..r1 about c, z0..z1."""
+    m = Manifold.cylinder(z1 - z0, r1, r1, n).translate((c[0], c[1], z0))
+    if r0 > 0:
+        m = m - Manifold.cylinder(z1 - z0 + 0.2, r0, r0, n).translate((c[0], c[1], z0 - 0.1))
+    return m
+
+
+def v1_sculpt_bodies(M) -> dict:
+    """Sculpt skins: the frame and head are rebuilt from the sculpt (posts added again by hand, no hub collar), so
+    the section cross-checks above say nothing about the bodies.  Probe them: the posts at O and P are in the frame,
+    the wheel / head bores around them are clear, the head walls and roofs its blind bore as the classic hub collar
+    did (disc(P, 6.90) up to z_roof0 8.4: wall >= 2.5 from the bore, roof 0.4 over bore_roof_z), and the pallet pins
+    are in the head (band slab up to z_pallet_top).  Floating bodies are probed at their lifted z."""
+    p = M.params
+    zl = p.z_lift
+    O, P = (0.0, 0.0), tuple(M.P)
+    out = {}
+
+    def inside(body, probe):
+        return float((body ^ probe).volume()) / float(probe.volume())
+
+    za, zb = p.post_z0 + p.post_root_fillet + 0.05, p.post_z1 - p.post_chamfer - 0.05
+    for name, c, body in (("O", O, "wheel"), ("P", P, "head")):
+        f = inside(M.frame, _probe(c, 0.0, p.post_r - 0.05, za, zb))
+        out[f"cad_post_{name}"] = {"in_frame": round(f, 5), "spec": PROBE_MIN, "pass": f >= PROBE_MIN}
+        bore = _probe(c, 0.0, p.bore_r - 0.05, p.z_band0 + p.bore_chamfer + zl + 0.05, p.bore_roof_z + zl - 0.05)
+        v = float((M.bodies[body] ^ bore).volume())
+        out[f"cad_bore_{name}"] = {"body": body, "material_in_bore_mm3": round(v, 5), "pass": v <= 1e-6}
+    r_w = p.R_hub_cut - p.swept_gap - 0.05 - 0.05            # the classic collar radius (6.90) less 0.05
+    wall = _probe(P, p.groove_apex_r + 0.05, r_w, p.z_band0 + zl + 0.05, p.z_roof0 + zl - 0.05)
+    roof = _probe(P, 0.0, r_w, p.bore_roof_z + zl + 0.05, p.z_roof0 + zl - 0.05)
+    fw, fr = inside(M.head, wall), inside(M.head, roof)
+    out["cad_bore_wall_P"] = {"wall_in_head": round(fw, 5), "roof_in_head": round(fr, 5), "r_wall": round(r_w, 3),
+                              "wall_mm": round(r_w - p.bore_r, 3), "roof_mm": round(p.z_roof0 - p.bore_roof_z, 3),
+                              "spec": PROBE_MIN, "pass": min(fw, fr) >= PROBE_MIN}
+    for i, (x, y) in enumerate(p.pallets):
+        f = inside(M.head, _probe((x, y), 0.0, p.rp - 0.05, p.z_band0 + zl + 0.05, p.z_pallet_top + zl - 0.05))
+        out[f"cad_pallet_body_{'LR'[i]}"] = {"in_head": round(f, 5), "spec": PROBE_MIN, "pass": f >= PROBE_MIN}
     return out
 
 
@@ -150,6 +201,14 @@ def mass_props(M, bodies) -> dict:
                            "com_above_P_mm": round(dy, 2), "com_x_mm": round(dx, 3),
                            "spec_I_range": [4.0e-6, 8.0e-6], "spec_com_range": [8.0, 14.0],
                            "pass": bool(4.0e-6 <= I_P <= 8.0e-6 and 8.0 <= dy <= 14.0)}
+    if M.info.get("sculpt"):
+        # the band is the classic face heads' tuning band; a sculpt head weighs what the owner's sculpt weighs, and
+        # V13 (v_escapement.py) accepts it outside the band only because V4 simulates and passes with exactly these
+        # values.  Here: a warning, never a pass (the verdict on the band itself stays in "pass")
+        hi = out["head_inertia"]
+        hi["status"] = "pass" if hi["pass"] else "warn"
+        if not hi["pass"]:
+            hi["note"] = "sculpt skin: outside the SPEC 4.3 band; gated by V13 in v_escapement (accepted only if V4 passes)"
     vw, fw = mesh_arrays(M.wheel)
     tw = trimesh.Trimesh(vw, fw, process=True)
     tw.density = p.rho_pla * 1e-3
@@ -200,13 +259,32 @@ def main(argv=None):
     M = build(a.skin, a.variant)
     t_build = time.time() - t0
     bodies = M.print_pose()
+    sculpt = bool(M.info.get("sculpt"))
     rep = {"skin": a.skin, "variant": a.variant, "build_time_s": round(t_build, 2),
            "params": {k: v for k, v in M.params.as_dict().items() if k != "derived"},
            "skin_contract": M.info.get("skin_contract")}
+    if sculpt:
+        # the classic face contract's hub collar and crown collar are not built in a sculpt head / frame (the bore
+        # wall they stood for is probed on the head itself: V1 cad_bore_wall_P); the face / leg / stop pad items stay
+        # (the sculpt band and pads are still cut from those sections)
+        sc = dict(rep["skin_contract"] or {})
+        sc.pop("crown_collar", None)
+        sc["warnings"] = [w for w in sc.get("warnings", []) if "collar" not in w]
+        sc["note"] = "sculpt skin: hub collar / crown collar items n/a (not built); bore wall: V1 cad_bore_wall_P"
+        rep["skin_contract"] = sc
+        rep["sculpt"] = True
+        rep["sculpt_info"] = M.info["sculpt"]
     rep["V1"] = v1(M)
     rep["V7"] = v7(M, bodies)
     rep["mass"] = mass_props(M, bodies)
     rep["section_report"] = __import__("purrbobble.core2d", fromlist=["x"]).section_report(M.params, M.sections)
+    if sculpt:
+        # sections of classic features that a sculpt build does not contain (its frame overhangs / bridges over the
+        # head and wheel cavities are measured on the bodies by v_printability.py)
+        for k in ("i3_area", "faceup_area", "facemid_area", "fill_area", "roof_area", "fill_slivers_removed_area",
+                  "max_bridge_width", "n_bridge_pieces"):
+            rep["section_report"].pop(k, None)
+        rep["section_report"]["note"] = "sculpt bodies: classic I3 slot / face / fill / roof / bridge sections not built"
     if a.slice:
         rep["slice"] = slice_check(M, bodies)
     rep["pass"] = rep["V1"]["pass"] and rep["V7"]["pass"]
