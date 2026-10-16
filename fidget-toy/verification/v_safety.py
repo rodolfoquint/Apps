@@ -1521,9 +1521,9 @@ def run_v10(R: Report, M) -> dict:
         # ---- (sculpt) the yarn ball's static ring over the wheel's umbrella: the frame's thinnest designed overhang
         # (>= 2.0 by design) and the wheel's capture upwards
         sk = M.skin
-        from purrbobble.sculpt import seams
+        from purrbobble.sculpt import seams, skid_ring_r
         cg = seams(sk, p)["cap_gap"]
-        ring_r = [float(r) for r in np.arange(sk.cap_r + cg + 1.2, p.R_u - 1.0 + 1e-6, sk.ring_pitch)]
+        ring_r = skid_ring_r(sk, p)
         rg = ring_thickness(M.frame, sk.cap_r + cg, p.R_u + p.gap_xy, p.z_umb_top + p.z_lift + 0.05, F,
                             r_load=min(ring_r) if ring_r else sk.cap_r + cg)
         out["static_ring"] = rg

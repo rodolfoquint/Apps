@@ -268,9 +268,8 @@ def sculpt_geom(M) -> dict:
         band2d = max(g2.pieces(band2d), key=lambda q: q.area())
         sw_band = g2.grow(swept(band2d, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01)
         low2d_cav = g2.union([sw_band, g2.circle(O, p.wheel_ex_r, 0.01)])
-        from purrbobble.sculpt import seams
-        ring_r = [float(r) for r in np.arange(sk.cap_r + seams(sk, p)["cap_gap"] + 1.2, p.R_u - 1.0 + 1e-6,
-                                              sk.ring_pitch)]
+        from purrbobble.sculpt import skid_ring_r
+        ring_r = skid_ring_r(sk, p)
         rings = [g2.difference(g2.circle(O, r + p.rib_w / 2, 0.01), g2.circle(O, r - p.rib_w / 2, 0.01))
                  for r in ring_r]
         _SCULPT_GEOM[key] = {"band2d": band2d, "low2d_cav": low2d_cav,

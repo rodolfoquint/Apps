@@ -432,6 +432,11 @@ def seams(sk, p) -> dict:
             "pad_low_top": sk.pad_low_top}
 
 
+def skid_ring_r(sk, p) -> list[float]:
+    """Radii of the wheel's skid rings on the umbrella top (the same in every variant; the checkers read them too)."""
+    return [float(r) for r in np.arange(sk.cap_r + sk.cap_gap + 1.2, sk.ring_r_max + 1e-6, sk.ring_pitch)]
+
+
 # ------------------------------------------------------------------------------------------------ integration
 def integrate(M, verbose: bool = False) -> dict:
     """Replace M.frame / M.head / M.wheel by the sculpt-integrated bodies (in place).  Returns build info.
@@ -487,7 +492,7 @@ def integrate(M, verbose: bool = False) -> dict:
 
     # ---------------- wheel: escape wheel + skid rings on the umbrella top + sculpted cap with a finger dish
     zt = p.z_umb_top + zl                     # (M.wheel is already lifted by z_lift)
-    ring_r = list(np.arange(sk.cap_r + sk.cap_gap + 1.2, sk.ring_r_max + 1e-6, sk.ring_pitch))   # (all variants)
+    ring_r = skid_ring_r(sk, p)
     rings = [g2.difference(g2.circle(O, r + p.rib_w / 2, 0.01), g2.circle(O, r - p.rib_w / 2, 0.01)) for r in ring_r]
     ribs = ext(g2.union(rings), zt - EPS, zt + p.rib_h) if rings else Manifold()
     cap2d = CrossSection.circle(sk.cap_r, 256)
