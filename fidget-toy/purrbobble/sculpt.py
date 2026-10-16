@@ -257,6 +257,26 @@ def seam_chamfer(K: Manifold, r_s: float, c: float, z_lo: float, n: int = 720) -
     return out
 
 
+def float32_stable(m: Manifold, p, name: str, rounds: int = 6) -> Manifold:
+    """The body as it is exported (float32 vertices: STL, 3MF and the build cache): round-trip it until the float32
+    mesh is itself one clean shell.  Rounding can collapse sub-micron sliver triangles (trim and weld cuts) into
+    zero-volume shells or pinch vertices; the shells are dropped as crumbs and the pinches welded, then again."""
+    from . import solids
+    for _ in range(rounds):
+        mesh = m.to_mesh()
+        v = np.array(np.asarray(mesh.vert_properties)[:, :3], dtype=np.float32, order="C", copy=True)
+        f = np.array(np.asarray(mesh.tri_verts), dtype=np.uint32, order="C", copy=True)
+        r = Manifold(Mesh(vert_properties=v, tri_verts=f))
+        parts = r.decompose()
+        if len(parts) == 1 and not len(solids.pinch_vertices(r)):
+            return solids.check_solid(r, name)
+        keep = [q for q in parts if abs(q.volume()) > p.min_crumb_mm3]
+        m = keep[0] if len(keep) == 1 else Manifold.compose(keep)
+        if len(solids.pinch_vertices(m)):
+            m = weld_pinches(m)
+    raise AssertionError(f"{name}: no float32-stable mesh after {rounds} rounds")
+
+
 def _finish_trimmed(m: Manifold, near_at, z0: float, p, name: str, info: dict, log) -> Manifold:
     """trim_feathers(m) over [z0, top] then weld and validate; if the trimmed mesh keeps pinch vertices the weld
     cannot remove, the untrimmed body is kept (and the fact recorded in info)."""
@@ -680,6 +700,9 @@ def integrate(M, verbose: bool = False) -> dict:
 
     frame = _finish_trimmed(frame, near_frame, p.z_bp + p.rib_h + 0.1, p, "frame", info, log)
     log("frame")
+    # as exported: float32 vertices (STL, 3MF, build cache) must give the same single clean shells
+    frame, head, wheel = (float32_stable(b, p, n) for b, n in ((frame, "frame"), (head, "head"), (wheel, "wheel")))
+    log("float32-stable")
     M.frame, M.head, M.wheel = frame, head, wheel
     info.update({"t_sculpt_s": round(time.time() - t0, 1)})
     return info
