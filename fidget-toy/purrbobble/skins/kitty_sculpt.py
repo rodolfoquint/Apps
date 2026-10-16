@@ -45,6 +45,7 @@ class SculptKittySkin(Skin):
     # integration (purrbobble/sculpt.py)
     cap_r = 10.0            # spinning centre of the yarn ball
     cap_gap = 0.5           # radial gap cap <-> static ring (+ the variant's extra gap_xy)
+    seam_chamfer = 0.6      # the static ring's inner edge is chamfered 45 deg from this far under the yarn surface
     cap_min_h = 1.5         # the cap is at least this tall above the umbrella top
     ring_pitch = 2.0        # skid rings on the umbrella top (the static ring floats on them)
     dish_d, dish_depth = 7.5, 3.0     # finger dish in the cap, centred at (r_k, 0) = (5, 0) (param_overrides)

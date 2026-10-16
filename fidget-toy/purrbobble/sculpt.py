@@ -209,6 +209,54 @@ def stack_sections(slabs: list[tuple[float, float, CrossSection]], eps: float) -
     return Manifold.batch_boolean(parts, _ADD) if len(parts) > 1 else (parts[0] if parts else Manifold())
 
 
+def seam_chamfer(K: Manifold, r_s: float, c: float, z_lo: float, n: int = 720) -> Manifold:
+    """A 45 deg chamfer cutter for the outer side of a circular seam at r_s about O: at each angle it removes what
+    lies above the line rising outward at 45 deg from (r_s, h - c), h being the sculpt's highest point within 1 mm
+    outside the seam there (so the edge is c below the surface and blunt however steeply the yarn strands fall
+    away from it).  Built as one closed ring mesh: profile (r_s - 0.3 .. r_s + c + 2.5) swept around O."""
+    import shapely
+    from shapely.geometry import Polygon
+    th = np.linspace(0.0, 2 * math.pi, n, endpoint=False)
+    rr = r_s + np.array([0.0, 0.35, 0.7, 1.0])
+    X = np.cos(th)[:, None] * rr[None, :]
+    Y = np.sin(th)[:, None] * rr[None, :]
+    H = np.full(X.shape, z_lo)
+    bb = K.bounding_box()
+    for z in np.arange(z_lo, bb[5], 0.05):
+        pg = None
+        for ring in sorted((np.asarray(q) for q in K.slice(float(z)).to_polygons() if len(q) >= 3),
+                           key=lambda a: -abs(Polygon(a).area)):
+            g = Polygon(ring).buffer(0)
+            pg = g if pg is None else pg.symmetric_difference(g)
+        if pg is None or pg.is_empty:
+            break
+        H[shapely.contains_xy(pg, X, Y)] = z
+    h = H.max(axis=1)
+    k = max(1, n // 360)                                    # max-filter over +-1 deg: no notches between samples
+    h = np.max(np.stack([np.roll(h, j) for j in range(-k, k + 1)]), axis=0)
+    prof = [(r_s - 0.3, -c), (r_s, -c), (r_s + c + 2.5, 2.5), (r_s - 0.3, 2.5)]     # (r, z - h), CCW in (r, z)
+    m = len(prof)
+    V = np.zeros((n * m, 3))
+    for i in range(n):
+        for j, (r, dz) in enumerate(prof):
+            V[i * m + j] = (r * math.cos(th[i]), r * math.sin(th[i]), h[i] + dz)
+    F = []
+    for i in range(n):
+        i2 = (i + 1) % n
+        for j in range(m):
+            j2 = (j + 1) % m
+            a, b, c_, d = i * m + j, i * m + j2, i2 * m + j2, i2 * m + j
+            F += [(a, b, c_), (a, c_, d)]
+    F = np.array(F, dtype=np.uint32)
+    mesh = Mesh(vert_properties=np.ascontiguousarray(V, np.float32), tri_verts=np.ascontiguousarray(F))
+    out = Manifold(mesh)
+    if out.is_empty() or out.volume() <= 0:
+        mesh = Mesh(vert_properties=np.ascontiguousarray(V, np.float32),
+                    tri_verts=np.ascontiguousarray(F[:, ::-1].copy()))
+        out = Manifold(mesh)
+    return out
+
+
 def _finish_trimmed(m: Manifold, near_at, z0: float, p, name: str, info: dict, log) -> Manifold:
     """trim_feathers(m) over [z0, top] then weld and validate; if the trimmed mesh keeps pinch vertices the weld
     cannot remove, the untrimmed body is kept (and the fact recorded in info)."""
@@ -610,22 +658,25 @@ def integrate(M, verbose: bool = False) -> dict:
     Ew = solids.union3([Ew, ext(g2.circle(O, p.R_u + gxy, 0.005, hole=True), zc - 0.05, zt + gz),
                         ext(g2.circle(O, r_ring + gxy, 0.005, hole=True), zt + gz - 0.05, zt + p.rib_h + gz),
                         ext(g2.circle(O, sk.cap_r + cap_gap, 0.005, hole=True), zt + p.rib_h + gz - 0.05, 60.0)])
+    # the static ring's inner edge at the cap's seam: a 45 deg chamfer sk.seam_chamfer under the yarn surface (the
+    # strands fall steeply away from the seam: a vertical cut leaves knife edges there, V8 / V12)
+    if getattr(sk, "seam_chamfer", 0.0) > 0:
+        ch = seam_chamfer(K, sk.cap_r + cap_gap, sk.seam_chamfer, zt + p.rib_h + gz + 0.5)
+        info["seam_chamfer_mm3"] = round(ch.volume(), 1)
+        Ew = solids.union3([Ew, ch])
     log("wheel envelope")
     # under the band and the wheel the cavities reach down to the plate top (back ribs added again below)
     Kf = Ks - solids.union3([Eh, Ew])
     frame = solids.union3([Kf, ribs_back, posts, pads])
     info["frame_pinches_before_weld"] = len(solids.pinch_vertices(frame))
-    # knife edges where the cosmetic seams cut the sculpt's slopes: the yarn strands at the cap's seam (above the
-    # umbrella's skid rings) and the cushion at the head body's floor envelope (clear of the mechanism: the band's
-    # channel, the wheel's cavity and the collar keep their designed walls)
-    seam = g2.difference(g2.circle(O, sk.cap_r + cap_gap + 1.2, 0.01), g2.circle(O, sk.cap_r + cap_gap - 0.2, 0.01))
+    # knife edges where the head body's floor envelope cuts the cushion's slopes (clear of the mechanism: the
+    # band's channel, the wheel's cavity and the collar keep their designed walls; the cap's seam is chamfered)
     mech = g2.union([g2.grow(sw_band, 0.6, 0.01), g2.circle(O, p.R_u + gxy + 0.6, 0.01),
                      g2.circle(P, p.R_hub_cut + 0.6, 0.01), g2.grow(S["stoppads2d"], sk.pad_back + 0.6, 0.01)])
-    z_ring = zt + p.rib_h + gz
 
     def near_frame(z):
-        nr = g2.difference(g2.grow(Ef.slice(z), 0.45, 0.01), mech) if z > sk.float_z - gzf - 0.5 else CrossSection()
-        return g2.union([nr, seam]) if z >= z_ring else nr
+        return g2.difference(g2.grow(Ef.slice(z), 0.45, 0.01), mech) if z > sk.float_z - gzf - 0.5 \
+            else CrossSection()
 
     frame = _finish_trimmed(frame, near_frame, p.z_bp + p.rib_h + 0.1, p, "frame", info, log)
     log("frame")
