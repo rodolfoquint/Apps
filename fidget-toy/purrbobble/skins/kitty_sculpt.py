@@ -46,6 +46,11 @@ class SculptKittySkin(Skin):
     cap_r = 10.0            # spinning centre of the yarn ball
     cap_gap = 0.5           # radial gap cap <-> static ring (+ the variant's extra gap_xy)
     seam_chamfer = 0.6      # the static ring's inner edge is chamfered 45 deg from this far under the yarn surface
+    # hidden flange ring on the wheel (r 14.7 -> 16.2, z 8.5-9.45 under the yarn ball's static ring): the wheel is
+    # then 32.4 wide, more than the 31.7 small-parts cylinder (V10).  Limits: the head's hub collar is 17.81 from O
+    # (deep 17.65; >= 1.4 clear), the chin's floor envelope at r 18.44, and the ring over it stays >= 2 thick
+    flange_r = 16.2
+    flange_z = (8.5, 9.45)
     cap_min_h = 1.5         # the cap is at least this tall above the umbrella top
     ring_pitch = 2.0        # skid rings on the umbrella top (the static ring floats on them)
     dish_d, dish_depth = 7.5, 3.0     # finger dish in the cap, centred at (r_k, 0) = (5, 0) (param_overrides)
@@ -61,7 +66,8 @@ class SculptKittySkin(Skin):
     float_reach = 1.8       # ... or reaches at most this far beyond frame just under its seam (V9 float reach 1.9)
     leg_low_top = 4.27      # legs whose sweep passes under sculpt too thin for a cover_t frame cover over their top
                             # seam are lowered to this (1.27 tall); a cover >= cover_t runs over them
-    cover_t = 1.2           # frame over the legs: at least this thick (low bosses where the sculpt is thinner)
+    cover_t = 1.25          # frame over the legs: at least this thick (low bosses where the sculpt is thinner;
+                            # 1.25: a margin over the 1.2 wall rule once rounded to float32)
     ball_keep_r = 18.5      # the head body never swings over the yarn ball (r <= this about O)
     pad_back = 2.0          # stop pad backing (fill around each pad)
     # visible relief (sculpt.integrate): the cushion behind the head between the left ear and the bow (box x -16..-4,

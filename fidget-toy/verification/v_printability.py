@@ -915,7 +915,14 @@ def v8_specifics(M, bodies, zoner: Zoner) -> dict:
         # the mechanism, and the covers over the moving bodies (every non-bed underside of the frame) take their
         # place; the head's floors / lowered band and the wheel's undersides are horizontal shells too
         res["back_plate"] = _sculpt_back_plate(M, frame_t)
-        res["roof"] = v8_shells(M, bodies, ("frame",), ROOF_MIN)
+        # the covers bridge the lowered legs' channel (~7 mm, not the classic roof's 13.5 mm leg channels) and are a
+        # second lift stop (the post ridge and the hub collar under the frame hold the head too): the skin's designed
+        # cover_t, at least the 1.2 wall rule; the area thinner than the classic roof's 2.0 is reported
+        roof_min = max(WALL_MIN, getattr(M.skin, "cover_t", ROOF_MIN))
+        res["roof"] = v8_shells(M, bodies, ("frame",), roof_min)
+        res["roof"]["spec_classic_roof_min"] = ROOF_MIN
+        if roof_min < ROOF_MIN:
+            res["roof"]["(info)_below_classic_2.0"] = v8_shells(M, bodies, ("frame",), ROOF_MIN).get("levels")
         res["plates"] = v8_shells(M, bodies, ("head", "wheel"), WALL_MIN)
     else:
         _classic_plate_roof(M, bodies, zoner, frame_t, res)

@@ -490,13 +490,25 @@ def integrate(M, verbose: bool = False) -> dict:
     cap = K ^ ext(cap2d, zt - EPS, 60.0)
     cap = cap + ext(cap2d, zt - EPS, zt + sk.cap_min_h)
     wheel = solids.union3([M.wheel, ribs, cap])
+    # hidden flange ring (skin.flange_r / flange_z): it widens the wheel past the small-parts cylinder (V10) under
+    # the yarn ball's static ring, above the band (1.1 clear of its top: pressing the ball must not land it on the
+    # legs, V5x) and clear of the head's hub collar (V6.face_ball)
+    fl = getattr(sk, "flange_r", None)
+    wheel_nf = wheel                          # (the wheel envelope is built from the wheel without the flange)
+    if fl:
+        fz0, fz1 = sk.flange_z
+        wheel = solids.union3([wheel, ext(g2.difference(g2.circle(O, fl, 0.005), g2.circle(O, p.R_u - 0.3, 0.005)),
+                                          fz0 + zl, fz1 + zl)])
     # finger dish in the cap: a sphere cut, opening sk.dish_d at (r_k, 0), sk.dish_depth below the cap's surface
     cxy = (p.r_k, 0.0)                        # (the drive lever arm in the V4 dynamics, too)
     ztop = _top_z(K, cxy, sk.dish_d / 2.0)
     a, dep = sk.dish_d / 2.0, sk.dish_depth
     rs = (a * a + dep * dep) / (2 * dep)
     dish = Manifold.sphere(rs, 96).translate((cxy[0], cxy[1], ztop - dep + rs))
-    wheel = finish_welded(wheel - dish, p, "wheel")
+    # knife edges of the cap's rim where the seam cylinder cuts the yarn strands (the static ring's side is
+    # chamfered): slice-trimmed on the cap's side
+    seam_in = g2.difference(g2.circle(O, sk.cap_r + 0.05, 0.005), g2.circle(O, sk.cap_r - 1.5, 0.005))
+    wheel = _finish_trimmed(wheel - dish, lambda z: seam_in, zt + sk.cap_min_h, p, "wheel", info, log)
     log("wheel")
 
     # ---------------- frame parts the mechanism needs: stop pads (with backing), posts, back ribs
@@ -552,6 +564,11 @@ def integrate(M, verbose: bool = False) -> dict:
     # out below the neck line; the always-covered face part never leaves the blob)
     low2d = g2.drop_small(g2.intersect(band2d, swept(g2.grow(thin, gxy, 0.01), P, p.psi_b, p.n_sweep, allowance=0.05)),
                           0.2)
+    # the full-height part's corners where the lowered part meets it are rounded r 1 (V12: exposed corners), except
+    # at the pallet discs, whose working profile is the escapement's
+    full = g2.difference(band2d, low2d)
+    keep_r = g2.union([g2.opening(full, 2.0, 0.005), g2.intersect(full, g2.grow(S["pallets2d"], 0.05, 0.005))])
+    low2d = g2.clean(g2.difference(band2d, keep_r), "solid")
     # the frame over the lowered legs keeps >= cover_t above their swept envelope: a low boss fills the sculpt up to
     # cov_top where it is thinner (cushion valleys beside the chin, crevices), and the head's floors over the sweep
     # stay above cov_top (hard requirement below; not in C, where the head covers it anyway)
@@ -715,7 +732,8 @@ def integrate(M, verbose: bool = False) -> dict:
     # has air right under it while the next slab cuts above it (films of the cheeks' and ears' undersides kept over
     # a crevice) joins the cut.  Sections stay nested upward (a thin wall's cut continues up with it).  Removing
     # frame only widens the clearances.
-    mech = g2.union([g2.grow(sw_band, 0.6, 0.01), g2.circle(O, p.R_u + gxy + 0.6, 0.01),
+    r_wx = getattr(sk, "flange_r", None) or p.R_u           # (the wheel's widest radius)
+    mech = g2.union([g2.grow(sw_band, 0.6, 0.01), g2.circle(O, r_wx + gxy + 0.6, 0.01),
                      g2.circle(P, p.R_hub_cut + 0.6, 0.01), g2.grow(S["stoppads2d"], sk.pad_back + 0.6, 0.01)])
     thin_mm2 = 0.0
     for k in range(len(env_slabs) - 1):
@@ -754,7 +772,7 @@ def integrate(M, verbose: bool = False) -> dict:
         neck = g2.intersect(g2.grow(HB, 0.5, 0.01), g2.poly([(-80, sk.neck_y - 1.0), (80, sk.neck_y - 1.0),
                                                               (80, sk.neck_y + 1.5), (-80, sk.neck_y + 1.5)]))
         near = lambda z: neck                                                     # noqa: E731
-    head = _finish_trimmed(head, near, p.z_roof0 + zl + 0.05, p, "head", info, log)
+    head = _finish_trimmed(head, near, sk.float_z + zl, p, "head", info, log)
     info.update({"head_blob_mm2": round(HB.area(), 1), "legs_lowered_mm2": round(low2d.area(), 1),
                  "head_always_covered_mm2": round(C.area(), 1),
                  "floor_area_mm2": {float(L): round(R[L].area(), 1) for L in levels[1:]}})
@@ -773,7 +791,7 @@ def integrate(M, verbose: bool = False) -> dict:
     # static ring 0.7 above the skid rings instead of gap_z): the umbrella disc to its top + gz, the skid rings
     # to their tops + gz, the cap with its radial gap
     zc = zt - 0.25
-    Ew = wheel_envelope(wheel ^ ext(CrossSection.circle(40.0, 64), -1.0, zc), gxy, gz, z_floor=p.z_bp)
+    Ew = wheel_envelope(wheel_nf ^ ext(CrossSection.circle(40.0, 64), -1.0, zc), gxy, gz, z_floor=p.z_bp)
     r_ring = (max(ring_r) + p.rib_w / 2 if rings else sk.cap_r)
     Ew = solids.union3([Ew, ext(g2.circle(O, p.R_u + gxy, 0.005, hole=True), zc - 0.05, zt + gz),
                         ext(g2.circle(O, r_ring + gxy, 0.005, hole=True), zt + gz - 0.05, zt + p.rib_h + gz),
@@ -784,10 +802,30 @@ def integrate(M, verbose: bool = False) -> dict:
         ch = seam_chamfer(K, sk.cap_r + cap_gap, sk.seam_chamfer, zt + p.rib_h + gz + 0.5)
         info["seam_chamfer_mm3"] = round(ch.volume(), 1)
         Ew = solids.union3([Ew, ch])
+    if fl:
+        # the flange's slot: gz + 0.05 above and below it (the skid rings and back ribs stay the stops), merged with
+        # the collar's envelope where the two come close (no thin wall between them), and opened down into the band's
+        # channel over the full-height legs (no film of cover between the band's top seam and the slot)
+        fg = gz + 0.05
+        zs0, zs1 = fz0 + zl - fg, fz1 + zl + fg
+        notch = g2.intersect(g2.circle(P, p.R_hub_cut + 0.05, 0.005), g2.circle(O, fl + gxy + 1.3, 0.005))
+        chim = g2.intersect(g2.grow(g2.grow(swept(keep, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01), 0.05,
+                                    0.005), g2.circle(O, fl + gxy + 0.05, 0.005))
+        Ew = solids.union3([Ew, ext(g2.circle(O, fl + gxy, 0.005, hole=True), zs0, zs1),
+                            ext(notch, zs0, sm["collar_top_seam_z"] + 0.03),
+                            ext(chim, sm["band_top_seam_z"] - 0.05, zs0 + 0.05)])
+        info["flange_d"] = 2 * fl
     log("wheel envelope")
     # under the band and the wheel the cavities reach down to the plate top (back ribs added again below)
     Kf = Ks - solids.union3([Eh, Ew])
     frame = solids.union3([Kf, ribs_back, posts, pads])
+    # convex vertical edges where the neck's envelope meets the band's channel (and the pad backing) in the neck
+    # zone are rounded r 1 (V12 corners); the pads' contact faces are left as they are
+    fz = g2.intersect(frame.slice(5.5), rect((-13.0, 16.5, 13.0, 22.0)))
+    corners = g2.drop_small(g2.difference(fz, g2.opening(fz, 2.0, 0.005), g2.grow(S["stoppads2d"], 0.3, 0.005)),
+                            0.005)
+    if not corners.is_empty():
+        frame = frame - ext(g2.grow(corners, 0.02, 0.005), p.z_bp + p.rib_h + 0.1, sm["band_top_seam_z"] + 0.3)
     info["frame_pinches_before_weld"] = len(solids.pinch_vertices(frame))
     frame = finish_welded(frame, p, "frame")
     log("frame")

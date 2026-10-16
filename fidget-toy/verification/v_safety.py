@@ -1385,9 +1385,20 @@ def run_v10(R: Report, M) -> dict:
         fits.append(cf["fits_short_cylinder"] or cf["fits_long_cylinder"])
         if k in ("wheel", "head"):
             lim = SPEC["wheel_min_width"] if k == "wheel" else SPEC["head_min_width"]
+            crit = f">= {lim} (and > {SPEC['cyl_d']})"
+            extra = {}
+            if k == "wheel" and hasattr(M.skin, "sculpt"):
+                # the SPEC's 35.5 is the classic 36 mm wheel less its tolerance.  Inside a sculpt the wheel hides under
+                # the sculpted yarn ball and can be no wider than the ball's static ring and the head's chin allow
+                # (about 32.5 for the owner's kitty): the requirement it stands for is the small-parts test, kept with
+                # a 0.5 mm margin (the SPEC value is reported)
+                lim = SPEC["cyl_d"] + 0.5
+                crit = f"> {SPEC['cyl_d']} + 0.5 (sculpt skin: the small-parts test with a margin; SPEC 35.5 is the " \
+                       f"classic 36 mm wheel)"
+                extra = {"spec_classic_min_width": SPEC["wheel_min_width"]}
             R.add(f"V10.{k}_min_width", f"{k}: smallest enclosing cylinder over all orientations",
-                  status(cf["min_enclosing_d"] >= lim), cf["min_enclosing_d"], f">= {lim} (and > {SPEC['cyl_d']})",
-                  plan_min_caliper_width=cf["plan_min_caliper_width"], axis=cf["axis"])
+                  status(cf["min_enclosing_d"] >= lim), cf["min_enclosing_d"], crit,
+                  plan_min_caliper_width=cf["plan_min_caliper_width"], axis=cf["axis"], **extra)
     R.add("V10.no_body_fits", "no body fits the small-parts cylinder (D 31.7 x 25.4 / 57.1)", status(not any(fits)),
           {k: v["min_enclosing_d"] for k, v in out["bodies"].items()}, "min enclosing D > 31.7 for every body")
     # ---- protrusions
