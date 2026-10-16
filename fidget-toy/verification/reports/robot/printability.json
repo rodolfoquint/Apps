@@ -5004,7 +5004,7 @@
     "stl": {
      "input": "/home/user/Apps/fidget-toy/stl/robot/purrbobble_robot_nominal.stl",
      "returncode": 0,
-     "time_s": 15.0,
+     "time_s": 27.8,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_robot_nominal.stl | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
@@ -5521,7 +5521,7 @@
     "3mf": {
      "input": "/home/user/Apps/fidget-toy/stl/robot/purrbobble_robot_nominal.3mf",
      "returncode": 0,
-     "time_s": 15.2,
+     "time_s": 31.9,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_robot_nominal | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
@@ -6053,5 +6053,5 @@
   }
  ],
  "pass": true,
- "runtime_s": 209.6
+ "runtime_s": 459.3
 }

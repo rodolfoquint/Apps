@@ -259,14 +259,14 @@
         },
         {
          "at": [
-          -19.3,
-          -9.29,
+          -19.56,
+          -8.77,
           8.2
          ],
          "t": 1.2,
          "normal": [
           0.0,
-          0.0,
+          -0.0,
           -1.0
          ],
          "kind": "edge_z_only"
@@ -523,29 +523,57 @@
     },
     "wheel": {
      "min": 0.896,
-     "p01": 1.211,
+     "p01": 1.207,
      "median": 5.3,
      "no_hit": 0,
-     "frac_below_1.2": 0.0053,
+     "frac_below_1.2": 0.0055,
      "zones": {
       "bore_hub": {
        "policy": "structural",
-       "n_thin": 1,
-       "min": 1.194,
+       "n_thin": 3,
+       "min": 1.18,
        "kinds": {
-        "edge_z_only": 1
+        "edge_z_only": 3
        },
        "worst": [
         {
          "at": [
-          -2.87,
-          3.35,
+          -4.35,
+          0.64,
+          4.03
+         ],
+         "t": 1.18,
+         "normal": [
+          0.7,
+          -0.1,
+          0.71
+         ],
+         "kind": "edge_z_only"
+        },
+        {
+         "at": [
+          0.32,
+          4.39,
           4.04
          ],
-         "t": 1.194,
+         "t": 1.185,
          "normal": [
-          0.47,
-          -0.53,
+          -0.05,
+          -0.71,
+          0.71
+         ],
+         "kind": "edge_z_only"
+        },
+        {
+         "at": [
+          4.17,
+          1.41,
+          4.04
+         ],
+         "t": 1.188,
+         "normal": [
+          -0.67,
+          -0.23,
           0.71
          ],
          "kind": "edge_z_only"
@@ -1433,7 +1461,7 @@
         "z": 2.1,
         "xy": [
          8.32,
-         18.05
+         18.07
         ],
         "area": 0.224,
         "length": 0.72,
@@ -2651,7 +2679,7 @@
    "status": "pass"
   },
   "V8_slivers_frame_layers": {
-   "criterion": "frame layers z 2.6-10.4: no sliver (strip >= 2 mm long) narrower than 1.6 (stop pads and posts excluded)",
+   "criterion": "frame layers z 2.6-10.4: no sliver (strip >= 2 mm long) narrower than 1.6 (stop pads and posts excluded; cosmetic relief warns)",
    "by_zone": {
     "fill_roof/corner": {
      "n_pieces": 24,
@@ -2786,6 +2814,7 @@
      "levels": [
       0.25,
       0.5,
+      2.6,
       3.7,
       3.9,
       4.1,
@@ -5037,21 +5066,21 @@
     "stl": {
      "input": "/home/user/Apps/fidget-toy/stl/robot/purrbobble_robot_loose.stl",
      "returncode": 0,
-     "time_s": 14.4,
+     "time_s": 32.4,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_robot_loose.stl | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
      "errors": [],
-     "print_time": "4h 34m 2s",
+     "print_time": "4h 34m 7s",
      "filament_g": 36.27,
      "filament_m": 12.16,
      "extrusion_length_by_type_mm": {
-      "Solid infill": 161980.1,
+      "Solid infill": 162016.0,
       "Perimeter": 78845.5,
-      "External perimeter": 52942.0,
-      "Internal infill": 28852.0,
-      "Top solid infill": 20295.6,
-      "Bridge infill": 13844.2,
+      "External perimeter": 52941.9,
+      "Internal infill": 28863.8,
+      "Top solid infill": 20295.7,
+      "Bridge infill": 13830.0,
       "Overhang perimeter": 2358.8,
       "Skirt/Brim": 273.9
      },
@@ -5193,7 +5222,7 @@
        "layer_top_z": 6.0,
        "type": "Overhang perimeter",
        "body": "frame",
-       "n": 312,
+       "n": 313,
        "length_mm": 260.1,
        "unsupported_mm": 0.0,
        "max_unsupported_run": 0.0,
@@ -5259,7 +5288,7 @@
        "type": "Bridge infill",
        "body": "wheel",
        "n": 365,
-       "length_mm": 955.6,
+       "length_mm": 955.5,
        "unsupported_mm": 470.2,
        "max_unsupported_run": 7.09,
        "worst_line_model_xy": [
@@ -5338,8 +5367,8 @@
        "layer_top_z": 9.6,
        "type": "Bridge infill",
        "body": "frame",
-       "n": 217,
-       "length_mm": 501.1,
+       "n": 221,
+       "length_mm": 487.0,
        "unsupported_mm": 0.0,
        "max_unsupported_run": 0.0,
        "worst_line_model_xy": null,
@@ -5567,23 +5596,23 @@
      "status": "warn"
     },
     "3mf": {
-     "input": "/tmp/v_print_b3x0pb5w/model_robot_loose.3mf",
+     "input": "/tmp/v_print_u3c3cej3/model_robot_loose.3mf",
      "returncode": 0,
-     "time_s": 15.3,
+     "time_s": 37.0,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_robot_loose | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
      "errors": [],
-     "print_time": "5h 17m 20s",
-     "filament_g": 40.73,
+     "print_time": "5h 16m 50s",
+     "filament_g": 40.74,
      "filament_m": 13.66,
      "extrusion_length_by_type_mm": {
-      "Solid infill": 165616.5,
-      "Perimeter": 78845.2,
-      "Internal infill": 77936.9,
-      "External perimeter": 52941.9,
-      "Top solid infill": 20294.8,
-      "Bridge infill": 8472.8,
+      "Solid infill": 165575.8,
+      "Perimeter": 78845.1,
+      "Internal infill": 77944.3,
+      "External perimeter": 52941.8,
+      "Top solid infill": 20295.0,
+      "Bridge infill": 8518.1,
       "Overhang perimeter": 2358.8,
       "Skirt/Brim": 273.9
      },
@@ -5710,7 +5739,7 @@
        "layer_top_z": 6.0,
        "type": "Overhang perimeter",
        "body": "frame",
-       "n": 313,
+       "n": 314,
        "length_mm": 260.1,
        "unsupported_mm": 0.0,
        "max_unsupported_run": 0.0,
@@ -5786,8 +5815,8 @@
        "type": "Bridge infill",
        "body": "frame",
        "n": 404,
-       "length_mm": 2494.0,
-       "unsupported_mm": 1504.2,
+       "length_mm": 2493.9,
+       "unsupported_mm": 1503.7,
        "max_unsupported_run": 12.78,
        "worst_line_model_xy": [
         -8.17,
@@ -5796,7 +5825,7 @@
         44.22
        ],
        "max_dist_to_support": 5.14,
-       "beyond_rib_reach_mm": 166.3,
+       "beyond_rib_reach_mm": 166.4,
        "class": "bridge:roof (leg channels)",
        "limit": 13.5,
        "status": "pass"
@@ -5825,8 +5854,8 @@
        "layer_top_z": 9.6,
        "type": "Bridge infill",
        "body": "frame",
-       "n": 220,
-       "length_mm": 456.1,
+       "n": 216,
+       "length_mm": 501.5,
        "unsupported_mm": 0.0,
        "max_unsupported_run": 0.0,
        "worst_line_model_xy": null,
@@ -5920,11 +5949,11 @@
         "status": "pass"
        },
        "frame|head": {
-        "min_printed_xy_gap": 0.372,
+        "min_printed_xy_gap": 0.371,
         "at_layer_top_z": 7.0,
         "at_xy": [
          -3.93,
-         26.14
+         26.15
         ],
         "min_empty_layers": 2,
         "stack_layers": [
@@ -5956,11 +5985,11 @@
    "stl_info": {
     "manifold": "yes",
     "number_of_parts": "3",
-    "volume": "35589.667969",
+    "volume": "35589.304688",
     "size_x": "59.994900",
     "size_y": "84.207184",
     "size_z": "18.500000",
-    "number_of_facets": "201022"
+    "number_of_facets": "223908"
    },
    "warnings_per_body_alone": {
     "frame": [
@@ -5982,7 +6011,7 @@
    "3mf": null
   },
   "used_stl": "/home/user/Apps/fidget-toy/stl/robot/purrbobble_robot_loose.stl",
-  "used_3mf": "/tmp/v_print_b3x0pb5w/model_robot_loose.3mf"
+  "used_3mf": "/tmp/v_print_u3c3cej3/model_robot_loose.3mf"
  },
  "summary": {
   "V8_topology": "pass",
@@ -6101,5 +6130,5 @@
   }
  ],
  "pass": true,
- "runtime_s": 256.8
+ "runtime_s": 479.1
 }

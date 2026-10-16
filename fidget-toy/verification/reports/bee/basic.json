@@ -1,7 +1,7 @@
 {
  "skin": "bee",
  "variant": "nominal",
- "build_time_s": 12.15,
+ "build_time_s": 31.56,
  "params": {
   "skin": "bee",
   "variant": "nominal",
@@ -119,6 +119,7 @@
   "relief_w": 0.6,
   "relief_depth": 0.5,
   "relief_r_max": 16.5,
+  "relief_bevel": 0.0,
   "relief_knob_clear": 7.5,
   "keepout": [
    [
@@ -175,6 +176,9 @@
   "rib_roof_i3_grow": 0.5,
   "face_top_round": 1.5,
   "face_top_steps": 6,
+  "face_pillow_xy": 0.0,
+  "face_pillow_z": 0.0,
+  "face_pillow_steps": 0,
   "frame_top_fillet": 1.0,
   "frame_top_steps": 3,
   "phi_print": 12.0,
@@ -314,7 +318,7 @@
     "watertight": true,
     "winding_consistent": true,
     "volume_mm3": 20116.49,
-    "triangles": 161336,
+    "triangles": 187218,
     "pass": true
    },
    "wheel": {
@@ -324,7 +328,7 @@
     "watertight": true,
     "winding_consistent": true,
     "volume_mm3": 6013.18,
-    "triangles": 14576,
+    "triangles": 14578,
     "pass": true
    },
    "head": {
@@ -334,7 +338,7 @@
     "watertight": true,
     "winding_consistent": true,
     "volume_mm3": 11897.01,
-    "triangles": 39936,
+    "triangles": 41186,
     "pass": true
    }
   },
@@ -485,11 +489,11 @@
  },
  "slice": {
   "ok": true,
-  "filament_g": "0.00",
-  "filament_mm": "14622.85",
-  "time": "4h 33m 28s",
+  "filament_g": "43.61",
+  "filament_mm": "14622.88",
+  "time": "4h 33m 35s",
   "support_material": false
  },
  "pass": true,
- "time_s": 45.91
+ "time_s": 122.45
 }
