@@ -31,17 +31,17 @@
  "V10": {
   "bodies": {
    "frame": {
-    "min_enclosing_d": 59.478,
+    "min_enclosing_d": 64.441,
     "axis": [
-     0.0317,
-     -0.9995,
-     -0.0085
+     0.0449,
+     0.999,
+     -0.0
     ],
-    "length_along_axis": 91.359,
+    "length_along_axis": 91.836,
     "fits_short_cylinder": false,
     "fits_long_cylinder": false,
-    "plan_min_caliper_width": 59.409,
-    "plan_perp_width": 91.359
+    "plan_min_caliper_width": 64.424,
+    "plan_perp_width": 91.836
    },
    "wheel": {
     "min_enclosing_d": 35.995,
@@ -57,605 +57,562 @@
     "plan_perp_width": 35.99
    },
    "head": {
-    "min_enclosing_d": 42.003,
+    "min_enclosing_d": 44.613,
     "axis": [
-     0.1029,
-     0.9889,
-     0.1075
+     -0.0001,
+     0.9813,
+     0.1927
     ],
-    "length_along_axis": 54.678,
+    "length_along_axis": 52.56,
     "fits_short_cylinder": false,
     "fits_long_cylinder": false,
-    "plan_min_caliper_width": 41.644,
-    "plan_perp_width": 54.012
+    "plan_min_caliper_width": 44.438,
+    "plan_perp_width": 52.801
    }
   },
   "protrusions": [
    {
-    "name": "frame tower@(-17.2,-18.5)",
+    "name": "frame tower@(-15.9,-1.5)",
     "kind": "vertical",
     "body": "frame",
     "root_dims_mm": [
-     11.17,
-     11.16
+     41.16,
+     21.08
     ],
     "root_ok": true,
-    "length_mm": 3.65,
+    "length_mm": 6.95,
     "load_N": 50.0,
-    "sigma_max_MPa": 1.33,
+    "sigma_max_MPa": 0.81,
     "stress_ok": true,
     "worst_station": {
      "z": 10.45,
-     "area_mm2": 98.1,
+     "area_mm2": 375.97,
      "dims_mm": [
-      11.16,
-      11.17
+      21.08,
+      41.16
      ],
-     "moment_Nmm": 182.5,
-     "sigma_MPa": 1.334
+     "moment_Nmm": 347.5,
+     "sigma_MPa": 0.807
     },
     "fragment_if_snapped": {
-     "volume_mm3": 313.3,
-     "min_enclosing_d": 11.189,
-     "length_along_axis": 3.65,
+     "volume_mm3": 1812.0,
+     "min_enclosing_d": 21.543,
+     "length_along_axis": 41.159,
      "fits_small_parts_cylinder": true
     },
     "stations": [
      {
       "z": 10.45,
-      "area_mm2": 98.1,
+      "area_mm2": 375.97,
       "dims_mm": [
-       11.16,
-       11.17
+       21.08,
+       41.16
       ],
-      "moment_Nmm": 182.5,
-      "sigma_MPa": 1.334
+      "moment_Nmm": 347.5,
+      "sigma_MPa": 0.807
      },
      {
       "z": 10.7,
-      "area_mm2": 98.1,
+      "area_mm2": 372.71,
       "dims_mm": [
-       11.16,
-       11.17
+       21.02,
+       41.1
       ],
-      "moment_Nmm": 170.0,
-      "sigma_MPa": 1.243
+      "moment_Nmm": 335.0,
+      "sigma_MPa": 0.8
      },
      {
       "z": 10.95,
-      "area_mm2": 98.1,
+      "area_mm2": 361.24,
       "dims_mm": [
-       11.16,
-       11.17
+       17.98,
+       41.61
       ],
-      "moment_Nmm": 157.5,
-      "sigma_MPa": 1.151
+      "moment_Nmm": 322.5,
+      "sigma_MPa": 0.729
      },
      {
       "z": 11.2,
-      "area_mm2": 98.1,
+      "area_mm2": 346.89,
       "dims_mm": [
-       11.16,
-       11.17
+       16.49,
+       41.38
       ],
-      "moment_Nmm": 145.0,
-      "sigma_MPa": 1.06
+      "moment_Nmm": 310.0,
+      "sigma_MPa": 0.675
      },
      {
       "z": 11.45,
-      "area_mm2": 98.1,
+      "area_mm2": 334.79,
       "dims_mm": [
-       11.16,
-       11.17
+       15.95,
+       40.98
       ],
-      "moment_Nmm": 132.5,
-      "sigma_MPa": 0.969
+      "moment_Nmm": 297.5,
+      "sigma_MPa": 0.648
      },
      {
       "z": 11.7,
-      "area_mm2": 98.1,
+      "area_mm2": 309.28,
       "dims_mm": [
-       11.16,
-       11.17
+       15.86,
+       39.73
       ],
-      "moment_Nmm": 120.0,
-      "sigma_MPa": 0.877
+      "moment_Nmm": 285.0,
+      "sigma_MPa": 0.679
      },
      {
       "z": 11.95,
-      "area_mm2": 98.1,
+      "area_mm2": 284.87,
       "dims_mm": [
-       11.16,
-       11.17
+       15.48,
+       31.8
       ],
-      "moment_Nmm": 107.5,
-      "sigma_MPa": 0.786
+      "moment_Nmm": 272.5,
+      "sigma_MPa": 0.745
      },
      {
       "z": 12.2,
-      "area_mm2": 98.1,
+      "area_mm2": 284.87,
       "dims_mm": [
-       11.16,
-       11.17
+       15.48,
+       31.8
       ],
-      "moment_Nmm": 95.0,
-      "sigma_MPa": 0.694
+      "moment_Nmm": 260.0,
+      "sigma_MPa": 0.711
      },
      {
       "z": 12.45,
-      "area_mm2": 98.1,
+      "area_mm2": 284.87,
       "dims_mm": [
-       11.16,
-       11.17
+       15.48,
+       31.8
       ],
-      "moment_Nmm": 82.5,
-      "sigma_MPa": 0.603
+      "moment_Nmm": 247.5,
+      "sigma_MPa": 0.676
      },
      {
       "z": 12.7,
-      "area_mm2": 98.1,
+      "area_mm2": 284.87,
       "dims_mm": [
-       11.16,
-       11.17
+       15.48,
+       31.8
       ],
-      "moment_Nmm": 70.0,
-      "sigma_MPa": 0.512
+      "moment_Nmm": 235.0,
+      "sigma_MPa": 0.642
      },
      {
       "z": 12.95,
-      "area_mm2": 97.71,
+      "area_mm2": 284.87,
       "dims_mm": [
-       11.14,
-       11.15
+       15.48,
+       31.8
       ],
-      "moment_Nmm": 57.5,
-      "sigma_MPa": 0.423
+      "moment_Nmm": 222.5,
+      "sigma_MPa": 0.608
+     },
+     {
+      "z": 13.2,
+      "area_mm2": 287.19,
+      "dims_mm": [
+       15.52,
+       31.81
+      ],
+      "moment_Nmm": 210.0,
+      "sigma_MPa": 0.564
+     },
+     {
+      "z": 13.45,
+      "area_mm2": 292.83,
+      "dims_mm": [
+       15.62,
+       31.82
+      ],
+      "moment_Nmm": 197.5,
+      "sigma_MPa": 0.509
+     },
+     {
+      "z": 13.7,
+      "area_mm2": 298.3,
+      "dims_mm": [
+       15.71,
+       31.83
+      ],
+      "moment_Nmm": 185.0,
+      "sigma_MPa": 0.457
+     },
+     {
+      "z": 13.95,
+      "area_mm2": 303.56,
+      "dims_mm": [
+       15.79,
+       31.84
+      ],
+      "moment_Nmm": 172.5,
+      "sigma_MPa": 0.409
+     },
+     {
+      "z": 14.2,
+      "area_mm2": 308.57,
+      "dims_mm": [
+       15.85,
+       31.85
+      ],
+      "moment_Nmm": 160.0,
+      "sigma_MPa": 0.364
+     },
+     {
+      "z": 14.45,
+      "area_mm2": 313.3,
+      "dims_mm": [
+       15.88,
+       31.85
+      ],
+      "moment_Nmm": 147.5,
+      "sigma_MPa": 0.323
+     },
+     {
+      "z": 14.7,
+      "area_mm2": 317.54,
+      "dims_mm": [
+       15.88,
+       31.85
+      ],
+      "moment_Nmm": 135.0,
+      "sigma_MPa": 0.285
+     },
+     {
+      "z": 14.95,
+      "area_mm2": 313.84,
+      "dims_mm": [
+       15.79,
+       31.73
+      ],
+      "moment_Nmm": 122.5,
+      "sigma_MPa": 0.263
+     },
+     {
+      "z": 15.2,
+      "area_mm2": 308.86,
+      "dims_mm": [
+       15.71,
+       31.6
+      ],
+      "moment_Nmm": 110.0,
+      "sigma_MPa": 0.241
+     },
+     {
+      "z": 15.45,
+      "area_mm2": 290.25,
+      "dims_mm": [
+       15.45,
+       30.97
+      ],
+      "moment_Nmm": 97.5,
+      "sigma_MPa": 0.233
+     },
+     {
+      "z": 15.7,
+      "area_mm2": 265.33,
+      "dims_mm": [
+       15.19,
+       30.26
+      ],
+      "moment_Nmm": 85.0,
+      "sigma_MPa": 0.225
+     },
+     {
+      "z": 15.95,
+      "area_mm2": 204.1,
+      "dims_mm": [
+       14.45,
+       28.04
+      ],
+      "moment_Nmm": 72.5,
+      "sigma_MPa": 0.257
+     },
+     {
+      "z": 16.2,
+      "area_mm2": 151.91,
+      "dims_mm": [
+       13.3,
+       14.28
+      ],
+      "moment_Nmm": 60.0,
+      "sigma_MPa": 0.257
      }
     ],
     "notes": "part standing on the body top (paw ...), 50 N at its top; stress direction: interlayer (Z) tension"
    },
    {
-    "name": "frame tower@(-21.1,2.8)",
+    "name": "frame tower@(15.9,-1.5)",
     "kind": "vertical",
     "body": "frame",
     "root_dims_mm": [
-     13.39,
-     8.84
+     41.16,
+     21.08
     ],
     "root_ok": true,
-    "length_mm": 5.55,
+    "length_mm": 6.95,
     "load_N": 50.0,
-    "sigma_max_MPa": 3.32,
+    "sigma_max_MPa": 0.81,
     "stress_ok": true,
     "worst_station": {
      "z": 10.45,
-     "area_mm2": 85.6,
+     "area_mm2": 375.97,
      "dims_mm": [
-      8.84,
-      13.39
+      21.08,
+      41.16
      ],
-     "moment_Nmm": 277.5,
-     "sigma_MPa": 3.318
+     "moment_Nmm": 347.5,
+     "sigma_MPa": 0.807
     },
     "fragment_if_snapped": {
-     "volume_mm3": 501.0,
-     "min_enclosing_d": 11.205,
-     "length_along_axis": 13.391,
+     "volume_mm3": 1812.0,
+     "min_enclosing_d": 21.542,
+     "length_along_axis": 41.161,
      "fits_small_parts_cylinder": true
     },
     "stations": [
      {
       "z": 10.45,
-      "area_mm2": 85.6,
+      "area_mm2": 375.97,
       "dims_mm": [
-       8.84,
-       13.39
+       21.08,
+       41.16
       ],
-      "moment_Nmm": 277.5,
-      "sigma_MPa": 3.318
+      "moment_Nmm": 347.5,
+      "sigma_MPa": 0.807
      },
      {
       "z": 10.7,
-      "area_mm2": 85.6,
+      "area_mm2": 372.71,
       "dims_mm": [
-       8.84,
-       13.39
+       21.02,
+       41.1
       ],
-      "moment_Nmm": 265.0,
-      "sigma_MPa": 3.168
+      "moment_Nmm": 335.0,
+      "sigma_MPa": 0.8
      },
      {
       "z": 10.95,
-      "area_mm2": 85.6,
+      "area_mm2": 361.23,
       "dims_mm": [
-       8.84,
-       13.39
+       17.98,
+       41.62
       ],
-      "moment_Nmm": 252.5,
-      "sigma_MPa": 3.019
+      "moment_Nmm": 322.5,
+      "sigma_MPa": 0.73
      },
      {
       "z": 11.2,
-      "area_mm2": 85.6,
+      "area_mm2": 346.88,
       "dims_mm": [
-       8.84,
-       13.39
+       16.49,
+       41.38
       ],
-      "moment_Nmm": 240.0,
-      "sigma_MPa": 2.869
+      "moment_Nmm": 310.0,
+      "sigma_MPa": 0.675
      },
      {
       "z": 11.45,
-      "area_mm2": 85.6,
+      "area_mm2": 334.78,
       "dims_mm": [
-       8.84,
-       13.39
+       15.95,
+       40.97
       ],
-      "moment_Nmm": 227.5,
-      "sigma_MPa": 2.72
+      "moment_Nmm": 297.5,
+      "sigma_MPa": 0.648
      },
      {
       "z": 11.7,
-      "area_mm2": 85.6,
+      "area_mm2": 309.27,
       "dims_mm": [
-       8.84,
-       13.39
+       15.86,
+       39.73
       ],
-      "moment_Nmm": 215.0,
-      "sigma_MPa": 2.57
+      "moment_Nmm": 285.0,
+      "sigma_MPa": 0.679
      },
      {
       "z": 11.95,
-      "area_mm2": 85.6,
+      "area_mm2": 284.87,
       "dims_mm": [
-       8.84,
-       13.39
+       15.48,
+       31.8
       ],
-      "moment_Nmm": 202.5,
-      "sigma_MPa": 2.421
+      "moment_Nmm": 272.5,
+      "sigma_MPa": 0.745
      },
      {
       "z": 12.2,
-      "area_mm2": 85.6,
+      "area_mm2": 284.87,
       "dims_mm": [
-       8.84,
-       13.39
+       15.48,
+       31.8
       ],
-      "moment_Nmm": 190.0,
-      "sigma_MPa": 2.272
+      "moment_Nmm": 260.0,
+      "sigma_MPa": 0.711
      },
      {
       "z": 12.45,
-      "area_mm2": 85.6,
+      "area_mm2": 284.87,
       "dims_mm": [
-       8.84,
-       13.39
+       15.48,
+       31.8
       ],
-      "moment_Nmm": 177.5,
-      "sigma_MPa": 2.122
+      "moment_Nmm": 247.5,
+      "sigma_MPa": 0.676
      },
      {
       "z": 12.7,
-      "area_mm2": 85.6,
+      "area_mm2": 284.87,
       "dims_mm": [
-       8.84,
-       13.39
+       15.48,
+       31.8
       ],
-      "moment_Nmm": 165.0,
-      "sigma_MPa": 1.973
+      "moment_Nmm": 235.0,
+      "sigma_MPa": 0.642
      },
      {
       "z": 12.95,
-      "area_mm2": 85.6,
+      "area_mm2": 284.87,
       "dims_mm": [
-       8.84,
-       13.39
+       15.48,
+       31.8
       ],
-      "moment_Nmm": 152.5,
-      "sigma_MPa": 1.823
+      "moment_Nmm": 222.5,
+      "sigma_MPa": 0.608
      },
      {
       "z": 13.2,
-      "area_mm2": 86.74,
+      "area_mm2": 287.19,
       "dims_mm": [
-       8.94,
-       13.39
+       15.52,
+       31.8
       ],
-      "moment_Nmm": 140.0,
-      "sigma_MPa": 1.63
+      "moment_Nmm": 210.0,
+      "sigma_MPa": 0.564
      },
      {
       "z": 13.45,
-      "area_mm2": 89.55,
+      "area_mm2": 292.83,
       "dims_mm": [
-       9.17,
-       13.39
+       15.62,
+       31.82
       ],
-      "moment_Nmm": 127.5,
-      "sigma_MPa": 1.402
+      "moment_Nmm": 197.5,
+      "sigma_MPa": 0.509
      },
      {
       "z": 13.7,
-      "area_mm2": 92.3,
+      "area_mm2": 298.3,
       "dims_mm": [
-       9.4,
-       13.39
+       15.71,
+       31.83
       ],
-      "moment_Nmm": 115.0,
-      "sigma_MPa": 1.194
+      "moment_Nmm": 185.0,
+      "sigma_MPa": 0.457
      },
      {
       "z": 13.95,
-      "area_mm2": 94.97,
+      "area_mm2": 303.56,
       "dims_mm": [
-       9.61,
-       13.39
+       15.79,
+       31.84
       ],
-      "moment_Nmm": 102.5,
-      "sigma_MPa": 1.003
+      "moment_Nmm": 172.5,
+      "sigma_MPa": 0.409
      },
      {
       "z": 14.2,
-      "area_mm2": 97.54,
+      "area_mm2": 308.57,
       "dims_mm": [
-       9.8,
-       13.39
+       15.85,
+       31.85
       ],
-      "moment_Nmm": 90.0,
-      "sigma_MPa": 0.83
+      "moment_Nmm": 160.0,
+      "sigma_MPa": 0.364
      },
      {
       "z": 14.45,
-      "area_mm2": 99.96,
+      "area_mm2": 313.3,
       "dims_mm": [
-       9.96,
-       13.39
+       15.88,
+       31.85
       ],
-      "moment_Nmm": 77.5,
-      "sigma_MPa": 0.674
+      "moment_Nmm": 147.5,
+      "sigma_MPa": 0.323
      },
      {
       "z": 14.7,
-      "area_mm2": 102.15,
+      "area_mm2": 317.54,
       "dims_mm": [
-       10.05,
-       13.39
+       15.88,
+       31.85
       ],
-      "moment_Nmm": 65.0,
-      "sigma_MPa": 0.54
+      "moment_Nmm": 135.0,
+      "sigma_MPa": 0.285
      },
      {
       "z": 14.95,
-      "area_mm2": 102.15,
+      "area_mm2": 313.84,
       "dims_mm": [
-       10.05,
-       13.39
+       15.8,
+       31.73
       ],
-      "moment_Nmm": 52.5,
-      "sigma_MPa": 0.436
-     }
-    ],
-    "notes": "part standing on the body top (paw ...), 50 N at its top; stress direction: interlayer (Z) tension"
-   },
-   {
-    "name": "frame tower@(18.7,-7.3)",
-    "kind": "vertical",
-    "body": "frame",
-    "root_dims_mm": [
-     34.5,
-     14.51
-    ],
-    "root_ok": true,
-    "length_mm": 5.55,
-    "load_N": 50.0,
-    "sigma_max_MPa": 0.86,
-    "stress_ok": true,
-    "worst_station": {
-     "z": 13.7,
-     "area_mm2": 122.11,
-     "dims_mm": [
-      11.18,
-      30.65
-     ],
-     "moment_Nmm": 115.0,
-     "sigma_MPa": 0.862
-    },
-    "fragment_if_snapped": {
-     "volume_mm3": 1084.5,
-     "min_enclosing_d": 15.197,
-     "length_along_axis": 34.721,
-     "fits_small_parts_cylinder": true
-    },
-    "stations": [
-     {
-      "z": 10.45,
-      "area_mm2": 268.64,
-      "dims_mm": [
-       14.51,
-       34.5
-      ],
-      "moment_Nmm": 277.5,
-      "sigma_MPa": 0.661
+      "moment_Nmm": 122.5,
+      "sigma_MPa": 0.263
      },
      {
-      "z": 10.7,
-      "area_mm2": 268.64,
+      "z": 15.2,
+      "area_mm2": 308.86,
       "dims_mm": [
-       14.51,
-       34.5
+       15.71,
+       31.59
       ],
-      "moment_Nmm": 265.0,
-      "sigma_MPa": 0.632
+      "moment_Nmm": 110.0,
+      "sigma_MPa": 0.241
      },
      {
-      "z": 10.95,
-      "area_mm2": 268.64,
+      "z": 15.45,
+      "area_mm2": 290.25,
       "dims_mm": [
-       14.51,
-       34.5
+       15.45,
+       30.97
       ],
-      "moment_Nmm": 252.5,
-      "sigma_MPa": 0.602
+      "moment_Nmm": 97.5,
+      "sigma_MPa": 0.234
      },
      {
-      "z": 11.2,
-      "area_mm2": 268.64,
+      "z": 15.7,
+      "area_mm2": 265.32,
       "dims_mm": [
-       14.51,
-       34.5
+       15.19,
+       30.26
       ],
-      "moment_Nmm": 240.0,
-      "sigma_MPa": 0.572
+      "moment_Nmm": 85.0,
+      "sigma_MPa": 0.225
      },
      {
-      "z": 11.45,
-      "area_mm2": 268.64,
+      "z": 15.95,
+      "area_mm2": 204.09,
       "dims_mm": [
-       14.51,
-       34.5
+       14.47,
+       28.04
       ],
-      "moment_Nmm": 227.5,
-      "sigma_MPa": 0.542
+      "moment_Nmm": 72.5,
+      "sigma_MPa": 0.257
      },
      {
-      "z": 11.7,
-      "area_mm2": 268.64,
+      "z": 16.2,
+      "area_mm2": 151.89,
       "dims_mm": [
-       14.51,
-       34.5
+       13.29,
+       14.29
       ],
-      "moment_Nmm": 215.0,
-      "sigma_MPa": 0.512
-     },
-     {
-      "z": 11.95,
-      "area_mm2": 268.64,
-      "dims_mm": [
-       14.51,
-       34.5
-      ],
-      "moment_Nmm": 202.5,
-      "sigma_MPa": 0.483
-     },
-     {
-      "z": 12.2,
-      "area_mm2": 268.64,
-      "dims_mm": [
-       14.51,
-       34.5
-      ],
-      "moment_Nmm": 190.0,
-      "sigma_MPa": 0.453
-     },
-     {
-      "z": 12.45,
-      "area_mm2": 268.64,
-      "dims_mm": [
-       14.51,
-       34.5
-      ],
-      "moment_Nmm": 177.5,
-      "sigma_MPa": 0.423
-     },
-     {
-      "z": 12.7,
-      "area_mm2": 268.64,
-      "dims_mm": [
-       14.51,
-       34.5
-      ],
-      "moment_Nmm": 165.0,
-      "sigma_MPa": 0.393
-     },
-     {
-      "z": 12.95,
-      "area_mm2": 267.93,
-      "dims_mm": [
-       14.49,
-       34.48
-      ],
-      "moment_Nmm": 152.5,
-      "sigma_MPa": 0.365
-     },
-     {
-      "z": 13.2,
-      "area_mm2": 262.95,
-      "dims_mm": [
-       14.37,
-       34.38
-      ],
-      "moment_Nmm": 140.0,
-      "sigma_MPa": 0.344
-     },
-     {
-      "z": 13.45,
-      "area_mm2": 249.99,
-      "dims_mm": [
-       14.04,
-       34.1
-      ],
-      "moment_Nmm": 127.5,
-      "sigma_MPa": 0.337
-     },
-     {
-      "z": 13.7,
-      "area_mm2": 122.11,
-      "dims_mm": [
-       11.18,
-       30.65
-      ],
-      "moment_Nmm": 115.0,
-      "sigma_MPa": 0.862
-     },
-     {
-      "z": 13.95,
-      "area_mm2": 124.79,
-      "dims_mm": [
-       11.27,
-       30.65
-      ],
-      "moment_Nmm": 102.5,
-      "sigma_MPa": 0.731
-     },
-     {
-      "z": 14.2,
-      "area_mm2": 97.56,
-      "dims_mm": [
-       9.79,
-       13.39
-      ],
-      "moment_Nmm": 90.0,
-      "sigma_MPa": 0.83
-     },
-     {
-      "z": 14.45,
-      "area_mm2": 99.99,
-      "dims_mm": [
-       9.96,
-       13.39
-      ],
-      "moment_Nmm": 77.5,
-      "sigma_MPa": 0.674
-     },
-     {
-      "z": 14.7,
-      "area_mm2": 102.17,
-      "dims_mm": [
-       10.05,
-       13.39
-      ],
-      "moment_Nmm": 65.0,
-      "sigma_MPa": 0.54
-     },
-     {
-      "z": 14.95,
-      "area_mm2": 102.17,
-      "dims_mm": [
-       10.05,
-       13.39
-      ],
-      "moment_Nmm": 52.5,
-      "sigma_MPa": 0.436
+      "moment_Nmm": 60.0,
+      "sigma_MPa": 0.256
      }
     ],
     "notes": "part standing on the body top (paw ...), 50 N at its top; stress direction: interlayer (Z) tension"
@@ -1115,7 +1072,7 @@
     "notes": "inside the frame body footprint (not graspable)"
    },
    {
-    "name": "head lobe@(15.0,15.9)",
+    "name": "head lobe@(15.2,14.6)",
     "kind": "in-plane",
     "body": "head",
     "hidden": true,
@@ -1123,7 +1080,7 @@
     "notes": "inside the frame body footprint (not graspable)"
    },
    {
-    "name": "head lobe@(-15.0,15.9)",
+    "name": "head lobe@(-15.2,14.6)",
     "kind": "in-plane",
     "body": "head",
     "hidden": true,
@@ -1131,394 +1088,378 @@
     "notes": "inside the frame body footprint (not graspable)"
    },
    {
-    "name": "head lobe@(11.2,52.0)",
+    "name": "head lobe@(-20.6,29.6)",
+    "kind": "in-plane",
+    "body": "head",
+    "hidden": true,
+    "hidden_fraction": 0.78,
+    "notes": "inside the frame body footprint (not graspable)"
+   },
+   {
+    "name": "head lobe@(20.6,29.6)",
+    "kind": "in-plane",
+    "body": "head",
+    "hidden": true,
+    "hidden_fraction": 0.78,
+    "notes": "inside the frame body footprint (not graspable)"
+   },
+   {
+    "name": "head lobe@(11.6,51.8)",
     "kind": "in-plane",
     "body": "head",
     "root_dims_mm": [
-     15.3,
-     12.85
+     16.3,
+     14.19
     ],
     "root_ok": true,
-    "length_mm": 11.7,
+    "length_mm": 11.58,
     "load_N": 50.0,
-    "sigma_max_MPa": 2.25,
+    "sigma_max_MPa": 2.37,
     "stress_ok": true,
     "worst_station": {
-     "s": 9.36,
-     "area_mm2": 69.61,
+     "s": 9.27,
+     "area_mm2": 66.38,
      "dims_mm": [
-      4.81,
-      14.7
+      4.79,
+      14.2
      ],
-     "moment_Nmm": 117.0,
-     "sigma_MPa": 2.252
+     "moment_Nmm": 115.8,
+     "sigma_MPa": 2.366
     },
     "fragment_if_snapped": {
-     "volume_mm3": 1316.5,
-     "min_enclosing_d": 15.228,
-     "length_along_axis": 15.3,
+     "volume_mm3": 1202.9,
+     "min_enclosing_d": 15.941,
+     "length_along_axis": 15.907,
      "fits_small_parts_cylinder": true
     },
     "stations": [
      {
       "s": 0.0,
-      "area_mm2": 186.9,
+      "area_mm2": 201.57,
       "dims_mm": [
-       12.85,
-       15.3
+       14.19,
+       16.3
       ],
-      "moment_Nmm": 585.1,
-      "sigma_MPa": 1.993
+      "moment_Nmm": 579.2,
+      "sigma_MPa": 1.826
      },
      {
-      "s": 1.17,
-      "area_mm2": 183.97,
+      "s": 1.16,
+      "area_mm2": 186.84,
       "dims_mm": [
-       12.26,
-       15.3
+       13.72,
+       15.9
       ],
-      "moment_Nmm": 526.6,
-      "sigma_MPa": 1.837
+      "moment_Nmm": 521.3,
+      "sigma_MPa": 1.843
      },
      {
-      "s": 2.34,
-      "area_mm2": 172.33,
+      "s": 2.32,
+      "area_mm2": 170.64,
       "dims_mm": [
-       11.67,
-       15.3
+       13.14,
+       15.0
       ],
-      "moment_Nmm": 468.1,
-      "sigma_MPa": 1.813
+      "moment_Nmm": 463.4,
+      "sigma_MPa": 1.865
      },
      {
-      "s": 3.51,
-      "area_mm2": 157.35,
+      "s": 3.48,
+      "area_mm2": 154.03,
       "dims_mm": [
-       10.62,
-       15.3
+       12.23,
+       14.5
       ],
-      "moment_Nmm": 409.5,
-      "sigma_MPa": 1.833
+      "moment_Nmm": 405.5,
+      "sigma_MPa": 1.902
      },
      {
-      "s": 4.68,
-      "area_mm2": 139.43,
+      "s": 4.63,
+      "area_mm2": 135.54,
       "dims_mm": [
-       9.46,
-       15.1
+       10.86,
+       14.5
       ],
-      "moment_Nmm": 351.0,
-      "sigma_MPa": 1.932
+      "moment_Nmm": 347.5,
+      "sigma_MPa": 2.066
      },
      {
-      "s": 5.85,
-      "area_mm2": 122.36,
+      "s": 5.79,
+      "area_mm2": 115.54,
       "dims_mm": [
-       8.3,
-       15.1
+       8.23,
+       14.5
       ],
-      "moment_Nmm": 292.5,
-      "sigma_MPa": 2.02
+      "moment_Nmm": 289.6,
+      "sigma_MPa": 2.145
      },
      {
-      "s": 7.02,
-      "area_mm2": 104.81,
+      "s": 6.95,
+      "area_mm2": 99.18,
       "dims_mm": [
-       7.14,
-       15.1
+       7.09,
+       14.5
       ],
-      "moment_Nmm": 234.0,
-      "sigma_MPa": 2.13
-     },
-     {
-      "s": 8.19,
-      "area_mm2": 87.27,
-      "dims_mm": [
-       5.98,
-       15.1
-      ],
-      "moment_Nmm": 175.5,
-      "sigma_MPa": 2.229
-     },
-     {
-      "s": 9.36,
-      "area_mm2": 69.61,
-      "dims_mm": [
-       4.81,
-       14.7
-      ],
-      "moment_Nmm": 117.0,
+      "moment_Nmm": 231.7,
       "sigma_MPa": 2.252
+     },
+     {
+      "s": 8.11,
+      "area_mm2": 83.19,
+      "dims_mm": [
+       5.94,
+       14.4
+      ],
+      "moment_Nmm": 173.8,
+      "sigma_MPa": 2.347
+     },
+     {
+      "s": 9.27,
+      "area_mm2": 66.38,
+      "dims_mm": [
+       4.79,
+       14.2
+      ],
+      "moment_Nmm": 115.8,
+      "sigma_MPa": 2.366
      }
     ],
-    "notes": "root chord 12.85 mm from (2.45,51.67) to (12.75,44.00), tip (14.60,57.21); bending stress lies in the layer plane (in-layer, strong direction)"
+    "notes": "root chord 14.19 mm from (2.49,51.69) to (13.97,43.35), tip (14.60,57.21); bending stress lies in the layer plane (in-layer, strong direction)"
    },
    {
-    "name": "head lobe@(-11.2,52.0)",
+    "name": "head lobe@(-12.1,52.0)",
     "kind": "in-plane",
     "body": "head",
     "root_dims_mm": [
-     15.1,
-     12.84
+     14.7,
+     13.42
     ],
     "root_ok": true,
-    "length_mm": 11.7,
+    "length_mm": 10.33,
     "load_N": 50.0,
     "sigma_max_MPa": 2.25,
     "stress_ok": true,
     "worst_station": {
-     "s": 9.36,
-     "area_mm2": 69.64,
+     "s": 7.23,
+     "area_mm2": 79.99,
      "dims_mm": [
-      4.82,
-      14.7
+      5.73,
+      14.3
      ],
-     "moment_Nmm": 117.0,
-     "sigma_MPa": 2.25
+     "moment_Nmm": 155.0,
+     "sigma_MPa": 2.248
     },
     "fragment_if_snapped": {
-     "volume_mm3": 1315.2,
-     "min_enclosing_d": 15.225,
-     "length_along_axis": 15.1,
+     "volume_mm3": 1040.4,
+     "min_enclosing_d": 14.989,
+     "length_along_axis": 14.705,
      "fits_small_parts_cylinder": true
     },
     "stations": [
      {
       "s": 0.0,
-      "area_mm2": 187.79,
+      "area_mm2": 173.76,
       "dims_mm": [
-       12.84,
-       15.1
-      ],
-      "moment_Nmm": 585.1,
-      "sigma_MPa": 1.995
-     },
-     {
-      "s": 1.17,
-      "area_mm2": 182.47,
-      "dims_mm": [
-       12.26,
-       15.1
-      ],
-      "moment_Nmm": 526.5,
-      "sigma_MPa": 1.854
-     },
-     {
-      "s": 2.34,
-      "area_mm2": 173.49,
-      "dims_mm": [
-       11.68,
-       15.1
-      ],
-      "moment_Nmm": 468.0,
-      "sigma_MPa": 1.785
-     },
-     {
-      "s": 3.51,
-      "area_mm2": 157.47,
-      "dims_mm": [
-       10.63,
-       15.1
-      ],
-      "moment_Nmm": 409.5,
-      "sigma_MPa": 1.833
-     },
-     {
-      "s": 4.68,
-      "area_mm2": 139.93,
-      "dims_mm": [
-       9.46,
-       15.1
-      ],
-      "moment_Nmm": 351.0,
-      "sigma_MPa": 1.92
-     },
-     {
-      "s": 5.85,
-      "area_mm2": 122.38,
-      "dims_mm": [
-       8.3,
-       15.1
-      ],
-      "moment_Nmm": 292.5,
-      "sigma_MPa": 2.019
-     },
-     {
-      "s": 7.02,
-      "area_mm2": 104.84,
-      "dims_mm": [
-       7.14,
-       15.1
-      ],
-      "moment_Nmm": 234.0,
-      "sigma_MPa": 2.129
-     },
-     {
-      "s": 8.19,
-      "area_mm2": 87.3,
-      "dims_mm": [
-       5.98,
-       15.1
-      ],
-      "moment_Nmm": 175.5,
-      "sigma_MPa": 2.228
-     },
-     {
-      "s": 9.36,
-      "area_mm2": 69.64,
-      "dims_mm": [
-       4.82,
+       13.42,
        14.7
       ],
-      "moment_Nmm": 117.0,
-      "sigma_MPa": 2.25
+      "moment_Nmm": 516.6,
+      "sigma_MPa": 2.011
+     },
+     {
+      "s": 1.03,
+      "area_mm2": 168.51,
+      "dims_mm": [
+       13.05,
+       14.7
+      ],
+      "moment_Nmm": 464.9,
+      "sigma_MPa": 1.897
+     },
+     {
+      "s": 2.07,
+      "area_mm2": 161.03,
+      "dims_mm": [
+       12.56,
+       14.6
+      ],
+      "moment_Nmm": 413.3,
+      "sigma_MPa": 1.812
+     },
+     {
+      "s": 3.1,
+      "area_mm2": 146.94,
+      "dims_mm": [
+       11.85,
+       14.5
+      ],
+      "moment_Nmm": 361.6,
+      "sigma_MPa": 1.832
+     },
+     {
+      "s": 4.13,
+      "area_mm2": 130.12,
+      "dims_mm": [
+       10.77,
+       14.5
+      ],
+      "moment_Nmm": 310.0,
+      "sigma_MPa": 2.017
+     },
+     {
+      "s": 5.17,
+      "area_mm2": 110.27,
+      "dims_mm": [
+       7.87,
+       14.5
+      ],
+      "moment_Nmm": 258.3,
+      "sigma_MPa": 2.081
+     },
+     {
+      "s": 6.2,
+      "area_mm2": 95.06,
+      "dims_mm": [
+       6.8,
+       14.5
+      ],
+      "moment_Nmm": 206.6,
+      "sigma_MPa": 2.174
+     },
+     {
+      "s": 7.23,
+      "area_mm2": 79.99,
+      "dims_mm": [
+       5.73,
+       14.3
+      ],
+      "moment_Nmm": 155.0,
+      "sigma_MPa": 2.248
+     },
+     {
+      "s": 8.27,
+      "area_mm2": 64.38,
+      "dims_mm": [
+       4.66,
+       14.1
+      ],
+      "moment_Nmm": 103.3,
+      "sigma_MPa": 2.231
      }
     ],
-    "notes": "root chord 12.84 mm from (-2.45,51.67) to (-12.75,44.00), tip (-14.68,57.15); bending stress lies in the layer plane (in-layer, strong direction)"
-   },
-   {
-    "name": "frame lobe@(-18.5,-19.9)",
-    "kind": "in-plane",
-    "body": "frame",
-    "root_dims_mm": [
-     14.1,
-     12.02
-    ],
-    "root_ok": true,
-    "length_mm": 8.6,
-    "load_N": 50.0,
-    "sigma_max_MPa": 2.26,
-    "stress_ok": true,
-    "worst_station": {
-     "s": 0.0,
-     "area_mm2": 145.33,
-     "dims_mm": [
-      12.02,
-      14.1
-     ],
-     "moment_Nmm": 429.9,
-     "sigma_MPa": 2.257
-    },
-    "fragment_if_snapped": {
-     "volume_mm3": 1021.3,
-     "min_enclosing_d": 14.447,
-     "length_along_axis": 14.1,
-     "fits_small_parts_cylinder": true
-    },
-    "stations": [
-     {
-      "s": 0.0,
-      "area_mm2": 145.33,
-      "dims_mm": [
-       12.02,
-       14.1
-      ],
-      "moment_Nmm": 429.9,
-      "sigma_MPa": 2.257
-     },
-     {
-      "s": 0.86,
-      "area_mm2": 146.99,
-      "dims_mm": [
-       11.82,
-       14.1
-      ],
-      "moment_Nmm": 386.9,
-      "sigma_MPa": 1.979
-     },
-     {
-      "s": 1.72,
-      "area_mm2": 150.84,
-      "dims_mm": [
-       12.09,
-       14.1
-      ],
-      "moment_Nmm": 344.0,
-      "sigma_MPa": 1.677
-     },
-     {
-      "s": 2.58,
-      "area_mm2": 155.15,
-      "dims_mm": [
-       12.35,
-       14.1
-      ],
-      "moment_Nmm": 301.0,
-      "sigma_MPa": 1.398
-     },
-     {
-      "s": 3.44,
-      "area_mm2": 156.15,
-      "dims_mm": [
-       12.35,
-       14.1
-      ],
-      "moment_Nmm": 258.0,
-      "sigma_MPa": 1.194
-     },
-     {
-      "s": 4.3,
-      "area_mm2": 151.89,
-      "dims_mm": [
-       12.1,
-       14.1
-      ],
-      "moment_Nmm": 215.0,
-      "sigma_MPa": 1.039
-     },
-     {
-      "s": 5.16,
-      "area_mm2": 143.27,
-      "dims_mm": [
-       11.57,
-       14.1
-      ],
-      "moment_Nmm": 172.0,
-      "sigma_MPa": 0.915
-     },
-     {
-      "s": 6.02,
-      "area_mm2": 130.15,
-      "dims_mm": [
-       10.73,
-       13.6
-      ],
-      "moment_Nmm": 129.0,
-      "sigma_MPa": 0.809
-     },
-     {
-      "s": 6.88,
-      "area_mm2": 111.85,
-      "dims_mm": [
-       9.48,
-       13.6
-      ],
-      "moment_Nmm": 86.0,
-      "sigma_MPa": 0.715
-     }
-    ],
-    "notes": "root chord 10.82 mm from (-19.11,-12.60) to (-11.21,-19.99), tip (-21.10,-22.51); bending stress lies in the layer plane (in-layer, strong direction)"
+    "notes": "root chord 13.42 mm from (-4.42,52.78) to (-13.96,43.35), tip (-14.74,57.10); bending stress lies in the layer plane (in-layer, strong direction)"
    }
   ],
   "panels": [
    {
-    "area_mm2": 1337.5,
+    "area_mm2": 1516.1,
     "far_point": [
-     -8.58,
-     63.22
+     -21.02,
+     60.1
     ],
-    "cantilever_L_mm": 16.96,
+    "cantilever_L_mm": 18.66,
     "support_point": [
-     -4.78,
-     46.69
+     -11.49,
+     44.05
     ],
-    "width_mm": 66.02,
-    "w_eff_mm": 33.92,
-    "thickness_mm": 1.58,
+    "width_mm": 82.86,
+    "w_eff_mm": 37.33,
+    "thickness_mm": 2.98,
     "load_N": 50.0,
-    "sigma_MPa": 60.5,
-    "fraction_under_head": 0.194,
-    "islands_on_panel": []
+    "sigma_MPa": 16.9,
+    "fraction_under_head": 0.196,
+    "islands_on_panel": [
+     {
+      "centre": [
+       -28.23,
+       -0.24
+      ],
+      "r_equiv": 4.68,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 2.0
+     },
+     {
+      "centre": [
+       -21.32,
+       49.96
+      ],
+      "r_equiv": 4.42,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 2.1
+     },
+     {
+      "centre": [
+       3.41,
+       61.57
+      ],
+      "r_equiv": 4.06,
+      "gap_to_support_mm": 12.09,
+      "sigma_axial_pull_MPa": 12.9
+     },
+     {
+      "centre": [
+       22.49,
+       44.32
+      ],
+      "r_equiv": 3.92,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 2.3
+     },
+     {
+      "centre": [
+       -6.22,
+       -23.17
+      ],
+      "r_equiv": 3.75,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 2.4
+     },
+     {
+      "centre": [
+       28.19,
+       -18.08
+      ],
+      "r_equiv": 2.89,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 3.0
+     },
+     {
+      "centre": [
+       -24.76,
+       27.03
+      ],
+      "r_equiv": 2.68,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 3.2
+     },
+     {
+      "centre": [
+       25.13,
+       24.55
+      ],
+      "r_equiv": 2.28,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 3.7
+     },
+     {
+      "centre": [
+       10.74,
+       -21.87
+      ],
+      "r_equiv": 1.99,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 4.1
+     },
+     {
+      "centre": [
+       28.65,
+       13.64
+      ],
+      "r_equiv": 1.53,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 5.1
+     }
+    ]
    }
   ],
   "low_reliefs_on_body_top": []
@@ -1532,8 +1473,8 @@
      0.0
     ],
     "n_poses": 41,
-    "exposed_gap_cells": 54819,
-    "candidates": 25087
+    "exposed_gap_cells": 74183,
+    "candidates": 37064
    },
    "head_phi270": {
     "mover": "head",
@@ -1542,8 +1483,8 @@
      0.0
     ],
     "n_poses": 41,
-    "exposed_gap_cells": 54067,
-    "candidates": 24904
+    "exposed_gap_cells": 73904,
+    "candidates": 36968
    },
    "wheel_psi-12.42": {
     "mover": "wheel",
@@ -1552,8 +1493,8 @@
      -12.42
     ],
     "n_poses": 72,
-    "exposed_gap_cells": 24426,
-    "candidates": 22546
+    "exposed_gap_cells": 12236,
+    "candidates": 10690
    },
    "wheel_psi+0.00": {
     "mover": "wheel",
@@ -1562,8 +1503,8 @@
      0.0
     ],
     "n_poses": 72,
-    "exposed_gap_cells": 25183,
-    "candidates": 23163
+    "exposed_gap_cells": 13156,
+    "candidates": 10964
    },
    "wheel_psi+12.42": {
     "mover": "wheel",
@@ -1572,8 +1513,8 @@
      12.42
     ],
     "n_poses": 72,
-    "exposed_gap_cells": 24669,
-    "candidates": 22735
+    "exposed_gap_cells": 11849,
+    "candidates": 10468
    }
   },
   "clusters": [
@@ -1581,9 +1522,9 @@
     "series": "head_phi90",
     "mover": "head",
     "neighbour": "frame",
-    "n_cells": 294,
-    "n_cells_shear": 1,
-    "n_cells_squeeze": 1,
+    "n_cells": 373,
+    "n_cells_shear": 4,
+    "n_cells_squeeze": 5,
     "severity": "high",
     "kind": "finger-size opening (>= 4 mm) closes below 2 mm (shear / crush)",
     "z_range": [
@@ -1591,40 +1532,40 @@
      10.25
     ],
     "xy_centroid": [
-     13.34,
-     43.12
+     13.59,
+     42.88
     ],
     "xy_bbox": [
      9.75,
-     38.5,
-     18.0,
+     38.25,
+     18.25,
      45.75
     ],
     "worst_cell": [
-     13.25,
-     43.0
+     12.5,
+     43.5
     ],
     "worst_z": 9.25,
-    "gap_min_at_worst_cell": 1.98,
-    "gap_max_at_worst_cell": 4.789,
-    "gap_min": 1.467,
-    "gap_max": 4.789,
+    "gap_min_at_worst_cell": 1.618,
+    "gap_max_at_worst_cell": 4.609,
+    "gap_min": 1.132,
+    "gap_max": 4.609,
     "pose_at_gap_min": [
      90.0,
-     1.24
+     2.48
     ],
     "pose_at_gap_max": [
      90.0,
-     8.69
+     10.56
     ]
    },
    {
     "series": "head_phi270",
     "mover": "head",
     "neighbour": "frame",
-    "n_cells": 294,
-    "n_cells_shear": 1,
-    "n_cells_squeeze": 1,
+    "n_cells": 373,
+    "n_cells_shear": 4,
+    "n_cells_squeeze": 5,
     "severity": "high",
     "kind": "finger-size opening (>= 4 mm) closes below 2 mm (shear / crush)",
     "z_range": [
@@ -1632,40 +1573,40 @@
      10.25
     ],
     "xy_centroid": [
-     13.34,
-     43.12
+     13.59,
+     42.88
     ],
     "xy_bbox": [
      9.75,
-     38.5,
-     18.0,
+     38.25,
+     18.25,
      45.75
     ],
     "worst_cell": [
-     13.25,
-     43.0
+     12.5,
+     43.5
     ],
     "worst_z": 9.25,
-    "gap_min_at_worst_cell": 1.98,
-    "gap_max_at_worst_cell": 4.789,
-    "gap_min": 1.467,
-    "gap_max": 4.789,
+    "gap_min_at_worst_cell": 1.618,
+    "gap_max_at_worst_cell": 4.609,
+    "gap_min": 1.132,
+    "gap_max": 4.609,
     "pose_at_gap_min": [
      270.0,
-     1.24
+     2.48
     ],
     "pose_at_gap_max": [
      270.0,
-     8.69
+     10.56
     ]
    },
    {
     "series": "head_phi90",
     "mover": "head",
     "neighbour": "frame",
-    "n_cells": 128,
+    "n_cells": 143,
     "n_cells_shear": 1,
-    "n_cells_squeeze": 4,
+    "n_cells_squeeze": 7,
     "severity": "high",
     "kind": "finger-size opening (>= 4 mm) closes below 2 mm (shear / crush)",
     "z_range": [
@@ -1673,23 +1614,23 @@
      10.25
     ],
     "xy_centroid": [
-     -12.84,
-     43.47
+     -12.91,
+     43.45
     ],
     "xy_bbox": [
-     -15.75,
-     41.0,
-     -9.5,
-     45.75
+     -15.25,
+     41.5,
+     -9.75,
+     45.5
     ],
     "worst_cell": [
      -13.0,
      43.25
     ],
     "worst_z": 9.25,
-    "gap_min_at_worst_cell": 1.705,
-    "gap_max_at_worst_cell": 4.012,
-    "gap_min": 1.626,
+    "gap_min_at_worst_cell": 1.706,
+    "gap_max_at_worst_cell": 4.496,
+    "gap_min": 1.485,
     "gap_max": 8.01,
     "pose_at_gap_min": [
      90.0,
@@ -1697,16 +1638,16 @@
     ],
     "pose_at_gap_max": [
      90.0,
-     -7.45
+     -8.69
     ]
    },
    {
     "series": "head_phi270",
     "mover": "head",
     "neighbour": "frame",
-    "n_cells": 128,
+    "n_cells": 143,
     "n_cells_shear": 1,
-    "n_cells_squeeze": 4,
+    "n_cells_squeeze": 7,
     "severity": "high",
     "kind": "finger-size opening (>= 4 mm) closes below 2 mm (shear / crush)",
     "z_range": [
@@ -1714,23 +1655,23 @@
      10.25
     ],
     "xy_centroid": [
-     -12.84,
-     43.47
+     -12.91,
+     43.45
     ],
     "xy_bbox": [
-     -15.75,
-     41.0,
-     -9.5,
-     45.75
+     -15.25,
+     41.5,
+     -9.75,
+     45.5
     ],
     "worst_cell": [
      -13.0,
      43.25
     ],
     "worst_z": 9.25,
-    "gap_min_at_worst_cell": 1.705,
-    "gap_max_at_worst_cell": 4.012,
-    "gap_min": 1.626,
+    "gap_min_at_worst_cell": 1.706,
+    "gap_max_at_worst_cell": 4.496,
+    "gap_min": 1.485,
     "gap_max": 8.01,
     "pose_at_gap_min": [
      270.0,
@@ -1738,7 +1679,7 @@
     ],
     "pose_at_gap_max": [
      270.0,
-     -7.45
+     -8.69
     ]
    },
    {
@@ -1751,28 +1692,28 @@
     "severity": "medium",
     "kind": "finger-size opening closes by >= 2 mm to a gap inside the 2-12 mm band (squeeze)",
     "z_range": [
-     8.75,
-     8.75
+     9.75,
+     9.75
     ],
     "xy_centroid": [
-     -18.25,
-     38.0
+     -17.5,
+     39.0
     ],
     "xy_bbox": [
-     -18.25,
-     38.0,
-     -18.25,
-     38.0
+     -17.5,
+     39.0,
+     -17.5,
+     39.0
     ],
     "worst_cell": [
-     -18.25,
-     38.0
+     -17.5,
+     39.0
     ],
-    "worst_z": 8.75,
-    "gap_min_at_worst_cell": 3.584,
-    "gap_max_at_worst_cell": 6.494,
-    "gap_min": 3.584,
-    "gap_max": 6.494,
+    "worst_z": 9.75,
+    "gap_min_at_worst_cell": 2.417,
+    "gap_max_at_worst_cell": 5.268,
+    "gap_min": 2.417,
+    "gap_max": 5.268,
     "pose_at_gap_min": [
      90.0,
      12.42
@@ -1792,131 +1733,49 @@
     "severity": "medium",
     "kind": "finger-size opening closes by >= 2 mm to a gap inside the 2-12 mm band (squeeze)",
     "z_range": [
-     8.75,
+     9.75,
+     9.75
+    ],
+    "xy_centroid": [
+     -17.5,
+     39.0
+    ],
+    "xy_bbox": [
+     -17.5,
+     39.0,
+     -17.5,
+     39.0
+    ],
+    "worst_cell": [
+     -17.5,
+     39.0
+    ],
+    "worst_z": 9.75,
+    "gap_min_at_worst_cell": 2.417,
+    "gap_max_at_worst_cell": 5.268,
+    "gap_min": 2.417,
+    "gap_max": 5.268,
+    "pose_at_gap_min": [
+     270.0,
+     12.42
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     4.97
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 2,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 1,
+    "severity": "medium",
+    "kind": "finger-size opening closes by >= 2 mm to a gap inside the 2-12 mm band (squeeze)",
+    "z_range": [
+     8.25,
      8.75
-    ],
-    "xy_centroid": [
-     -18.25,
-     38.0
-    ],
-    "xy_bbox": [
-     -18.25,
-     38.0,
-     -18.25,
-     38.0
-    ],
-    "worst_cell": [
-     -18.25,
-     38.0
-    ],
-    "worst_z": 8.75,
-    "gap_min_at_worst_cell": 3.584,
-    "gap_max_at_worst_cell": 6.494,
-    "gap_min": 3.584,
-    "gap_max": 6.494,
-    "pose_at_gap_min": [
-     270.0,
-     12.42
-    ],
-    "pose_at_gap_max": [
-     270.0,
-     4.97
-    ]
-   },
-   {
-    "series": "head_phi90",
-    "mover": "head",
-    "neighbour": "frame",
-    "n_cells": 1,
-    "n_cells_shear": 0,
-    "n_cells_squeeze": 1,
-    "severity": "medium",
-    "kind": "finger-size opening closes by >= 2 mm to a gap inside the 2-12 mm band (squeeze)",
-    "z_range": [
-     10.25,
-     10.25
-    ],
-    "xy_centroid": [
-     -18.25,
-     38.0
-    ],
-    "xy_bbox": [
-     -18.25,
-     38.0,
-     -18.25,
-     38.0
-    ],
-    "worst_cell": [
-     -18.25,
-     38.0
-    ],
-    "worst_z": 10.25,
-    "gap_min_at_worst_cell": 3.59,
-    "gap_max_at_worst_cell": 6.5,
-    "gap_min": 3.59,
-    "gap_max": 6.5,
-    "pose_at_gap_min": [
-     90.0,
-     12.42
-    ],
-    "pose_at_gap_max": [
-     90.0,
-     4.97
-    ]
-   },
-   {
-    "series": "head_phi270",
-    "mover": "head",
-    "neighbour": "frame",
-    "n_cells": 1,
-    "n_cells_shear": 0,
-    "n_cells_squeeze": 1,
-    "severity": "medium",
-    "kind": "finger-size opening closes by >= 2 mm to a gap inside the 2-12 mm band (squeeze)",
-    "z_range": [
-     10.25,
-     10.25
-    ],
-    "xy_centroid": [
-     -18.25,
-     38.0
-    ],
-    "xy_bbox": [
-     -18.25,
-     38.0,
-     -18.25,
-     38.0
-    ],
-    "worst_cell": [
-     -18.25,
-     38.0
-    ],
-    "worst_z": 10.25,
-    "gap_min_at_worst_cell": 3.59,
-    "gap_max_at_worst_cell": 6.5,
-    "gap_min": 3.59,
-    "gap_max": 6.5,
-    "pose_at_gap_min": [
-     270.0,
-     12.42
-    ],
-    "pose_at_gap_max": [
-     270.0,
-     4.97
-    ]
-   },
-   {
-    "series": "head_phi90",
-    "mover": "head",
-    "neighbour": "frame",
-    "n_cells": 1,
-    "n_cells_shear": 0,
-    "n_cells_squeeze": 1,
-    "severity": "medium",
-    "kind": "finger-size opening closes by >= 2 mm to a gap inside the 2-12 mm band (squeeze)",
-    "z_range": [
-     10.25,
-     10.25
     ],
     "xy_centroid": [
      -17.0,
@@ -1932,32 +1791,32 @@
      -17.0,
      39.5
     ],
-    "worst_z": 10.25,
-    "gap_min_at_worst_cell": 4.52,
-    "gap_max_at_worst_cell": 7.686,
-    "gap_min": 4.52,
-    "gap_max": 7.686,
+    "worst_z": 8.75,
+    "gap_min_at_worst_cell": 4.996,
+    "gap_max_at_worst_cell": 8.165,
+    "gap_min": 4.515,
+    "gap_max": 8.165,
     "pose_at_gap_min": [
      90.0,
-     4.97
+     3.73
     ],
     "pose_at_gap_max": [
      90.0,
-     -3.11
+     -4.35
     ]
    },
    {
     "series": "head_phi270",
     "mover": "head",
     "neighbour": "frame",
-    "n_cells": 1,
+    "n_cells": 2,
     "n_cells_shear": 0,
     "n_cells_squeeze": 1,
     "severity": "medium",
     "kind": "finger-size opening closes by >= 2 mm to a gap inside the 2-12 mm band (squeeze)",
     "z_range": [
-     10.25,
-     10.25
+     8.25,
+     8.75
     ],
     "xy_centroid": [
      -17.0,
@@ -1973,182 +1832,100 @@
      -17.0,
      39.5
     ],
-    "worst_z": 10.25,
-    "gap_min_at_worst_cell": 4.52,
-    "gap_max_at_worst_cell": 7.686,
-    "gap_min": 4.52,
-    "gap_max": 7.686,
+    "worst_z": 8.75,
+    "gap_min_at_worst_cell": 4.996,
+    "gap_max_at_worst_cell": 8.165,
+    "gap_min": 4.515,
+    "gap_max": 8.165,
     "pose_at_gap_min": [
      270.0,
-     4.97
+     3.73
     ],
     "pose_at_gap_max": [
      270.0,
-     -3.11
+     -4.35
     ]
    },
    {
     "series": "head_phi90",
     "mover": "head",
     "neighbour": "frame",
-    "n_cells": 1,
+    "n_cells": 2,
     "n_cells_shear": 0,
     "n_cells_squeeze": 0,
     "severity": "low",
     "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
     "z_range": [
-     6.75,
-     6.75
+     9.25,
+     9.25
     ],
     "xy_centroid": [
-     16.0,
-     40.75
+     -9.62,
+     45.62
     ],
     "xy_bbox": [
-     16.0,
-     40.75,
-     16.0,
-     40.75
+     -9.75,
+     45.5,
+     -9.5,
+     45.75
     ],
     "worst_cell": [
-     16.0,
-     40.75
+     -9.5,
+     45.75
     ],
-    "worst_z": 6.75,
-    "gap_min_at_worst_cell": 1.121,
-    "gap_max_at_worst_cell": 2.06,
-    "gap_min": 1.121,
-    "gap_max": 2.06,
+    "worst_z": 9.25,
+    "gap_min_at_worst_cell": 1.883,
+    "gap_max_at_worst_cell": 2.116,
+    "gap_min": 1.883,
+    "gap_max": 2.348,
     "pose_at_gap_min": [
      90.0,
-     -9.31
+     -11.8
     ],
     "pose_at_gap_max": [
      90.0,
-     -6.83
+     -12.42
     ]
    },
    {
     "series": "head_phi270",
     "mover": "head",
     "neighbour": "frame",
-    "n_cells": 1,
+    "n_cells": 2,
     "n_cells_shear": 0,
     "n_cells_squeeze": 0,
     "severity": "low",
     "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
     "z_range": [
-     6.75,
-     6.75
+     9.25,
+     9.25
     ],
     "xy_centroid": [
-     16.0,
-     40.75
+     -9.62,
+     45.62
     ],
     "xy_bbox": [
-     16.0,
-     40.75,
-     16.0,
-     40.75
+     -9.75,
+     45.5,
+     -9.5,
+     45.75
     ],
     "worst_cell": [
-     16.0,
-     40.75
+     -9.5,
+     45.75
     ],
-    "worst_z": 6.75,
-    "gap_min_at_worst_cell": 1.121,
-    "gap_max_at_worst_cell": 2.06,
-    "gap_min": 1.121,
-    "gap_max": 2.06,
+    "worst_z": 9.25,
+    "gap_min_at_worst_cell": 1.883,
+    "gap_max_at_worst_cell": 2.116,
+    "gap_min": 1.883,
+    "gap_max": 2.348,
     "pose_at_gap_min": [
      270.0,
-     -9.31
+     -11.8
     ],
     "pose_at_gap_max": [
      270.0,
-     -6.83
-    ]
-   },
-   {
-    "series": "head_phi90",
-    "mover": "head",
-    "neighbour": "frame",
-    "n_cells": 1,
-    "n_cells_shear": 0,
-    "n_cells_squeeze": 0,
-    "severity": "low",
-    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
-    "z_range": [
-     9.75,
-     9.75
-    ],
-    "xy_centroid": [
-     15.75,
-     42.0
-    ],
-    "xy_bbox": [
-     15.75,
-     42.0,
-     15.75,
-     42.0
-    ],
-    "worst_cell": [
-     15.75,
-     42.0
-    ],
-    "worst_z": 9.75,
-    "gap_min_at_worst_cell": 1.616,
-    "gap_max_at_worst_cell": 2.595,
-    "gap_min": 1.616,
-    "gap_max": 2.595,
-    "pose_at_gap_min": [
-     90.0,
-     -7.45
-    ],
-    "pose_at_gap_max": [
-     90.0,
-     -4.97
-    ]
-   },
-   {
-    "series": "head_phi270",
-    "mover": "head",
-    "neighbour": "frame",
-    "n_cells": 1,
-    "n_cells_shear": 0,
-    "n_cells_squeeze": 0,
-    "severity": "low",
-    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
-    "z_range": [
-     9.75,
-     9.75
-    ],
-    "xy_centroid": [
-     15.75,
-     42.0
-    ],
-    "xy_bbox": [
-     15.75,
-     42.0,
-     15.75,
-     42.0
-    ],
-    "worst_cell": [
-     15.75,
-     42.0
-    ],
-    "worst_z": 9.75,
-    "gap_min_at_worst_cell": 1.616,
-    "gap_max_at_worst_cell": 2.595,
-    "gap_min": 1.616,
-    "gap_max": 2.595,
-    "pose_at_gap_min": [
-     270.0,
-     -7.45
-    ],
-    "pose_at_gap_max": [
-     270.0,
-     -4.97
+     -12.42
     ]
    },
    {
@@ -2165,31 +1942,31 @@
      7.75
     ],
     "xy_centroid": [
-     16.25,
-     41.0
+     -9.5,
+     45.75
     ],
     "xy_bbox": [
-     16.25,
-     41.0,
-     16.25,
-     41.0
+     -9.5,
+     45.75,
+     -9.5,
+     45.75
     ],
     "worst_cell": [
-     16.25,
-     41.0
+     -9.5,
+     45.75
     ],
     "worst_z": 7.75,
-    "gap_min_at_worst_cell": 1.663,
-    "gap_max_at_worst_cell": 2.354,
-    "gap_min": 1.663,
-    "gap_max": 2.354,
+    "gap_min_at_worst_cell": 1.887,
+    "gap_max_at_worst_cell": 2.121,
+    "gap_min": 1.887,
+    "gap_max": 2.121,
     "pose_at_gap_min": [
      90.0,
-     -9.31
+     -11.8
     ],
     "pose_at_gap_max": [
      90.0,
-     -7.45
+     -12.42
     ]
    },
    {
@@ -2206,120 +1983,38 @@
      7.75
     ],
     "xy_centroid": [
-     16.25,
-     41.0
+     -9.5,
+     45.75
     ],
     "xy_bbox": [
-     16.25,
-     41.0,
-     16.25,
-     41.0
+     -9.5,
+     45.75,
+     -9.5,
+     45.75
     ],
     "worst_cell": [
-     16.25,
-     41.0
+     -9.5,
+     45.75
     ],
     "worst_z": 7.75,
-    "gap_min_at_worst_cell": 1.663,
-    "gap_max_at_worst_cell": 2.354,
-    "gap_min": 1.663,
-    "gap_max": 2.354,
+    "gap_min_at_worst_cell": 1.887,
+    "gap_max_at_worst_cell": 2.121,
+    "gap_min": 1.887,
+    "gap_max": 2.121,
     "pose_at_gap_min": [
      270.0,
-     -9.31
+     -11.8
     ],
     "pose_at_gap_max": [
      270.0,
-     -7.45
+     -12.42
     ]
    },
    {
     "series": "head_phi90",
     "mover": "head",
     "neighbour": "frame",
-    "n_cells": 4,
-    "n_cells_shear": 0,
-    "n_cells_squeeze": 0,
-    "severity": "low",
-    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
-    "z_range": [
-     10.25,
-     10.25
-    ],
-    "xy_centroid": [
-     -12.75,
-     43.75
-    ],
-    "xy_bbox": [
-     -13.0,
-     43.5,
-     -12.5,
-     44.0
-    ],
-    "worst_cell": [
-     -13.0,
-     43.75
-    ],
-    "worst_z": 10.25,
-    "gap_min_at_worst_cell": 1.679,
-    "gap_max_at_worst_cell": 2.371,
-    "gap_min": 1.679,
-    "gap_max": 2.545,
-    "pose_at_gap_min": [
-     90.0,
-     -1.24
-    ],
-    "pose_at_gap_max": [
-     90.0,
-     -3.11
-    ]
-   },
-   {
-    "series": "head_phi270",
-    "mover": "head",
-    "neighbour": "frame",
-    "n_cells": 4,
-    "n_cells_shear": 0,
-    "n_cells_squeeze": 0,
-    "severity": "low",
-    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
-    "z_range": [
-     10.25,
-     10.25
-    ],
-    "xy_centroid": [
-     -12.75,
-     43.75
-    ],
-    "xy_bbox": [
-     -13.0,
-     43.5,
-     -12.5,
-     44.0
-    ],
-    "worst_cell": [
-     -13.0,
-     43.75
-    ],
-    "worst_z": 10.25,
-    "gap_min_at_worst_cell": 1.679,
-    "gap_max_at_worst_cell": 2.371,
-    "gap_min": 1.679,
-    "gap_max": 2.545,
-    "pose_at_gap_min": [
-     270.0,
-     -1.24
-    ],
-    "pose_at_gap_max": [
-     270.0,
-     -3.11
-    ]
-   },
-   {
-    "series": "head_phi90",
-    "mover": "head",
-    "neighbour": "frame",
-    "n_cells": 2,
+    "n_cells": 1,
     "n_cells_shear": 0,
     "n_cells_squeeze": 0,
     "severity": "low",
@@ -2329,12 +2024,12 @@
      8.75
     ],
     "xy_centroid": [
-     -15.62,
-     41.12
+     -15.5,
+     41.25
     ],
     "xy_bbox": [
-     -15.75,
-     41.0,
+     -15.5,
+     41.25,
      -15.5,
      41.25
     ],
@@ -2346,7 +2041,7 @@
     "gap_min_at_worst_cell": 2.391,
     "gap_max_at_worst_cell": 2.85,
     "gap_min": 2.391,
-    "gap_max": 3.183,
+    "gap_max": 2.85,
     "pose_at_gap_min": [
      90.0,
      4.97
@@ -2360,7 +2055,7 @@
     "series": "head_phi270",
     "mover": "head",
     "neighbour": "frame",
-    "n_cells": 2,
+    "n_cells": 1,
     "n_cells_shear": 0,
     "n_cells_squeeze": 0,
     "severity": "low",
@@ -2370,12 +2065,12 @@
      8.75
     ],
     "xy_centroid": [
-     -15.62,
-     41.12
+     -15.5,
+     41.25
     ],
     "xy_bbox": [
-     -15.75,
-     41.0,
+     -15.5,
+     41.25,
      -15.5,
      41.25
     ],
@@ -2387,253 +2082,7 @@
     "gap_min_at_worst_cell": 2.391,
     "gap_max_at_worst_cell": 2.85,
     "gap_min": 2.391,
-    "gap_max": 3.183,
-    "pose_at_gap_min": [
-     270.0,
-     4.97
-    ],
-    "pose_at_gap_max": [
-     270.0,
-     3.73
-    ]
-   },
-   {
-    "series": "head_phi90",
-    "mover": "head",
-    "neighbour": "frame",
-    "n_cells": 2,
-    "n_cells_shear": 0,
-    "n_cells_squeeze": 0,
-    "severity": "low",
-    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
-    "z_range": [
-     8.75,
-     8.75
-    ],
-    "xy_centroid": [
-     17.88,
-     38.75
-    ],
-    "xy_bbox": [
-     17.75,
-     38.5,
-     18.0,
-     39.0
-    ],
-    "worst_cell": [
-     17.75,
-     39.0
-    ],
-    "worst_z": 8.75,
-    "gap_min_at_worst_cell": 2.683,
-    "gap_max_at_worst_cell": 2.918,
-    "gap_min": 2.683,
-    "gap_max": 3.362,
-    "pose_at_gap_min": [
-     90.0,
-     -12.42
-    ],
-    "pose_at_gap_max": [
-     90.0,
-     -11.8
-    ]
-   },
-   {
-    "series": "head_phi270",
-    "mover": "head",
-    "neighbour": "frame",
-    "n_cells": 2,
-    "n_cells_shear": 0,
-    "n_cells_squeeze": 0,
-    "severity": "low",
-    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
-    "z_range": [
-     8.75,
-     8.75
-    ],
-    "xy_centroid": [
-     17.88,
-     38.75
-    ],
-    "xy_bbox": [
-     17.75,
-     38.5,
-     18.0,
-     39.0
-    ],
-    "worst_cell": [
-     17.75,
-     39.0
-    ],
-    "worst_z": 8.75,
-    "gap_min_at_worst_cell": 2.683,
-    "gap_max_at_worst_cell": 2.918,
-    "gap_min": 2.683,
-    "gap_max": 3.362,
-    "pose_at_gap_min": [
-     270.0,
-     -12.42
-    ],
-    "pose_at_gap_max": [
-     270.0,
-     -11.8
-    ]
-   },
-   {
-    "series": "head_phi90",
-    "mover": "head",
-    "neighbour": "frame",
-    "n_cells": 1,
-    "n_cells_shear": 0,
-    "n_cells_squeeze": 0,
-    "severity": "low",
-    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
-    "z_range": [
-     10.25,
-     10.25
-    ],
-    "xy_centroid": [
-     -10.75,
-     44.5
-    ],
-    "xy_bbox": [
-     -10.75,
-     44.5,
-     -10.75,
-     44.5
-    ],
-    "worst_cell": [
-     -10.75,
-     44.5
-    ],
-    "worst_z": 10.25,
-    "gap_min_at_worst_cell": 2.858,
-    "gap_max_at_worst_cell": 3.322,
-    "gap_min": 2.858,
-    "gap_max": 3.322,
-    "pose_at_gap_min": [
-     90.0,
-     -11.18
-    ],
-    "pose_at_gap_max": [
-     90.0,
-     -12.42
-    ]
-   },
-   {
-    "series": "head_phi270",
-    "mover": "head",
-    "neighbour": "frame",
-    "n_cells": 1,
-    "n_cells_shear": 0,
-    "n_cells_squeeze": 0,
-    "severity": "low",
-    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
-    "z_range": [
-     10.25,
-     10.25
-    ],
-    "xy_centroid": [
-     -10.75,
-     44.5
-    ],
-    "xy_bbox": [
-     -10.75,
-     44.5,
-     -10.75,
-     44.5
-    ],
-    "worst_cell": [
-     -10.75,
-     44.5
-    ],
-    "worst_z": 10.25,
-    "gap_min_at_worst_cell": 2.858,
-    "gap_max_at_worst_cell": 3.322,
-    "gap_min": 2.858,
-    "gap_max": 3.322,
-    "pose_at_gap_min": [
-     270.0,
-     -11.18
-    ],
-    "pose_at_gap_max": [
-     270.0,
-     -12.42
-    ]
-   },
-   {
-    "series": "head_phi90",
-    "mover": "head",
-    "neighbour": "frame",
-    "n_cells": 1,
-    "n_cells_shear": 0,
-    "n_cells_squeeze": 0,
-    "severity": "low",
-    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
-    "z_range": [
-     9.75,
-     9.75
-    ],
-    "xy_centroid": [
-     -16.0,
-     40.75
-    ],
-    "xy_bbox": [
-     -16.0,
-     40.75,
-     -16.0,
-     40.75
-    ],
-    "worst_cell": [
-     -16.0,
-     40.75
-    ],
-    "worst_z": 9.75,
-    "gap_min_at_worst_cell": 3.05,
-    "gap_max_at_worst_cell": 3.524,
-    "gap_min": 3.05,
-    "gap_max": 3.524,
-    "pose_at_gap_min": [
-     90.0,
-     4.97
-    ],
-    "pose_at_gap_max": [
-     90.0,
-     3.73
-    ]
-   },
-   {
-    "series": "head_phi270",
-    "mover": "head",
-    "neighbour": "frame",
-    "n_cells": 1,
-    "n_cells_shear": 0,
-    "n_cells_squeeze": 0,
-    "severity": "low",
-    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
-    "z_range": [
-     9.75,
-     9.75
-    ],
-    "xy_centroid": [
-     -16.0,
-     40.75
-    ],
-    "xy_bbox": [
-     -16.0,
-     40.75,
-     -16.0,
-     40.75
-    ],
-    "worst_cell": [
-     -16.0,
-     40.75
-    ],
-    "worst_z": 9.75,
-    "gap_min_at_worst_cell": 3.05,
-    "gap_max_at_worst_cell": 3.524,
-    "gap_min": 3.05,
-    "gap_max": 3.524,
+    "gap_max": 2.85,
     "pose_at_gap_min": [
      270.0,
      4.97
@@ -2657,24 +2106,24 @@
      8.25
     ],
     "xy_centroid": [
-     -16.5,
-     40.25
+     -15.75,
+     41.0
     ],
     "xy_bbox": [
-     -16.5,
-     40.25,
-     -16.5,
-     40.25
+     -15.75,
+     41.0,
+     -15.75,
+     41.0
     ],
     "worst_cell": [
-     -16.5,
-     40.25
+     -15.75,
+     41.0
     ],
     "worst_z": 8.25,
-    "gap_min_at_worst_cell": 3.744,
-    "gap_max_at_worst_cell": 4.227,
-    "gap_min": 3.744,
-    "gap_max": 4.227,
+    "gap_min_at_worst_cell": 2.718,
+    "gap_max_at_worst_cell": 3.185,
+    "gap_min": 2.718,
+    "gap_max": 3.185,
     "pose_at_gap_min": [
      90.0,
      4.97
@@ -2698,24 +2147,24 @@
      8.25
     ],
     "xy_centroid": [
-     -16.5,
-     40.25
+     -15.75,
+     41.0
     ],
     "xy_bbox": [
-     -16.5,
-     40.25,
-     -16.5,
-     40.25
+     -15.75,
+     41.0,
+     -15.75,
+     41.0
     ],
     "worst_cell": [
-     -16.5,
-     40.25
+     -15.75,
+     41.0
     ],
     "worst_z": 8.25,
-    "gap_min_at_worst_cell": 3.744,
-    "gap_max_at_worst_cell": 4.227,
-    "gap_min": 3.744,
-    "gap_max": 4.227,
+    "gap_min_at_worst_cell": 2.718,
+    "gap_max_at_worst_cell": 3.185,
+    "gap_min": 2.718,
+    "gap_max": 3.185,
     "pose_at_gap_min": [
      270.0,
      4.97
@@ -2723,6 +2172,252 @@
     "pose_at_gap_max": [
      270.0,
      3.73
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 2,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     9.25,
+     9.75
+    ],
+    "xy_centroid": [
+     -16.0,
+     40.88
+    ],
+    "xy_bbox": [
+     -16.0,
+     40.75,
+     -16.0,
+     41.0
+    ],
+    "worst_cell": [
+     -16.0,
+     41.0
+    ],
+    "worst_z": 9.25,
+    "gap_min_at_worst_cell": 2.77,
+    "gap_max_at_worst_cell": 3.009,
+    "gap_min": 2.77,
+    "gap_max": 3.524,
+    "pose_at_gap_min": [
+     90.0,
+     5.59
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     4.97
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 2,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     9.25,
+     9.75
+    ],
+    "xy_centroid": [
+     -16.0,
+     40.88
+    ],
+    "xy_bbox": [
+     -16.0,
+     40.75,
+     -16.0,
+     41.0
+    ],
+    "worst_cell": [
+     -16.0,
+     41.0
+    ],
+    "worst_z": 9.25,
+    "gap_min_at_worst_cell": 2.77,
+    "gap_max_at_worst_cell": 3.009,
+    "gap_min": 2.77,
+    "gap_max": 3.524,
+    "pose_at_gap_min": [
+     270.0,
+     5.59
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     4.97
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     7.75,
+     7.75
+    ],
+    "xy_centroid": [
+     -11.25,
+     44.5
+    ],
+    "xy_bbox": [
+     -11.25,
+     44.5,
+     -11.25,
+     44.5
+    ],
+    "worst_cell": [
+     -11.25,
+     44.5
+    ],
+    "worst_z": 7.75,
+    "gap_min_at_worst_cell": 2.978,
+    "gap_max_at_worst_cell": 3.216,
+    "gap_min": 2.978,
+    "gap_max": 3.216,
+    "pose_at_gap_min": [
+     90.0,
+     -9.94
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     -10.56
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     7.75,
+     7.75
+    ],
+    "xy_centroid": [
+     -11.25,
+     44.5
+    ],
+    "xy_bbox": [
+     -11.25,
+     44.5,
+     -11.25,
+     44.5
+    ],
+    "worst_cell": [
+     -11.25,
+     44.5
+    ],
+    "worst_z": 7.75,
+    "gap_min_at_worst_cell": 2.978,
+    "gap_max_at_worst_cell": 3.216,
+    "gap_min": 2.978,
+    "gap_max": 3.216,
+    "pose_at_gap_min": [
+     270.0,
+     -9.94
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     -10.56
+    ]
+   },
+   {
+    "series": "head_phi90",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     8.75,
+     8.75
+    ],
+    "xy_centroid": [
+     -16.5,
+     40.0
+    ],
+    "xy_bbox": [
+     -16.5,
+     40.0,
+     -16.5,
+     40.0
+    ],
+    "worst_cell": [
+     -16.5,
+     40.0
+    ],
+    "worst_z": 8.75,
+    "gap_min_at_worst_cell": 3.806,
+    "gap_max_at_worst_cell": 5.491,
+    "gap_min": 3.806,
+    "gap_max": 5.491,
+    "pose_at_gap_min": [
+     90.0,
+     4.97
+    ],
+    "pose_at_gap_max": [
+     90.0,
+     0.62
+    ]
+   },
+   {
+    "series": "head_phi270",
+    "mover": "head",
+    "neighbour": "frame",
+    "n_cells": 1,
+    "n_cells_shear": 0,
+    "n_cells_squeeze": 0,
+    "severity": "low",
+    "kind": "literal V12 violation only: the gap never opens to a 4 mm fingertip or changes by < 2 mm",
+    "z_range": [
+     8.75,
+     8.75
+    ],
+    "xy_centroid": [
+     -16.5,
+     40.0
+    ],
+    "xy_bbox": [
+     -16.5,
+     40.0,
+     -16.5,
+     40.0
+    ],
+    "worst_cell": [
+     -16.5,
+     40.0
+    ],
+    "worst_z": 8.75,
+    "gap_min_at_worst_cell": 3.806,
+    "gap_max_at_worst_cell": 5.491,
+    "gap_min": 3.806,
+    "gap_max": 5.491,
+    "pose_at_gap_min": [
+     270.0,
+     4.97
+    ],
+    "pose_at_gap_max": [
+     270.0,
+     0.62
     ]
    }
   ],
@@ -2737,9 +2432,9 @@
        12.66,
        44.35
       ],
-      "depth_mm": 0.179,
-      "area_mm2": 0.203,
-      "est_corner_r_mm": 1.09,
+      "depth_mm": 0.19,
+      "area_mm2": 0.216,
+      "est_corner_r_mm": 1.05,
       "z": 11.5
      }
     ]
@@ -2747,10 +2442,10 @@
    "sharp": {
     "frame": {
      "stats": {
-      "sharp_edges": 46199,
-      "acute_edges": 40,
-      "candidates": 444,
-      "exposed_candidates": 95
+      "sharp_edges": 106115,
+      "acute_edges": 89,
+      "candidates": 639,
+      "exposed_candidates": 202
      },
      "points": [
       {
@@ -2795,270 +2490,382 @@
       },
       {
        "at": [
-        18.32,
-        -3.23,
-        13.1
+        22.81,
+        -10.31,
+        17.4
+       ],
+       "ball_fraction": 0.278
+      },
+      {
+       "at": [
+        -21.42,
+        -9.08,
+        17.3
+       ],
+       "ball_fraction": 0.279
+      },
+      {
+       "at": [
+        -21.61,
+        -9.19,
+        17.4
+       ],
+       "ball_fraction": 0.28
+      },
+      {
+       "at": [
+        21.61,
+        -9.19,
+        17.4
+       ],
+       "ball_fraction": 0.28
+      },
+      {
+       "at": [
+        -22.94,
+        -10.48,
+        17.3
+       ],
+       "ball_fraction": 0.282
+      },
+      {
+       "at": [
+        -24.42,
+        -12.2,
+        17.2
+       ],
+       "ball_fraction": 0.283
+      },
+      {
+       "at": [
+        24.42,
+        -12.2,
+        17.2
+       ],
+       "ball_fraction": 0.283
+      },
+      {
+       "at": [
+        -27.64,
+        5.36,
+        3.0
+       ],
+       "ball_fraction": 0.29
+      },
+      {
+       "at": [
+        -27.38,
+        6.0,
+        3.0
+       ],
+       "ball_fraction": 0.29
+      },
+      {
+       "at": [
+        -5.18,
+        -20.7,
+        10.4
+       ],
+       "ball_fraction": 0.292
+      },
+      {
+       "at": [
+        5.17,
+        -20.7,
+        10.4
+       ],
+       "ball_fraction": 0.292
+      },
+      {
+       "at": [
+        -18.5,
+        -8.65,
+        17.2
+       ],
+       "ball_fraction": 0.305
+      },
+      {
+       "at": [
+        -17.19,
+        -0.65,
+        15.81
+       ],
+       "ball_fraction": 0.307
+      },
+      {
+       "at": [
+        -16.44,
+        5.07,
+        15.81
+       ],
+       "ball_fraction": 0.307
+      },
+      {
+       "at": [
+        16.43,
+        5.07,
+        15.81
+       ],
+       "ball_fraction": 0.307
+      },
+      {
+       "at": [
+        17.19,
+        -0.65,
+        15.81
+       ],
+       "ball_fraction": 0.307
+      },
+      {
+       "at": [
+        -10.91,
+        16.79,
+        11.0
        ],
        "ball_fraction": 0.313
       },
       {
        "at": [
-        -22.44,
-        26.25,
-        10.07
+        10.91,
+        16.8,
+        11.0
        ],
-       "ball_fraction": 0.324
+       "ball_fraction": 0.313
       },
       {
        "at": [
-        21.45,
-        -21.55,
-        13.6
+        -23.71,
+        -12.08,
+        17.3
        ],
-       "ball_fraction": 0.324
+       "ball_fraction": 0.316
       },
       {
        "at": [
-        -21.89,
-        -4.36,
-        10.4
+        23.71,
+        -12.08,
+        17.3
        ],
-       "ball_fraction": 0.331
-      },
-      {
-       "at": [
-        -11.26,
-        -19.87,
-        10.4
-       ],
-       "ball_fraction": 0.344
-      },
-      {
-       "at": [
-        -23.92,
-        7.89,
-        10.4
-       ],
-       "ball_fraction": 0.345
-      },
-      {
-       "at": [
-        23.93,
-        7.89,
-        10.4
-       ],
-       "ball_fraction": 0.345
-      },
-      {
-       "at": [
-        -18.99,
-        -12.68,
-        10.4
-       ],
-       "ball_fraction": 0.346
-      },
-      {
-       "at": [
-        22.09,
-        -6.27,
-        13.6
-       ],
-       "ball_fraction": 0.351
-      },
-      {
-       "at": [
-        25.52,
-        -1.04,
-        10.4
-       ],
-       "ball_fraction": 0.356
-      },
-      {
-       "at": [
-        -23.26,
-        -1.67,
-        16.0
-       ],
-       "ball_fraction": 0.361
-      },
-      {
-       "at": [
-        -22.1,
-        -4.4,
-        10.07
-       ],
-       "ball_fraction": 0.368
-      },
-      {
-       "at": [
-        -22.99,
-        -3.88,
-        10.07
-       ],
-       "ball_fraction": 0.371
-      },
-      {
-       "at": [
-        -16.95,
-        57.07,
-        2.0
-       ],
-       "ball_fraction": 0.378
-      },
-      {
-       "at": [
-        9.62,
-        -21.35,
-        10.07
-       ],
-       "ball_fraction": 0.384
-      },
-      {
-       "at": [
-        -23.18,
-        -3.64,
-        10.07
-       ],
-       "ball_fraction": 0.386
-      },
-      {
-       "at": [
-        -19.18,
-        -12.74,
-        10.07
-       ],
-       "ball_fraction": 0.387
-      },
-      {
-       "at": [
-        -24.1,
-        7.78,
-        10.07
-       ],
-       "ball_fraction": 0.388
-      },
-      {
-       "at": [
-        -11.32,
-        -20.07,
-        10.07
-       ],
-       "ball_fraction": 0.388
-      },
-      {
-       "at": [
-        22.31,
-        26.24,
-        10.07
-       ],
-       "ball_fraction": 0.393
+       "ball_fraction": 0.316
       }
      ]
     },
     "wheel": {
      "stats": {
-      "sharp_edges": 1782,
+      "sharp_edges": 6318,
       "acute_edges": 0,
-      "candidates": 49,
-      "exposed_candidates": 11
+      "candidates": 181,
+      "exposed_candidates": 76
      },
      "points": [
       {
        "at": [
-        8.52,
-        13.87,
-        13.3
-       ],
-       "ball_fraction": 0.397
-      },
-      {
-       "at": [
-        11.55,
-        -7.47,
-        13.3
-       ],
-       "ball_fraction": 0.399
-      },
-      {
-       "at": [
-        5.58,
-        -5.17,
-        13.3
-       ],
-       "ball_fraction": 0.4
-      },
-      {
-       "at": [
-        7.57,
-        -6.66,
-        13.3
-       ],
-       "ball_fraction": 0.412
-      },
-      {
-       "at": [
-        9.07,
-        -7.24,
-        13.3
-       ],
-       "ball_fraction": 0.417
-      },
-      {
-       "at": [
-        4.64,
-        15.58,
-        13.3
-       ],
-       "ball_fraction": 0.42
-      },
-      {
-       "at": [
-        9.86,
-        -7.4,
-        13.3
-       ],
-       "ball_fraction": 0.425
-      },
-      {
-       "at": [
-        6.87,
-        -6.26,
-        13.3
-       ],
-       "ball_fraction": 0.429
-      },
-      {
-       "at": [
-        5.0,
-        -4.49,
-        13.3
-       ],
-       "ball_fraction": 0.441
-      },
-      {
-       "at": [
-        12.52,
-        -7.34,
-        13.3
-       ],
-       "ball_fraction": 0.447
-      },
-      {
-       "at": [
         3.72,
-        -1.77,
+        -14.24,
         13.3
        ],
-       "ball_fraction": 0.457
+       "ball_fraction": 0.337
+      },
+      {
+       "at": [
+        3.66,
+        -14.0,
+        13.3
+       ],
+       "ball_fraction": 0.338
+      },
+      {
+       "at": [
+        8.57,
+        -11.97,
+        13.3
+       ],
+       "ball_fraction": 0.338
+      },
+      {
+       "at": [
+        9.43,
+        -11.31,
+        13.3
+       ],
+       "ball_fraction": 0.338
+      },
+      {
+       "at": [
+        4.75,
+        -13.93,
+        13.3
+       ],
+       "ball_fraction": 0.339
+      },
+      {
+       "at": [
+        5.76,
+        -13.54,
+        13.3
+       ],
+       "ball_fraction": 0.339
+      },
+      {
+       "at": [
+        6.73,
+        -13.09,
+        13.3
+       ],
+       "ball_fraction": 0.339
+      },
+      {
+       "at": [
+        7.67,
+        -12.56,
+        13.3
+       ],
+       "ball_fraction": 0.339
+      },
+      {
+       "at": [
+        11.1,
+        -9.26,
+        13.3
+       ],
+       "ball_fraction": 0.339
+      },
+      {
+       "at": [
+        11.97,
+        -8.57,
+        13.3
+       ],
+       "ball_fraction": 0.339
+      },
+      {
+       "at": [
+        5.66,
+        -13.31,
+        13.3
+       ],
+       "ball_fraction": 0.34
+      },
+      {
+       "at": [
+        6.62,
+        -12.86,
+        13.3
+       ],
+       "ball_fraction": 0.34
+      },
+      {
+       "at": [
+        7.54,
+        -12.34,
+        13.3
+       ],
+       "ball_fraction": 0.34
+      },
+      {
+       "at": [
+        8.42,
+        -11.75,
+        13.3
+       ],
+       "ball_fraction": 0.34
+      },
+      {
+       "at": [
+        11.75,
+        -8.42,
+        13.3
+       ],
+       "ball_fraction": 0.341
+      },
+      {
+       "at": [
+        -10.76,
+        12.49,
+        13.3
+       ],
+       "ball_fraction": 0.359
+      },
+      {
+       "at": [
+        -6.08,
+        -15.32,
+        13.3
+       ],
+       "ball_fraction": 0.36
+      },
+      {
+       "at": [
+        -1.62,
+        16.41,
+        13.3
+       ],
+       "ball_fraction": 0.36
+      },
+      {
+       "at": [
+        6.86,
+        15.0,
+        13.3
+       ],
+       "ball_fraction": 0.36
+      },
+      {
+       "at": [
+        -8.8,
+        13.94,
+        13.3
+       ],
+       "ball_fraction": 0.361
+      },
+      {
+       "at": [
+        0.81,
+        16.47,
+        13.3
+       ],
+       "ball_fraction": 0.361
+      },
+      {
+       "at": [
+        -5.39,
+        15.59,
+        13.3
+       ],
+       "ball_fraction": 0.362
+      },
+      {
+       "at": [
+        -2.39,
+        -16.32,
+        13.3
+       ],
+       "ball_fraction": 0.363
+      },
+      {
+       "at": [
+        0.01,
+        -16.5,
+        13.3
+       ],
+       "ball_fraction": 0.363
+      },
+      {
+       "at": [
+        3.19,
+        16.18,
+        13.3
+       ],
+       "ball_fraction": 0.363
       }
      ]
     },
     "head": {
      "stats": {
-      "sharp_edges": 8960,
-      "acute_edges": 3,
-      "candidates": 449,
-      "exposed_candidates": 30
+      "sharp_edges": 29729,
+      "acute_edges": 67,
+      "candidates": 792,
+      "exposed_candidates": 350
      },
      "points": [
       {
@@ -3095,11 +2902,107 @@
       },
       {
        "at": [
-        -14.51,
+        14.51,
         42.45,
-        13.7
+        4.7
        ],
        "ball_fraction": 0.228
+      },
+      {
+       "at": [
+        2.4,
+        29.26,
+        18.08
+       ],
+       "ball_fraction": 0.238
+      },
+      {
+       "at": [
+        -15.65,
+        46.04,
+        13.7
+       ],
+       "ball_fraction": 0.239
+      },
+      {
+       "at": [
+        15.35,
+        45.23,
+        13.7
+       ],
+       "ball_fraction": 0.239
+      },
+      {
+       "at": [
+        -5.27,
+        50.9,
+        17.5
+       ],
+       "ball_fraction": 0.24
+      },
+      {
+       "at": [
+        -4.86,
+        50.32,
+        17.6
+       ],
+       "ball_fraction": 0.241
+      },
+      {
+       "at": [
+        -14.35,
+        43.73,
+        13.7
+       ],
+       "ball_fraction": 0.246
+      },
+      {
+       "at": [
+        4.96,
+        51.65,
+        18.0
+       ],
+       "ball_fraction": 0.249
+      },
+      {
+       "at": [
+        2.67,
+        28.74,
+        18.08
+       ],
+       "ball_fraction": 0.251
+      },
+      {
+       "at": [
+        4.53,
+        20.3,
+        13.7
+       ],
+       "ball_fraction": 0.252
+      },
+      {
+       "at": [
+        14.27,
+        43.63,
+        13.7
+       ],
+       "ball_fraction": 0.257
+      },
+      {
+       "at": [
+        20.32,
+        29.84,
+        10.8
+       ],
+       "ball_fraction": 0.259
+      },
+      {
+       "at": [
+        -2.79,
+        28.63,
+        18.08
+       ],
+       "ball_fraction": 0.276
       },
       {
        "at": [
@@ -3107,7 +3010,7 @@
         42.83,
         13.7
        ],
-       "ball_fraction": 0.228
+       "ball_fraction": 0.283
       },
       {
        "at": [
@@ -3115,151 +3018,55 @@
         42.83,
         13.7
        ],
-       "ball_fraction": 0.228
+       "ball_fraction": 0.283
       },
       {
        "at": [
-        14.51,
-        42.45,
-        4.7
+        4.96,
+        51.65,
+        17.9
        ],
-       "ball_fraction": 0.228
+       "ball_fraction": 0.284
       },
       {
        "at": [
-        14.51,
-        42.45,
-        13.7
+        -11.65,
+        54.14,
+        17.5
        ],
-       "ball_fraction": 0.228
+       "ball_fraction": 0.286
       },
       {
        "at": [
-        14.5,
-        42.44,
-        16.45
+        1.78,
+        47.36,
+        18.8
        ],
-       "ball_fraction": 0.396
+       "ball_fraction": 0.286
       },
       {
        "at": [
-        -14.21,
-        42.83,
-        16.2
+        9.05,
+        42.82,
+        18.8
        ],
-       "ball_fraction": 0.423
+       "ball_fraction": 0.286
       },
       {
        "at": [
-        -14.05,
-        45.97,
-        16.2
+        12.72,
+        53.42,
+        17.5
        ],
-       "ball_fraction": 0.423
+       "ball_fraction": 0.286
       },
       {
        "at": [
-        14.21,
-        42.83,
-        16.2
+        -12.73,
+        53.45,
+        17.5
        ],
-       "ball_fraction": 0.423
-      },
-      {
-       "at": [
-        14.19,
-        46.34,
-        16.2
-       ],
-       "ball_fraction": 0.423
-      },
-      {
-       "at": [
-        -14.51,
-        42.45,
-        16.2
-       ],
-       "ball_fraction": 0.424
-      },
-      {
-       "at": [
-        14.51,
-        42.45,
-        16.2
-       ],
-       "ball_fraction": 0.424
-      },
-      {
-       "at": [
-        -14.19,
-        46.36,
-        16.2
-       ],
-       "ball_fraction": 0.425
-      },
-      {
-       "at": [
-        14.04,
-        45.95,
-        16.2
-       ],
-       "ball_fraction": 0.425
-      },
-      {
-       "at": [
-        14.19,
-        46.34,
-        4.7
-       ],
-       "ball_fraction": 0.453
-      },
-      {
-       "at": [
-        14.19,
-        46.34,
-        7.4
-       ],
-       "ball_fraction": 0.453
-      },
-      {
-       "at": [
-        -14.05,
-        45.97,
-        7.4
-       ],
-       "ball_fraction": 0.454
-      },
-      {
-       "at": [
-        -14.05,
-        45.97,
-        4.7
-       ],
-       "ball_fraction": 0.455
-      },
-      {
-       "at": [
-        -14.19,
-        46.36,
-        4.7
-       ],
-       "ball_fraction": 0.456
-      },
-      {
-       "at": [
-        -14.19,
-        46.36,
-        7.4
-       ],
-       "ball_fraction": 0.456
-      },
-      {
-       "at": [
-        14.04,
-        45.95,
-        7.4
-       ],
-       "ball_fraction": 0.456
+       "ball_fraction": 0.287
       }
      ]
     }
@@ -3273,12 +3080,38 @@
     "type": "deboss",
     "z_surface": 17.7,
     "centroid": [
-     -5.2,
-     35.81
+     -9.75,
+     41.18
     ],
-    "area_mm2": 1.81,
-    "width_mm": 1.414,
-    "stroke_width_mm": 0.74,
+    "area_mm2": 2.51,
+    "width_mm": 0.8,
+    "stroke_width_mm": 0.658,
+    "depth_mm": 0.4
+   },
+   {
+    "surface": "face top",
+    "type": "deboss",
+    "z_surface": 17.7,
+    "centroid": [
+     9.75,
+     41.18
+    ],
+    "area_mm2": 2.51,
+    "width_mm": 0.8,
+    "stroke_width_mm": 0.658,
+    "depth_mm": 0.4
+   },
+   {
+    "surface": "face top",
+    "type": "deboss",
+    "z_surface": 17.7,
+    "centroid": [
+     -10.8,
+     34.71
+    ],
+    "area_mm2": 1.06,
+    "width_mm": 1.075,
+    "stroke_width_mm": 0.565,
     "depth_mm": 0.2
    },
    {
@@ -3286,12 +3119,12 @@
     "type": "deboss",
     "z_surface": 17.7,
     "centroid": [
-     8.4,
-     35.81
+     9.2,
+     34.71
     ],
-    "area_mm2": 1.81,
-    "width_mm": 1.414,
-    "stroke_width_mm": 0.74,
+    "area_mm2": 1.06,
+    "width_mm": 1.075,
+    "stroke_width_mm": 0.565,
     "depth_mm": 0.2
    },
    {
@@ -3299,60 +3132,107 @@
     "type": "deboss",
     "z_surface": 17.7,
     "centroid": [
-     -8.7,
-     32.61
+     -7.7,
+     31.01
     ],
-    "area_mm2": 0.56,
-    "width_mm": 0.792,
-    "stroke_width_mm": 0.413,
-    "depth_mm": 0.2
+    "area_mm2": 0.63,
+    "width_mm": 0.875,
+    "stroke_width_mm": 0.442,
+    "depth_mm": 0.35
    },
    {
     "surface": "face top",
     "type": "deboss",
     "z_surface": 17.7,
     "centroid": [
-     4.9,
-     32.61
+     12.3,
+     31.01
     ],
-    "area_mm2": 0.56,
-    "width_mm": 0.792,
-    "stroke_width_mm": 0.413,
-    "depth_mm": 0.2
+    "area_mm2": 0.63,
+    "width_mm": 0.875,
+    "stroke_width_mm": 0.442,
+    "depth_mm": 0.35
    },
    {
     "surface": "face top",
-    "type": "raised",
+    "type": "deboss",
     "z_surface": 17.7,
     "centroid": [
      0.0,
-     26.97
+     28.12
     ],
-    "area_mm2": 8.39,
-    "width_mm": 1.614,
-    "stroke_width_mm": 0.983,
-    "bbox_mm": [
-     5.79,
-     2.7
-    ],
-    "height_mm": 0.6
+    "area_mm2": 10.39,
+    "width_mm": 1.823,
+    "stroke_width_mm": 1.26,
+    "depth_mm": 0.5
    },
    {
     "surface": "face top",
     "type": "raised",
     "z_surface": 17.7,
     "centroid": [
-     -9.0,
-     28.31
+     -13.8,
+     26.62
     ],
-    "area_mm2": 7.88,
-    "width_mm": 2.397,
-    "stroke_width_mm": 1.494,
+    "area_mm2": 16.16,
+    "width_mm": 3.901,
+    "stroke_width_mm": 2.178,
     "bbox_mm": [
-     4.2,
-     2.4
+     5.14,
+     4.48
     ],
     "height_mm": 0.4
+   },
+   {
+    "surface": "face top",
+    "type": "raised",
+    "z_surface": 17.7,
+    "centroid": [
+     13.8,
+     26.62
+    ],
+    "area_mm2": 16.16,
+    "width_mm": 3.9,
+    "stroke_width_mm": 2.177,
+    "bbox_mm": [
+     5.14,
+     4.48
+    ],
+    "height_mm": 0.4
+   },
+   {
+    "surface": "face top",
+    "type": "raised",
+    "z_surface": 17.7,
+    "centroid": [
+     -3.7,
+     29.07
+    ],
+    "area_mm2": 2.16,
+    "width_mm": 0.8,
+    "stroke_width_mm": 0.617,
+    "bbox_mm": [
+     2.45,
+     1.54
+    ],
+    "height_mm": 0.5
+   },
+   {
+    "surface": "face top",
+    "type": "raised",
+    "z_surface": 17.7,
+    "centroid": [
+     3.7,
+     29.07
+    ],
+    "area_mm2": 2.16,
+    "width_mm": 0.8,
+    "stroke_width_mm": 0.617,
+    "bbox_mm": [
+     2.45,
+     1.54
+    ],
+    "height_mm": 0.5
    },
    {
     "surface": "face top",
@@ -3360,14 +3240,14 @@
     "z_surface": 17.7,
     "centroid": [
      -0.0,
-     30.55
+     31.24
     ],
-    "area_mm2": 3.08,
-    "width_mm": 1.626,
-    "stroke_width_mm": 0.92,
+    "area_mm2": 2.08,
+    "width_mm": 1.298,
+    "stroke_width_mm": 0.744,
     "bbox_mm": [
-     2.33,
-     1.88
+     2.08,
+     1.44
     ],
     "height_mm": 0.6
    },
@@ -3376,662 +3256,60 @@
     "type": "raised",
     "z_surface": 17.7,
     "centroid": [
-     -6.85,
-     34.04
+     -10.01,
+     32.77
     ],
-    "area_mm2": 55.07,
-    "width_mm": 4.797,
-    "stroke_width_mm": 3.006,
+    "area_mm2": 44.06,
+    "width_mm": 4.873,
+    "stroke_width_mm": 2.765,
     "bbox_mm": [
-     8.69,
-     8.69
+     7.72,
+     7.72
     ],
-    "height_mm": 0.5
+    "height_mm": 0.55
    },
    {
     "surface": "face top",
     "type": "raised",
     "z_surface": 17.7,
     "centroid": [
-     -0.0,
-     46.06
+     9.99,
+     32.77
     ],
-    "area_mm2": 16.91,
-    "width_mm": 2.974,
-    "stroke_width_mm": 1.882,
+    "area_mm2": 44.06,
+    "width_mm": 4.873,
+    "stroke_width_mm": 2.765,
     "bbox_mm": [
-     6.4,
-     3.9
+     7.72,
+     7.72
     ],
-    "height_mm": 0.6
+    "height_mm": 0.55
    },
    {
     "surface": "face top",
     "type": "raised",
     "z_surface": 17.7,
     "centroid": [
-     -9.61,
-     50.0
+     6.99,
+     47.09
     ],
-    "area_mm2": 50.15,
-    "width_mm": 6.249,
-    "stroke_width_mm": 3.347,
+    "area_mm2": 51.43,
+    "width_mm": 4.894,
+    "stroke_width_mm": 3.041,
     "bbox_mm": [
-     9.16,
-     10.22
+     11.42,
+     9.38
     ],
-    "height_mm": 0.4
-   },
-   {
-    "surface": "face top",
-    "type": "raised",
-    "z_surface": 17.7,
-    "centroid": [
-     0.0,
-     25.77
-    ],
-    "area_mm2": 4.51,
-    "width_mm": 1.892,
-    "stroke_width_mm": 1.139,
-    "bbox_mm": [
-     3.07,
-     1.89
-    ],
-    "height_mm": 0.4
-   },
-   {
-    "surface": "face top",
-    "type": "raised",
-    "z_surface": 17.7,
-    "centroid": [
-     9.0,
-     28.31
-    ],
-    "area_mm2": 7.88,
-    "width_mm": 2.397,
-    "stroke_width_mm": 1.494,
-    "bbox_mm": [
-     4.2,
-     2.4
-    ],
-    "height_mm": 0.4
-   },
-   {
-    "surface": "face top",
-    "type": "raised",
-    "z_surface": 17.7,
-    "centroid": [
-     6.75,
-     34.04
-    ],
-    "area_mm2": 55.07,
-    "width_mm": 4.797,
-    "stroke_width_mm": 3.006,
-    "bbox_mm": [
-     8.69,
-     8.69
-    ],
-    "height_mm": 0.5
-   },
-   {
-    "surface": "face top",
-    "type": "raised",
-    "z_surface": 17.7,
-    "centroid": [
-     8.6,
-     48.41
-    ],
-    "area_mm2": 25.0,
-    "width_mm": 3.086,
-    "stroke_width_mm": 1.935,
-    "bbox_mm": [
-     8.38,
-     6.39
-    ],
-    "height_mm": 0.6
-   },
-   {
-    "surface": "face top",
-    "type": "raised",
-    "z_surface": 17.7,
-    "centroid": [
-     10.69,
-     52.33
-    ],
-    "area_mm2": 17.96,
-    "width_mm": 3.528,
-    "stroke_width_mm": 2.09,
-    "bbox_mm": [
-     5.98,
-     4.91
-    ],
-    "height_mm": 0.4
-   },
-   {
-    "surface": "paw tops",
-    "type": "deboss",
-    "z_surface": 16.0,
-    "centroid": [
-     19.38,
-     3.24
-    ],
-    "area_mm2": 2.65,
-    "width_mm": 0.8,
-    "stroke_width_mm": 0.669,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "paw tops",
-    "type": "deboss",
-    "z_surface": 16.0,
-    "centroid": [
-     19.64,
-     0.51
-    ],
-    "area_mm2": 2.65,
-    "width_mm": 0.8,
-    "stroke_width_mm": 0.67,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "paw tops",
-    "type": "deboss",
-    "z_surface": 16.0,
-    "centroid": [
-     -19.38,
-     3.24
-    ],
-    "area_mm2": 2.65,
-    "width_mm": 0.8,
-    "stroke_width_mm": 0.669,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "paw tops",
-    "type": "deboss",
-    "z_surface": 16.0,
-    "centroid": [
-     -19.64,
-     0.51
-    ],
-    "area_mm2": 2.65,
-    "width_mm": 0.8,
-    "stroke_width_mm": 0.67,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "decor top",
-    "type": "raised",
-    "z_surface": 13.6,
-    "centroid": [
-     -17.2,
-     -19.5
-    ],
-    "area_mm2": 8.9,
-    "width_mm": 2.991,
-    "stroke_width_mm": 1.663,
-    "bbox_mm": [
-     3.8,
-     3.0
-    ],
-    "height_mm": 0.5
-   },
-   {
-    "surface": "decor top",
-    "type": "raised",
-    "z_surface": 13.6,
-    "centroid": [
-     -19.4,
-     -17.05
-    ],
-    "area_mm2": 2.8,
-    "width_mm": 1.884,
-    "stroke_width_mm": 0.942,
-    "bbox_mm": [
-     1.9,
-     1.9
-    ],
-    "height_mm": 0.5
-   },
-   {
-    "surface": "decor top",
-    "type": "raised",
-    "z_surface": 13.6,
-    "centroid": [
-     -15.0,
-     -17.05
-    ],
-    "area_mm2": 2.8,
-    "width_mm": 1.884,
-    "stroke_width_mm": 0.942,
-    "bbox_mm": [
-     1.9,
-     1.9
-    ],
-    "height_mm": 0.5
-   },
-   {
-    "surface": "decor top",
-    "type": "raised",
-    "z_surface": 13.6,
-    "centroid": [
-     15.0,
-     -17.05
-    ],
-    "area_mm2": 2.8,
-    "width_mm": 1.884,
-    "stroke_width_mm": 0.942,
-    "bbox_mm": [
-     1.9,
-     1.9
-    ],
-    "height_mm": 0.5
-   },
-   {
-    "surface": "decor top",
-    "type": "raised",
-    "z_surface": 13.6,
-    "centroid": [
-     -17.2,
-     -16.5
-    ],
-    "area_mm2": 2.8,
-    "width_mm": 1.884,
-    "stroke_width_mm": 0.942,
-    "bbox_mm": [
-     1.9,
-     1.9
-    ],
-    "height_mm": 0.5
-   },
-   {
-    "surface": "decor top",
-    "type": "raised",
-    "z_surface": 13.6,
-    "centroid": [
-     17.2,
-     -19.5
-    ],
-    "area_mm2": 8.9,
-    "width_mm": 2.991,
-    "stroke_width_mm": 1.663,
-    "bbox_mm": [
-     3.8,
-     3.0
-    ],
-    "height_mm": 0.5
-   },
-   {
-    "surface": "decor top",
-    "type": "raised",
-    "z_surface": 13.6,
-    "centroid": [
-     19.4,
-     -17.05
-    ],
-    "area_mm2": 2.8,
-    "width_mm": 1.884,
-    "stroke_width_mm": 0.942,
-    "bbox_mm": [
-     1.9,
-     1.9
-    ],
-    "height_mm": 0.5
-   },
-   {
-    "surface": "decor top",
-    "type": "raised",
-    "z_surface": 13.6,
-    "centroid": [
-     17.2,
-     -16.5
-    ],
-    "area_mm2": 2.8,
-    "width_mm": 1.884,
-    "stroke_width_mm": 0.942,
-    "bbox_mm": [
-     1.9,
-     1.9
-    ],
-    "height_mm": 0.5
-   },
-   {
-    "surface": "decor top",
-    "type": "raised",
-    "z_surface": 13.6,
-    "centroid": [
-     24.4,
-     -5.0
-    ],
-    "area_mm2": 12.49,
-    "width_mm": 3.981,
-    "stroke_width_mm": 1.99,
-    "bbox_mm": [
-     4.0,
-     4.0
-    ],
-    "height_mm": 0.5
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     -8.48,
-     59.42
-    ],
-    "area_mm2": 24.86,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.777,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     17.37,
-     57.04
-    ],
-    "area_mm2": 17.23,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.765,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     0.2,
-     57.09
-    ],
-    "area_mm2": 2.21,
-    "width_mm": 1.058,
-    "stroke_width_mm": 0.685,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     -21.31,
-     43.9
-    ],
-    "area_mm2": 14.03,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.767,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     20.97,
-     41.63
-    ],
-    "area_mm2": 13.54,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.766,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     -22.19,
-     33.07
-    ],
-    "area_mm2": 4.09,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.695,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     23.3,
-     29.18
-    ],
-    "area_mm2": 3.96,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.697,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     -24.58,
-     23.84
-    ],
-    "area_mm2": 7.67,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.747,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     24.17,
-     23.61
-    ],
-    "area_mm2": 3.78,
-    "width_mm": 0.8,
-    "stroke_width_mm": 0.691,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     27.28,
-     17.9
-    ],
-    "area_mm2": 3.97,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.702,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     -26.7,
-     11.29
-    ],
-    "area_mm2": 8.41,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.751,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     26.61,
-     8.19
-    ],
-    "area_mm2": 7.06,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.743,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     -27.56,
-     2.19
-    ],
-    "area_mm2": 4.03,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.704,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     27.43,
-     -0.77
-    ],
-    "area_mm2": 3.21,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.687,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     -22.53,
-     -8.1
-    ],
-    "area_mm2": 11.76,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.765,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     28.28,
-     -7.48
-    ],
-    "area_mm2": 3.31,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.684,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     27.76,
-     -13.92
-    ],
-    "area_mm2": 4.55,
-    "width_mm": 0.8,
-    "stroke_width_mm": 0.707,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     24.74,
-     -19.6
-    ],
-    "area_mm2": 3.69,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.693,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     -23.68,
-     -20.49
-    ],
-    "area_mm2": 3.94,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.704,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     -8.25,
-     -22.1
-    ],
-    "area_mm2": 7.1,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.743,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     9.79,
-     -23.78
-    ],
-    "area_mm2": 10.18,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.753,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     0.9,
-     -22.68
-    ],
-    "area_mm2": 4.01,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.695,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     19.1,
-     -24.98
-    ],
-    "area_mm2": 4.07,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.704,
-    "depth_mm": 0.4
-   },
-   {
-    "surface": "back plate",
-    "type": "deboss",
-    "z_surface": 2.0,
-    "centroid": [
-     -17.07,
-     -25.28
-    ],
-    "area_mm2": 3.96,
-    "width_mm": 0.801,
-    "stroke_width_mm": 0.704,
-    "depth_mm": 0.4
+    "height_mm": 1.2
    },
    {
     "surface": "ball top",
     "type": "deboss",
-    "n_grooves": 18,
-    "width_mm": 0.8,
-    "stroke_width_mm": 0.747,
-    "depth_mm": 0.5,
-    "area_mm2": 206.0,
+    "n_grooves": 1,
+    "width_mm": 18.603,
+    "stroke_width_mm": 5.126,
+    "depth_mm": 0.25,
+    "area_mm2": 626.1,
     "centroid": [
      0.0,
      0.0
@@ -4039,23 +3317,23 @@
    }
   ],
   "face": {
-   "faceup_w": 32.0,
-   "faceup_h_incl_ears": 37.89,
-   "eye_d": 8.69,
-   "eye_spacing_cc": 13.6,
-   "face_width_at_eyes": 31.82,
-   "eye_d_over_face_w": 0.273,
-   "spacing_over_face_w": 0.427,
+   "faceup_w": 44.55,
+   "faceup_h_incl_ears": 38.09,
+   "eye_d": 9.57,
+   "eye_spacing_cc": 17.0,
+   "face_width_at_eyes": 34.48,
+   "eye_d_over_face_w": 0.278,
+   "spacing_over_face_w": 0.493,
    "head_circle_centre": [
-    -0.0,
-    35.15
+    0.0,
+    35.47
    ],
-   "head_circle_r": 15.44,
-   "eye_line_below_head_centre_over_r": 0.072
+   "head_circle_r": 15.77,
+   "eye_line_below_head_centre_over_r": -0.283
   },
   "ears_giggle": {
-   "ear_rise_above_crown_mm": 5.89,
-   "ear_rise_over_head_r": 0.368,
+   "ear_rise_above_crown_mm": 4.4,
+   "ear_rise_over_head_r": 0.275,
    "farthest_point_from_P_mm": 35.68,
    "tip_travel_each_way_mm": 7.73,
    "tip_travel_p2p_mm": 15.47
@@ -4147,13 +3425,13 @@
    "id": "V10.head_min_width",
    "name": "head: smallest enclosing cylinder over all orientations",
    "status": "pass",
-   "measured": 42.003,
+   "measured": 44.613,
    "criterion": ">= 38.0 (and > 31.7)",
-   "plan_min_caliper_width": 41.644,
+   "plan_min_caliper_width": 44.438,
    "axis": [
-    0.1029,
-    0.9889,
-    0.1075
+    -0.0001,
+    0.9813,
+    0.1927
    ]
   },
   {
@@ -4161,86 +3439,60 @@
    "name": "no body fits the small-parts cylinder (D 31.7 x 25.4 / 57.1)",
    "status": "pass",
    "measured": {
-    "frame": 59.478,
+    "frame": 64.441,
     "wheel": 35.995,
-    "head": 42.003
+    "head": 44.613
    },
    "criterion": "min enclosing D > 31.7 for every body"
   },
   {
-   "id": "V10.protrusion.frame_tower@(-17.2,-18.5)",
-   "name": "protrusion frame tower@(-17.2,-18.5) (vertical, frame)",
+   "id": "V10.protrusion.frame_tower@(-15.9,-1.5)",
+   "name": "protrusion frame tower@(-15.9,-1.5) (vertical, frame)",
    "status": "pass",
    "measured": {
     "root_mm": [
-     11.17,
-     11.16
+     41.16,
+     21.08
     ],
-    "sigma_max_MPa": 1.33
+    "sigma_max_MPa": 0.81
    },
    "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
-   "length_mm": 3.65,
+   "length_mm": 6.95,
    "worst_station": {
     "z": 10.45,
-    "area_mm2": 98.1,
+    "area_mm2": 375.97,
     "dims_mm": [
-     11.16,
-     11.17
+     21.08,
+     41.16
     ],
-    "moment_Nmm": 182.5,
-    "sigma_MPa": 1.334
+    "moment_Nmm": 347.5,
+    "sigma_MPa": 0.807
    },
    "fragment_fits_small_parts": true,
    "notes": "part standing on the body top (paw ...), 50 N at its top; stress direction: interlayer (Z) tension"
   },
   {
-   "id": "V10.protrusion.frame_tower@(-21.1,2.8)",
-   "name": "protrusion frame tower@(-21.1,2.8) (vertical, frame)",
+   "id": "V10.protrusion.frame_tower@(15.9,-1.5)",
+   "name": "protrusion frame tower@(15.9,-1.5) (vertical, frame)",
    "status": "pass",
    "measured": {
     "root_mm": [
-     13.39,
-     8.84
+     41.16,
+     21.08
     ],
-    "sigma_max_MPa": 3.32
+    "sigma_max_MPa": 0.81
    },
    "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
-   "length_mm": 5.55,
+   "length_mm": 6.95,
    "worst_station": {
     "z": 10.45,
-    "area_mm2": 85.6,
+    "area_mm2": 375.97,
     "dims_mm": [
-     8.84,
-     13.39
+     21.08,
+     41.16
     ],
-    "moment_Nmm": 277.5,
-    "sigma_MPa": 3.318
-   },
-   "fragment_fits_small_parts": true,
-   "notes": "part standing on the body top (paw ...), 50 N at its top; stress direction: interlayer (Z) tension"
-  },
-  {
-   "id": "V10.protrusion.frame_tower@(18.7,-7.3)",
-   "name": "protrusion frame tower@(18.7,-7.3) (vertical, frame)",
-   "status": "pass",
-   "measured": {
-    "root_mm": [
-     34.5,
-     14.51
-    ],
-    "sigma_max_MPa": 0.86
-   },
-   "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
-   "length_mm": 5.55,
-   "worst_station": {
-    "z": 13.7,
-    "area_mm2": 122.11,
-    "dims_mm": [
-     11.18,
-     30.65
-    ],
-    "moment_Nmm": 115.0,
-    "sigma_MPa": 0.862
+    "moment_Nmm": 347.5,
+    "sigma_MPa": 0.807
    },
    "fragment_fits_small_parts": true,
    "notes": "part standing on the body top (paw ...), 50 N at its top; stress direction: interlayer (Z) tension"
@@ -4298,121 +3550,186 @@
    "notes": "hidden; 50 N side yank on the moving body applied at the post top; stress direction: interlayer (Z) tension"
   },
   {
-   "id": "V10.protrusion.head_lobe@(11.2,52.0)",
-   "name": "protrusion head lobe@(11.2,52.0) (in-plane, head)",
+   "id": "V10.protrusion.head_lobe@(11.6,51.8)",
+   "name": "protrusion head lobe@(11.6,51.8) (in-plane, head)",
    "status": "pass",
    "measured": {
     "root_mm": [
-     15.3,
-     12.85
+     16.3,
+     14.19
+    ],
+    "sigma_max_MPa": 2.37
+   },
+   "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
+   "length_mm": 11.58,
+   "worst_station": {
+    "s": 9.27,
+    "area_mm2": 66.38,
+    "dims_mm": [
+     4.79,
+     14.2
+    ],
+    "moment_Nmm": 115.8,
+    "sigma_MPa": 2.366
+   },
+   "fragment_fits_small_parts": true,
+   "notes": "root chord 14.19 mm from (2.49,51.69) to (13.97,43.35), tip (14.60,57.21); bending stress lies in the layer plane (in-layer, strong direction)"
+  },
+  {
+   "id": "V10.protrusion.head_lobe@(-12.1,52.0)",
+   "name": "protrusion head lobe@(-12.1,52.0) (in-plane, head)",
+   "status": "pass",
+   "measured": {
+    "root_mm": [
+     14.7,
+     13.42
     ],
     "sigma_max_MPa": 2.25
    },
    "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
-   "length_mm": 11.7,
+   "length_mm": 10.33,
    "worst_station": {
-    "s": 9.36,
-    "area_mm2": 69.61,
+    "s": 7.23,
+    "area_mm2": 79.99,
     "dims_mm": [
-     4.81,
-     14.7
+     5.73,
+     14.3
     ],
-    "moment_Nmm": 117.0,
-    "sigma_MPa": 2.252
+    "moment_Nmm": 155.0,
+    "sigma_MPa": 2.248
    },
    "fragment_fits_small_parts": true,
-   "notes": "root chord 12.85 mm from (2.45,51.67) to (12.75,44.00), tip (14.60,57.21); bending stress lies in the layer plane (in-layer, strong direction)"
-  },
-  {
-   "id": "V10.protrusion.head_lobe@(-11.2,52.0)",
-   "name": "protrusion head lobe@(-11.2,52.0) (in-plane, head)",
-   "status": "pass",
-   "measured": {
-    "root_mm": [
-     15.1,
-     12.84
-    ],
-    "sigma_max_MPa": 2.25
-   },
-   "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
-   "length_mm": 11.7,
-   "worst_station": {
-    "s": 9.36,
-    "area_mm2": 69.64,
-    "dims_mm": [
-     4.82,
-     14.7
-    ],
-    "moment_Nmm": 117.0,
-    "sigma_MPa": 2.25
-   },
-   "fragment_fits_small_parts": true,
-   "notes": "root chord 12.84 mm from (-2.45,51.67) to (-12.75,44.00), tip (-14.68,57.15); bending stress lies in the layer plane (in-layer, strong direction)"
-  },
-  {
-   "id": "V10.protrusion.frame_lobe@(-18.5,-19.9)",
-   "name": "protrusion frame lobe@(-18.5,-19.9) (in-plane, frame)",
-   "status": "pass",
-   "measured": {
-    "root_mm": [
-     14.1,
-     12.02
-    ],
-    "sigma_max_MPa": 2.26
-   },
-   "criterion": "root >= 8.0 x 5.0, sigma < 10.0 MPa at 50 N",
-   "length_mm": 8.6,
-   "worst_station": {
-    "s": 0.0,
-    "area_mm2": 145.33,
-    "dims_mm": [
-     12.02,
-     14.1
-    ],
-    "moment_Nmm": 429.9,
-    "sigma_MPa": 2.257
-   },
-   "fragment_fits_small_parts": true,
-   "notes": "root chord 10.82 mm from (-19.11,-12.60) to (-11.21,-19.99), tip (-21.10,-22.51); bending stress lies in the layer plane (in-layer, strong direction)"
+   "notes": "root chord 13.42 mm from (-4.42,52.78) to (-13.96,43.35), tip (-14.74,57.10); bending stress lies in the layer plane (in-layer, strong direction)"
   },
   {
    "id": "V10.back_panel_0",
    "name": "back-plate-only panel (cantilever from the body; carries the head post)",
    "status": "warn",
    "measured": {
-    "sigma_MPa": 60.5,
-    "L_mm": 16.96,
-    "t_mm": 1.58
+    "sigma_MPa": 16.9,
+    "L_mm": 18.66,
+    "t_mm": 2.98
    },
    "criterion": "plate cantilever under 50 N normal at the far edge < 10 MPa (warn level: the panel lies under the head; load reaches it through the head's back ribs)",
    "panel": {
-    "area_mm2": 1337.5,
+    "area_mm2": 1516.1,
     "far_point": [
-     -8.58,
-     63.22
+     -21.02,
+     60.1
     ],
-    "cantilever_L_mm": 16.96,
+    "cantilever_L_mm": 18.66,
     "support_point": [
-     -4.78,
-     46.69
+     -11.49,
+     44.05
     ],
-    "width_mm": 66.02,
-    "w_eff_mm": 33.92,
-    "thickness_mm": 1.58,
+    "width_mm": 82.86,
+    "w_eff_mm": 37.33,
+    "thickness_mm": 2.98,
     "load_N": 50.0,
-    "sigma_MPa": 60.5,
-    "fraction_under_head": 0.194,
-    "islands_on_panel": []
+    "sigma_MPa": 16.9,
+    "fraction_under_head": 0.196,
+    "islands_on_panel": [
+     {
+      "centre": [
+       -28.23,
+       -0.24
+      ],
+      "r_equiv": 4.68,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 2.0
+     },
+     {
+      "centre": [
+       -21.32,
+       49.96
+      ],
+      "r_equiv": 4.42,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 2.1
+     },
+     {
+      "centre": [
+       3.41,
+       61.57
+      ],
+      "r_equiv": 4.06,
+      "gap_to_support_mm": 12.09,
+      "sigma_axial_pull_MPa": 12.9
+     },
+     {
+      "centre": [
+       22.49,
+       44.32
+      ],
+      "r_equiv": 3.92,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 2.3
+     },
+     {
+      "centre": [
+       -6.22,
+       -23.17
+      ],
+      "r_equiv": 3.75,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 2.4
+     },
+     {
+      "centre": [
+       28.19,
+       -18.08
+      ],
+      "r_equiv": 2.89,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 3.0
+     },
+     {
+      "centre": [
+       -24.76,
+       27.03
+      ],
+      "r_equiv": 2.68,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 3.2
+     },
+     {
+      "centre": [
+       25.13,
+       24.55
+      ],
+      "r_equiv": 2.28,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 3.7
+     },
+     {
+      "centre": [
+       10.74,
+       -21.87
+      ],
+      "r_equiv": 1.99,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 4.1
+     },
+     {
+      "centre": [
+       28.65,
+       13.64
+      ],
+      "r_equiv": 1.53,
+      "gap_to_support_mm": 0.94,
+      "sigma_axial_pull_MPa": 5.1
+     }
+    ]
    },
    "proposed_fix": "the 2.0 mm plate behind the head is the weakest structural element (est. crack at ~100 N on the top edge; the head post P stands on it).  Raise every Z level by 1.0 (plate 3.0): sigma x (2/3)^2 -> ~17 MPa, depth 19.3 mm; or accept and add an inspection note."
   },
   {
    "id": "V12.pinch_00",
-   "name": "head vs frame at (13.2, 43.0), z 7.75-10.25",
+   "name": "head vs frame at (12.5, 43.5), z 7.75-10.25",
    "status": "fail",
    "measured": {
-    "gap_min": 1.98,
-    "gap_max": 4.789,
+    "gap_min": 1.618,
+    "gap_max": 4.609,
     "severity": "high"
    },
    "criterion": "exposed gap constant (<= 0.1 variation), always < 2.0, or always >= 12 (SPEC V12)",
@@ -4421,21 +3738,21 @@
     "head_phi270",
     "head_phi90"
    ],
-   "cells": 844,
-   "cells_shear": 4,
+   "cells": 1032,
+   "cells_shear": 10,
    "xy_bbox": [
     9.75,
-    38.5,
-    18.0,
+    38.25,
+    18.25,
     45.75
    ],
    "pose_at_gap_min": [
     90.0,
-    1.24
+    2.48
    ],
    "pose_at_gap_max": [
     90.0,
-    8.69
+    10.56
    ],
    "plot": "/home/user/Apps/fidget-toy/verification/reports/kitty/safety_kitty_nominal_pinch_00.png",
    "closeup_3d": "/home/user/Apps/fidget-toy/verification/reports/kitty/safety_kitty_nominal_pinch_00_3d.png",
@@ -4443,8 +3760,8 @@
    "locations": [
     {
      "worst_cell": [
-      13.25,
-      43.0
+      12.5,
+      43.5
      ],
      "z_range": [
       7.75,
@@ -4452,14 +3769,14 @@
      ],
      "series": "head_phi90",
      "gap": [
-      1.98,
-      4.789
+      1.618,
+      4.609
      ]
     },
     {
      "worst_cell": [
-      13.25,
-      43.0
+      12.5,
+      43.5
      ],
      "z_range": [
       7.75,
@@ -4467,8 +3784,8 @@
      ],
      "series": "head_phi270",
      "gap": [
-      1.98,
-      4.789
+      1.618,
+      4.609
      ]
     },
     {
@@ -4482,8 +3799,8 @@
      ],
      "series": "head_phi90",
      "gap": [
-      1.705,
-      4.012
+      1.706,
+      4.496
      ]
     },
     {
@@ -4497,19 +3814,19 @@
      ],
      "series": "head_phi270",
      "gap": [
-      1.705,
-      4.012
+      1.706,
+      4.496
      ]
     }
    ]
   },
   {
    "id": "V12.pinch_01",
-   "name": "head vs frame at (-18.2, 38.0), z 8.75-8.75",
+   "name": "head vs frame at (-17.5, 39.0), z 9.75-9.75",
    "status": "fail",
    "measured": {
-    "gap_min": 3.584,
-    "gap_max": 6.494,
+    "gap_min": 2.417,
+    "gap_max": 5.268,
     "severity": "medium"
    },
    "criterion": "exposed gap constant (<= 0.1 variation), always < 2.0, or always >= 12 (SPEC V12)",
@@ -4521,10 +3838,10 @@
    "cells": 6,
    "cells_shear": 0,
    "xy_bbox": [
-    -18.25,
-    38.0,
-    -18.25,
-    38.0
+    -17.5,
+    39.0,
+    -17.5,
+    39.0
    ],
    "pose_at_gap_min": [
     90.0,
@@ -4540,62 +3857,32 @@
    "locations": [
     {
      "worst_cell": [
-      -18.25,
-      38.0
+      -17.5,
+      39.0
      ],
      "z_range": [
-      8.75,
-      8.75
+      9.75,
+      9.75
      ],
      "series": "head_phi90",
      "gap": [
-      3.584,
-      6.494
+      2.417,
+      5.268
      ]
     },
     {
      "worst_cell": [
-      -18.25,
-      38.0
+      -17.5,
+      39.0
      ],
      "z_range": [
-      8.75,
-      8.75
+      9.75,
+      9.75
      ],
      "series": "head_phi270",
      "gap": [
-      3.584,
-      6.494
-     ]
-    },
-    {
-     "worst_cell": [
-      -18.25,
-      38.0
-     ],
-     "z_range": [
-      10.25,
-      10.25
-     ],
-     "series": "head_phi90",
-     "gap": [
-      3.59,
-      6.5
-     ]
-    },
-    {
-     "worst_cell": [
-      -18.25,
-      38.0
-     ],
-     "z_range": [
-      10.25,
-      10.25
-     ],
-     "series": "head_phi270",
-     "gap": [
-      3.59,
-      6.5
+      2.417,
+      5.268
      ]
     },
     {
@@ -4604,13 +3891,13 @@
       39.5
      ],
      "z_range": [
-      10.25,
-      10.25
+      8.25,
+      8.75
      ],
      "series": "head_phi90",
      "gap": [
-      4.52,
-      7.686
+      4.996,
+      8.165
      ]
     },
     {
@@ -4619,24 +3906,24 @@
       39.5
      ],
      "z_range": [
-      10.25,
-      10.25
+      8.25,
+      8.75
      ],
      "series": "head_phi270",
      "gap": [
-      4.52,
-      7.686
+      4.996,
+      8.165
      ]
     }
    ]
   },
   {
    "id": "V12.pinch_02",
-   "name": "head vs frame at (16.0, 40.8), z 6.75-6.75",
+   "name": "head vs frame at (-9.5, 45.8), z 9.25-9.25",
    "status": "warn",
    "measured": {
-    "gap_min": 1.121,
-    "gap_max": 2.06,
+    "gap_min": 1.883,
+    "gap_max": 2.116,
     "severity": "low"
    },
    "criterion": "exposed gap constant (<= 0.1 variation), always < 2.0, or always >= 12 (SPEC V12)",
@@ -4645,21 +3932,21 @@
     "head_phi270",
     "head_phi90"
    ],
-   "cells": 18,
+   "cells": 8,
    "cells_shear": 0,
    "xy_bbox": [
-    16.0,
-    40.75,
-    16.0,
-    40.75
+    -9.75,
+    45.5,
+    -9.5,
+    45.75
    ],
    "pose_at_gap_min": [
     90.0,
-    -9.31
+    -11.8
    ],
    "pose_at_gap_max": [
     90.0,
-    -6.83
+    -12.42
    ],
    "plot": "/home/user/Apps/fidget-toy/verification/reports/kitty/safety_kitty_nominal_pinch_02.png",
    "closeup_3d": null,
@@ -4667,68 +3954,38 @@
    "locations": [
     {
      "worst_cell": [
-      16.0,
-      40.75
+      -9.5,
+      45.75
      ],
      "z_range": [
-      6.75,
-      6.75
+      9.25,
+      9.25
      ],
      "series": "head_phi90",
      "gap": [
-      1.121,
-      2.06
+      1.883,
+      2.116
      ]
     },
     {
      "worst_cell": [
-      16.0,
-      40.75
+      -9.5,
+      45.75
      ],
      "z_range": [
-      6.75,
-      6.75
+      9.25,
+      9.25
      ],
      "series": "head_phi270",
      "gap": [
-      1.121,
-      2.06
+      1.883,
+      2.116
      ]
     },
     {
      "worst_cell": [
-      15.75,
-      42.0
-     ],
-     "z_range": [
-      9.75,
-      9.75
-     ],
-     "series": "head_phi90",
-     "gap": [
-      1.616,
-      2.595
-     ]
-    },
-    {
-     "worst_cell": [
-      15.75,
-      42.0
-     ],
-     "z_range": [
-      9.75,
-      9.75
-     ],
-     "series": "head_phi270",
-     "gap": [
-      1.616,
-      2.595
-     ]
-    },
-    {
-     "worst_cell": [
-      16.25,
-      41.0
+      -9.5,
+      45.75
      ],
      "z_range": [
       7.75,
@@ -4736,14 +3993,14 @@
      ],
      "series": "head_phi90",
      "gap": [
-      1.663,
-      2.354
+      1.887,
+      2.121
      ]
     },
     {
      "worst_cell": [
-      16.25,
-      41.0
+      -9.5,
+      45.75
      ],
      "z_range": [
       7.75,
@@ -4751,139 +4008,49 @@
      ],
      "series": "head_phi270",
      "gap": [
-      1.663,
-      2.354
+      1.887,
+      2.121
      ]
     },
     {
      "worst_cell": [
-      -15.5,
-      41.25
+      -11.25,
+      44.5
      ],
      "z_range": [
-      8.75,
-      8.75
+      7.75,
+      7.75
      ],
      "series": "head_phi90",
      "gap": [
-      2.391,
-      2.85
+      2.978,
+      3.216
      ]
     },
     {
      "worst_cell": [
-      -15.5,
-      41.25
+      -11.25,
+      44.5
      ],
      "z_range": [
-      8.75,
-      8.75
+      7.75,
+      7.75
      ],
      "series": "head_phi270",
      "gap": [
-      2.391,
-      2.85
-     ]
-    },
-    {
-     "worst_cell": [
-      17.75,
-      39.0
-     ],
-     "z_range": [
-      8.75,
-      8.75
-     ],
-     "series": "head_phi90",
-     "gap": [
-      2.683,
-      2.918
-     ]
-    },
-    {
-     "worst_cell": [
-      17.75,
-      39.0
-     ],
-     "z_range": [
-      8.75,
-      8.75
-     ],
-     "series": "head_phi270",
-     "gap": [
-      2.683,
-      2.918
-     ]
-    },
-    {
-     "worst_cell": [
-      -16.0,
-      40.75
-     ],
-     "z_range": [
-      9.75,
-      9.75
-     ],
-     "series": "head_phi90",
-     "gap": [
-      3.05,
-      3.524
-     ]
-    },
-    {
-     "worst_cell": [
-      -16.0,
-      40.75
-     ],
-     "z_range": [
-      9.75,
-      9.75
-     ],
-     "series": "head_phi270",
-     "gap": [
-      3.05,
-      3.524
-     ]
-    },
-    {
-     "worst_cell": [
-      -16.5,
-      40.25
-     ],
-     "z_range": [
-      8.25,
-      8.25
-     ],
-     "series": "head_phi90",
-     "gap": [
-      3.744,
-      4.227
-     ]
-    },
-    {
-     "worst_cell": [
-      -16.5,
-      40.25
-     ],
-     "z_range": [
-      8.25,
-      8.25
-     ],
-     "series": "head_phi270",
-     "gap": [
-      3.744,
-      4.227
+      2.978,
+      3.216
      ]
     }
    ]
   },
   {
    "id": "V12.pinch_03",
-   "name": "head vs frame at (-13.0, 43.8), z 10.25-10.25",
+   "name": "head vs frame at (-15.5, 41.2), z 8.75-8.75",
    "status": "warn",
    "measured": {
-    "gap_min": 1.679,
-    "gap_max": 2.371,
+    "gap_min": 2.391,
+    "gap_max": 2.85,
     "severity": "low"
    },
    "criterion": "exposed gap constant (<= 0.1 variation), always < 2.0, or always >= 12 (SPEC V12)",
@@ -4895,18 +4062,18 @@
    "cells": 10,
    "cells_shear": 0,
    "xy_bbox": [
-    -13.0,
-    43.5,
-    -12.5,
-    44.0
+    -15.5,
+    41.25,
+    -15.5,
+    41.25
    ],
    "pose_at_gap_min": [
     90.0,
-    -1.24
+    4.97
    ],
    "pose_at_gap_max": [
     90.0,
-    -3.11
+    3.73
    ],
    "plot": "/home/user/Apps/fidget-toy/verification/reports/kitty/safety_kitty_nominal_pinch_03.png",
    "closeup_3d": null,
@@ -4914,62 +4081,122 @@
    "locations": [
     {
      "worst_cell": [
-      -13.0,
-      43.75
+      -15.5,
+      41.25
      ],
      "z_range": [
-      10.25,
-      10.25
+      8.75,
+      8.75
      ],
      "series": "head_phi90",
      "gap": [
-      1.679,
-      2.371
+      2.391,
+      2.85
      ]
     },
     {
      "worst_cell": [
-      -13.0,
-      43.75
+      -15.5,
+      41.25
      ],
      "z_range": [
-      10.25,
-      10.25
+      8.75,
+      8.75
      ],
      "series": "head_phi270",
      "gap": [
-      1.679,
-      2.371
+      2.391,
+      2.85
      ]
     },
     {
      "worst_cell": [
-      -10.75,
-      44.5
+      -15.75,
+      41.0
      ],
      "z_range": [
-      10.25,
-      10.25
+      8.25,
+      8.25
      ],
      "series": "head_phi90",
      "gap": [
-      2.858,
-      3.322
+      2.718,
+      3.185
      ]
     },
     {
      "worst_cell": [
-      -10.75,
-      44.5
+      -15.75,
+      41.0
      ],
      "z_range": [
-      10.25,
-      10.25
+      8.25,
+      8.25
      ],
      "series": "head_phi270",
      "gap": [
-      2.858,
-      3.322
+      2.718,
+      3.185
+     ]
+    },
+    {
+     "worst_cell": [
+      -16.0,
+      41.0
+     ],
+     "z_range": [
+      9.25,
+      9.75
+     ],
+     "series": "head_phi90",
+     "gap": [
+      2.77,
+      3.009
+     ]
+    },
+    {
+     "worst_cell": [
+      -16.0,
+      41.0
+     ],
+     "z_range": [
+      9.25,
+      9.75
+     ],
+     "series": "head_phi270",
+     "gap": [
+      2.77,
+      3.009
+     ]
+    },
+    {
+     "worst_cell": [
+      -16.5,
+      40.0
+     ],
+     "z_range": [
+      8.75,
+      8.75
+     ],
+     "series": "head_phi90",
+     "gap": [
+      3.806,
+      5.491
+     ]
+    },
+    {
+     "worst_cell": [
+      -16.5,
+      40.0
+     ],
+     "z_range": [
+      8.75,
+      8.75
+     ],
+     "series": "head_phi270",
+     "gap": [
+      3.806,
+      5.491
      ]
     }
    ]
@@ -4984,7 +4211,7 @@
     "min_r_by_body": {
      "frame": null,
      "wheel": null,
-     "head": 1.09
+     "head": 1.05
     }
    },
    "criterion": "no exposed convex corner sharper than r 1.0; r 1.0-1.5 is a warning",
@@ -4996,9 +4223,9 @@
       12.66,
       44.35
      ],
-     "depth_mm": 0.179,
-     "area_mm2": 0.203,
-     "est_corner_r_mm": 1.09,
+     "depth_mm": 0.19,
+     "area_mm2": 0.216,
+     "est_corner_r_mm": 1.05,
      "z": 11.5
     }
    ]
@@ -5098,29 +4325,29 @@
     {
      "body": "head",
      "at": [
-      -14.51,
+      14.51,
       42.45,
-      13.7
+      4.7
      ],
      "ball_fraction": 0.228
     },
     {
      "body": "head",
      "at": [
-      -14.21,
-      42.83,
-      13.7
+      2.4,
+      29.26,
+      18.08
      ],
-     "ball_fraction": 0.228
+     "ball_fraction": 0.238
     },
     {
      "body": "head",
      "at": [
-      14.21,
-      42.83,
+      -15.65,
+      46.04,
       13.7
      ],
-     "ball_fraction": 0.228
+     "ball_fraction": 0.239
     }
    ]
   },
@@ -5131,143 +4358,59 @@
    "measured": [
     {
      "at": [
-      0.0,
-      26.97
+      -13.8,
+      26.62
      ],
-     "h": 0.6
+     "h": 0.4
     },
     {
      "at": [
-      -9.0,
-      28.31
+      13.8,
+      26.62
      ],
      "h": 0.4
+    },
+    {
+     "at": [
+      -3.7,
+      29.07
+     ],
+     "h": 0.5
+    },
+    {
+     "at": [
+      3.7,
+      29.07
+     ],
+     "h": 0.5
     },
     {
      "at": [
       -0.0,
-      30.55
+      31.24
      ],
      "h": 0.6
     },
     {
      "at": [
-      -6.85,
-      34.04
+      -10.01,
+      32.77
      ],
-     "h": 0.5
+     "h": 0.55
     },
     {
      "at": [
-      -0.0,
-      46.06
+      9.99,
+      32.77
      ],
-     "h": 0.6
+     "h": 0.55
     },
     {
      "at": [
-      -9.61,
-      50.0
+      6.99,
+      47.09
      ],
-     "h": 0.4
-    },
-    {
-     "at": [
-      0.0,
-      25.77
-     ],
-     "h": 0.4
-    },
-    {
-     "at": [
-      9.0,
-      28.31
-     ],
-     "h": 0.4
-    },
-    {
-     "at": [
-      6.75,
-      34.04
-     ],
-     "h": 0.5
-    },
-    {
-     "at": [
-      8.6,
-      48.41
-     ],
-     "h": 0.6
-    },
-    {
-     "at": [
-      10.69,
-      52.33
-     ],
-     "h": 0.4
-    },
-    {
-     "at": [
-      -17.2,
-      -19.5
-     ],
-     "h": 0.5
-    },
-    {
-     "at": [
-      -19.4,
-      -17.05
-     ],
-     "h": 0.5
-    },
-    {
-     "at": [
-      -15.0,
-      -17.05
-     ],
-     "h": 0.5
-    },
-    {
-     "at": [
-      15.0,
-      -17.05
-     ],
-     "h": 0.5
-    },
-    {
-     "at": [
-      -17.2,
-      -16.5
-     ],
-     "h": 0.5
-    },
-    {
-     "at": [
-      17.2,
-      -19.5
-     ],
-     "h": 0.5
-    },
-    {
-     "at": [
-      19.4,
-      -17.05
-     ],
-     "h": 0.5
-    },
-    {
-     "at": [
-      17.2,
-      -16.5
-     ],
-     "h": 0.5
-    },
-    {
-     "at": [
-      24.4,
-      -5.0
-     ],
-     "h": 0.5
+     "h": 1.2
     }
    ],
    "criterion": ">= 0.6 (0.05 measurement step)",
@@ -5277,15 +4420,15 @@
      "type": "raised",
      "z_surface": 17.7,
      "centroid": [
-      -9.0,
-      28.31
+      -13.8,
+      26.62
      ],
-     "area_mm2": 7.88,
-     "width_mm": 2.397,
-     "stroke_width_mm": 1.494,
+     "area_mm2": 16.16,
+     "width_mm": 3.901,
+     "stroke_width_mm": 2.178,
      "bbox_mm": [
-      4.2,
-      2.4
+      5.14,
+      4.48
      ],
      "height_mm": 0.4
     },
@@ -5294,32 +4437,15 @@
      "type": "raised",
      "z_surface": 17.7,
      "centroid": [
-      -6.85,
-      34.04
+      13.8,
+      26.62
      ],
-     "area_mm2": 55.07,
-     "width_mm": 4.797,
-     "stroke_width_mm": 3.006,
+     "area_mm2": 16.16,
+     "width_mm": 3.9,
+     "stroke_width_mm": 2.177,
      "bbox_mm": [
-      8.69,
-      8.69
-     ],
-     "height_mm": 0.5
-    },
-    {
-     "surface": "face top",
-     "type": "raised",
-     "z_surface": 17.7,
-     "centroid": [
-      -9.61,
-      50.0
-     ],
-     "area_mm2": 50.15,
-     "width_mm": 6.249,
-     "stroke_width_mm": 3.347,
-     "bbox_mm": [
-      9.16,
-      10.22
+      5.14,
+      4.48
      ],
      "height_mm": 0.4
     },
@@ -5328,49 +4454,15 @@
      "type": "raised",
      "z_surface": 17.7,
      "centroid": [
-      0.0,
-      25.77
+      -3.7,
+      29.07
      ],
-     "area_mm2": 4.51,
-     "width_mm": 1.892,
-     "stroke_width_mm": 1.139,
+     "area_mm2": 2.16,
+     "width_mm": 0.8,
+     "stroke_width_mm": 0.617,
      "bbox_mm": [
-      3.07,
-      1.89
-     ],
-     "height_mm": 0.4
-    },
-    {
-     "surface": "face top",
-     "type": "raised",
-     "z_surface": 17.7,
-     "centroid": [
-      9.0,
-      28.31
-     ],
-     "area_mm2": 7.88,
-     "width_mm": 2.397,
-     "stroke_width_mm": 1.494,
-     "bbox_mm": [
-      4.2,
-      2.4
-     ],
-     "height_mm": 0.4
-    },
-    {
-     "surface": "face top",
-     "type": "raised",
-     "z_surface": 17.7,
-     "centroid": [
-      6.75,
-      34.04
-     ],
-     "area_mm2": 55.07,
-     "width_mm": 4.797,
-     "stroke_width_mm": 3.006,
-     "bbox_mm": [
-      8.69,
-      8.69
+      2.45,
+      1.54
      ],
      "height_mm": 0.5
     },
@@ -5379,168 +4471,15 @@
      "type": "raised",
      "z_surface": 17.7,
      "centroid": [
-      10.69,
-      52.33
+      3.7,
+      29.07
      ],
-     "area_mm2": 17.96,
-     "width_mm": 3.528,
-     "stroke_width_mm": 2.09,
+     "area_mm2": 2.16,
+     "width_mm": 0.8,
+     "stroke_width_mm": 0.617,
      "bbox_mm": [
-      5.98,
-      4.91
-     ],
-     "height_mm": 0.4
-    },
-    {
-     "surface": "decor top",
-     "type": "raised",
-     "z_surface": 13.6,
-     "centroid": [
-      -17.2,
-      -19.5
-     ],
-     "area_mm2": 8.9,
-     "width_mm": 2.991,
-     "stroke_width_mm": 1.663,
-     "bbox_mm": [
-      3.8,
-      3.0
-     ],
-     "height_mm": 0.5
-    },
-    {
-     "surface": "decor top",
-     "type": "raised",
-     "z_surface": 13.6,
-     "centroid": [
-      -19.4,
-      -17.05
-     ],
-     "area_mm2": 2.8,
-     "width_mm": 1.884,
-     "stroke_width_mm": 0.942,
-     "bbox_mm": [
-      1.9,
-      1.9
-     ],
-     "height_mm": 0.5
-    },
-    {
-     "surface": "decor top",
-     "type": "raised",
-     "z_surface": 13.6,
-     "centroid": [
-      -15.0,
-      -17.05
-     ],
-     "area_mm2": 2.8,
-     "width_mm": 1.884,
-     "stroke_width_mm": 0.942,
-     "bbox_mm": [
-      1.9,
-      1.9
-     ],
-     "height_mm": 0.5
-    },
-    {
-     "surface": "decor top",
-     "type": "raised",
-     "z_surface": 13.6,
-     "centroid": [
-      15.0,
-      -17.05
-     ],
-     "area_mm2": 2.8,
-     "width_mm": 1.884,
-     "stroke_width_mm": 0.942,
-     "bbox_mm": [
-      1.9,
-      1.9
-     ],
-     "height_mm": 0.5
-    },
-    {
-     "surface": "decor top",
-     "type": "raised",
-     "z_surface": 13.6,
-     "centroid": [
-      -17.2,
-      -16.5
-     ],
-     "area_mm2": 2.8,
-     "width_mm": 1.884,
-     "stroke_width_mm": 0.942,
-     "bbox_mm": [
-      1.9,
-      1.9
-     ],
-     "height_mm": 0.5
-    },
-    {
-     "surface": "decor top",
-     "type": "raised",
-     "z_surface": 13.6,
-     "centroid": [
-      17.2,
-      -19.5
-     ],
-     "area_mm2": 8.9,
-     "width_mm": 2.991,
-     "stroke_width_mm": 1.663,
-     "bbox_mm": [
-      3.8,
-      3.0
-     ],
-     "height_mm": 0.5
-    },
-    {
-     "surface": "decor top",
-     "type": "raised",
-     "z_surface": 13.6,
-     "centroid": [
-      19.4,
-      -17.05
-     ],
-     "area_mm2": 2.8,
-     "width_mm": 1.884,
-     "stroke_width_mm": 0.942,
-     "bbox_mm": [
-      1.9,
-      1.9
-     ],
-     "height_mm": 0.5
-    },
-    {
-     "surface": "decor top",
-     "type": "raised",
-     "z_surface": 13.6,
-     "centroid": [
-      17.2,
-      -16.5
-     ],
-     "area_mm2": 2.8,
-     "width_mm": 1.884,
-     "stroke_width_mm": 0.942,
-     "bbox_mm": [
-      1.9,
-      1.9
-     ],
-     "height_mm": 0.5
-    },
-    {
-     "surface": "decor top",
-     "type": "raised",
-     "z_surface": 13.6,
-     "centroid": [
-      24.4,
-      -5.0
-     ],
-     "area_mm2": 12.49,
-     "width_mm": 3.981,
-     "stroke_width_mm": 1.99,
-     "bbox_mm": [
-      4.0,
-      4.0
+      2.45,
+      1.54
      ],
      "height_mm": 0.5
     }
@@ -5554,270 +4493,78 @@
     {
      "surface": "face top",
      "at": [
-      -5.2,
-      35.81
+      -9.75,
+      41.18
      ],
-     "w": 0.74
+     "w": 0.658
     },
     {
      "surface": "face top",
      "at": [
-      8.4,
-      35.81
+      9.75,
+      41.18
      ],
-     "w": 0.74
+     "w": 0.658
     },
     {
      "surface": "face top",
      "at": [
-      -8.7,
-      32.61
+      -10.8,
+      34.71
      ],
-     "w": 0.413
+     "w": 0.565
     },
     {
      "surface": "face top",
      "at": [
-      4.9,
-      32.61
+      9.2,
+      34.71
      ],
-     "w": 0.413
+     "w": 0.565
     },
     {
-     "surface": "paw tops",
+     "surface": "face top",
      "at": [
-      19.38,
-      3.24
+      -7.7,
+      31.01
      ],
-     "w": 0.669
+     "w": 0.442
     },
     {
-     "surface": "paw tops",
+     "surface": "face top",
      "at": [
-      19.64,
-      0.51
+      12.3,
+      31.01
      ],
-     "w": 0.67
+     "w": 0.442
     },
     {
-     "surface": "paw tops",
+     "surface": "face top",
      "at": [
-      -19.38,
-      3.24
+      -3.7,
+      29.07
      ],
-     "w": 0.669
+     "w": 0.617
     },
     {
-     "surface": "paw tops",
+     "surface": "face top",
      "at": [
-      -19.64,
-      0.51
+      3.7,
+      29.07
      ],
-     "w": 0.67
+     "w": 0.617
     },
     {
-     "surface": "back plate",
+     "surface": "face top",
      "at": [
-      -8.48,
-      59.42
+      -0.0,
+      31.24
      ],
-     "w": 0.777
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      17.37,
-      57.04
-     ],
-     "w": 0.765
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      0.2,
-      57.09
-     ],
-     "w": 0.685
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      -21.31,
-      43.9
-     ],
-     "w": 0.767
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      20.97,
-      41.63
-     ],
-     "w": 0.766
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      -22.19,
-      33.07
-     ],
-     "w": 0.695
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      23.3,
-      29.18
-     ],
-     "w": 0.697
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      -24.58,
-      23.84
-     ],
-     "w": 0.747
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      24.17,
-      23.61
-     ],
-     "w": 0.691
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      27.28,
-      17.9
-     ],
-     "w": 0.702
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      -26.7,
-      11.29
-     ],
-     "w": 0.751
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      26.61,
-      8.19
-     ],
-     "w": 0.743
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      -27.56,
-      2.19
-     ],
-     "w": 0.704
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      27.43,
-      -0.77
-     ],
-     "w": 0.687
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      -22.53,
-      -8.1
-     ],
-     "w": 0.765
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      28.28,
-      -7.48
-     ],
-     "w": 0.684
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      27.76,
-      -13.92
-     ],
-     "w": 0.707
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      24.74,
-      -19.6
-     ],
-     "w": 0.693
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      -23.68,
-      -20.49
-     ],
-     "w": 0.704
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      -8.25,
-      -22.1
-     ],
-     "w": 0.743
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      9.79,
-      -23.78
-     ],
-     "w": 0.753
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      0.9,
-      -22.68
-     ],
-     "w": 0.695
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      19.1,
-      -24.98
-     ],
-     "w": 0.704
-    },
-    {
-     "surface": "back plate",
-     "at": [
-      -17.07,
-      -25.28
-     ],
-     "w": 0.704
-    },
-    {
-     "surface": "ball top",
-     "at": [
-      0.0,
-      0.0
-     ],
-     "w": 0.747
+     "w": 0.744
     }
    ],
    "criterion": ">= 0.8 mm stroke width",
-   "n_thin": 33
+   "n_thin": 9
   },
   {
    "id": "DR.deboss_depth",
@@ -5827,55 +4574,63 @@
     {
      "surface": "face top",
      "at": [
-      -5.2,
-      35.81
+      -10.8,
+      34.71
      ],
      "d": 0.2
     },
     {
      "surface": "face top",
      "at": [
-      8.4,
-      35.81
+      9.2,
+      34.71
      ],
      "d": 0.2
     },
     {
      "surface": "face top",
      "at": [
-      -8.7,
-      32.61
+      -7.7,
+      31.01
      ],
-     "d": 0.2
+     "d": 0.35
     },
     {
      "surface": "face top",
      "at": [
-      4.9,
-      32.61
+      12.3,
+      31.01
      ],
-     "d": 0.2
+     "d": 0.35
+    },
+    {
+     "surface": "ball top",
+     "at": [
+      0.0,
+      0.0
+     ],
+     "d": 0.25
     }
    ],
    "criterion": ">= 0.4 mm",
-   "n_shallow": 4
+   "n_shallow": 5
   },
   {
    "id": "DR.eyes",
    "name": "kawaii eye size / placement",
    "status": "warn",
    "measured": {
-    "eye_d": 8.69,
-    "eye_spacing_cc": 13.6,
-    "face_width_at_eyes": 31.82,
-    "eye_d_over_face_w": 0.273,
-    "spacing_over_face_w": 0.427,
+    "eye_d": 9.57,
+    "eye_spacing_cc": 17.0,
+    "face_width_at_eyes": 34.48,
+    "eye_d_over_face_w": 0.278,
+    "spacing_over_face_w": 0.493,
     "head_circle_centre": [
-     -0.0,
-     35.15
+     0.0,
+     35.47
     ],
-    "head_circle_r": 15.44,
-    "eye_line_below_head_centre_over_r": 0.072
+    "head_circle_r": 15.77,
+    "eye_line_below_head_centre_over_r": -0.283
    },
    "criterion": "eye D >= 0.25 x face width; eye line >= 0.15 R below the head-circle centre (big, low, wide-set eyes)",
    "suggestion": "eyes D 8.5 domes 0.8 tall at C_h + (+-7.2, -2.8) with D 2.6 highlight dimples at (+1.5, +1.5); this keeps every edge >= 3 mm inside FaceUp2D"
@@ -5886,10 +4641,10 @@
    "status": "pass",
    "measured": {
     "nose_bbox_mm": [
-     5.79,
-     2.7
+     5.14,
+     4.48
     ],
-    "nose_w_over_face_w": 0.181
+    "nose_w_over_face_w": 0.115
    },
    "criterion": "nose width >= 3.0 mm (about 0.1 x face width)",
    "suggestion": ""
@@ -5897,22 +4652,22 @@
   {
    "id": "DR.head_vs_ball",
    "name": "head reads as the biggest shape (kawaii: big head, small body)",
-   "status": "warn",
+   "status": "pass",
    "measured": {
-    "face_disc_w": 32.0,
+    "face_disc_w": 44.55,
     "ball_d": 36.0,
-    "ratio": 0.889
+    "ratio": 1.237
    },
    "criterion": "face width >= ball diameter",
-   "suggestion": "grow the face disc to r 17.5 with C_h = P + (0, 12.0) (chin stays put; I_h rises ~30 %, still inside 4-8e-6 - re-run V13/V4), or tint the ball a softer colour so the face dominates"
+   "suggestion": ""
   },
   {
    "id": "DR.ears",
    "name": "ears tall enough to read as cat ears",
    "status": "warn",
    "measured": {
-    "ear_rise_above_crown_mm": 5.89,
-    "ear_rise_over_head_r": 0.368,
+    "ear_rise_above_crown_mm": 4.4,
+    "ear_rise_over_head_r": 0.275,
     "farthest_point_from_P_mm": 35.68,
     "tip_travel_each_way_mm": 7.73,
     "tip_travel_p2p_mm": 15.47
@@ -5937,7 +4692,7 @@
     "coloured_top_area_mm2": {
      "frame": 0.0,
      "wheel": 0.0,
-     "head": 213.4
+     "head": 142.2
     }
    },
    "criterion": "only the eyes / nose / mouth change colour",
@@ -5966,24 +4721,23 @@
   }
  ],
  "summary": [
-  "[WARN] V10.back_panel_0: back-plate-only panel (cantilever from the body; carries the head post) -> {'sigma_MPa': 60.5, 'L_mm': 16.96, 't_mm': 1.58}",
-  "[FAIL] V12.pinch_00: head vs frame at (13.2, 43.0), z 7.75-10.25 -> {'gap_min': 1.98, 'gap_max': 4.789, 'severity': 'high'}",
-  "[FAIL] V12.pinch_01: head vs frame at (-18.2, 38.0), z 8.75-8.75 -> {'gap_min': 3.584, 'gap_max': 6.494, 'severity': 'medium'}",
-  "[WARN] V12.pinch_02: head vs frame at (16.0, 40.8), z 6.75-6.75 -> {'gap_min': 1.121, 'gap_max': 2.06, 'severity': 'low'}",
-  "[WARN] V12.pinch_03: head vs frame at (-13.0, 43.8), z 10.25-10.25 -> {'gap_min': 1.679, 'gap_max': 2.371, 'severity': 'low'}",
-  "[WARN] V12.corners: exposed convex plan corners (vertical edges) r >= 1.0 (exterior >= 1.5) -> {'below_1.0': 0, '1.0_to_1.5': 1, 'min_r_by_body': {'frame': None, 'wheel': None, 'head': 1.09}}",
+  "[WARN] V10.back_panel_0: back-plate-only panel (cantilever from the body; carries the head post) -> {'sigma_MPa': 16.9, 'L_mm': 18.66, 't_mm': 2.98}",
+  "[FAIL] V12.pinch_00: head vs frame at (12.5, 43.5), z 7.75-10.25 -> {'gap_min': 1.618, 'gap_max': 4.609, 'severity': 'high'}",
+  "[FAIL] V12.pinch_01: head vs frame at (-17.5, 39.0), z 9.75-9.75 -> {'gap_min': 2.417, 'gap_max': 5.268, 'severity': 'medium'}",
+  "[WARN] V12.pinch_02: head vs frame at (-9.5, 45.8), z 9.25-9.25 -> {'gap_min': 1.883, 'gap_max': 2.116, 'severity': 'low'}",
+  "[WARN] V12.pinch_03: head vs frame at (-15.5, 41.2), z 8.75-8.75 -> {'gap_min': 2.391, 'gap_max': 2.85, 'severity': 'low'}",
+  "[WARN] V12.corners: exposed convex plan corners (vertical edges) r >= 1.0 (exterior >= 1.5) -> {'below_1.0': 0, '1.0_to_1.5': 1, 'min_r_by_body': {'frame': None, 'wheel': None, 'head': 1.05}}",
   "[WARN] V12.sharp_points: sharp points / knife edges on the touchable surface (1 mm ball volume fraction) -> {'below_0.15': 0, '0.15_to_0.20': 5, 'min_fraction': 0.167}",
-  "[WARN] DR.raised_height: raised features >= 0.6 high (3 layers) -> [{'at': [0.0, 26.97], 'h': 0.6}, {'at': [-9.0, 28.31], 'h': 0.4}, {'at': [-0.0, 30.55], 'h': 0.6}, {'at': [-6.85, 34.04], 'h': 0.5}, {'at': [-0.0, 46.06], 'h': 0.6}, {'at': [-9.61, 50.0], 'h': 0.4}, {'at': [0.0, 25.77], 'h': 0.4}, {'at': [9.0, 28.31], 'h': 0.4}, {'at': [6.75, 34.04], 'h': 0.5}, {'at': [8.6, 48.41], 'h': 0.6}, {'at': [10.69, 52.33], 'h': 0.4}, {'at': [-17.2, -19.5], 'h': 0.5}, {'at': [-19.4, -17.05], 'h': 0.5}, {'at': [-15.0, -17.05], 'h': 0.5}, {'at': [15.0, -17.05], 'h': 0.5}, {'at': [-17.2, -16.5], 'h': 0.5}, {'at': [17.2, -19.5], 'h': 0.5}, {'at': [19.4, -17.05], 'h': 0.5}, {'at': [17.2, -16.5], 'h': 0.5}, {'at': [24.4, -5.0], 'h': 0.5}]",
-  "[WARN] DR.line_width: grooves / lines >= 0.8 wide (2 nozzle widths) so they survive slicing and read -> [{'surface': 'face top', 'at': [-5.2, 35.81], 'w': 0.74}, {'surface': 'face top', 'at': [8.4, 35.81], 'w': 0.74}, {'surface': 'face top', 'at': [-8.7, 32.61], 'w': 0.413}, {'surface': 'face top', 'at': [4.9, 32.61], 'w': 0.413}, {'surface': 'paw tops', 'at': [19.38, 3.24], 'w': 0.669}, {'surface': 'paw tops', 'at': [19.64, 0.51], 'w': 0.67}, {'surface': 'paw tops', 'at': [-19.38, 3.24], 'w': 0.669}, {'surface': 'paw tops', 'at': [-19.64, 0.51], 'w': 0.67}, {'surface': 'back plate', 'at': [-8.48, 59.42], 'w': 0.777}, {'surface': 'back plate', 'at': [17.37, 57.04], 'w': 0.765}, {'surface': 'back plate', 'at': [0.2, 57.09], 'w': 0.685}, {'surface': 'back plate', 'at': [-21.31, 43.9], 'w': 0.767}, {'surface': 'back plate', 'at': [20.97, 41.63], 'w': 0.766}, {'surface': 'back plate', 'at': [-22.19, 33.07], 'w': 0.695}, {'surface': 'back plate', 'at': [23.3, 29.18], 'w': 0.697}, {'surface': 'back plate', 'at': [-24.58, 23.84], 'w': 0.747}, {'surface': 'back plate', 'at': [24.17, 23.61], 'w': 0.691}, {'surface': 'back plate', 'at': [27.28, 17.9], 'w': 0.702}, {'surface': 'back plate', 'at': [-26.7, 11.29], 'w': 0.751}, {'surface': 'back plate', 'at': [26.61, 8.19], 'w': 0.743}, {'surface': 'back plate', 'at': [-27.56, 2.19], 'w': 0.704}, {'surface': 'back plate', 'at': [27.43, -0.77], 'w': 0.687}, {'surface': 'back plate', 'at': [-22.53, -8.1], 'w': 0.765}, {'surface': 'back plate', 'at': [28.28, -7.48], 'w': 0.684}, {'surface': 'back plate', 'at': [27.76, -13.92], 'w': 0.707}, {'surface': 'back plate', 'at': [24.74, -19.6], 'w': 0.693}, {'surface': 'back plate', 'at': [-23.68, -20.49], 'w': 0.704}, {'surface': 'back plate', 'at': [-8.25, -22.1], 'w': 0.743}, {'surface': 'back plate', 'at': [9.79, -23.78], 'w': 0.753}, {'surface': 'back plate', 'at': [0.9, -22.68], 'w': 0.695}, {'surface': 'back plate', 'at': [19.1, -24.98], 'w': 0.704}, {'surface': 'back plate', 'at': [-17.07, -25.28], 'w': 0.704}, {'surface': 'ball top', 'at': [0.0, 0.0], 'w': 0.747}]",
-  "[WARN] DR.deboss_depth: debossed features >= 0.4 deep (2 layers at 0.2) -> [{'surface': 'face top', 'at': [-5.2, 35.81], 'd': 0.2}, {'surface': 'face top', 'at': [8.4, 35.81], 'd': 0.2}, {'surface': 'face top', 'at': [-8.7, 32.61], 'd': 0.2}, {'surface': 'face top', 'at': [4.9, 32.61], 'd': 0.2}]",
-  "[WARN] DR.eyes: kawaii eye size / placement -> {'eye_d': 8.69, 'eye_spacing_cc': 13.6, 'face_width_at_eyes': 31.82, 'eye_d_over_face_w': 0.273, 'spacing_over_face_w': 0.427, 'head_circle_centre': [-0.0, 35.15], 'head_circle_r': 15.44, 'eye_line_below_head_centre_over_r': np.float64(0.072)}",
-  "[WARN] DR.head_vs_ball: head reads as the biggest shape (kawaii: big head, small body) -> {'face_disc_w': 32.0, 'ball_d': 36.0, 'ratio': 0.889}",
-  "[WARN] DR.ears: ears tall enough to read as cat ears -> {'ear_rise_above_crown_mm': 5.89, 'ear_rise_over_head_r': 0.368, 'farthest_point_from_P_mm': 35.68, 'tip_travel_each_way_mm': 7.73, 'tip_travel_p2p_mm': 15.47}",
-  "[WARN] DR.colour_swap: optional colour swap z 17.9-18.5 colours exactly the face features -> {'coloured_top_area_mm2': {'frame': 0.0, 'wheel': 0.0, 'head': 213.4}}"
+  "[WARN] DR.raised_height: raised features >= 0.6 high (3 layers) -> [{'at': [-13.8, 26.62], 'h': 0.4}, {'at': [13.8, 26.62], 'h': 0.4}, {'at': [-3.7, 29.07], 'h': 0.5}, {'at': [3.7, 29.07], 'h': 0.5}, {'at': [-0.0, 31.24], 'h': 0.6}, {'at': [-10.01, 32.77], 'h': 0.55}, {'at': [9.99, 32.77], 'h': 0.55}, {'at': [6.99, 47.09], 'h': 1.2}]",
+  "[WARN] DR.line_width: grooves / lines >= 0.8 wide (2 nozzle widths) so they survive slicing and read -> [{'surface': 'face top', 'at': [-9.75, 41.18], 'w': 0.658}, {'surface': 'face top', 'at': [9.75, 41.18], 'w': 0.658}, {'surface': 'face top', 'at': [-10.8, 34.71], 'w': 0.565}, {'surface': 'face top', 'at': [9.2, 34.71], 'w': 0.565}, {'surface': 'face top', 'at': [-7.7, 31.01], 'w': 0.442}, {'surface': 'face top', 'at': [12.3, 31.01], 'w': 0.442}, {'surface': 'face top', 'at': [-3.7, 29.07], 'w': 0.617}, {'surface': 'face top', 'at': [3.7, 29.07], 'w': 0.617}, {'surface': 'face top', 'at': [-0.0, 31.24], 'w': 0.744}]",
+  "[WARN] DR.deboss_depth: debossed features >= 0.4 deep (2 layers at 0.2) -> [{'surface': 'face top', 'at': [-10.8, 34.71], 'd': 0.2}, {'surface': 'face top', 'at': [9.2, 34.71], 'd': 0.2}, {'surface': 'face top', 'at': [-7.7, 31.01], 'd': 0.35}, {'surface': 'face top', 'at': [12.3, 31.01], 'd': 0.35}, {'surface': 'ball top', 'at': [0.0, 0.0], 'd': 0.25}]",
+  "[WARN] DR.eyes: kawaii eye size / placement -> {'eye_d': 9.57, 'eye_spacing_cc': 17.0, 'face_width_at_eyes': 34.48, 'eye_d_over_face_w': 0.278, 'spacing_over_face_w': 0.493, 'head_circle_centre': [0.0, 35.47], 'head_circle_r': 15.77, 'eye_line_below_head_centre_over_r': np.float64(-0.283)}",
+  "[WARN] DR.ears: ears tall enough to read as cat ears -> {'ear_rise_above_crown_mm': 4.4, 'ear_rise_over_head_r': 0.275, 'farthest_point_from_P_mm': 35.68, 'tip_travel_each_way_mm': 7.73, 'tip_travel_p2p_mm': 15.47}",
+  "[WARN] DR.colour_swap: optional colour swap z 17.9-18.5 colours exactly the face features -> {'coloured_top_area_mm2': {'frame': 0.0, 'wheel': 0.0, 'head': 142.2}}"
  ],
- "n_pass": 14,
- "n_warn": 12,
+ "n_pass": 13,
+ "n_warn": 11,
  "n_fail": 2,
  "pass": false,
- "time_s": 421.7
+ "time_s": 479.9
 }

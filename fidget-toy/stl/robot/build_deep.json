@@ -21,8 +21,8 @@
   ]
  ],
  "info": {
-  "t_sections_s": 4.01,
-  "t_solids_s": 4.96,
+  "t_sections_s": 3.93,
+  "t_solids_s": 4.55,
   "skin_contract": {
    "warnings": [
     "B_i only 1.76 mm inside Face2D (contract 3.0)",
@@ -65,7 +65,10 @@
    "cheek_R",
    "ear_screw_R",
    "antenna_bulb"
-  ]
+  ],
+  "head_base": "<manifold3d.Manifold object at 0x7fb6556cbf50>",
+  "head_feature_parts": {},
+  "frame_colour_masks": []
  },
  "sections": {
   "overall_W": 59.99,
@@ -91,7 +94,7 @@
   "frame": {
    "volume_mm3": 19199.9,
    "mass_solid_g": 23.81,
-   "triangles": 152892,
+   "triangles": 175932,
    "bbox": [
     -29.997,
     -21.7,
@@ -109,7 +112,7 @@
   "wheel": {
    "volume_mm3": 6165.4,
    "mass_solid_g": 7.65,
-   "triangles": 12176,
+   "triangles": 12180,
    "bbox": [
     -17.997,
     -17.997,
@@ -127,7 +130,7 @@
   "head": {
    "volume_mm3": 10357.7,
    "mass_solid_g": 12.84,
-   "triangles": 35828,
+   "triangles": 37904,
    "bbox": [
     -19.472,
     5.179,
@@ -153,7 +156,7 @@
    "frame": {
     "components": 1,
     "genus": 3,
-    "volume_mm3": 19199.95,
+    "volume_mm3": 19199.94,
     "status": "Error.NoError"
    },
    "wheel": {
@@ -191,7 +194,7 @@
   ],
   "global_min_gap": 0.35000216919009297
  },
- "stl_triangles": 200896,
+ "stl_triangles": 226016,
  "files": [
   "stl/robot/purrbobble_robot_deep.stl"
  ],
@@ -199,6 +202,6 @@
   "renders/robot/purrbobble_robot_deep_face.png",
   "renders/robot/purrbobble_robot_deep_three_quarter.png"
  ],
- "time_build_export_s": 13.06,
- "time_total_s": 15.1
+ "time_build_export_s": 13.11,
+ "time_total_s": 15.48
 }

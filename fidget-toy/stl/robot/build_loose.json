@@ -21,8 +21,8 @@
   ]
  ],
  "info": {
-  "t_sections_s": 4.16,
-  "t_solids_s": 4.65,
+  "t_sections_s": 4.03,
+  "t_solids_s": 4.93,
   "skin_contract": {
    "warnings": [
     "B_i only 1.76 mm inside Face2D (contract 3.0)",
@@ -65,7 +65,10 @@
    "cheek_R",
    "ear_screw_R",
    "antenna_bulb"
-  ]
+  ],
+  "head_base": "<manifold3d.Manifold object at 0x7fb6556cbfa0>",
+  "head_feature_parts": {},
+  "frame_colour_masks": []
  },
  "sections": {
   "overall_W": 59.99,
@@ -91,7 +94,7 @@
   "frame": {
    "volume_mm3": 19218.5,
    "mass_solid_g": 23.83,
-   "triangles": 152906,
+   "triangles": 175564,
    "bbox": [
     -29.997,
     -21.7,
@@ -109,7 +112,7 @@
   "wheel": {
    "volume_mm3": 6156.9,
    "mass_solid_g": 7.63,
-   "triangles": 12148,
+   "triangles": 12152,
    "bbox": [
     -17.996,
     -17.996,
@@ -127,7 +130,7 @@
   "head": {
    "volume_mm3": 10213.4,
    "mass_solid_g": 12.66,
-   "triangles": 35968,
+   "triangles": 36192,
    "bbox": [
     -19.512,
     5.269,
@@ -191,7 +194,7 @@
   ],
   "global_min_gap": 0.40000000000000036
  },
- "stl_triangles": 201022,
+ "stl_triangles": 223908,
  "files": [
   "stl/robot/purrbobble_robot_loose.stl"
  ],
@@ -199,6 +202,6 @@
   "renders/robot/purrbobble_robot_loose_face.png",
   "renders/robot/purrbobble_robot_loose_three_quarter.png"
  ],
- "time_build_export_s": 11.92,
- "time_total_s": 14.11
+ "time_build_export_s": 12.83,
+ "time_total_s": 15.2
 }

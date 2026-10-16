@@ -63,17 +63,17 @@
     "objects": 1,
     "parts": {
      "frame": {
-      "triangles": 153502,
+      "triangles": 176296,
       "watertight": true,
       "volume_mm3": 19230.6
      },
      "wheel": {
-      "triangles": 12148,
+      "triangles": 12152,
       "watertight": true,
       "volume_mm3": 6165.4
      },
      "head": {
-      "triangles": 35872,
+      "triangles": 36098,
       "watertight": true,
       "volume_mm3": 10323.6
      }
@@ -183,21 +183,21 @@
       "cosmetic:paw_feature": {
        "policy": "cosmetic",
        "n_thin": 15,
-       "min": 0.672,
+       "min": 0.64,
        "kinds": {
         "cosmetic": 15
        },
        "worst": [
         {
          "at": [
-          -17.02,
-          0.85,
+          -16.96,
+          1.29,
           15.33
          ],
-         "t": 0.672,
+         "t": 0.64,
          "normal": [
-          -0.0,
           0.0,
+          -0.0,
           1.0
          ],
          "kind": "cosmetic"
@@ -423,21 +423,21 @@
       "paw_lip": {
        "policy": "structural",
        "n_thin": 1,
-       "min": 0.661,
+       "min": 0.723,
        "kinds": {
         "edge_z_only": 1
        },
        "worst": [
         {
          "at": [
-          -16.83,
+          -16.89,
           2.6,
           15.33
          ],
-         "t": 0.661,
+         "t": 0.723,
          "normal": [
-          -0.0,
           0.0,
+          -0.0,
           1.0
          ],
          "kind": "edge_z_only"
@@ -2540,7 +2540,7 @@
    "status": "pass"
   },
   "V8_slivers_frame_layers": {
-   "criterion": "frame layers z 2.6-10.4: no sliver (strip >= 2 mm long) narrower than 1.6 (stop pads and posts excluded)",
+   "criterion": "frame layers z 2.6-10.4: no sliver (strip >= 2 mm long) narrower than 1.6 (stop pads and posts excluded; cosmetic relief warns)",
    "by_zone": {
     "fill_roof/corner": {
      "n_pieces": 24,
@@ -2675,6 +2675,7 @@
      "levels": [
       0.25,
       0.5,
+      2.6,
       3.7,
       3.9,
       4.1,
@@ -2709,10 +2710,12 @@
      "oblique_steep_area_mm2": 0.0,
      "levels": [
       3.0,
+      4.7,
       7.4,
       8.0,
       10.8,
-      13.7
+      13.7,
+      16.7
      ],
      "faces_45deg_area_mm2": 65.32,
      "max_oblique_angle_from_vertical_deg": null
@@ -5001,21 +5004,21 @@
     "stl": {
      "input": "/home/user/Apps/fidget-toy/stl/robot/purrbobble_robot_nominal.stl",
      "returncode": 0,
-     "time_s": 14.1,
+     "time_s": 15.0,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_robot_nominal.stl | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
      "errors": [],
-     "print_time": "4h 36m 7s",
+     "print_time": "4h 36m 1s",
      "filament_g": 36.41,
      "filament_m": 12.21,
      "extrusion_length_by_type_mm": {
-      "Solid infill": 162818.2,
-      "Perimeter": 78825.3,
-      "External perimeter": 53548.2,
-      "Internal infill": 28973.0,
-      "Top solid infill": 20317.0,
-      "Bridge infill": 13791.8,
+      "Solid infill": 162806.4,
+      "Perimeter": 78825.2,
+      "External perimeter": 53548.1,
+      "Internal infill": 28977.1,
+      "Top solid infill": 20317.1,
+      "Bridge infill": 13791.5,
       "Overhang perimeter": 2353.1,
       "Skirt/Brim": 273.9
      },
@@ -5172,8 +5175,8 @@
        "layer_top_z": 6.6,
        "type": "Bridge infill",
        "body": "head",
-       "n": 244,
-       "length_mm": 1234.4,
+       "n": 247,
+       "length_mm": 1236.8,
        "unsupported_mm": 0.0,
        "max_unsupported_run": 0.0,
        "worst_line_model_xy": null,
@@ -5287,8 +5290,8 @@
        "layer_top_z": 9.6,
        "type": "Bridge infill",
        "body": "frame",
-       "n": 244,
-       "length_mm": 530.5,
+       "n": 235,
+       "length_mm": 527.7,
        "unsupported_mm": 0.0,
        "max_unsupported_run": 0.0,
        "worst_line_model_xy": null,
@@ -5518,21 +5521,21 @@
     "3mf": {
      "input": "/home/user/Apps/fidget-toy/stl/robot/purrbobble_robot_nominal.3mf",
      "returncode": 0,
-     "time_s": 15.8,
+     "time_s": 15.2,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_robot_nominal | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
      "errors": [],
-     "print_time": "5h 18m 56s",
+     "print_time": "5h 19m 2s",
      "filament_g": 40.87,
      "filament_m": 13.7,
      "extrusion_length_by_type_mm": {
-      "Solid infill": 166204.9,
-      "Perimeter": 78824.6,
-      "Internal infill": 77930.6,
-      "External perimeter": 53548.0,
-      "Top solid infill": 20316.7,
-      "Bridge infill": 8543.3,
+      "Solid infill": 166248.2,
+      "Perimeter": 78824.5,
+      "Internal infill": 77941.7,
+      "External perimeter": 53547.9,
+      "Top solid infill": 20316.9,
+      "Bridge infill": 8476.5,
       "Overhang perimeter": 2353.0,
       "Skirt/Brim": 273.9
      },
@@ -5638,7 +5641,7 @@
        "layer_top_z": 3.2,
        "type": "Overhang perimeter",
        "body": "wheel",
-       "n": 377,
+       "n": 376,
        "length_mm": 426.4,
        "unsupported_mm": 364.2,
        "max_unsupported_run": 2.62,
@@ -5774,8 +5777,8 @@
        "layer_top_z": 9.6,
        "type": "Bridge infill",
        "body": "frame",
-       "n": 230,
-       "length_mm": 520.3,
+       "n": 229,
+       "length_mm": 453.5,
        "unsupported_mm": 0.0,
        "max_unsupported_run": 0.0,
        "worst_line_model_xy": null,
@@ -5905,11 +5908,11 @@
    "stl_info": {
     "manifold": "yes",
     "number_of_parts": "3",
-    "volume": "35719.968750",
+    "volume": "35719.472656",
     "size_x": "59.994900",
     "size_y": "84.207184",
     "size_z": "18.299999",
-    "number_of_facets": "201522"
+    "number_of_facets": "224546"
    },
    "warnings_per_body_alone": {
     "frame": [
@@ -6050,5 +6053,5 @@
   }
  ],
  "pass": true,
- "runtime_s": 200.9
+ "runtime_s": 209.6
 }

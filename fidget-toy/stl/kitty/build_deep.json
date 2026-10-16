@@ -21,155 +21,209 @@
   ]
  ],
  "info": {
-  "t_sections_s": 4.41,
-  "t_solids_s": 6.77,
+  "t_sections_s": 7.69,
+  "t_solids_s": 6.93,
   "skin_contract": {
    "warnings": [
     "B_i only 1.32 mm inside Face2D (contract 3.0)",
     "disc(P, 7.5) not inside Face2D (26.2 mm^2 outside); hub collar z 7.4-8.4 added",
-    "Face2D has 9.1 mm^2 narrower than 6.0 mm"
+    "Face2D has 5.6 mm^2 narrower than 6.0 mm"
    ],
    "leg_B_margin": [
     1.324,
     1.324
    ],
-   "hub_disc_outside_area": 26.231,
-   "narrower_than_6mm_area": 9.137,
+   "hub_disc_outside_area": 26.232,
+   "narrower_than_6mm_area": 5.55,
    "crown_collar": {
-    "applied": false,
-    "pieces_beyond": 1,
+    "applied": true,
+    "pieces_beyond": 2,
     "bad_rays": 0,
-    "thin_cap_at_notch_deg": [],
+    "thin_cap_at_notch_deg": [
+     89.25
+    ],
+    "clamped_to_step_rule": false,
     "range_deg": [
-     56.13,
-     123.87
+     42.76,
+     90.0
     ]
    },
-   "stop_pad_area_ratio": 0.861,
+   "stop_pad_area_ratio": 0.864,
    "stop_pad_contact_mm": [
     4.94,
     5.91,
-    5.91,
-    4.68
+    5.88,
+    4.95
    ]
   },
-  "face_features": [
-   "eye_L",
-   "eye_highlight0_L",
-   "eye_highlight1_L",
-   "blush_L",
-   "inner_ear_L",
-   "eye_R",
-   "eye_highlight0_R",
-   "eye_highlight1_R",
-   "blush_R",
-   "inner_ear_R",
-   "nose",
-   "mouth",
-   "tongue",
-   "tuft",
-   "bow"
-  ]
+  "face_features": [],
+  "head_base": null,
+  "head_feature_parts": {},
+  "frame_colour_masks": [],
+  "sculpt": {
+   "head_pinches_before_weld": 194,
+   "head_blob_mm2": 1154.7,
+   "legs_lowered_mm2": 159.5,
+   "head_always_covered_mm2": 824.8,
+   "floor_area_mm2": {
+    "3.437": 554.7,
+    "3.637": 554.7,
+    "3.837": 554.7,
+    "4.037": 554.7,
+    "4.237": 554.7,
+    "4.437": 554.7,
+    "4.637": 554.6,
+    "4.837": 554.1,
+    "5.037": 553.7,
+    "5.237": 553.2,
+    "5.437": 552.1,
+    "5.637": 297.3,
+    "5.837": 297.3,
+    "6.037": 294.7,
+    "6.237": 290.9,
+    "6.437": 271.6,
+    "6.637": 198.8,
+    "6.837": 167.4,
+    "7.037": 93.3,
+    "7.237": 53.0,
+    "7.437": 53.0,
+    "7.637": 53.0,
+    "7.837": 53.0,
+    "8.037": 35.2,
+    "8.237": 34.9,
+    "8.437": 34.7,
+    "8.637": 34.3,
+    "8.837": 34.0,
+    "9.037": 33.5,
+    "9.237": 33.0,
+    "9.437": 32.5,
+    "9.637": 31.9,
+    "9.837": 31.2,
+    "10.037": 30.4,
+    "10.237": 29.6,
+    "10.437": 28.5,
+    "10.637": 27.2,
+    "10.837": 25.7,
+    "11.037": 24.1,
+    "11.237": 22.3,
+    "11.437": 20.6,
+    "11.637": 18.7,
+    "11.837": 16.7,
+    "12.037": 14.5,
+    "12.237": 12.4,
+    "12.437": 10.1,
+    "12.637": 7.1,
+    "12.837": 3.8,
+    "13.037": 1.6,
+    "13.237": 0.3,
+    "13.437": 0.0,
+    "13.637": 0.0,
+    "13.837": 0.0,
+    "14.037": 0.0
+   },
+   "frame_pinches_before_weld": 95,
+   "t_sculpt_s": 108.5
+  }
  },
  "sections": {
-  "overall_W": 59.74,
-  "overall_H": 90.78,
+  "overall_W": 66.13,
+  "overall_H": 85.22,
   "backdrop_bounds": [
-   -29.58,
-   -27.28,
-   30.16,
-   63.5
+   -33.6,
+   -26.43,
+   32.53,
+   58.79
   ],
-  "i3_area": 635.4,
-  "headband_area": 1252.9,
-  "faceup_area": 960.6,
-  "facemid_area": 325.2,
-  "fill_area": 1112.8,
-  "roof_area": 1974.9,
-  "fill_slivers_removed_area": 8.33,
-  "stoppads_area": 13.58,
+  "i3_area": 725.4,
+  "headband_area": 1002.0,
+  "faceup_area": 850.3,
+  "facemid_area": 125.0,
+  "fill_area": 759.3,
+  "roof_area": 1628.6,
+  "fill_slivers_removed_area": 36.37,
+  "stoppads_area": 13.63,
   "max_bridge_width": 15.0,
   "n_bridge_pieces": 1
  },
  "bodies": {
   "frame": {
-   "volume_mm3": 22845.3,
-   "mass_solid_g": 28.33,
-   "triangles": 190484,
+   "volume_mm3": 32084.6,
+   "mass_solid_g": 39.78,
+   "triangles": 662984,
    "bbox": [
-    -29.578,
-    -27.28,
+    -33.698,
+    -26.544,
     0.0,
-    30.159,
-    63.501,
-    16.0
+    32.625,
+    58.899,
+    20.902
    ],
    "size": [
-    59.74,
-    90.78,
-    16.0
+    66.32,
+    85.44,
+    20.9
    ]
   },
   "wheel": {
-   "volume_mm3": 6116.8,
-   "mass_solid_g": 7.58,
-   "triangles": 14336,
+   "volume_mm3": 6529.8,
+   "mass_solid_g": 8.1,
+   "triangles": 71838,
    "bbox": [
-    -17.997,
-    -17.997,
+    -15.0,
+    -15.0,
     3.0,
-    17.997,
-    17.997,
-    13.3
+    15.0,
+    15.0,
+    21.508
    ],
    "size": [
-    35.99,
-    35.99,
-    10.3
+    30.0,
+    30.0,
+    18.51
    ]
   },
   "head": {
-   "volume_mm3": 11494.0,
-   "mass_solid_g": 14.25,
-   "triangles": 35286,
+   "volume_mm3": 12227.2,
+   "mass_solid_g": 15.16,
+   "triangles": 514154,
    "bbox": [
-    -19.472,
+    -23.763,
     5.179,
     3.0,
     22.246,
-    58.865,
-    18.3
+    50.078,
+    19.5
    ],
    "size": [
-    41.72,
-    53.69,
-    15.3
+    46.01,
+    44.9,
+    16.5
    ]
   }
  },
  "overall_size": [
-  59.74,
-  90.78,
-  18.3
+  66.32,
+  85.44,
+  21.51
  ],
  "print_pose_check": {
   "bodies": {
    "frame": {
     "components": 1,
-    "genus": 3,
-    "volume_mm3": 22845.34,
+    "genus": 42,
+    "volume_mm3": 32084.65,
     "status": "Error.NoError"
    },
    "wheel": {
     "components": 1,
-    "genus": 0,
-    "volume_mm3": 6116.78,
+    "genus": 1,
+    "volume_mm3": 6529.76,
     "status": "Error.NoError"
    },
    "head": {
     "components": 1,
-    "genus": 1,
-    "volume_mm3": 11494.04,
+    "genus": 29,
+    "volume_mm3": 12227.16,
     "status": "Error.NoError"
    }
   },
@@ -195,14 +249,11 @@
   ],
   "global_min_gap": 0.35000216919009297
  },
- "stl_triangles": 240106,
+ "stl_triangles": 1248976,
  "files": [
   "stl/kitty/purrbobble_kitty_deep.stl"
  ],
- "renders": [
-  "renders/kitty/purrbobble_kitty_deep_face.png",
-  "renders/kitty/purrbobble_kitty_deep_three_quarter.png"
- ],
- "time_build_export_s": 14.02,
- "time_total_s": 16.93
+ "renders": [],
+ "time_build_export_s": 264.39,
+ "time_total_s": 264.61
 }

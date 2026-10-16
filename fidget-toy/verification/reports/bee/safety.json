@@ -2613,9 +2613,9 @@
    "sharp": {
     "frame": {
      "stats": {
-      "sharp_edges": 38627,
-      "acute_edges": 39,
-      "candidates": 465,
+      "sharp_edges": 45112,
+      "acute_edges": 60,
+      "candidates": 479,
       "exposed_candidates": 121
      },
      "points": [
@@ -2849,10 +2849,10 @@
     },
     "head": {
      "stats": {
-      "sharp_edges": 10277,
-      "acute_edges": 2,
-      "candidates": 438,
-      "exposed_candidates": 37
+      "sharp_edges": 10591,
+      "acute_edges": 12,
+      "candidates": 453,
+      "exposed_candidates": 38
      },
      "points": [
       {
@@ -4623,5 +4623,5 @@
  "n_warn": 10,
  "n_fail": 1,
  "pass": false,
- "time_s": 395.1
+ "time_s": 365.5
 }

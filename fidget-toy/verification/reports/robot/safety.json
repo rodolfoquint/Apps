@@ -3400,9 +3400,9 @@
    "sharp": {
     "frame": {
      "stats": {
-      "sharp_edges": 36409,
-      "acute_edges": 34,
-      "candidates": 525,
+      "sharp_edges": 42114,
+      "acute_edges": 47,
+      "candidates": 537,
       "exposed_candidates": 119
      },
      "points": [
@@ -3820,9 +3820,9 @@
     },
     "head": {
      "stats": {
-      "sharp_edges": 9202,
-      "acute_edges": 1,
-      "candidates": 485,
+      "sharp_edges": 9248,
+      "acute_edges": 11,
+      "candidates": 500,
       "exposed_candidates": 45
      },
      "points": [
@@ -6048,5 +6048,5 @@
  "n_warn": 11,
  "n_fail": 2,
  "pass": false,
- "time_s": 371.4
+ "time_s": 345.0
 }

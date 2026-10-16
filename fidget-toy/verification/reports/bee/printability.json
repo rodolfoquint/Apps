@@ -63,17 +63,17 @@
     "objects": 1,
     "parts": {
      "frame": {
-      "triangles": 161336,
+      "triangles": 187218,
       "watertight": true,
       "volume_mm3": 20116.5
      },
      "wheel": {
-      "triangles": 14576,
+      "triangles": 14578,
       "watertight": true,
       "volume_mm3": 6013.2
      },
      "head": {
-      "triangles": 39936,
+      "triangles": 41186,
       "watertight": true,
       "volume_mm3": 11897.0
      }
@@ -95,9 +95,9 @@
     "frame": {
      "min": 0.005,
      "p01": 0.797,
-     "median": 2.439,
+     "median": 2.429,
      "no_hit": 0,
-     "frac_below_1.2": 0.0568,
+     "frac_below_1.2": 0.0571,
      "zones": {
       "cosmetic:decor_feature": {
        "policy": "cosmetic",
@@ -369,10 +369,10 @@
       },
       "funnel_seat": {
        "policy": "structural",
-       "n_thin": 8,
+       "n_thin": 11,
        "min": 0.005,
        "kinds": {
-        "corner": 7,
+        "corner": 10,
         "edge_z_only": 1
        },
        "worst": [
@@ -386,6 +386,20 @@
          "normal": [
           -0.1,
           -1.0,
+          0.0
+         ],
+         "kind": "corner"
+        },
+        {
+         "at": [
+          2.55,
+          17.19,
+          10.25
+         ],
+         "t": 0.283,
+         "normal": [
+          -0.81,
+          0.58,
           0.0
          ],
          "kind": "corner"
@@ -429,20 +443,6 @@
           -0.7,
           -0.71,
           -0.0
-         ],
-         "kind": "corner"
-        },
-        {
-         "at": [
-          8.83,
-          14.19,
-          9.71
-         ],
-         "t": 0.722,
-         "normal": [
-          -0.39,
-          -0.59,
-          0.71
          ],
          "kind": "corner"
         }
@@ -685,7 +685,7 @@
     "wheel": {
      "min": 0.611,
      "p01": 1.0,
-     "median": 5.067,
+     "median": 5.072,
      "no_hit": 0,
      "frac_below_1.2": 0.0541,
      "zones": {
@@ -1051,6 +1051,23 @@
     },
     {
      "body": "frame",
+     "zone": "funnel_seat",
+     "kind": "corner",
+     "n": 5,
+     "min_t": 0.005,
+     "centroid": [
+      2.63,
+      17.55,
+      9.95
+     ],
+     "z_range": [
+      9.16,
+      10.25
+     ],
+     "area_est_mm2": 6.41
+    },
+    {
+     "body": "frame",
      "zone": "stop_pad",
      "kind": "corner",
      "n": 2,
@@ -1097,23 +1114,6 @@
      "z_range": [
       2.37,
       2.37
-     ],
-     "area_est_mm2": 1.28
-    },
-    {
-     "body": "frame",
-     "zone": "funnel_seat",
-     "kind": "corner",
-     "n": 1,
-     "min_t": 0.953,
-     "centroid": [
-      -3.04,
-      17.79,
-      10.26
-     ],
-     "z_range": [
-      10.26,
-      10.26
      ],
      "area_est_mm2": 1.28
     },
@@ -1250,23 +1250,6 @@
      "z_range": [
       9.89,
       9.89
-     ],
-     "area_est_mm2": 1.28
-    },
-    {
-     "body": "frame",
-     "zone": "funnel_seat",
-     "kind": "corner",
-     "n": 1,
-     "min_t": 0.005,
-     "centroid": [
-      2.01,
-      17.43,
-      9.16
-     ],
-     "z_range": [
-      9.16,
-      9.16
      ],
      "area_est_mm2": 1.28
     }
@@ -2599,7 +2582,7 @@
    "status": "pass"
   },
   "V8_slivers_frame_layers": {
-   "criterion": "frame layers z 2.6-10.4: no sliver (strip >= 2 mm long) narrower than 1.6 (stop pads and posts excluded)",
+   "criterion": "frame layers z 2.6-10.4: no sliver (strip >= 2 mm long) narrower than 1.6 (stop pads and posts excluded; cosmetic relief warns)",
    "by_zone": {
     "fill_roof/corner": {
      "n_pieces": 28,
@@ -2768,10 +2751,12 @@
      "oblique_steep_area_mm2": 0.0,
      "levels": [
       3.0,
+      4.7,
       7.4,
       8.0,
       10.8,
-      13.7
+      13.7,
+      16.2
      ],
      "faces_45deg_area_mm2": 65.32,
      "max_oblique_angle_from_vertical_deg": null
@@ -5062,21 +5047,21 @@
     "stl": {
      "input": "/home/user/Apps/fidget-toy/stl/bee/purrbobble_bee_nominal.stl",
      "returncode": 0,
-     "time_s": 13.8,
+     "time_s": 14.9,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_bee_nominal.stl | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
      "errors": [],
-     "print_time": "4h 25m 21s",
-     "filament_g": 36.51,
+     "print_time": "4h 25m 31s",
+     "filament_g": 36.52,
      "filament_m": 12.24,
      "extrusion_length_by_type_mm": {
-      "Solid infill": 152278.3,
-      "Perimeter": 79629.9,
-      "External perimeter": 55286.9,
-      "Internal infill": 38519.6,
-      "Top solid infill": 19356.9,
-      "Bridge infill": 13786.3,
+      "Solid infill": 152327.3,
+      "Perimeter": 79629.7,
+      "External perimeter": 55286.8,
+      "Internal infill": 38519.1,
+      "Top solid infill": 19357.4,
+      "Bridge infill": 13776.8,
       "Overhang perimeter": 2398.7,
       "Skirt/Brim": 283.0
      },
@@ -5182,7 +5167,7 @@
        "layer_top_z": 3.2,
        "type": "Overhang perimeter",
        "body": "wheel",
-       "n": 374,
+       "n": 373,
        "length_mm": 426.4,
        "unsupported_mm": 363.5,
        "max_unsupported_run": 2.6,
@@ -5218,8 +5203,8 @@
        "layer_top_z": 6.6,
        "type": "Bridge infill",
        "body": "head",
-       "n": 234,
-       "length_mm": 1255.6,
+       "n": 235,
+       "length_mm": 1251.3,
        "unsupported_mm": 0.0,
        "max_unsupported_run": 0.0,
        "worst_line_model_xy": null,
@@ -5295,7 +5280,7 @@
        "body": "frame",
        "n": 397,
        "length_mm": 2494.7,
-       "unsupported_mm": 1497.4,
+       "unsupported_mm": 1497.5,
        "max_unsupported_run": 12.71,
        "worst_line_model_xy": [
         8.16,
@@ -5333,8 +5318,8 @@
        "layer_top_z": 9.6,
        "type": "Bridge infill",
        "body": "frame",
-       "n": 125,
-       "length_mm": 324.6,
+       "n": 158,
+       "length_mm": 319.0,
        "unsupported_mm": 0.0,
        "max_unsupported_run": 0.0,
        "worst_line_model_xy": null,
@@ -5349,7 +5334,7 @@
        "type": "Bridge infill",
        "body": "frame",
        "n": 58,
-       "length_mm": 125.7,
+       "length_mm": 126.5,
        "unsupported_mm": 0.0,
        "max_unsupported_run": 0.0,
        "worst_line_model_xy": null,
@@ -5429,7 +5414,7 @@
        "type": "Bridge infill",
        "body": "frame",
        "n": 116,
-       "length_mm": 148.3,
+       "length_mm": 147.9,
        "unsupported_mm": 0.0,
        "max_unsupported_run": 0.0,
        "worst_line_model_xy": null,
@@ -5518,7 +5503,7 @@
        "layer_top_z": 17.0,
        "type": "Bridge infill",
        "body": "frame",
-       "n": 279,
+       "n": 278,
        "length_mm": 1628.5,
        "unsupported_mm": 0.0,
        "max_unsupported_run": 0.0,
@@ -5579,21 +5564,21 @@
     "3mf": {
      "input": "/home/user/Apps/fidget-toy/stl/bee/purrbobble_bee_nominal.3mf",
      "returncode": 0,
-     "time_s": 30.2,
+     "time_s": 18.6,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_bee_nominal | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
      "errors": [],
-     "print_time": "5h 23m 17s",
+     "print_time": "5h 23m 20s",
      "filament_g": 42.55,
      "filament_m": 14.27,
      "extrusion_length_by_type_mm": {
-      "Solid infill": 155809.7,
-      "Internal infill": 102284.7,
-      "Perimeter": 79629.9,
-      "External perimeter": 55286.8,
-      "Top solid infill": 19357.3,
-      "Bridge infill": 8965.9,
+      "Solid infill": 155799.2,
+      "Internal infill": 102282.6,
+      "Perimeter": 79629.8,
+      "External perimeter": 55286.7,
+      "Top solid infill": 19357.5,
+      "Bridge infill": 8987.0,
       "Overhang perimeter": 2398.7,
       "Skirt/Brim": 283.0
      },
@@ -5699,7 +5684,7 @@
        "layer_top_z": 3.2,
        "type": "Overhang perimeter",
        "body": "wheel",
-       "n": 373,
+       "n": 374,
        "length_mm": 426.4,
        "unsupported_mm": 363.5,
        "max_unsupported_run": 2.6,
@@ -5720,7 +5705,7 @@
        "layer_top_z": 6.0,
        "type": "Overhang perimeter",
        "body": "frame",
-       "n": 302,
+       "n": 303,
        "length_mm": 261.5,
        "unsupported_mm": 0.0,
        "max_unsupported_run": 0.0,
@@ -5797,7 +5782,7 @@
        "body": "frame",
        "n": 396,
        "length_mm": 2493.9,
-       "unsupported_mm": 1497.7,
+       "unsupported_mm": 1497.8,
        "max_unsupported_run": 12.72,
        "worst_line_model_xy": [
         8.16,
@@ -5835,8 +5820,8 @@
        "layer_top_z": 9.6,
        "type": "Bridge infill",
        "body": "frame",
-       "n": 164,
-       "length_mm": 315.2,
+       "n": 145,
+       "length_mm": 336.3,
        "unsupported_mm": 0.0,
        "max_unsupported_run": 0.0,
        "worst_line_model_xy": null,
@@ -5895,7 +5880,7 @@
        "layer_top_z": 11.0,
        "type": "Overhang perimeter",
        "body": "head",
-       "n": 504,
+       "n": 505,
        "length_mm": 381.5,
        "unsupported_mm": 3.7,
        "max_unsupported_run": 0.5,
@@ -6026,11 +6011,11 @@
    "stl_info": {
     "manifold": "yes",
     "number_of_parts": "3",
-    "volume": "38027.675781",
+    "volume": "38026.832031",
     "size_x": "61.167198",
     "size_y": "84.799458",
     "size_z": "18.299999",
-    "number_of_facets": "215848"
+    "number_of_facets": "242982"
    },
    "warnings_per_body_alone": {
     "frame": [
@@ -6171,5 +6156,5 @@
   }
  ],
  "pass": true,
- "runtime_s": 257.1
+ "runtime_s": 226.1
 }

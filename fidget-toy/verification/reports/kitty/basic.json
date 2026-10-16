@@ -1,7 +1,7 @@
 {
  "skin": "kitty",
  "variant": "nominal",
- "build_time_s": 12.13,
+ "build_time_s": 24.61,
  "params": {
   "skin": "kitty",
   "variant": "nominal",
@@ -101,7 +101,7 @@
   "z_feat": 18.3,
   "z_umb_top": 13.3,
   "z_knob_top": 18.3,
-  "z_decor1": 13.6,
+  "z_decor1": 12.0,
   "z_lift": 0.0,
   "R_u": 18.0,
   "umb_r0": 14.3,
@@ -116,9 +116,10 @@
   "knob_d": 10.0,
   "knob_top_fillet": 2.5,
   "knob_root_fillet": 1.0,
-  "relief_w": 0.6,
-  "relief_depth": 0.5,
+  "relief_w": 0.8,
+  "relief_depth": 0.75,
   "relief_r_max": 16.5,
+  "relief_bevel": 0.3,
   "relief_knob_clear": 7.5,
   "keepout": [
    [
@@ -175,6 +176,9 @@
   "rib_roof_i3_grow": 0.5,
   "face_top_round": 1.5,
   "face_top_steps": 6,
+  "face_pillow_xy": 4.0,
+  "face_pillow_z": 2.0,
+  "face_pillow_steps": 20,
   "frame_top_fillet": 1.0,
   "frame_top_steps": 3,
   "phi_print": 12.0,
@@ -314,8 +318,8 @@
     "genus": 3,
     "watertight": true,
     "winding_consistent": true,
-    "volume_mm3": 22880.28,
-    "triangles": 190578,
+    "volume_mm3": 26677.98,
+    "triangles": 418856,
     "pass": true
    },
    "wheel": {
@@ -324,8 +328,8 @@
     "genus": 0,
     "watertight": true,
     "winding_consistent": true,
-    "volume_mm3": 6116.78,
-    "triangles": 14336,
+    "volume_mm3": 5993.31,
+    "triangles": 32466,
     "pass": true
    },
    "head": {
@@ -334,8 +338,8 @@
     "genus": 1,
     "watertight": true,
     "winding_consistent": true,
-    "volume_mm3": 11448.59,
-    "triangles": 35402,
+    "volume_mm3": 12383.64,
+    "triangles": 114902,
     "pass": true
    }
   },
@@ -389,20 +393,20 @@
  "mass": {
   "frame": {
    "bbox": [
-    -29.579,
-    -27.28,
+    -31.522,
+    -26.399,
     0.0,
-    30.161,
-    63.513,
-    16.0
+    33.595,
+    65.112,
+    17.4
    ],
    "size": [
-    59.74,
-    90.79,
-    16.0
+    65.12,
+    91.51,
+    17.4
    ],
-   "volume_mm3": 22880.3,
-   "mass_solid_pla_g": 28.37
+   "volume_mm3": 26678.0,
+   "mass_solid_pla_g": 33.08
   },
   "wheel": {
    "bbox": [
@@ -418,37 +422,37 @@
     35.99,
     10.3
    ],
-   "volume_mm3": 6116.8,
-   "mass_solid_pla_g": 7.58
+   "volume_mm3": 5993.3,
+   "mass_solid_pla_g": 7.43
   },
   "head": {
    "bbox": [
-    -19.512,
+    -22.732,
     5.269,
     3.0,
     22.221,
     58.827,
-    18.3
+    19.3
    ],
    "size": [
-    41.73,
+    44.95,
     53.56,
-    15.3
+    16.3
    ],
-   "volume_mm3": 11448.6,
-   "mass_solid_pla_g": 14.2
+   "volume_mm3": 12383.6,
+   "mass_solid_pla_g": 15.36
   },
   "overall_size_WxHxD": [
-   59.74,
-   90.79,
-   18.3
+   65.12,
+   91.51,
+   19.3
   ],
-  "total_mass_solid_g": 50.15,
+  "total_mass_solid_g": 55.87,
   "head_inertia": {
-   "mass_g": 14.2,
-   "I_P_kgm2": 5.512e-06,
-   "com_above_P_mm": 12.31,
-   "com_x_mm": 0.001,
+   "mass_g": 15.36,
+   "I_P_kgm2": 5.855e-06,
+   "com_above_P_mm": 11.65,
+   "com_x_mm": 0.037,
    "spec_I_range": [
     4e-06,
     8e-06
@@ -460,37 +464,30 @@
    "pass": true
   },
   "wheel_inertia": {
-   "mass_g": 7.58,
-   "J_O_kgm2": 9.57e-07
+   "mass_g": 7.43,
+   "J_O_kgm2": 9.322e-07
   }
  },
  "section_report": {
-  "overall_W": 59.74,
-  "overall_H": 90.79,
+  "overall_W": 65.12,
+  "overall_H": 91.51,
   "backdrop_bounds": [
-   -29.58,
-   -27.28,
-   30.16,
-   63.51
+   -31.52,
+   -26.4,
+   33.6,
+   65.11
   ],
-  "i3_area": 639.7,
+  "i3_area": 887.4,
   "headband_area": 1249.1,
-  "faceup_area": 959.9,
+  "faceup_area": 1207.5,
   "facemid_area": 320.2,
-  "fill_area": 1115.9,
-  "roof_area": 1982.2,
+  "fill_area": 1146.5,
+  "roof_area": 2012.8,
   "fill_slivers_removed_area": 8.44,
   "stoppads_area": 13.68,
   "max_bridge_width": 15.0,
   "n_bridge_pieces": 1
  },
- "slice": {
-  "ok": true,
-  "filament_g": "0.00",
-  "filament_mm": "15259.41",
-  "time": "4h 47m 41s",
-  "support_material": false
- },
  "pass": true,
- "time_s": 46.49
+ "time_s": 53.05
 }

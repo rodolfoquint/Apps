@@ -21,8 +21,8 @@
   ]
  ],
  "info": {
-  "t_sections_s": 4.8,
-  "t_solids_s": 5.44,
+  "t_sections_s": 4.72,
+  "t_solids_s": 5.95,
   "skin_contract": {
    "warnings": [
     "B_i only 1.32 mm inside Face2D (contract 3.0)",
@@ -62,7 +62,10 @@
    "cheek_R",
    "bobble_R",
    "smile"
-  ]
+  ],
+  "head_base": "<manifold3d.Manifold object at 0x7f69ff3eff50>",
+  "head_feature_parts": {},
+  "frame_colour_masks": []
  },
  "sections": {
   "overall_W": 61.17,
@@ -88,7 +91,7 @@
   "frame": {
    "volume_mm3": 20093.6,
    "mass_solid_g": 24.92,
-   "triangles": 161882,
+   "triangles": 188060,
    "bbox": [
     -30.582,
     -21.492,
@@ -106,7 +109,7 @@
   "wheel": {
    "volume_mm3": 6004.8,
    "mass_solid_g": 7.45,
-   "triangles": 14576,
+   "triangles": 14578,
    "bbox": [
     -17.996,
     -17.996,
@@ -124,7 +127,7 @@
   "head": {
    "volume_mm3": 11784.3,
    "mass_solid_g": 14.61,
-   "triangles": 40136,
+   "triangles": 41396,
    "bbox": [
     -19.79,
     5.269,
@@ -150,7 +153,7 @@
    "frame": {
     "components": 1,
     "genus": 3,
-    "volume_mm3": 20093.59,
+    "volume_mm3": 20093.58,
     "status": "Error.NoError"
    },
    "wheel": {
@@ -188,7 +191,7 @@
   ],
   "global_min_gap": 0.40000000000000036
  },
- "stl_triangles": 216594,
+ "stl_triangles": 244034,
  "files": [
   "stl/bee/purrbobble_bee_loose.stl"
  ],
@@ -196,6 +199,6 @@
   "renders/bee/purrbobble_bee_loose_face.png",
   "renders/bee/purrbobble_bee_loose_three_quarter.png"
  ],
- "time_build_export_s": 13.9,
- "time_total_s": 16.55
+ "time_build_export_s": 15.09,
+ "time_total_s": 18.76
 }

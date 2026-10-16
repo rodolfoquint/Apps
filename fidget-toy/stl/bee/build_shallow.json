@@ -21,8 +21,8 @@
   ]
  ],
  "info": {
-  "t_sections_s": 4.77,
-  "t_solids_s": 5.95,
+  "t_sections_s": 5.22,
+  "t_solids_s": 5.91,
   "skin_contract": {
    "warnings": [
     "B_i only 1.32 mm inside Face2D (contract 3.0)",
@@ -62,7 +62,10 @@
    "cheek_R",
    "bobble_R",
    "smile"
-  ]
+  ],
+  "head_base": "<manifold3d.Manifold object at 0x7f6a299b9cf0>",
+  "head_feature_parts": {},
+  "frame_colour_masks": []
  },
  "sections": {
   "overall_W": 61.17,
@@ -88,7 +91,7 @@
   "frame": {
    "volume_mm3": 20154.6,
    "mass_solid_g": 24.99,
-   "triangles": 161226,
+   "triangles": 186892,
    "bbox": [
     -30.582,
     -21.492,
@@ -106,7 +109,7 @@
   "wheel": {
    "volume_mm3": 6013.2,
    "mass_solid_g": 7.46,
-   "triangles": 14576,
+   "triangles": 14578,
    "bbox": [
     -17.996,
     -17.996,
@@ -124,7 +127,7 @@
   "head": {
    "volume_mm3": 11821.0,
    "mass_solid_g": 14.66,
-   "triangles": 40200,
+   "triangles": 41420,
    "bbox": [
     -19.765,
     5.34,
@@ -188,7 +191,7 @@
   ],
   "global_min_gap": 0.35001948914536873
  },
- "stl_triangles": 216002,
+ "stl_triangles": 242890,
  "files": [
   "stl/bee/purrbobble_bee_shallow.stl"
  ],
@@ -196,6 +199,6 @@
   "renders/bee/purrbobble_bee_shallow_face.png",
   "renders/bee/purrbobble_bee_shallow_three_quarter.png"
  ],
- "time_build_export_s": 15.1,
- "time_total_s": 17.24
+ "time_build_export_s": 15.06,
+ "time_total_s": 17.2
 }
