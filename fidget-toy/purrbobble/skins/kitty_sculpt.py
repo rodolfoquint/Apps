@@ -45,7 +45,7 @@ class SculptKittySkin(Skin):
     # integration (purrbobble/sculpt.py)
     cap_r = 10.0            # spinning centre of the yarn ball
     cap_gap = 0.5           # radial gap cap <-> static ring (+ the variant's extra gap_xy)
-    seam_chamfer = 0.4      # the static ring's inner edge is chamfered 45 deg from this far under the yarn surface
+    seam_chamfer = 0.6      # the static ring's inner edge is chamfered 45 deg from this far under the yarn surface
     # hidden flange ring on the wheel (r 14.7 -> 16.2, z 8.5-9.45 under the yarn ball's static ring): the wheel is
     # then 32.4 wide, more than the 31.7 small-parts cylinder (V10).  Limits: the head's hub collar is 17.81 from O
     # (deep 17.65; >= 1.4 clear), the chin's floor envelope at r 18.44, and the ring over it stays >= 2 thick
