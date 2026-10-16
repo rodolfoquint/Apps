@@ -60,7 +60,7 @@ class SculptKittySkin(Skin):
     float_z = 6.95          # lowest head floor where the head swings over its own uncovered footprint: the cushion
                             # around the head (<= 6.3-6.5) stays whole under it (no moat; V12 pinch, cut-out look)
     pad_low_top = 4.736     # stop pads under the head (the lowered legs bank on them), every variant
-    blob_offset = 0.05      # the head body's outline: 0.05 outside the head blob (an inset sliced the cheeks', ears'
+    blob_offset = 0.10      # the head body's outline: 0.10 outside the head blob (an inset sliced the cheeks', ears'
                             # and bow's bulges flat at their equators)
     neck_trim_z0 = 5.4      # knife-edge trim along the neck line from here up
     float_top = 14.0        # highest floor level considered

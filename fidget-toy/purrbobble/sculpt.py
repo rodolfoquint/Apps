@@ -681,7 +681,7 @@ def integrate(M, verbose: bool = False) -> dict:
         from .sweep import _sweep
         return _sweep(cs.simplify(0.01), P, np.linspace(-p.psi_b, p.psi_b, 41), 0.05, 0.001)
 
-    # the head body's outline: blob_offset (0.05) outside the blob (the blob's outline is made of the sculpt's own
+    # the head body's outline: blob_offset (0.10) outside the blob (the blob's outline is made of the sculpt's own
     # slice contours: a prism wall on them would touch the sculpt surface tangentially, and one inside them slices
     # the cheeks', ears' and bow's bulges flat at their equators; the sliver of cushion taken in lies under the
     # head's floors, which float above the cushion, so it stays frame)
@@ -749,8 +749,10 @@ def integrate(M, verbose: bool = False) -> dict:
     def no_slivers():
         # no slivers of a lower floor (they would be lost when the outlines are simplified for the sweep, and the
         # frame cut would miss them): the head points present below each level are opened by 0.1 (their floor rises)
+        # (taken inside the blob's outline less 0.05: the outset band blob_offset is cushion, never lower floor)
+        inner = g2.grow(HBb, -0.05, 0.005)
         for L in levels[1:]:
-            R[L] = g2.clean(g2.difference(HBb, g2.opening(g2.difference(HBb, R[L]), 0.1, 0.005)), "solid")
+            R[L] = g2.clean(g2.difference(HBb, g2.opening(g2.difference(inner, R[L]), 0.1, 0.005)), "solid")
 
     no_slivers()
     # printable underside: a floor terrace (the points whose floor is exactly L) may reach at most overhang_max beyond
@@ -770,17 +772,23 @@ def integrate(M, verbose: bool = False) -> dict:
             continue
         lower = g2.difference(HBb, R[L])                    # head points with floor < L
         zf = L - gzf - 0.01
-        cut = [g2.grow(swp(lower), gxy, 0.01)] if not lower.is_empty() else []
-        if zf < z_fl:
-            cut.append(sw_band)
-        elif zf < sm["band_top_seam_z"]:
-            cut.append(sw_keep)
-            if not in_c0.is_empty():
-                cut.append(in_c0)
-        if p.z_band1 + zl <= zf <= sm["collar_top_seam_z"]:
-            cut.append(g2.circle(P, p.R_hub_cut, 0.005))
-        fr = g2.difference(Ks.slice(zf), g2.union(cut)) if cut else Ks.slice(zf)
-        fr = g2.intersect(fr, g2.intersect(*[Ks.slice(float(z)) for z in np.arange(zf - 0.6, zf + 1e-6, 0.1)]))
+        sw_lower = g2.grow(swp(lower), gxy, 0.01) if not lower.is_empty() else None
+
+        def frame_at(z):
+            """The frame at height z as far as the floors know it: the sculpt (+ bosses) minus the envelopes there."""
+            cut = [sw_lower] if sw_lower is not None else []
+            if z < z_fl:
+                cut.append(sw_band)
+            elif z < sm["band_top_seam_z"]:
+                cut.append(sw_keep)
+                if not in_c0.is_empty():
+                    cut.append(in_c0)
+            if p.z_band1 + zl <= z <= sm["collar_top_seam_z"]:
+                cut.append(g2.circle(P, p.R_hub_cut, 0.005))
+            return g2.difference(Ks.slice(z), g2.union(cut)) if cut else Ks.slice(z)
+
+        # (solid 0.6 deep under the floor with the envelopes cut at every depth: no films, no frame over a cut)
+        fr = g2.intersect(*[frame_at(float(z)) for z in np.arange(zf - 0.6, zf + 1e-6, 0.1)])
         pads_here = [b_ for b_, zp in pads_phys if zf <= zp]
         fr = g2.opening(g2.union([fr] + pads_here), 0.6, 0.005)
         own = g2.union([g2.grow(g2.opening(g2.intersect(lower, kslice(L - 0.1)), 0.15, 0.005), -0.1, 0.005),
@@ -788,7 +796,10 @@ def integrate(M, verbose: bool = False) -> dict:
         Tw = g2.rot_about(T, p.psi_print, P)
         sup = g2.rot_about(g2.intersect(g2.grow(g2.intersect(Tw, fr), sk.float_reach, 0.01), Tw), -p.psi_print, P)
         ok = g2.union([g2.grow(own, sk.overhang_max, 0.01), sup])
-        up = g2.drop_small(g2.intersect(g2.difference(T, ok), TV.at(Ln + sk.t_min, up=True)), 0.01)
+        # (pushed only where the raised floor leaves >= 1.2 of sculpt over it, or where there is none at Ln anyway:
+        # a push must not leave a film of head)
+        guard = g2.union([solid_through(Ln + 0.01, Ln + 1.2), g2.difference(HBb, kslice(Ln + 0.01))])
+        up = g2.drop_small(g2.intersect(g2.difference(T, ok), guard), 0.01)
         if not up.is_empty():
             pushed += up.area()
             R[Ln] = g2.clean(g2.union([R[Ln], up]), "solid")      # (still nested: up lies in R[L])
@@ -801,9 +812,6 @@ def integrate(M, verbose: bool = False) -> dict:
     for k, L in enumerate(levels[1:]):                                          # outline: no walls along it)
         L0 = levels[k]
         cut_slabs.append((L0 if k else p.z_band0 - 1.0, L, g2.union([R[L], ring])))
-        env_slabs.append((L0 - gzf, L - gzf, g2.grow(swp(g2.difference(HBb, R[L])), gxy, 0.01)))
-    env_slabs.append((levels[-1] - gzf, 60.0, g2.grow(swp(HBb), gxy, 0.01)))
-    log("head floor sweeps")
     cut = nested_stack(cut_slabs, p.eps_stack, grows_up=False)
     log("head floor cut stack")
     body = (K ^ ext(HBb, p.z_band0 + zl, 60.0)) - cut
@@ -822,6 +830,21 @@ def integrate(M, verbose: bool = False) -> dict:
                                                               (80, sk.neck_y + 1.5), (-80, sk.neck_y + 1.5)]))
         near = lambda z: neck                                                     # noqa: E731
     head = _finish_trimmed(head, near, sk.neck_trim_z0 + zl, p, "head", info, log)
+    # the floor envelope for the frame: per level, the sweep of the head points with a lower floor WHERE THE HEAD
+    # REALLY HAS MATERIAL below that level (the head's slices every 0.05 mm, cumulated, grown 0.05), not the columns
+    # of the blob that hold only cushion (their low formal floors would cut a moat into the cushion beside the head)
+    hz = np.arange(p.z_band0 + zl + 0.005, levels[-1] + 0.3, 0.05)
+    cum, j = CrossSection(), 0
+    for k, L in enumerate(levels[1:]):
+        while j < len(hz) and hz[j] < L:
+            cum = g2.union([cum, head.slice(float(hz[j]))])
+            j += 1
+        real = g2.intersect(g2.difference(HBb, R[L]), g2.grow(cum, 0.05, 0.005))
+        env_slabs.append((levels[k] - gzf, L - gzf,
+                          g2.grow(swp(real), gxy, 0.01) if not real.is_empty() else CrossSection()))
+    allh = g2.intersect(HBb, g2.grow(g2.union([cum, head.project()]), 0.05, 0.005))
+    env_slabs.append((levels[-1] - gzf, 60.0, g2.grow(swp(allh), gxy, 0.01)))
+    log("head floor sweeps (real material)")
     info.update({"head_blob_mm2": round(HB.area(), 1), "legs_lowered_mm2": round(low2d.area(), 1),
                  "head_always_covered_mm2": round(C.area(), 1),
                  "floor_area_mm2": {float(L): round(R[L].area(), 1) for L in levels[1:]}})

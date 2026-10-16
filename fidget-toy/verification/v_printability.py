@@ -757,7 +757,7 @@ def v8_walls_rays(M, bodies, zoner: Zoner, n_rays: int, thinmaps: dict) -> dict:
         d = {"min": rnd(np.min(th)), "p01": rnd(np.percentile(th, 1)), "median": rnd(np.median(th)),
              "no_hit": int(np.isinf(th).sum()), "frac_below_1.2": rnd(float((th < WALL_MIN).mean()), 4),
              "zones": {}}
-        thin = np.nonzero(th < WALL_MIN)[0]
+        thin = np.nonzero(th < WALL_MIN - 1e-3)[0]          # (float tolerance, as v8_shells)
         kinds = {}
         for i in thin:
             kind, need = zone_policy(lab[i], p)
@@ -944,6 +944,8 @@ def _sculpt_back_plate(M, frame_t) -> dict:
         th = _vertical_extent(frame_t, np.c_[xs, ys, np.full(len(xs), -0.01)], +1)
         if not len(th):
             continue
+        # (as printed: 0.2 layers sliced at their mid-height, so a plate 1.944 thick prints its 10th layer: 2.0)
+        th = LAYER_H * np.floor((th + LAYER_H / 2) / LAYER_H + 1e-9)
         j = int(np.argmin(th))
         thin = th < PLATE_MIN - 1e-3
         if nm == "plate":
@@ -997,13 +999,19 @@ def v8_shells(M, bodies, names, crit: float) -> dict:
             d_edge = _taper_edge_dist(bodies[k], Lz, crit, R, np.c_[xs, ys])
             interior = d_edge > edge_d
             bad = (th < crit - 1e-3) & interior
+            notch = _shell_notches(bodies[k], np.c_[xs, ys], th, bad, Lz) if bad.any() else np.zeros(len(th), bool)
+            n_notch = int(notch.sum())
+            bad &= ~notch
             row = {"body": k, "z": rnd(Lz, 4), "area_mm2": rnd(R.area(), 2), "samples": int(len(xs)),
                    "min_all": rnd(th.min()), "at_min_all": rnd([xs[np.argmin(th)], ys[np.argmin(th)]], 2),
                    "min_interior": rnd(th[interior].min()) if interior.any() else None,
                    "area_below_interior_mm2": rnd(bad.sum() * 0.09, 2),
                    "area_below_all_mm2": rnd((th < crit - 1e-3).sum() * 0.09, 2)}
             if crit > WALL_MIN:
-                row["area_below_1.2_interior_mm2"] = rnd(((th < WALL_MIN - 1e-3) & interior).sum() * 0.09, 2)
+                row["area_below_1.2_interior_mm2"] = rnd(((th < WALL_MIN - 1e-3) & interior & ~notch).sum() * 0.09,
+                                                         2)
+            if n_notch:
+                row["notch_samples_(warn)"] = n_notch
             if bad.any():
                 j = int(np.argmin(np.where(bad, th, np.inf)))
                 row["at_min_interior"] = rnd([xs[j], ys[j]], 2)
@@ -1021,6 +1029,31 @@ def v8_shells(M, bodies, names, crit: float) -> dict:
         status = "not-run"
         out["note"] = "no horizontal underside above the first layer"
     out["status"] = status
+    return out
+
+
+def _shell_notches(body: Manifold, P: np.ndarray, th: np.ndarray, bad: np.ndarray, Lz: float,
+                   grid: float = 0.3) -> np.ndarray:
+    """Thin shell samples that are notches, not thin shells: the vertical ray exits into a groove narrower than 0.4
+    (no air disc of r 0.2 around the exit point in the slice just above it: a weld groove or crease the slicer's
+    0.45 extrusions bridge), or the sample is isolated (fewer than 2 of its 4 grid neighbours are thin)."""
+    out = np.zeros(len(th), bool)
+    idx = np.flatnonzero(bad)
+    if not len(idx):
+        return out
+    key = {(int(round(x / grid)), int(round(y / grid))): i for i, (x, y) in enumerate(P)}
+    for i in idx:
+        x, y = P[i]
+        gx, gy = int(round(x / grid)), int(round(y / grid))
+        nb = [key.get((gx + dx, gy + dy)) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
+        if sum(1 for j in nb if j is not None and bad[j]) < 2:
+            out[i] = True
+            continue
+        z_exit = Lz - 1e-3 + float(th[i])
+        sl = body.slice(z_exit + 0.01)
+        disc = CrossSection.circle(0.2, 24).translate((float(x), float(y)))
+        if (disc ^ sl).area() > 1e-4:                 # material within 0.2 of the exit point: a narrow groove
+            out[i] = True
     return out
 
 
