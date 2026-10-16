@@ -126,19 +126,22 @@ NON_GEOMETRY = {"assemble.py", "build.py", "__init__.py", "model.py"}
 
 def _sculpt_cache(sk, p: Params):
     """(path, key) of the cached integrated bodies for this skin and parameter set, or None if caching is off
-    (PURRBOBBLE_NO_CACHE=1).  The key hashes every geometry source file of the package (not NON_GEOMETRY; bump
-    CACHE_VERSION when build() itself changes), the sculpt file, the skin's class attributes and the full parameter
-    set, so any change to the geometry rebuilds."""
+    (PURRBOBBLE_NO_CACHE=1).  The key hashes every geometry source file of the package (not NON_GEOMETRY, not the
+    other skins' modules; bump CACHE_VERSION when build() itself changes), the sculpt file, the skin's class
+    attributes and the full parameter set, so any change to the geometry rebuilds."""
     import hashlib
     import os
     if os.environ.get("PURRBOBBLE_NO_CACHE"):
         return None
     h = hashlib.sha1(f"v{CACHE_VERSION}".encode())
     pkg = Path(__file__).resolve().parent
+    own = type(sk).__module__.rsplit(".", 1)[-1] + ".py"
     for f in sorted(pkg.rglob("*.py")):
         rel = f.relative_to(pkg).as_posix()
         if rel in NON_GEOMETRY:
             continue
+        if rel.startswith("skins/") and rel not in ("skins/" + own, "skins/base.py", "skins/__init__.py"):
+            continue                    # (the other skins' modules cannot change this skin's bodies)
         h.update(rel.encode())
         h.update(f.read_bytes())
     src = Path(__file__).resolve().parents[1] / sk.source

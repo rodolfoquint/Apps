@@ -45,7 +45,7 @@ def _rot(v, deg):
 
 
 class KittySkin(Skin):
-    name = "kitty"
+    name = "kitty_classic"          # (registry name: get_params looks the skin up by it for param_overrides)
     # cream kitty, coral yarn, mint cushion, dark-brown face details (concept art palette)
     colors = {"frame": "#f6e7d3", "wheel": "#f2787d", "head": "#f6e7d3"}
     plate_color = "#74cfae"
