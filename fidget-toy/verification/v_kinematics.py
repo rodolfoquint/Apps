@@ -827,9 +827,13 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
         rib_sel.update(frame_cut_flats_to_head=("frame", round(p.z_band0 + lift - gzf, 2), "head", 1.0, None),
                        skid_rings_to_static_ring=("wheel", p.z_umb_top + lift + p.rib_h, "frame", 1.0, None),
                        band_top_to_chest_cover=("head", p.z_band1 + lift, "frame", 0.7, None),
-                       lowered_legs_to_cover=("head", sk.leg_low_top + lift, "frame", 0.7, None))
+                       lowered_legs_to_cover=("head", sk.leg_low_top + lift, "frame", 0.7, None),
+                       collar_top_to_frame=("head", p.z_roof0 + lift, "frame", 0.7, None))
         rib_want.update(frame_cut_flats_to_head=gzf, skid_rings_to_static_ring=gz, band_top_to_chest_cover=gz,
-                        lowered_legs_to_cover=gz)
+                        lowered_legs_to_cover=gz, collar_top_to_frame=gz)
+        # (the band's full-height top may run only under the head body, the collar or the wheel, with every leg
+        # that leaves the head lowered under a cover: then there is no chest-cover interface to measure)
+        rib_optional = {"band_top_to_chest_cover"}
         fld_sel["umbrella_top_to_static_ring"] = ("wheel", p.z_umb_top + lift, "frame", None, None)
         fld_want["umbrella_top_to_static_ring"] = field_min
     elif p.crown_ring:
@@ -865,7 +869,9 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
         rib_want["roof_ribs_to_face_front"] = rib_gap
         fld_want["roof_to_face_front"] = field_min
     rib_m = {k: [r4(min(v)), r4(max(v))] if v else None for k, v in rib.items()}
-    rib_ok = all(v and abs(min(v) - rib_want[k]) <= SPEC["rib_tol"] and abs(max(v) - rib_want[k]) <= SPEC["rib_tol"]
+    rib_opt = rib_optional if sculpt else set()
+    rib_ok = all((not v and k in rib_opt) or
+                 (v and abs(min(v) - rib_want[k]) <= SPEC["rib_tol"] and abs(max(v) - rib_want[k]) <= SPEC["rib_tol"])
                  for k, v in rib.items())
     fmt = ".4f" if sculpt else ".2f"
     R.add("V6.rib_z", "skid-rib float Z gaps (back ribs under head / wheel; " + (
@@ -912,14 +918,18 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
         g_cone = census_select(cl, "frame", None, "wheel", "slanted")[0]
         g_lip = census_select(cl, "wheel", p.z_umb_top + lift + p.rib_h, "frame", "flat", z_tol=z_tol)[0]
         want_legs = gz
-        R.add("V6.designed_z_gaps", "other designed Z gaps from the ray census at phi 0 / psi 0 (sculpt: covers, "
-                                    "static ring)",
-              status_of(abs(g_legs - want_legs) <= 0.02 and abs(g_pal - z_pal_plate) <= 0.02
+        # the head's top seam at the design pose: the hub collar under the frame (gz; the band top beside it lies
+        # under the collar's cut, gz + the collar's 1.0, reported as info)
+        g_collar = census_select(cl, "head", p.z_roof0 + lift, "frame", "flat", z_tol=z_tol)[0]
+        R.add("V6.designed_z_gaps", "other designed Z gaps from the ray census at phi 0 / psi 0 (sculpt: collar, "
+                                    "covers, static ring)",
+              status_of(abs(g_collar - want_legs) <= 0.02 and abs(g_pal - z_pal_plate) <= 0.02
                         and math.isfinite(g_cone) and g_cone >= SPEC["wheel_frame_z_min"] and abs(g_lip - gz) <= 0.02),
-              {"head_band_top_to_chest_cover": r4(g_legs), "pallet_top_to_umbrella_plate": r4(g_pal),
+              {"head_collar_top_to_frame": r4(g_collar), "head_band_top_to_frame_(info)": r4(g_legs),
+               "pallet_top_to_umbrella_plate": r4(g_pal),
                "frame_ledge_to_umbrella_cone_vertical": r4(g_cone), "skid_rings_to_static_ring_vertical": r4(g_lip),
                "ridge_axial_play_vertical_(info)": r4(g_ridge)},
-              f"legs<->chest cover {want_legs:.4f}, pallet<->plate {z_pal_plate:.2f} and skid rings<->static ring "
+              f"collar<->frame {want_legs:.4f}, pallet<->plate {z_pal_plate:.2f} and skid rings<->static ring "
               f"{gz:.4f} (+-0.02); frame<->cone vertical >= {SPEC['wheel_frame_z_min']} (present)")
     else:
         g_cone = census_select(cl, "frame", p.z_roof1, "wheel", "slanted")[0]
@@ -1245,7 +1255,7 @@ def v11(R: Report, M, psis, C, phis_c):
         sk = M.skin
         from purrbobble.sculpt import seams
         sm_ = seams(sk, p)
-        z_cov = (sm_["band_top_seam_z"], sm_["lowered_env_top"])
+        z_cov = (sm_["band_top_seam_z"], sm_["lowered_env_top"], sm_["collar_top_seam_z"])
         head_roof = bool(all_pcs["head"]) and all(min(abs(c["z"][0] - z) for z in z_cov) < 0.1 for c in all_pcs["head"])
         wheel_paw = bool(all_pcs["wheel"]) and all(c["z"][0] >= p.z_umb_top + p.z_lift and c["r_min_from_O"] >=
                                                    sk.cap_r + sm_["cap_gap"] - 0.05 for c in all_pcs["wheel"])

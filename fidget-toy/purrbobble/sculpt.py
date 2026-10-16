@@ -400,6 +400,7 @@ def seams(sk, p) -> dict:
             # full-height legs keep >= cover_t of frame over their top seam; under thinner sculpt they are lowered
             "cover_min": p.z_band1 + zl + gz + sk.cover_t,
             "band_top_seam_z": p.z_band1 + zl + gz,                 # underside of the frame covers over the band
+            "collar_top_seam_z": p.z_roof0 + zl + gz,               # frame over the hub collar (disc(P, R_hub_cut))
             "lowered_env_top": sk.leg_low_top + zl + gz,            # underside of the covers over the lowered legs
             "lowered_cover_top": sk.leg_low_top + zl + gz + sk.cover_t,
             # stop pads under the head: 0.05 under the moat floor (the head's lowest float floor clears them)
