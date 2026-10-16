@@ -21,12 +21,11 @@
   ]
  ],
  "info": {
-  "t_sections_s": 8.68,
-  "t_solids_s": 0.04,
+  "t_sections_s": 9.33,
+  "t_solids_s": 0.03,
   "skin_contract": {
    "warnings": [
     "B_i only 1.32 mm inside Face2D (contract 3.0)",
-    "disc(P, 7.5) not inside Face2D (26.2 mm^2 outside); hub collar z 7.4-8.4 added",
     "Face2D has 5.6 mm^2 narrower than 6.0 mm"
    ],
    "leg_B_margin": [
@@ -35,36 +34,27 @@
    ],
    "hub_disc_outside_area": 26.232,
    "narrower_than_6mm_area": 5.55,
-   "crown_collar": {
-    "applied": true,
-    "pieces_beyond": 2,
-    "bad_rays": 0,
-    "thin_cap_at_notch_deg": [
-     89.25
-    ],
-    "clamped_to_step_rule": false,
-    "range_deg": [
-     42.76,
-     90.0
-    ]
-   },
    "stop_pad_area_ratio": 0.864,
    "stop_pad_contact_mm": [
     4.94,
     5.91,
     5.88,
     4.95
-   ]
+   ],
+   "note": "sculpt skin: hub collar / crown collar items n/a (not built)"
   },
   "face_features": [],
   "head_base": null,
   "head_feature_parts": {},
   "frame_colour_masks": [],
   "sculpt": {
-   "cover_boss_mm2": 65.0,
-   "head_pinches_before_weld": 166,
+   "cover_boss_mm2": 131.8,
+   "film_raised_mm2": 841.7,
+   "terrace_raised_mm2": 50.6,
+   "head_pinches_before_weld": 142,
+   "head_feathers_cut_mm2": 15.5,
    "head_blob_mm2": 1154.7,
-   "legs_lowered_mm2": 194.3,
+   "legs_lowered_mm2": 194.6,
    "head_always_covered_mm2": 824.8,
    "floor_area_mm2": {
     "3.437": 554.7,
@@ -76,54 +66,57 @@
     "4.637": 554.6,
     "4.837": 554.1,
     "5.037": 553.7,
-    "5.237": 553.2,
+    "5.237": 553.3,
     "5.437": 552.1,
-    "5.637": 297.5,
-    "5.837": 297.5,
-    "6.037": 295.7,
-    "6.237": 290.9,
-    "6.437": 271.6,
-    "6.637": 198.8,
-    "6.837": 167.4,
-    "7.037": 93.3,
-    "7.237": 53.0,
-    "7.437": 53.0,
-    "7.637": 53.0,
-    "7.837": 52.9,
-    "8.037": 35.2,
-    "8.237": 34.9,
-    "8.437": 34.7,
-    "8.637": 34.3,
-    "8.837": 34.0,
-    "9.037": 33.5,
-    "9.237": 33.0,
-    "9.437": 32.5,
-    "9.637": 31.9,
-    "9.837": 31.2,
-    "10.037": 30.4,
-    "10.237": 29.6,
-    "10.437": 28.5,
-    "10.637": 27.2,
-    "10.837": 25.7,
-    "11.037": 24.1,
-    "11.237": 22.3,
-    "11.437": 20.6,
-    "11.637": 18.7,
-    "11.837": 16.7,
-    "12.037": 14.5,
-    "12.237": 12.4,
-    "12.437": 10.1,
-    "12.637": 7.1,
-    "12.837": 3.8,
-    "13.037": 1.6,
-    "13.237": 0.3,
-    "13.437": 0.0,
+    "5.637": 399.6,
+    "5.837": 384.3,
+    "6.037": 379.5,
+    "6.237": 367.6,
+    "6.437": 362.9,
+    "6.637": 353.7,
+    "6.837": 211.9,
+    "7.037": 169.0,
+    "7.237": 106.1,
+    "7.437": 63.0,
+    "7.637": 53.3,
+    "7.837": 53.0,
+    "8.037": 53.0,
+    "8.237": 35.5,
+    "8.437": 34.9,
+    "8.637": 34.7,
+    "8.837": 34.3,
+    "9.037": 34.0,
+    "9.237": 33.5,
+    "9.437": 33.0,
+    "9.637": 32.5,
+    "9.837": 31.9,
+    "10.037": 31.2,
+    "10.237": 30.4,
+    "10.437": 29.4,
+    "10.637": 28.2,
+    "10.837": 26.8,
+    "11.037": 25.3,
+    "11.237": 23.6,
+    "11.437": 22.0,
+    "11.637": 20.2,
+    "11.837": 18.4,
+    "12.037": 16.4,
+    "12.237": 14.3,
+    "12.437": 12.2,
+    "12.637": 9.5,
+    "12.837": 6.7,
+    "13.037": 3.7,
+    "13.237": 1.5,
+    "13.437": 0.3,
     "13.637": 0.0,
     "13.837": 0.0,
     "14.037": 0.0
    },
-   "frame_pinches_before_weld": 127,
-   "t_sculpt_s": 113.6
+   "seam_chamfer_mm3": 408.7,
+   "frame_pinches_before_weld": 90,
+   "frame_feathers_cut_mm2": 4.8,
+   "t_sculpt_s": 297.3,
+   "cache": "hit"
   }
  },
  "sections": {
@@ -148,21 +141,21 @@
  },
  "bodies": {
   "frame": {
-   "volume_mm3": 32354.9,
-   "mass_solid_g": 40.12,
-   "triangles": 762314,
+   "volume_mm3": 32252.8,
+   "mass_solid_g": 39.99,
+   "triangles": 815998,
    "bbox": [
     -33.698,
     -26.544,
     0.0,
     32.625,
     58.899,
-    20.904
+    20.787
    ],
    "size": [
     66.32,
     85.44,
-    20.9
+    20.79
    ]
   },
   "wheel": {
@@ -184,20 +177,20 @@
    ]
   },
   "head": {
-   "volume_mm3": 12127.4,
-   "mass_solid_g": 15.04,
-   "triangles": 507872,
+   "volume_mm3": 12087.9,
+   "mass_solid_g": 14.99,
+   "triangles": 630776,
    "bbox": [
-    -23.763,
-    5.179,
+    -23.761,
+    5.185,
     3.0,
-    22.246,
-    50.078,
+    22.24,
+    50.076,
     19.5
    ],
    "size": [
-    46.01,
-    44.9,
+    46.0,
+    44.89,
     16.5
    ]
   }
@@ -211,8 +204,8 @@
   "bodies": {
    "frame": {
     "components": 1,
-    "genus": 73,
-    "volume_mm3": 32354.89,
+    "genus": 81,
+    "volume_mm3": 32252.76,
     "status": "Error.NoError"
    },
    "wheel": {
@@ -223,8 +216,8 @@
    },
    "head": {
     "components": 1,
-    "genus": 29,
-    "volume_mm3": 12127.39,
+    "genus": 27,
+    "volume_mm3": 12087.94,
     "status": "Error.NoError"
    }
   },
@@ -233,13 +226,13 @@
     "a": "frame",
     "b": "wheel",
     "overlap_mm3": 0.0,
-    "min_gap": 0.35000994548840264
+    "min_gap": 0.35000990305730395
    },
    {
     "a": "frame",
     "b": "head",
     "overlap_mm3": 0.0,
-    "min_gap": 0.35000216919009297
+    "min_gap": 0.3500015633420735
    },
    {
     "a": "wheel",
@@ -248,13 +241,16 @@
     "min_gap": 1.0
    }
   ],
-  "global_min_gap": 0.35000216919009297
+  "global_min_gap": 0.3500015633420735
  },
- "stl_triangles": 1342024,
+ "stl_triangles": 1518604,
  "files": [
   "stl/kitty/purrbobble_kitty_deep.stl"
  ],
- "renders": [],
- "time_build_export_s": 128.92,
- "time_total_s": 129.13
+ "renders": [
+  "renders/kitty/purrbobble_kitty_deep_face.png",
+  "renders/kitty/purrbobble_kitty_deep_three_quarter.png"
+ ],
+ "time_build_export_s": 21.35,
+ "time_total_s": 34.02
 }
