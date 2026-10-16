@@ -5047,7 +5047,7 @@
     "stl": {
      "input": "/home/user/Apps/fidget-toy/stl/bee/purrbobble_bee_nominal.stl",
      "returncode": 0,
-     "time_s": 14.9,
+     "time_s": 17.4,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_bee_nominal.stl | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
@@ -5564,7 +5564,7 @@
     "3mf": {
      "input": "/home/user/Apps/fidget-toy/stl/bee/purrbobble_bee_nominal.3mf",
      "returncode": 0,
-     "time_s": 18.6,
+     "time_s": 22.2,
      "warnings": [
       "print warning: Detected print stability issues: | purrbobble_bee_nominal | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
      ],
@@ -6156,5 +6156,5 @@
   }
  ],
  "pass": true,
- "runtime_s": 226.1
+ "runtime_s": 290.8
 }

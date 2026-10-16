@@ -3344,6 +3344,86 @@
     "frame": [
      {
       "at": [
+       -17.93,
+       -3.13
+      ],
+      "depth_mm": 0.564,
+      "area_mm2": 0.413,
+      "est_corner_r_mm": 0.08,
+      "z": 13.5
+     },
+     {
+      "at": [
+       17.93,
+       -3.14
+      ],
+      "depth_mm": 0.57,
+      "area_mm2": 0.414,
+      "est_corner_r_mm": 0.09,
+      "z": 13.5
+     },
+     {
+      "at": [
+       -16.5,
+       7.67
+      ],
+      "depth_mm": 0.57,
+      "area_mm2": 0.412,
+      "est_corner_r_mm": 0.09,
+      "z": 13.5
+     },
+     {
+      "at": [
+       16.51,
+       7.67
+      ],
+      "depth_mm": 0.564,
+      "area_mm2": 0.411,
+      "est_corner_r_mm": 0.08,
+      "z": 13.5
+     },
+     {
+      "at": [
+       -17.05,
+       -2.32
+      ],
+      "depth_mm": 0.174,
+      "area_mm2": 0.166,
+      "est_corner_r_mm": 0.62,
+      "z": 14.5
+     },
+     {
+      "at": [
+       17.04,
+       -2.32
+      ],
+      "depth_mm": 0.177,
+      "area_mm2": 0.166,
+      "est_corner_r_mm": 0.58,
+      "z": 14.5
+     },
+     {
+      "at": [
+       -15.86,
+       6.65
+      ],
+      "depth_mm": 0.175,
+      "area_mm2": 0.162,
+      "est_corner_r_mm": 0.55,
+      "z": 14.5
+     },
+     {
+      "at": [
+       15.86,
+       6.64
+      ],
+      "depth_mm": 0.171,
+      "area_mm2": 0.161,
+      "est_corner_r_mm": 0.61,
+      "z": 14.5
+     },
+     {
+      "at": [
        -21.93,
        -3.35
       ],
@@ -3360,6 +3440,66 @@
       "depth_mm": 1.859,
       "area_mm2": 4.794,
       "est_corner_r_mm": 0.97,
+      "z": 15.5
+     },
+     {
+      "at": [
+       20.45,
+       0.06
+      ],
+      "depth_mm": 0.642,
+      "area_mm2": 0.468,
+      "est_corner_r_mm": 0.06,
+      "z": 15.5
+     },
+     {
+      "at": [
+       -20.45,
+       0.06
+      ],
+      "depth_mm": 0.641,
+      "area_mm2": 0.468,
+      "est_corner_r_mm": 0.06,
+      "z": 15.5
+     },
+     {
+      "at": [
+       -21.36,
+       2.8
+      ],
+      "depth_mm": 1.595,
+      "area_mm2": 3.463,
+      "est_corner_r_mm": 1.5,
+      "z": 15.5
+     },
+     {
+      "at": [
+       21.36,
+       2.82
+      ],
+      "depth_mm": 1.595,
+      "area_mm2": 3.463,
+      "est_corner_r_mm": 1.5,
+      "z": 15.5
+     },
+     {
+      "at": [
+       19.76,
+       5.24
+      ],
+      "depth_mm": 0.641,
+      "area_mm2": 0.467,
+      "est_corner_r_mm": 0.06,
+      "z": 15.5
+     },
+     {
+      "at": [
+       -19.76,
+       5.24
+      ],
+      "depth_mm": 0.64,
+      "area_mm2": 0.467,
+      "est_corner_r_mm": 0.06,
       "z": 15.5
      },
      {
@@ -3393,7 +3533,37 @@
       "depth_mm": 0.18,
       "area_mm2": 0.202,
       "est_corner_r_mm": 1.09,
+      "z": 11.5
+     },
+     {
+      "at": [
+       15.51,
+       42.18
+      ],
+      "depth_mm": 0.18,
+      "area_mm2": 0.202,
+      "est_corner_r_mm": 1.09,
       "z": 12.5
+     },
+     {
+      "at": [
+       14.97,
+       34.71
+      ],
+      "depth_mm": 0.148,
+      "area_mm2": 0.097,
+      "est_corner_r_mm": 0.75,
+      "z": 17.5
+     },
+     {
+      "at": [
+       -14.96,
+       34.69
+      ],
+      "depth_mm": 0.148,
+      "area_mm2": 0.096,
+      "est_corner_r_mm": 0.75,
+      "z": 17.5
      }
     ]
    },
@@ -3403,7 +3573,7 @@
       "sharp_edges": 42114,
       "acute_edges": 47,
       "candidates": 537,
-      "exposed_candidates": 119
+      "exposed_candidates": 138
      },
      "points": [
       {
@@ -3440,11 +3610,115 @@
       },
       {
        "at": [
+        -20.45,
+        0.06,
+        16.0
+       ],
+       "ball_fraction": 0.238
+      },
+      {
+       "at": [
+        -20.42,
+        1.16,
+        16.0
+       ],
+       "ball_fraction": 0.238
+      },
+      {
+       "at": [
+        -20.02,
+        4.17,
+        16.0
+       ],
+       "ball_fraction": 0.238
+      },
+      {
+       "at": [
+        -19.76,
+        5.24,
+        16.0
+       ],
+       "ball_fraction": 0.238
+      },
+      {
+       "at": [
+        19.76,
+        5.24,
+        16.0
+       ],
+       "ball_fraction": 0.238
+      },
+      {
+       "at": [
+        20.45,
+        0.06,
+        16.0
+       ],
+       "ball_fraction": 0.238
+      },
+      {
+       "at": [
+        20.42,
+        1.16,
+        16.0
+       ],
+       "ball_fraction": 0.238
+      },
+      {
+       "at": [
+        20.02,
+        4.17,
+        16.0
+       ],
+       "ball_fraction": 0.238
+      },
+      {
+       "at": [
+        -4.44,
+        -18.06,
+        12.0
+       ],
+       "ball_fraction": 0.25
+      },
+      {
+       "at": [
+        4.44,
+        -18.06,
+        12.0
+       ],
+       "ball_fraction": 0.25
+      },
+      {
+       "at": [
+        -4.06,
+        -18.15,
+        11.73
+       ],
+       "ball_fraction": 0.282
+      },
+      {
+       "at": [
+        4.06,
+        -18.15,
+        11.73
+       ],
+       "ball_fraction": 0.282
+      },
+      {
+       "at": [
         21.51,
         -4.3,
         10.4
        ],
        "ball_fraction": 0.304
+      },
+      {
+       "at": [
+        -18.32,
+        -3.23,
+        13.1
+       ],
+       "ball_fraction": 0.313
       },
       {
        "at": [
@@ -3480,6 +3754,14 @@
       },
       {
        "at": [
+        21.24,
+        3.58,
+        16.0
+       ],
+       "ball_fraction": 0.325
+      },
+      {
+       "at": [
         -21.25,
         3.58,
         16.0
@@ -3488,123 +3770,11 @@
       },
       {
        "at": [
-        -21.46,
+        21.45,
         2.02,
         16.0
        ],
-       "ball_fraction": 0.327
-      },
-      {
-       "at": [
-        -21.55,
-        -0.35,
-        16.0
-       ],
-       "ball_fraction": 0.329
-      },
-      {
-       "at": [
-        -21.55,
-        0.44,
-        16.0
-       ],
-       "ball_fraction": 0.329
-      },
-      {
-       "at": [
-        -21.51,
-        1.23,
-        16.0
-       ],
-       "ball_fraction": 0.329
-      },
-      {
-       "at": [
-        -21.1,
-        4.36,
-        16.0
-       ],
-       "ball_fraction": 0.329
-      },
-      {
-       "at": [
-        -20.93,
-        5.13,
-        16.0
-       ],
-       "ball_fraction": 0.329
-      },
-      {
-       "at": [
-        -20.73,
-        5.89,
-        16.0
-       ],
-       "ball_fraction": 0.329
-      },
-      {
-       "at": [
-        21.1,
-        4.36,
-        16.0
-       ],
-       "ball_fraction": 0.329
-      },
-      {
-       "at": [
-        21.55,
-        -0.35,
-        16.0
-       ],
-       "ball_fraction": 0.329
-      },
-      {
-       "at": [
-        21.55,
-        0.44,
-        16.0
-       ],
-       "ball_fraction": 0.329
-      },
-      {
-       "at": [
-        21.51,
-        1.23,
-        16.0
-       ],
-       "ball_fraction": 0.329
-      },
-      {
-       "at": [
-        -24.43,
-        8.49,
-        10.4
-       ],
-       "ball_fraction": 0.341
-      },
-      {
-       "at": [
-        24.42,
-        8.49,
-        10.4
-       ],
-       "ball_fraction": 0.341
-      },
-      {
-       "at": [
-        -9.16,
-        49.28,
-        2.6
-       ],
-       "ball_fraction": 0.344
-      },
-      {
-       "at": [
-        -21.7,
-        -4.33,
-        10.07
-       ],
-       "ball_fraction": 0.348
+       "ball_fraction": 0.326
       }
      ]
     },
@@ -3613,7 +3783,7 @@
       "sharp_edges": 1314,
       "acute_edges": 0,
       "candidates": 84,
-      "exposed_candidates": 44
+      "exposed_candidates": 84
      },
      "points": [
       {
@@ -3823,17 +3993,9 @@
       "sharp_edges": 9248,
       "acute_edges": 11,
       "candidates": 500,
-      "exposed_candidates": 45
+      "exposed_candidates": 43
      },
      "points": [
-      {
-       "at": [
-        -15.88,
-        39.71,
-        5.3
-       ],
-       "ball_fraction": 0.195
-      },
       {
        "at": [
         15.97,
@@ -3841,6 +4003,30 @@
         13.7
        ],
        "ball_fraction": 0.223
+      },
+      {
+       "at": [
+        17.05,
+        44.94,
+        3.0
+       ],
+       "ball_fraction": 0.223
+      },
+      {
+       "at": [
+        -17.04,
+        44.96,
+        3.0
+       ],
+       "ball_fraction": 0.224
+      },
+      {
+       "at": [
+        -16.93,
+        43.32,
+        3.0
+       ],
+       "ball_fraction": 0.226
       },
       {
        "at": [
@@ -3852,9 +4038,25 @@
       },
       {
        "at": [
+        16.92,
+        43.31,
+        3.0
+       ],
+       "ball_fraction": 0.227
+      },
+      {
+       "at": [
         16.19,
         39.49,
         13.7
+       ],
+       "ball_fraction": 0.233
+      },
+      {
+       "at": [
+        16.06,
+        41.22,
+        3.0
        ],
        "ball_fraction": 0.233
       },
@@ -3993,38 +4195,6 @@
         16.2
        ],
        "ball_fraction": 0.435
-      },
-      {
-       "at": [
-        16.19,
-        39.49,
-        16.2
-       ],
-       "ball_fraction": 0.435
-      },
-      {
-       "at": [
-        -16.04,
-        41.23,
-        16.2
-       ],
-       "ball_fraction": 0.437
-      },
-      {
-       "at": [
-        15.24,
-        33.76,
-        16.2
-       ],
-       "ball_fraction": 0.437
-      },
-      {
-       "at": [
-        17.05,
-        44.94,
-        4.7
-       ],
-       "ball_fraction": 0.445
       }
      ]
     }
@@ -5581,14 +5751,14 @@
   {
    "id": "V12.corners",
    "name": "exposed convex plan corners (vertical edges) r >= 1.0 (exterior >= 1.5)",
-   "status": "warn",
+   "status": "fail",
    "measured": {
-    "below_1.0": 0,
-    "1.0_to_1.5": 5,
+    "below_1.0": 14,
+    "1.0_to_1.5": 6,
     "min_r_by_body": {
-     "frame": 0.97,
+     "frame": 0.06,
      "wheel": null,
-     "head": 1.09
+     "head": 0.75
     }
    },
    "criterion": "no exposed convex corner sharper than r 1.0; r 1.0-1.5 is a warning",
@@ -5597,57 +5767,134 @@
     {
      "body": "frame",
      "at": [
-      -21.93,
-      -3.35
+      20.45,
+      0.06
      ],
-     "depth_mm": 1.856,
-     "area_mm2": 4.794,
-     "est_corner_r_mm": 0.97,
+     "depth_mm": 0.642,
+     "area_mm2": 0.468,
+     "est_corner_r_mm": 0.06,
      "z": 15.5
     },
     {
      "body": "frame",
      "at": [
-      21.96,
-      -3.32
+      -20.45,
+      0.06
      ],
-     "depth_mm": 1.859,
-     "area_mm2": 4.794,
-     "est_corner_r_mm": 0.97,
+     "depth_mm": 0.641,
+     "area_mm2": 0.468,
+     "est_corner_r_mm": 0.06,
      "z": 15.5
     },
     {
      "body": "frame",
      "at": [
-      20.31,
-      8.91
+      19.76,
+      5.24
      ],
-     "depth_mm": 1.858,
-     "area_mm2": 4.79,
-     "est_corner_r_mm": 0.97,
+     "depth_mm": 0.641,
+     "area_mm2": 0.467,
+     "est_corner_r_mm": 0.06,
      "z": 15.5
     },
     {
      "body": "frame",
      "at": [
-      -20.35,
-      8.89
+      -19.76,
+      5.24
      ],
-     "depth_mm": 1.859,
-     "area_mm2": 4.791,
-     "est_corner_r_mm": 0.97,
+     "depth_mm": 0.64,
+     "area_mm2": 0.467,
+     "est_corner_r_mm": 0.06,
      "z": 15.5
     },
     {
-     "body": "head",
+     "body": "frame",
      "at": [
-      15.51,
-      42.18
+      -17.93,
+      -3.13
      ],
-     "depth_mm": 0.18,
-     "area_mm2": 0.202,
-     "est_corner_r_mm": 1.09,
-     "z": 12.5
+     "depth_mm": 0.564,
+     "area_mm2": 0.413,
+     "est_corner_r_mm": 0.08,
+     "z": 13.5
+    },
+    {
+     "body": "frame",
+     "at": [
+      16.51,
+      7.67
+     ],
+     "depth_mm": 0.564,
+     "area_mm2": 0.411,
+     "est_corner_r_mm": 0.08,
+     "z": 13.5
+    },
+    {
+     "body": "frame",
+     "at": [
+      17.93,
+      -3.14
+     ],
+     "depth_mm": 0.57,
+     "area_mm2": 0.414,
+     "est_corner_r_mm": 0.09,
+     "z": 13.5
+    },
+    {
+     "body": "frame",
+     "at": [
+      -16.5,
+      7.67
+     ],
+     "depth_mm": 0.57,
+     "area_mm2": 0.412,
+     "est_corner_r_mm": 0.09,
+     "z": 13.5
+    },
+    {
+     "body": "frame",
+     "at": [
+      -15.86,
+      6.65
+     ],
+     "depth_mm": 0.175,
+     "area_mm2": 0.162,
+     "est_corner_r_mm": 0.55,
+     "z": 14.5
+    },
+    {
+     "body": "frame",
+     "at": [
+      17.04,
+      -2.32
+     ],
+     "depth_mm": 0.177,
+     "area_mm2": 0.166,
+     "est_corner_r_mm": 0.58,
+     "z": 14.5
+    },
+    {
+     "body": "frame",
+     "at": [
+      15.86,
+      6.64
+     ],
+     "depth_mm": 0.171,
+     "area_mm2": 0.161,
+     "est_corner_r_mm": 0.61,
+     "z": 14.5
+    },
+    {
+     "body": "frame",
+     "at": [
+      -17.05,
+      -2.32
+     ],
+     "depth_mm": 0.174,
+     "area_mm2": 0.166,
+     "est_corner_r_mm": 0.62,
+     "z": 14.5
     }
    ]
   },
@@ -5657,20 +5904,11 @@
    "status": "warn",
    "measured": {
     "below_0.15": 0,
-    "0.15_to_0.20": 2,
-    "min_fraction": 0.195
+    "0.15_to_0.20": 1,
+    "min_fraction": 0.196
    },
    "criterion": "fraction >= 0.20 (square edge 0.25, square corner 0.125); < 0.15 fails",
    "worst": [
-    {
-     "body": "head",
-     "at": [
-      -15.88,
-      39.71,
-      5.3
-     ],
-     "ball_fraction": 0.195
-    },
     {
      "body": "frame",
      "at": [
@@ -5719,11 +5957,47 @@
     {
      "body": "head",
      "at": [
+      17.05,
+      44.94,
+      3.0
+     ],
+     "ball_fraction": 0.223
+    },
+    {
+     "body": "head",
+     "at": [
+      -17.04,
+      44.96,
+      3.0
+     ],
+     "ball_fraction": 0.224
+    },
+    {
+     "body": "head",
+     "at": [
+      -16.93,
+      43.32,
+      3.0
+     ],
+     "ball_fraction": 0.226
+    },
+    {
+     "body": "head",
+     "at": [
       -15.97,
       34.87,
       13.7
      ],
      "ball_fraction": 0.226
+    },
+    {
+     "body": "head",
+     "at": [
+      16.92,
+      43.31,
+      3.0
+     ],
+     "ball_fraction": 0.227
     },
     {
      "body": "head",
@@ -5737,38 +6011,11 @@
     {
      "body": "head",
      "at": [
-      16.05,
+      16.06,
       41.22,
-      13.7
+      3.0
      ],
      "ball_fraction": 0.233
-    },
-    {
-     "body": "head",
-     "at": [
-      -15.25,
-      33.76,
-      13.7
-     ],
-     "ball_fraction": 0.234
-    },
-    {
-     "body": "head",
-     "at": [
-      15.24,
-      33.76,
-      13.7
-     ],
-     "ball_fraction": 0.234
-    },
-    {
-     "body": "head",
-     "at": [
-      -16.04,
-      41.23,
-      13.7
-     ],
-     "ball_fraction": 0.235
     }
    ]
   },
@@ -6035,8 +6282,8 @@
   "[FAIL] V12.pinch_01: head vs frame at (-18.8, 37.2), z 9.25-9.25 -> {'gap_min': 2.75, 'gap_max': 8.549, 'severity': 'medium'}",
   "[WARN] V12.pinch_02: head vs frame at (-15.2, 41.5), z 7.75-10.25 -> {'gap_min': 1.598, 'gap_max': 3.418, 'severity': 'low'}",
   "[WARN] V12.pinch_03: head vs frame at (19.5, 37.2), z 9.75-10.25 -> {'gap_min': 1.919, 'gap_max': 2.155, 'severity': 'low'}",
-  "[WARN] V12.corners: exposed convex plan corners (vertical edges) r >= 1.0 (exterior >= 1.5) -> {'below_1.0': 0, '1.0_to_1.5': 5, 'min_r_by_body': {'frame': 0.97, 'wheel': None, 'head': 1.09}}",
-  "[WARN] V12.sharp_points: sharp points / knife edges on the touchable surface (1 mm ball volume fraction) -> {'below_0.15': 0, '0.15_to_0.20': 2, 'min_fraction': 0.195}",
+  "[FAIL] V12.corners: exposed convex plan corners (vertical edges) r >= 1.0 (exterior >= 1.5) -> {'below_1.0': 14, '1.0_to_1.5': 6, 'min_r_by_body': {'frame': 0.06, 'wheel': None, 'head': 0.75}}",
+  "[WARN] V12.sharp_points: sharp points / knife edges on the touchable surface (1 mm ball volume fraction) -> {'below_0.15': 0, '0.15_to_0.20': 1, 'min_fraction': 0.196}",
   "[WARN] DR.line_width: grooves / lines >= 0.8 wide (2 nozzle widths) so they survive slicing and read -> [{'surface': 'face top', 'at': [-4.4, 39.41], 'w': 0.478}, {'surface': 'face top', 'at': [6.8, 39.41], 'w': 0.478}, {'surface': 'face top', 'at': [13.22, 42.71], 'w': 0.739}, {'surface': 'face top', 'at': [-13.22, 42.71], 'w': 0.739}, {'surface': 'decor top', 'at': [-8.8, -19.7], 'w': 0.71}, {'surface': 'decor top', 'at': [8.8, -19.7], 'w': 0.71}]",
   "[WARN] DR.deboss_depth: debossed features >= 0.4 deep (2 layers at 0.2) -> [{'surface': 'face top', 'at': [-4.4, 39.41], 'd': 0.15}, {'surface': 'face top', 'at': [6.8, 39.41], 'd': 0.15}, {'surface': 'face top', 'at': [-8.3, 31.11], 'd': 0.3}, {'surface': 'face top', 'at': [8.3, 31.11], 'd': 0.3}, {'surface': 'back plate', 'at': [21.28, 41.05], 'd': 0.3}, {'surface': 'back plate', 'at': [-21.28, 41.05], 'd': 0.3}, {'surface': 'ball top', 'at': [0.0, 0.0], 'd': 0.025}]",
   "[WARN] DR.eyes: kawaii eye size / placement -> {'eye_d': 6.76, 'eye_spacing_cc': 11.2, 'face_width_at_eyes': 31.61, 'eye_d_over_face_w': 0.214, 'spacing_over_face_w': 0.354, 'head_circle_centre': [-0.01, 36.9], 'head_circle_r': 14.85, 'eye_line_below_head_centre_over_r': np.float64(-0.086)}",
@@ -6045,8 +6292,8 @@
   "[WARN] DR.colour_swap: optional colour swap z 17.9-18.5 colours exactly the face features -> {'coloured_top_area_mm2': {'frame': 0.0, 'wheel': 0.0, 'head': 58.3}}"
  ],
  "n_pass": 16,
- "n_warn": 11,
- "n_fail": 2,
+ "n_warn": 10,
+ "n_fail": 3,
  "pass": false,
- "time_s": 345.0
+ "time_s": 501.0
 }

@@ -2595,7 +2595,68 @@
   "n_groups": 3,
   "edges": {
    "corners": {
-    "frame": [],
+    "frame": [
+     {
+      "at": [
+       -17.93,
+       -3.13
+      ],
+      "depth_mm": 0.564,
+      "area_mm2": 0.413,
+      "est_corner_r_mm": 0.08,
+      "z": 13.5
+     },
+     {
+      "at": [
+       17.93,
+       -3.14
+      ],
+      "depth_mm": 0.57,
+      "area_mm2": 0.414,
+      "est_corner_r_mm": 0.09,
+      "z": 13.5
+     },
+     {
+      "at": [
+       -17.05,
+       -2.32
+      ],
+      "depth_mm": 0.174,
+      "area_mm2": 0.166,
+      "est_corner_r_mm": 0.62,
+      "z": 14.5
+     },
+     {
+      "at": [
+       17.04,
+       -2.32
+      ],
+      "depth_mm": 0.177,
+      "area_mm2": 0.166,
+      "est_corner_r_mm": 0.58,
+      "z": 14.5
+     },
+     {
+      "at": [
+       -15.86,
+       6.65
+      ],
+      "depth_mm": 0.175,
+      "area_mm2": 0.162,
+      "est_corner_r_mm": 0.55,
+      "z": 14.5
+     },
+     {
+      "at": [
+       15.86,
+       6.64
+      ],
+      "depth_mm": 0.171,
+      "area_mm2": 0.161,
+      "est_corner_r_mm": 0.61,
+      "z": 14.5
+     }
+    ],
     "wheel": [],
     "head": [
      {
@@ -2607,6 +2668,26 @@
       "area_mm2": 0.203,
       "est_corner_r_mm": 1.09,
       "z": 11.5
+     },
+     {
+      "at": [
+       -10.78,
+       25.15
+      ],
+      "depth_mm": 1.133,
+      "area_mm2": 3.928,
+      "est_corner_r_mm": 1.14,
+      "z": 17.5
+     },
+     {
+      "at": [
+       10.68,
+       25.05
+      ],
+      "depth_mm": 1.028,
+      "area_mm2": 3.928,
+      "est_corner_r_mm": 1.15,
+      "z": 17.5
      }
     ]
    },
@@ -2616,7 +2697,7 @@
       "sharp_edges": 45112,
       "acute_edges": 60,
       "candidates": 479,
-      "exposed_candidates": 121
+      "exposed_candidates": 125
      },
      "points": [
       {
@@ -2658,6 +2739,14 @@
         10.4
        ],
        "ball_fraction": 0.256
+      },
+      {
+       "at": [
+        -18.32,
+        -3.23,
+        13.1
+       ],
+       "ball_fraction": 0.313
       },
       {
        "at": [
@@ -2810,14 +2899,6 @@
         12.0
        ],
        "ball_fraction": 0.369
-      },
-      {
-       "at": [
-        -22.52,
-        5.89,
-        16.0
-       ],
-       "ball_fraction": 0.37
       }
      ]
     },
@@ -2852,16 +2933,16 @@
       "sharp_edges": 10591,
       "acute_edges": 12,
       "candidates": 453,
-      "exposed_candidates": 38
+      "exposed_candidates": 43
      },
      "points": [
       {
        "at": [
-        15.07,
-        39.97,
-        5.3
+        -14.21,
+        42.83,
+        3.0
        ],
-       "ball_fraction": 0.167
+       "ball_fraction": 0.227
       },
       {
        "at": [
@@ -2891,6 +2972,14 @@
        "at": [
         -14.51,
         42.45,
+        3.0
+       ],
+       "ball_fraction": 0.228
+      },
+      {
+       "at": [
+        -14.51,
+        42.45,
         4.7
        ],
        "ball_fraction": 0.228
@@ -2913,9 +3002,41 @@
       },
       {
        "at": [
+        -14.15,
+        46.31,
+        3.0
+       ],
+       "ball_fraction": 0.228
+      },
+      {
+       "at": [
+        14.0,
+        45.88,
+        3.0
+       ],
+       "ball_fraction": 0.228
+      },
+      {
+       "at": [
         14.21,
         42.83,
         13.7
+       ],
+       "ball_fraction": 0.228
+      },
+      {
+       "at": [
+        14.15,
+        46.3,
+        3.0
+       ],
+       "ball_fraction": 0.228
+      },
+      {
+       "at": [
+        14.51,
+        42.45,
+        3.0
        ],
        "ball_fraction": 0.228
       },
@@ -2934,6 +3055,22 @@
         13.7
        ],
        "ball_fraction": 0.228
+      },
+      {
+       "at": [
+        -14.0,
+        45.89,
+        3.0
+       ],
+       "ball_fraction": 0.229
+      },
+      {
+       "at": [
+        -15.13,
+        52.08,
+        3.0
+       ],
+       "ball_fraction": 0.269
       },
       {
        "at": [
@@ -2998,62 +3135,6 @@
         16.2
        ],
        "ball_fraction": 0.424
-      },
-      {
-       "at": [
-        14.15,
-        46.31,
-        16.2
-       ],
-       "ball_fraction": 0.424
-      },
-      {
-       "at": [
-        14.51,
-        42.45,
-        16.2
-       ],
-       "ball_fraction": 0.424
-      },
-      {
-       "at": [
-        -14.15,
-        46.31,
-        16.2
-       ],
-       "ball_fraction": 0.425
-      },
-      {
-       "at": [
-        13.99,
-        45.88,
-        16.2
-       ],
-       "ball_fraction": 0.425
-      },
-      {
-       "at": [
-        -14.0,
-        45.88,
-        7.4
-       ],
-       "ball_fraction": 0.453
-      },
-      {
-       "at": [
-        -14.15,
-        46.31,
-        4.7
-       ],
-       "ball_fraction": 0.455
-      },
-      {
-       "at": [
-        -14.15,
-        46.31,
-        7.4
-       ],
-       "ball_fraction": 0.455
       }
      ]
     }
@@ -4203,12 +4284,12 @@
   {
    "id": "V12.corners",
    "name": "exposed convex plan corners (vertical edges) r >= 1.0 (exterior >= 1.5)",
-   "status": "warn",
+   "status": "fail",
    "measured": {
-    "below_1.0": 0,
-    "1.0_to_1.5": 1,
+    "below_1.0": 6,
+    "1.0_to_1.5": 3,
     "min_r_by_body": {
-     "frame": null,
+     "frame": 0.08,
      "wheel": null,
      "head": 1.09
     }
@@ -4216,6 +4297,72 @@
    "criterion": "no exposed convex corner sharper than r 1.0; r 1.0-1.5 is a warning",
    "proposed_fix": "round the listed convex plan corners: FaceMid2D = open(FaceUp - RoofSweepInv, 2.0) (r 1.0; today 1.0 -> r 0.5 at the I3 slot mouth) and round the exposed fill-finger tips at the cavity mouth (Fill2D open 2.0 / r 1.0 convex rounding outside the stop pads).  Removing material only increases clearances.",
    "worst": [
+    {
+     "body": "frame",
+     "at": [
+      -17.93,
+      -3.13
+     ],
+     "depth_mm": 0.564,
+     "area_mm2": 0.413,
+     "est_corner_r_mm": 0.08,
+     "z": 13.5
+    },
+    {
+     "body": "frame",
+     "at": [
+      17.93,
+      -3.14
+     ],
+     "depth_mm": 0.57,
+     "area_mm2": 0.414,
+     "est_corner_r_mm": 0.09,
+     "z": 13.5
+    },
+    {
+     "body": "frame",
+     "at": [
+      -15.86,
+      6.65
+     ],
+     "depth_mm": 0.175,
+     "area_mm2": 0.162,
+     "est_corner_r_mm": 0.55,
+     "z": 14.5
+    },
+    {
+     "body": "frame",
+     "at": [
+      17.04,
+      -2.32
+     ],
+     "depth_mm": 0.177,
+     "area_mm2": 0.166,
+     "est_corner_r_mm": 0.58,
+     "z": 14.5
+    },
+    {
+     "body": "frame",
+     "at": [
+      15.86,
+      6.64
+     ],
+     "depth_mm": 0.171,
+     "area_mm2": 0.161,
+     "est_corner_r_mm": 0.61,
+     "z": 14.5
+    },
+    {
+     "body": "frame",
+     "at": [
+      -17.05,
+      -2.32
+     ],
+     "depth_mm": 0.174,
+     "area_mm2": 0.166,
+     "est_corner_r_mm": 0.62,
+     "z": 14.5
+    },
     {
      "body": "head",
      "at": [
@@ -4226,6 +4373,28 @@
      "area_mm2": 0.203,
      "est_corner_r_mm": 1.09,
      "z": 11.5
+    },
+    {
+     "body": "head",
+     "at": [
+      -10.78,
+      25.15
+     ],
+     "depth_mm": 1.133,
+     "area_mm2": 3.928,
+     "est_corner_r_mm": 1.14,
+     "z": 17.5
+    },
+    {
+     "body": "head",
+     "at": [
+      10.68,
+      25.05
+     ],
+     "depth_mm": 1.028,
+     "area_mm2": 3.928,
+     "est_corner_r_mm": 1.15,
+     "z": 17.5
     }
    ]
   },
@@ -4235,20 +4404,11 @@
    "status": "warn",
    "measured": {
     "below_0.15": 0,
-    "0.15_to_0.20": 2,
-    "min_fraction": 0.167
+    "0.15_to_0.20": 1,
+    "min_fraction": 0.195
    },
    "criterion": "fraction >= 0.20 (square edge 0.25, square corner 0.125); < 0.15 fails",
    "worst": [
-    {
-     "body": "head",
-     "at": [
-      15.07,
-      39.97,
-      5.3
-     ],
-     "ball_fraction": 0.167
-    },
     {
      "body": "frame",
      "at": [
@@ -4290,6 +4450,15 @@
      "at": [
       -14.21,
       42.83,
+      3.0
+     ],
+     "ball_fraction": 0.227
+    },
+    {
+     "body": "head",
+     "at": [
+      -14.21,
+      42.83,
       4.7
      ],
      "ball_fraction": 0.227
@@ -4317,6 +4486,15 @@
      "at": [
       -14.51,
       42.45,
+      3.0
+     ],
+     "ball_fraction": 0.228
+    },
+    {
+     "body": "head",
+     "at": [
+      -14.51,
+      42.45,
       4.7
      ],
      "ball_fraction": 0.228
@@ -4334,15 +4512,6 @@
      "body": "head",
      "at": [
       -14.21,
-      42.83,
-      13.7
-     ],
-     "ball_fraction": 0.228
-    },
-    {
-     "body": "head",
-     "at": [
-      14.21,
       42.83,
       13.7
      ],
@@ -4611,8 +4780,8 @@
   "[FAIL] V12.pinch_00: head vs frame at (14.0, 42.5), z 7.75-10.25 -> {'gap_min': 1.721, 'gap_max': 4.028, 'severity': 'high'}",
   "[WARN] V12.pinch_01: head vs frame at (-9.5, 45.8), z 7.75-10.25 -> {'gap_min': 1.883, 'gap_max': 2.116, 'severity': 'low'}",
   "[WARN] V12.pinch_02: head vs frame at (16.0, 40.8), z 8.25-8.75 -> {'gap_min': 2.585, 'gap_max': 3.049, 'severity': 'low'}",
-  "[WARN] V12.corners: exposed convex plan corners (vertical edges) r >= 1.0 (exterior >= 1.5) -> {'below_1.0': 0, '1.0_to_1.5': 1, 'min_r_by_body': {'frame': None, 'wheel': None, 'head': 1.09}}",
-  "[WARN] V12.sharp_points: sharp points / knife edges on the touchable surface (1 mm ball volume fraction) -> {'below_0.15': 0, '0.15_to_0.20': 2, 'min_fraction': 0.167}",
+  "[FAIL] V12.corners: exposed convex plan corners (vertical edges) r >= 1.0 (exterior >= 1.5) -> {'below_1.0': 6, '1.0_to_1.5': 3, 'min_r_by_body': {'frame': 0.08, 'wheel': None, 'head': 1.09}}",
+  "[WARN] V12.sharp_points: sharp points / knife edges on the touchable surface (1 mm ball volume fraction) -> {'below_0.15': 0, '0.15_to_0.20': 1, 'min_fraction': 0.195}",
   "[WARN] DR.line_width: grooves / lines >= 0.8 wide (2 nozzle widths) so they survive slicing and read -> [{'surface': 'face top', 'at': [-5.3, 34.81], 'w': 0.568}, {'surface': 'face top', 'at': [8.3, 34.81], 'w': 0.568}, {'surface': 'decor top', 'at': [-27.13, 14.41], 'w': 0.75}, {'surface': 'decor top', 'at': [-27.41, 9.16], 'w': 0.706}, {'surface': 'decor top', 'at': [27.13, 14.41], 'w': 0.75}, {'surface': 'decor top', 'at': [27.41, 9.16], 'w': 0.706}, {'surface': 'back plate', 'at': [23.48, 31.38], 'w': 0.75}, {'surface': 'back plate', 'at': [-23.48, 31.37], 'w': 0.75}]",
   "[WARN] DR.deboss_depth: debossed features >= 0.4 deep (2 layers at 0.2) -> [{'surface': 'face top', 'at': [-5.3, 34.81], 'd': 0.2}, {'surface': 'face top', 'at': [8.3, 34.81], 'd': 0.2}, {'surface': 'back plate', 'at': [23.48, 31.38], 'd': 0.3}, {'surface': 'back plate', 'at': [-23.48, 31.37], 'd': 0.3}]",
   "[WARN] DR.eyes: kawaii eye size / placement -> {'eye_d': 7.91, 'eye_spacing_cc': 13.6, 'face_width_at_eyes': 31.62, 'eye_d_over_face_w': 0.25, 'spacing_over_face_w': 0.43, 'head_circle_centre': [-0.0, 35.15], 'head_circle_r': 15.44, 'eye_line_below_head_centre_over_r': np.float64(0.122)}",
@@ -4620,8 +4789,8 @@
   "[WARN] DR.colour_swap: optional colour swap z 17.9-18.5 colours exactly the face features -> {'coloured_top_area_mm2': {'frame': 0.0, 'wheel': 0.0, 'head': 86.7}}"
  ],
  "n_pass": 17,
- "n_warn": 10,
- "n_fail": 1,
+ "n_warn": 9,
+ "n_fail": 2,
  "pass": false,
- "time_s": 441.8
+ "time_s": 531.8
 }

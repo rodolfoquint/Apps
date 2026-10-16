@@ -21,8 +21,8 @@
   ]
  ],
  "info": {
-  "t_sections_s": 4.03,
-  "t_solids_s": 4.93,
+  "t_sections_s": 5.31,
+  "t_solids_s": 5.67,
   "skin_contract": {
    "warnings": [
     "B_i only 1.76 mm inside Face2D (contract 3.0)",
@@ -66,9 +66,10 @@
    "ear_screw_R",
    "antenna_bulb"
   ],
-  "head_base": "<manifold3d.Manifold object at 0x7fb6556cbfa0>",
+  "head_base": "<manifold3d.Manifold object at 0x7f831c3607b0>",
   "head_feature_parts": {},
-  "frame_colour_masks": []
+  "frame_colour_masks": [],
+  "sculpt": {}
  },
  "sections": {
   "overall_W": 59.99,
@@ -198,10 +199,7 @@
  "files": [
   "stl/robot/purrbobble_robot_loose.stl"
  ],
- "renders": [
-  "renders/robot/purrbobble_robot_loose_face.png",
-  "renders/robot/purrbobble_robot_loose_three_quarter.png"
- ],
- "time_build_export_s": 12.83,
- "time_total_s": 15.2
+ "renders": [],
+ "time_build_export_s": 16.15,
+ "time_total_s": 16.35
 }

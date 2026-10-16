@@ -21,8 +21,8 @@
   ]
  ],
  "info": {
-  "t_sections_s": 4.72,
-  "t_solids_s": 5.95,
+  "t_sections_s": 6.0,
+  "t_solids_s": 7.6,
   "skin_contract": {
    "warnings": [
     "B_i only 1.32 mm inside Face2D (contract 3.0)",
@@ -63,9 +63,10 @@
    "bobble_R",
    "smile"
   ],
-  "head_base": "<manifold3d.Manifold object at 0x7f69ff3eff50>",
+  "head_base": "<manifold3d.Manifold object at 0x7fd992966c40>",
   "head_feature_parts": {},
-  "frame_colour_masks": []
+  "frame_colour_masks": [],
+  "sculpt": {}
  },
  "sections": {
   "overall_W": 61.17,
@@ -195,10 +196,7 @@
  "files": [
   "stl/bee/purrbobble_bee_loose.stl"
  ],
- "renders": [
-  "renders/bee/purrbobble_bee_loose_face.png",
-  "renders/bee/purrbobble_bee_loose_three_quarter.png"
- ],
- "time_build_export_s": 15.09,
- "time_total_s": 18.76
+ "renders": [],
+ "time_build_export_s": 18.37,
+ "time_total_s": 18.53
 }
