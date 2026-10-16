@@ -28,6 +28,12 @@ V11 Captivity: each moving body displaced 1.0 mm in +-X, +-Y, +-Z and tilted +-3
     the V-ridges deleted from the posts.  Free play by bisection (with / without ridges), the stop that limits a
     ridge-less lift (head: roof, wheel: paw lips, <= 1.0 mm), and a lift-ladder escape search (lift beyond the
     stop with lateral offsets and tilts must always interfere).
+
+Sculpt skins (the skin has a sculpt() method; purrbobble/sculpt.py builds the three bodies from the owner's mesh
+around the unchanged mechanism core): no roof, I3 slot, face layers, paw lips or knob.  Their checks are replaced by
+the equivalent checks of what is built: head body above the band <-> frame (XY slices + 3-D, swept), cap <-> static
+yarn ring, the umbrella rim / skid rings / cap <-> frame, the frame covers over the band and the static ring over the
+skid rings as the designed Z gaps and lift stops (gated on ``sculpt``; classic skins are unchanged).
 """
 from __future__ import annotations
 
@@ -116,6 +122,27 @@ def xy_gap(a: Manifold, b: Manifold, levels, cap: float = 2.0) -> float:
         if sa.is_empty() or sb.is_empty():
             continue
         ga, gb = g2.to_shapely(sa), g2.to_shapely(sb)
+        if ga.intersects(gb):
+            return 0.0
+        best = min(best, float(ga.distance(gb)))
+    return best
+
+
+def slice_sh(m: Manifold, z: float):
+    """Horizontal slice as a shapely geometry (None if empty)."""
+    s = m.slice(float(z))
+    return None if s.is_empty() else g2.to_shapely(s)
+
+
+def xy_gap_rot(fixed, moving, c, a_deg: float, cap: float = 2.0) -> float:
+    """xy_gap on pre-computed slices (lists of shapely geometries per level, None = empty): the moving body's slices
+    rotated a_deg about c (= the slices of the rotated body; much cheaper than re-slicing it at every pose)."""
+    from shapely import affinity
+    best = cap
+    for ga, gb in zip(fixed, moving):
+        if ga is None or gb is None:
+            continue
+        gb = affinity.rotate(gb, float(a_deg), origin=(float(c[0]), float(c[1])))
         if ga.intersects(gb):
             return 0.0
         best = min(best, float(ga.distance(gb)))
@@ -236,12 +263,12 @@ def cspace_reach_with_play(M, psi_b: float, play: float = 0.7, n_dir: int = 12) 
 
 # --------------------------------------------------------------------------------------------- Z-gap census
 def z_census(bodies: dict, axes: dict, rng_seed: int = 0, density: float = 20.0, min_nz: float = 0.3,
-             r_axis: float = 6.0) -> list[dict]:
+             r_axis: float = 6.0, area_below: float | None = None) -> list[dict]:
     """Vertical ray census: from every upward-facing face (normal z > min_nz) of each body, sample points
     (``density`` per mm^2), cast a +Z ray against all bodies and keep the rays whose FIRST hit is a different
     body.  Returns clusters keyed by (lower body, lower face class, lower z level, upper body, upper face class,
     zone); zone = 'journal_<name>' within r_axis of an axis in ``axes`` (posts, ridges, bore roofs), else
-    'field'."""
+    'field'.  area_below: also report each cluster's area with a gap below this value."""
     names = list(bodies)
     tms = [to_tm(bodies[n]) for n in names]
     offs = np.cumsum([0] + [len(t.faces) for t in tms])
@@ -293,11 +320,14 @@ def z_census(bodies: dict, axes: dict, rng_seed: int = 0, density: float = 20.0,
                     "zone": zn, "n": int(len(g)), "area_mm2": round(len(g) / density, 1), "gap_min": round(float(g.min()), 4),
                     "gap_p05": round(float(np.percentile(g, 5)), 4), "gap_max": round(float(g.max()), 4),
                     "at_min_xy": [round(float(v), 2) for v in xy[k]]})
+        if area_below is not None:
+            out[-1]["area_below_mm2"] = round(float((g < area_below).sum()) / density, 1)
     out.sort(key=lambda d: (d["lower"], d["lower_z"] if d["lower_z"] is not None else 99, d["upper"]))
     return out
 
 
-def census_select(cl, lower, lower_z, upper, upper_face="flat", gap_lt=None, zone="field", gap_ge=None):
+def census_select(cl, lower, lower_z, upper, upper_face="flat", gap_lt=None, zone="field", gap_ge=None,
+                  z_tol=0.011):
     """Clusters for a (lower body at z level) -> (upper body, upper face class) pair; returns (min, max, n)."""
     g_min, g_max, n = math.inf, -math.inf, 0
     for c in cl:
@@ -305,7 +335,7 @@ def census_select(cl, lower, lower_z, upper, upper_face="flat", gap_lt=None, zon
             continue
         if c["lower"] != lower or c["upper"] not in (upper if isinstance(upper, tuple) else (upper,)):
             continue
-        if lower_z is not None and (c["lower_z"] is None or abs(c["lower_z"] - lower_z) > 0.011):
+        if lower_z is not None and (c["lower_z"] is None or abs(c["lower_z"] - lower_z) > z_tol):
             continue
         if upper_face is not None and c["upper_face"] != upper_face:
             continue
@@ -362,7 +392,11 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
     O = (0.0, 0.0)
     lift = p.z_lift
     psi_b = p.psi_b
-    R.log(f"built {skin}/{variant}: P = {P}, z_lift {lift}")
+    # sculpt skin: no roof / I3 slot / face layers / paw lips / knob (see the module docstring)
+    sculpt = hasattr(M.skin, "sculpt")
+    sk = M.skin
+    gz = sk.gap_z + lift if sculpt else None                    # head floors / static ring over the skid rings
+    R.log(f"built {skin}/{variant}: P = {P}, z_lift {lift}" + (", sculpt" if sculpt else ""))
 
     journal = (p.bore_d - p.post_d) / 2.0
     rib_gap = p.z_band0 - (p.z_bp + p.rib_h) + lift
@@ -371,6 +405,9 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
     info = {"skin": skin, "variant": variant, "P": P, "psi_b": psi_b, "z_lift": lift,
             "design_journal": journal, "design_ridge_normal": p.ridge_gap_n, "design_rib_gap": rib_gap,
             "psi_poses": len(psis), "psi_step": float(psis[1] - psis[0])}
+    if sculpt:
+        info["sculpt"] = {"gap_z": sk.gap_z, "gap_z_floors": gz, "gap_xy": max(sk.gap_xy, p.gap_xy),
+                          "cap_r": sk.cap_r, "cap_gap": sk.cap_gap, "leg_low_top": sk.leg_low_top}
 
     # ---------------------------------------------------------------- crop regions
     zh0, zh1 = p.z_band0 + lift, p.z_band1 + lift              # head band layer
@@ -384,8 +421,19 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
     band_levels = [round(float(z), 3) for z in np.linspace(zh0 + 0.1, zh1 - 0.1, 9)]
     F_pads = F_band ^ pad_zone
     pad_pieces = sorted(F_pads.decompose(), key=lambda m: m.bounding_box()[0])
-    F_mid = F ^ zb(p.z_roof0 + 0.05, p.z_roof1 - 0.05)           # roof (+ fill) band seen by the face-mid layer
-    F_front = F ^ zb(p.z_front0 + lift + 0.05, p.z_knob_top + 1)
+    if sculpt:
+        # the head body rises continuously from its floors (z 3.0 .. 14) to the sculpt surface: XY on slices over
+        # its whole height above the band (levels at .075 mod 0.2: >= 0.02 off the floors .037, cut flats .023,
+        # covers .014 / .184, static ring .114; post tops cut out), and 3-D from just under the band top (designed
+        # Z gaps: band top -> covers, floors -> frame flats; posts and pads cut out)
+        up_levels = [round(float(z), 4) for z in np.arange(zh1 + 0.075, H.bounding_box()[5], 0.2)]
+        F_upx = F - (cyl(O, 6.0, -1, p.post_z1 + 0.05) + cyl(P, 6.0, -1, p.post_z1 + 0.05))
+        up_f = [slice_sh(F_upx, z) for z in up_levels]
+        up_h = [slice_sh(H, z) for z in up_levels]
+        F_up = F - posts_zone - pad_zone
+    else:
+        F_mid = F ^ zb(p.z_roof0 + 0.05, p.z_roof1 - 0.05)       # roof (+ fill) band seen by the face-mid layer
+        F_front = F ^ zb(p.z_front0 + lift + 0.05, p.z_knob_top + 1)
     F_noposts = F - (cyl(O, 5.5, -1, p.bore_roof_z + 1) + cyl(P, 5.5, -1, p.bore_roof_z + 1))
 
     # =============================================================== V5 frame x head
@@ -394,10 +442,14 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
     for psi in psis:
         h = M.head_at(psi)
         hb = h ^ band
-        rows.append({"psi": float(psi), "overlap": ov(F, h), "gap_all": gap(F, h, 1.0),
-                     "gap_nonpad": xy_gap(F_band_np, hb, band_levels), "gap_pads": gap(F_pads, hb, 3.0),
-                     "gap_mid": gap(F_mid, h ^ zb(p.z_roof0 + 0.05, p.z_roof1 - 0.05), 2.0),
-                     "gap_front": gap(F_front, h ^ zb(p.z_front0 + lift + 0.05, p.z_feat + lift + 1), 5.0)})
+        r = {"psi": float(psi), "overlap": ov(F, h), "gap_all": gap(F, h, 1.0),
+             "gap_nonpad": xy_gap(F_band_np, hb, band_levels), "gap_pads": gap(F_pads, hb, 3.0)}
+        if sculpt:
+            r.update(gap_up_xy=xy_gap_rot(up_f, up_h, P, psi), gap_up_3d=gap(F_up, h ^ zb(zh1 - 0.05, 60), 1.0))
+        else:
+            r.update(gap_mid=gap(F_mid, h ^ zb(p.z_roof0 + 0.05, p.z_roof1 - 0.05), 2.0),
+                     gap_front=gap(F_front, h ^ zb(p.z_front0 + lift + 0.05, p.z_feat + lift + 1), 5.0))
+        rows.append(r)
     ovmax = max(r["overlap"] for r in rows)
     interior = [r for r in rows if abs(abs(r["psi"]) - psi_b) > 1e-6]
     touch_int = [r["psi"] for r in interior if min(r["gap_all"], r["gap_pads"]) < TOUCH]
@@ -558,14 +610,33 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
            "gap_vs_psi_(|psi|>=10.9)": pad_curve},
           "SPEC V6 'head<->fill >= 0.50 for |psi| <= 12.2' cannot hold at the pads: SPEC 2.5 builds them to touch "
           "the leg flank exactly at psi_b. Reported, not failed; contact only at |psi| = psi_b is checked in V5")
-    gm = [r["gap_mid"] for r in rows]
-    R.add("V6.facemid_roof", "face mid layer <-> roof edge (XY, swept)", status_of(min(gm) >= SPEC["facemid_roof_min"]),
-          {"min": r4(min(gm)), "at_psi": r4(rows[int(np.argmin(gm))]["psi"])},
-          f">= {SPEC['facemid_roof_min']}")
-    gf = [r["gap_front"] for r in rows]
-    R.add("V6.face_front_frame", "face front layer (z >= 11.4) <-> paws / decor / anything on the roof (XY)",
-          status_of(min(gf) >= SPEC["head_fill_min"]), {"min_capped_at_5": r4(min(gf))},
-          ">= 0.50 (SPEC 3.2: decor >= 2 mm outside Swept(FaceUp))")
+    if sculpt:
+        # (no face mid layer, roof or front layer: the head body above the band against the whole frame instead)
+        gm = [r["gap_up_xy"] for r in rows]
+        R.add("V6.facemid_roof", "head body above the band <-> frame (XY slices over the head's whole height, swept)",
+              status_of(min(gm) >= SPEC["head_fill_min"]),
+              {"min": r4(min(gm)), "at_psi": r4(rows[int(np.argmin(gm))]["psi"]), "levels": len(up_levels),
+               "z_range": [up_levels[0], up_levels[-1]], "designed": r4(max(sk.gap_xy, p.gap_xy) + p.sweep_allowance)},
+              f">= {SPEC['head_fill_min']} (SPEC V6 head<->fill; sculpt: replaces face mid <-> roof, every 0.2 mm "
+              f"from the band top up, all psi)")
+        gf = [r["gap_up_3d"] for r in rows]
+        R.add("V6.face_front_frame", "head above the band top <-> frame, 3-D (band top under the covers, floors over "
+                                     "the frame's cut flats; posts and stop pads excluded), swept",
+              status_of(min(gf) >= sk.gap_z - SPEC["rib_tol"]),
+              {"min_capped_at_1": r4(min(gf)), "at_psi": r4(rows[int(np.argmin(gf))]["psi"]),
+               "designed_z": [sk.gap_z, r4(gz)]},
+              f">= {sk.gap_z - SPEC['rib_tol']:.4f} (nothing closer than the designed Z gaps gap_z {sk.gap_z} / "
+              f"{gz:.4f}; sculpt: replaces face front layer <-> paws / decor)")
+    else:
+        gm = [r["gap_mid"] for r in rows]
+        R.add("V6.facemid_roof", "face mid layer <-> roof edge (XY, swept)",
+              status_of(min(gm) >= SPEC["facemid_roof_min"]),
+              {"min": r4(min(gm)), "at_psi": r4(rows[int(np.argmin(gm))]["psi"])},
+              f">= {SPEC['facemid_roof_min']}")
+        gf = [r["gap_front"] for r in rows]
+        R.add("V6.face_front_frame", "face front layer (z >= 11.4) <-> paws / decor / anything on the roof (XY)",
+              status_of(min(gf) >= SPEC["head_fill_min"]), {"min_capped_at_5": r4(min(gf))},
+              ">= 0.50 (SPEC 3.2: decor >= 2 mm outside Swept(FaceUp))")
 
     # =============================================================== V6 wheel <-> frame
     R.log("V6 wheel interfaces")
@@ -575,58 +646,123 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
     W_cone = W ^ zb(p.z_teeth1 + lift + 0.05, p.umb_rim_z0 + lift - 0.05)
     F_cone = (F ^ zb(p.z_teeth1 - 0.5, p.umb_rim_z1 + 0.5)) - posts_zone
     W_rim = W ^ zb(p.umb_rim_z0 + lift - 0.05, p.umb_rim_z1 + lift + 0.05)
-    F_rim = F ^ zb(p.paw_z0, p.z_umb_top + 1.0)
-    W_top = crop(W, zb(p.umb_rim_z1 + lift, p.z_umb_top + lift + 0.05), ann(O, p.R_u - 2.0, p.R_u + 0.5, -1, 30))
-    F_paws = F ^ zb(p.z_umb_top - 0.3, p.z_knob_top + 1)
-    knob = W ^ cyl((p.r_k, 0.0), p.knob_d / 2 + p.knob_root_fillet + 0.2, p.z_umb_top + lift + 0.02, p.z_knob_top + 1)
-    W_ext = W ^ zb(p.z_roof1, 40)
-    F_ext = F ^ zb(p.z_roof1 - 0.5, 40)
-    sub = {"teeth_fill": [], "cone_funnel_seat": [], "rim_paw_wall": [], "balltop_paw_lip_normal": [],
-           "wheel_vs_frame_above_roof": []}
-    for phi in np.arange(0, 360, 30.0):
-        sub["teeth_fill"].append(gap(F_teeth, W_teeth.rotate((0, 0, phi)), 2.0))
-        sub["cone_funnel_seat"].append(gap(F_cone, W_cone.rotate((0, 0, phi)), 2.0))
-        sub["rim_paw_wall"].append(gap(F_rim, W_rim.rotate((0, 0, phi)), 2.0))
-        sub["balltop_paw_lip_normal"].append(gap(F_paws, W_top.rotate((0, 0, phi)), 2.0))
-        sub["wheel_vs_frame_above_roof"].append(gap(F_ext, W_ext.rotate((0, 0, phi)), 2.0))
-    for phi in np.arange(0, 45, 0.5):
-        sub["teeth_fill"].append(gap(F_teeth, W_teeth.rotate((0, 0, phi)), 2.0))
-    subm = {k: r4(min(v)) for k, v in sub.items()}
-    R.add("V6.wheel_frame_xy", "wheel <-> frame, XY / normal interfaces (journal excluded)",
-          status_of(min(subm.values()) >= SPEC["wheel_frame_xy_min"]), subm,
-          f">= {SPEC['wheel_frame_xy_min']} each (designed: teeth 0.50, cone 0.50 normal, rim 0.60, "
-          f"knob 1.00; ball fillet <-> 45 deg lip is 0.71 normal / 1.00 vertical)")
     kp = []
-    if knob.is_empty() or knob.volume() < 1e-3:
-        # recessed finger well (params.wheel_drive == "well"): nothing of the wheel stands above the ball top, so
-        # there is no knob <-> paw interface; the well rim is part of the ball top, checked by
-        # balltop_paw_lip_normal above (annulus r 16 .. 18.5 includes the well's outer rim at r 16.85)
-        above = W ^ zb(p.z_umb_top + lift + 0.01, 60)
-        R.add("V6.knob_paw", "knob <-> paw lip (finger well: no protruding knob)",
-              status_of(above.is_empty() or above.volume() < 1e-3),
-              {"wheel_volume_above_ball_top_mm3": r4(0.0 if above.is_empty() else above.volume()),
-               "drive": getattr(p, "wheel_drive", "knob"), "balltop_paw_lip_normal": subm["balltop_paw_lip_normal"]},
-              f"no wheel material above the ball top (finger well); well rim <-> paw lip >= {SPEC['knob_paw_min']} "
-              "via balltop_paw_lip_normal")
-    else:
+    if sculpt:
+        # no paws / lips / knob / roof: the umbrella rim turns inside the wheel envelope's wall, and above the
+        # umbrella top the skid rings and the cap turn under / inside the static yarn ring.  XY on slices there
+        # (levels at .05 mod 0.1, off the wheel tops .0 and the ring undersides .014), and 3-D above the rim top,
+        # where only the designed Z gaps (umbrella top / skid rings -> static ring) may be below the XY minimum
+        F_rim = F ^ zb(p.umb_rim_z0 + lift - 0.5, p.umb_rim_z1 + lift + 0.5)
+        w_levels = [round(float(z), 4) for z in np.arange(p.z_umb_top + lift - 0.05, W.bounding_box()[5], 0.1)]
+        wt_f = [slice_sh(F, z) for z in w_levels]
+        wt_w = [slice_sh(W, z) for z in w_levels]
+        W_abv = W ^ zb(p.umb_rim_z1 + lift, 60)
+        F_abv = F ^ ann(O, sk.cap_r - 1.0, p.R_u + 3.0, p.umb_rim_z1 + lift - 0.5, 60)
+        sub = {"teeth_fill": [], "cone_funnel_seat": [], "rim_frame_wall": [], "above_umbrella_top_xy": []}
+        sub3 = []
+        for phi in np.arange(0, 360, 30.0):
+            sub["teeth_fill"].append(gap(F_teeth, W_teeth.rotate((0, 0, phi)), 2.0))
+            sub["cone_funnel_seat"].append(gap(F_cone, W_cone.rotate((0, 0, phi)), 2.0))
+            sub["rim_frame_wall"].append(gap(F_rim, W_rim.rotate((0, 0, phi)), 2.0))
+            sub["above_umbrella_top_xy"].append(xy_gap_rot(wt_f, wt_w, O, phi))
+            sub3.append(gap(F_abv, W_abv.rotate((0, 0, phi)), 1.0))
+        for phi in np.arange(0, 45, 0.5):
+            sub["teeth_fill"].append(gap(F_teeth, W_teeth.rotate((0, 0, phi)), 2.0))
+        subm = {k: r4(min(v)) for k, v in sub.items()}
+        subm["above_rim_top_3d_(Z criterion)"] = r4(min(sub3))
+        gxy = max(sk.gap_xy, p.gap_xy)
+        R.add("V6.wheel_frame_xy", "wheel <-> frame, XY / normal interfaces (journal excluded): teeth, cone, umbrella "
+                                   "rim, skid rings and cap under / inside the static yarn ring",
+              status_of(min(min(v) for v in sub.values()) >= SPEC["wheel_frame_xy_min"]
+                        and min(sub3) >= SPEC["wheel_frame_z_min"]), subm,
+              f">= {SPEC['wheel_frame_xy_min']} each XY (designed: teeth 0.50, cone 0.50 normal, rim {gxy:.2f}, "
+              f"cap <-> ring {sk.cap_gap} radial; XY slices z {w_levels[0]}..{w_levels[-1]} every 0.1); 3-D above "
+              f"the rim top >= {SPEC['wheel_frame_z_min']} (the designed Z gaps umbrella top / skid rings -> ring, "
+              f"{gz:.4f})")
+        # spinning cap (r cap_r, the finger dish's body) <-> static yarn ring around it: replaces knob <-> paw lip
+        cap = W ^ zb(p.z_umb_top + lift + p.rib_h + 0.02, 60)
+        F_ring = F ^ ann(O, sk.cap_r - 1.0, sk.cap_r + sk.cap_gap + 2.0, p.z_umb_top + lift, 60)
         for phi in range(0, 360, 2):
-            kp.append(gap(F_paws, knob.rotate((0, 0, float(phi))), 3.0))
-        R.add("V6.knob_paw", "knob <-> paw lip, phi 0..358 step 2", status_of(min(kp) >= SPEC["knob_paw_min"]),
-              {"min": r4(min(kp)), "at_phi": int(2 * np.argmin(kp)), "max_of_min": r4(max(kp))},
-              f">= {SPEC['knob_paw_min']} (designed 1.00)")
+            kp.append(gap(F_ring, cap.rotate((0, 0, float(phi))), 1.0))
+        journal_ = (p.bore_d - p.post_d) / 2.0
+        k_play = min(gap(F_ring, cap.translate((journal_ * c_, journal_ * s_, 0.0)), 1.0)
+                     for c_, s_ in ((1, 0), (0, 1), (-1, 0), (0, -1)))
+        kp_lo = max(SPEC["wheel_frame_xy_min"], sk.cap_gap - SPEC["rib_tol"])
+        R.add("V6.knob_paw", "spinning cap <-> static yarn ring (radial, constant), phi 0..358 step 2",
+              status_of(min(kp) >= kp_lo),
+              {"min": r4(min(kp)), "at_phi": int(2 * np.argmin(kp)), "max_of_min": r4(max(kp)),
+               "with_full_journal_play_(info)": r4(k_play), "designed": sk.cap_gap},
+              f">= {kp_lo:.2f} (designed cap_gap {sk.cap_gap} - {SPEC['rib_tol']}, not below the wheel <-> frame XY "
+              f"minimum {SPEC['wheel_frame_xy_min']}; sculpt: replaces knob <-> paw lip, SPEC {SPEC['knob_paw_min']})")
+    else:
+        F_rim = F ^ zb(p.paw_z0, p.z_umb_top + 1.0)
+        W_top = crop(W, zb(p.umb_rim_z1 + lift, p.z_umb_top + lift + 0.05), ann(O, p.R_u - 2.0, p.R_u + 0.5, -1, 30))
+        F_paws = F ^ zb(p.z_umb_top - 0.3, p.z_knob_top + 1)
+        knob = W ^ cyl((p.r_k, 0.0), p.knob_d / 2 + p.knob_root_fillet + 0.2, p.z_umb_top + lift + 0.02,
+                       p.z_knob_top + 1)
+        W_ext = W ^ zb(p.z_roof1, 40)
+        F_ext = F ^ zb(p.z_roof1 - 0.5, 40)
+        sub = {"teeth_fill": [], "cone_funnel_seat": [], "rim_paw_wall": [], "balltop_paw_lip_normal": [],
+               "wheel_vs_frame_above_roof": []}
+        for phi in np.arange(0, 360, 30.0):
+            sub["teeth_fill"].append(gap(F_teeth, W_teeth.rotate((0, 0, phi)), 2.0))
+            sub["cone_funnel_seat"].append(gap(F_cone, W_cone.rotate((0, 0, phi)), 2.0))
+            sub["rim_paw_wall"].append(gap(F_rim, W_rim.rotate((0, 0, phi)), 2.0))
+            sub["balltop_paw_lip_normal"].append(gap(F_paws, W_top.rotate((0, 0, phi)), 2.0))
+            sub["wheel_vs_frame_above_roof"].append(gap(F_ext, W_ext.rotate((0, 0, phi)), 2.0))
+        for phi in np.arange(0, 45, 0.5):
+            sub["teeth_fill"].append(gap(F_teeth, W_teeth.rotate((0, 0, phi)), 2.0))
+        subm = {k: r4(min(v)) for k, v in sub.items()}
+        R.add("V6.wheel_frame_xy", "wheel <-> frame, XY / normal interfaces (journal excluded)",
+              status_of(min(subm.values()) >= SPEC["wheel_frame_xy_min"]), subm,
+              f">= {SPEC['wheel_frame_xy_min']} each (designed: teeth 0.50, cone 0.50 normal, rim 0.60, "
+              f"knob 1.00; ball fillet <-> 45 deg lip is 0.71 normal / 1.00 vertical)")
+        if knob.is_empty() or knob.volume() < 1e-3:
+            # recessed finger well (params.wheel_drive == "well"): nothing of the wheel stands above the ball top, so
+            # there is no knob <-> paw interface; the well rim is part of the ball top, checked by
+            # balltop_paw_lip_normal above (annulus r 16 .. 18.5 includes the well's outer rim at r 16.85)
+            above = W ^ zb(p.z_umb_top + lift + 0.01, 60)
+            R.add("V6.knob_paw", "knob <-> paw lip (finger well: no protruding knob)",
+                  status_of(above.is_empty() or above.volume() < 1e-3),
+                  {"wheel_volume_above_ball_top_mm3": r4(0.0 if above.is_empty() else above.volume()),
+                   "drive": getattr(p, "wheel_drive", "knob"),
+                   "balltop_paw_lip_normal": subm["balltop_paw_lip_normal"]},
+                  f"no wheel material above the ball top (finger well); well rim <-> paw lip >= "
+                  f"{SPEC['knob_paw_min']} via balltop_paw_lip_normal")
+        else:
+            for phi in range(0, 360, 2):
+                kp.append(gap(F_paws, knob.rotate((0, 0, float(phi))), 3.0))
+            R.add("V6.knob_paw", "knob <-> paw lip, phi 0..358 step 2", status_of(min(kp) >= SPEC["knob_paw_min"]),
+                  {"min": r4(min(kp)), "at_phi": int(2 * np.argmin(kp)), "max_of_min": r4(max(kp))},
+                  f">= {SPEC['knob_paw_min']} (designed 1.00)")
 
     # face <-> ball rim (FaceMid / FaceUp vs umbrella), all psi, a few phi
-    W_ball = (W ^ zb(p.z_teeth1 + lift - 0.1, p.z_umb_top + lift + 0.1)) - cyl((p.r_k, 0), 6.5, -1, 30)
+    if sculpt:
+        # the head body never swings over the yarn ball (ball_keep_r about O): the whole wheel (umbrella, skid rings,
+        # cap) against the head above the band.  The chin faces the STATIC yarn ring (frame), so the classic upper
+        # bound (an exposed head <-> ball slit < 2 mm) has no head <-> wheel counterpart: that slit is a head <->
+        # frame boundary (V6.facemid_roof here, V12 pinch in v_safety)
+        W_ball = W
+    else:
+        W_ball = (W ^ zb(p.z_teeth1 + lift - 0.1, p.z_umb_top + lift + 0.1)) - cyl((p.r_k, 0), 6.5, -1, 30)
     H_face = H ^ zb(p.z_band1 + lift + 0.05, p.z_feat + lift + 1)
     fb = []
     for psi in psis:
         hf = H_face.translate((-P[0], -P[1], 0)).rotate((0, 0, float(psi))).translate((P[0], P[1], 0))
         fb.append(min(gap(hf, W_ball.rotate((0, 0, float(ph))), 3.0) for ph in (0.0, 22.5)))
     lo_fb, hi_fb = SPEC["face_ball"]
-    R.add("V6.face_ball", "face (FaceMid/FaceUp) <-> ball rim (XY) over the swing",
-          status_of(min(fb) >= lo_fb and max(fb) <= hi_fb),
-          {"min": r4(min(fb)), "max_of_min": r4(max(fb)), "at_psi_min": r4(psis[int(np.argmin(fb))])},
-          f"in [{lo_fb}, {hi_fb}] at every psi (designed 1.53-1.71)")
+    if sculpt:
+        R.add("V6.face_ball", "head above the band <-> wheel (umbrella / skid rings / cap) over the swing",
+              status_of(min(fb) >= lo_fb),
+              {"min_capped_at_3": r4(min(fb)), "max_of_min": r4(max(fb)), "at_psi_min": r4(psis[int(np.argmin(fb))]),
+               "ball_keep_r": sk.ball_keep_r, "R_u": p.R_u},
+              f">= {lo_fb} at every psi (sculpt: the upper bound {hi_fb} is n/a - the chin faces the static yarn ring, "
+              f"not the wheel)")
+    else:
+        R.add("V6.face_ball", "face (FaceMid/FaceUp) <-> ball rim (XY) over the swing",
+              status_of(min(fb) >= lo_fb and max(fb) <= hi_fb),
+              {"min": r4(min(fb)), "max_of_min": r4(max(fb)), "at_psi_min": r4(psis[int(np.argmin(fb))])},
+              f"in [{lo_fb}, {hi_fb}] at every psi (designed 1.53-1.71)")
 
     # =============================================================== V6 Z gaps (ray census)
     R.log("V6 vertical Z-gap census")
@@ -634,11 +770,12 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
     census_poses = {"design_0_0": (0.0, 0.0), "print": pp}
     census = {}
     axes = {"O": O, "P": P}
+    zkw = {"area_below": field_min} if sculpt else {}             # (sculpt: float areas without a field, info)
     for k, (phi, psi) in census_poses.items():
-        census[k] = z_census(M.posed(phi, psi), axes)
+        census[k] = z_census(M.posed(phi, psi), axes, **zkw)
     for s in (+1, -1):
         b = M.posed(0.0, s * psi_b)
-        census[f"head_{s * psi_b:+.2f}"] = z_census({"frame": b["frame"], "head": b["head"]}, axes)
+        census[f"head_{s * psi_b:+.2f}"] = z_census({"frame": b["frame"], "head": b["head"]}, axes, **zkw)
     z_rib_b, z_rib_r = p.z_bp + p.rib_h, p.z_roof1 + p.rib_h
     # (lower body, lower z, upper body, gap_lt) for every rib float and (..., gap_ge) for its field.  With the
     # crown ring (fix round 1) the roof-top ribs moved onto the head: band-top ribs under the crown roof and
@@ -651,7 +788,24 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
     #                                                  shortened by z_lift), while the back-rib gap grows by z_lift
     rib_want = {"back_ribs_to_head": rib_gap, "back_ribs_to_wheel": rib_gap}
     fld_want = {"back_plate_to_head": field_min, "back_plate_to_wheel": field_min}
-    if p.crown_ring:
+    z_tol = 0.011
+    if sculpt:
+        # no crown ring / roof / front layer.  The thin designed Z gaps are the back ribs, the frame flats cut at
+        # z_band0 - gap_z under the head body's lowest floor (2.59: told apart from the 2.6 rib tops by z_tol), the
+        # skid rings under the static yarn ring, and the band tops under the frame covers (full-height legs under
+        # the chest, lowered legs): the head's and the wheel's lift stops.  The umbrella top under the static ring
+        # is the skid rings' field.  (The head floors over the frame's other cut flats sit gap_z + z_lift above
+        # them but vary per pose: V6.any_flat_z_gap / V6.face_front_frame.)
+        z_tol = 0.004
+        rib_sel.update(frame_cut_flats_to_head=("frame", round(p.z_band0 + lift - gz, 2), "head", 1.0, None),
+                       skid_rings_to_static_ring=("wheel", p.z_umb_top + lift + p.rib_h, "frame", 1.0, None),
+                       band_top_to_chest_cover=("head", p.z_band1 + lift, "frame", 0.7, None),
+                       lowered_legs_to_cover=("head", sk.leg_low_top + lift, "frame", 0.7, None))
+        rib_want.update(frame_cut_flats_to_head=gz, skid_rings_to_static_ring=gz, band_top_to_chest_cover=sk.gap_z,
+                        lowered_legs_to_cover=sk.gap_z)
+        fld_sel["umbrella_top_to_static_ring"] = ("wheel", p.z_umb_top + lift, "frame", None, None)
+        fld_want["umbrella_top_to_static_ring"] = field_min
+    elif p.crown_ring:
         rib_sel["band_ribs_to_crown_roof"] = ("head", None, "frame", 0.7, None)      # band ribs (and band groove)
         rib_sel["crown_top_to_front_ribs"] = ("frame", p.z_roof1, "head", 0.7, None)
         fld_sel["band_top_to_crown_roof"] = ("head", p.z_band1 + lift, "frame", None, 0.7)
@@ -670,29 +824,46 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
     other_min = []
     for k, cl in census.items():
         for key, (lo, lo_z, up, lt, ge) in rib_sel.items():
-            g0, _, n = census_select(cl, lo, lo_z, up, "flat", gap_lt=lt, gap_ge=ge)
+            g0, _, n = census_select(cl, lo, lo_z, up, "flat", gap_lt=lt, gap_ge=ge, z_tol=z_tol)
             if n:
                 rib[key].append(g0)
         for key, (lo, lo_z, up, lt, ge) in fld_sel.items():
-            g0, _, n = census_select(cl, lo, lo_z, up, "flat", gap_lt=lt, gap_ge=ge)
+            g0, _, n = census_select(cl, lo, lo_z, up, "flat", gap_lt=lt, gap_ge=ge, z_tol=z_tol)
             if n:
                 fld[key].append(g0)
         for c in cl:   # every flat-over-flat gap between two different bodies
             if c["lower_face"] == "flat" and c["upper_face"] == "flat":
                 other_min.append((c["gap_min"], k, c["lower"], c["lower_z"], c["upper"], c["at_min_xy"], c["zone"]))
-    if not p.crown_ring:
+    if not p.crown_ring and not sculpt:
         rib_want["roof_ribs_to_face_front"] = rib_gap
         fld_want["roof_to_face_front"] = field_min
     rib_m = {k: [r4(min(v)), r4(max(v))] if v else None for k, v in rib.items()}
     rib_ok = all(v and abs(min(v) - rib_want[k]) <= SPEC["rib_tol"] and abs(max(v) - rib_want[k]) <= SPEC["rib_tol"]
                  for k, v in rib.items())
-    R.add("V6.rib_z", "skid-rib float Z gaps (back ribs under head / wheel; crown: band-top ribs under the roof and "
-                      "front-layer ribs over the crown top)",
-          status_of(rib_ok), rib_m, "per interface " + ", ".join(f"{k} {v:.2f}" for k, v in rib_want.items())
+    fmt = ".4f" if sculpt else ".2f"
+    R.add("V6.rib_z", "skid-rib float Z gaps (back ribs under head / wheel; " + (
+              "sculpt: cut flats under the head body, skid rings under the static ring, band tops under the covers)"
+              if sculpt else "crown: band-top ribs under the roof and front-layer ribs over the crown top)"),
+          status_of(rib_ok), rib_m, "per interface " + ", ".join(f"{k} {v:{fmt}}" for k, v in rib_want.items())
           + f" (+- {SPEC['rib_tol']}, min/max over the rib tops, all census poses)")
     fld_m = {k: r4(min(v)) if v else None for k, v in fld.items()}
-    R.add("V6.field_z", "float field Z gaps (back plate / crown roof / crown top under the floats)",
-          status_of(all(fld_m[k] is not None and fld_m[k] >= fld_want[k] - 1e-3 for k in fld_m)), fld_m,
+    fdet = {}
+    if sculpt:
+        # (info for V9: the floats the sculpt prints straight over a flat at gap_z, with no >= field_min field
+        # beside a rib: band tops under the covers, head floors over the frame's cut flats; design pose)
+        flo = {"band_tops_under_covers": 0.0, "head_floors_over_frame_flats": 0.0}
+        zl_ok = {round(p.z_band1 + lift, 2), round(sk.leg_low_top + lift, 2)}
+        for c in census["design_0_0"]:
+            if c["zone"] != "field" or c["lower_face"] != "flat" or c["upper_face"] != "flat":
+                continue
+            if c["lower"] == "head" and c["upper"] == "frame" and c["lower_z"] in zl_ok:
+                flo["band_tops_under_covers"] += c["area_below_mm2"]
+            elif c["lower"] == "frame" and c["upper"] == "head" and c["lower_z"] not in (p.z_bp, round(z_rib_b, 2)):
+                flo["head_floors_over_frame_flats"] += c["area_below_mm2"]
+        fdet = {"(info)_float_area_with_gap_below_field_min_mm2": {k: round(v, 1) for k, v in flo.items()}}
+    R.add("V6.field_z", "float field Z gaps (back plate / " + ("umbrella top under the static ring" if sculpt else
+                                                                 "crown roof / crown top") + " under the floats)",
+          status_of(all(fld_m[k] is not None and fld_m[k] >= fld_want[k] - 1e-3 for k in fld_m)), dict(fld_m, **fdet),
           "per interface >= " + ", ".join(f"{k} {v:.2f}" for k, v in fld_want.items()))
     other_min.sort(key=lambda t: t[0])
     R.add("V6.any_flat_z_gap", "smallest flat-over-flat Z gap between different bodies anywhere (census poses)",
@@ -703,22 +874,40 @@ def run(skin: str, variant: str, quiet: bool = False) -> dict:
            "n_clusters_below_0.6": len([t for t in other_min if t[0] < 0.6])},
           f">= {min(rib_want.values()) - SPEC['rib_tol']:.2f} (nothing tighter than the designed rib floats)")
     cl = census["design_0_0"]
-    g_legs = census_select(cl, "head", p.z_band1 + lift, "frame", "flat")[0]
-    g_pal = census_select(cl, "head", p.z_pallet_top + lift, "wheel", "flat")[0]
-    g_cone = census_select(cl, "frame", p.z_roof1, "wheel", "slanted")[0]
-    g_lip = census_select(cl, "wheel", None, "frame", None)[0]          # ball rim / knob -> paw lips (field)
+    g_legs = census_select(cl, "head", p.z_band1 + lift, "frame", "flat", z_tol=z_tol)[0]
+    g_pal = census_select(cl, "head", p.z_pallet_top + lift, "wheel", "flat", z_tol=z_tol)[0]
     g_ridge = min(census_select(cl, "wheel", None, "frame", None, zone="journal_O")[0],
                   census_select(cl, "head", None, "frame", None, zone="journal_P")[0])
-    want_legs = p.z_roof0 - p.z_band1 - lift
-    want_lip = 1.0 - lift - 0.02
-    R.add("V6.designed_z_gaps", "other designed Z gaps (SPEC 3.2) from the ray census at phi 0 / psi 0",
-          status_of(abs(g_legs - want_legs) <= 0.02 and abs(g_pal - z_pal_plate) <= 0.02
-                    and g_cone >= SPEC["wheel_frame_z_min"] and g_lip >= want_lip),
-          {"head_band_top_to_roof_underside": r4(g_legs), "pallet_top_to_umbrella_plate": r4(g_pal),
-           "roof_top_to_umbrella_cone_vertical": r4(g_cone), "ball_rim_to_paw_lip_vertical": r4(g_lip),
-           "ridge_axial_play_vertical_(info)": r4(g_ridge)},
-          f"legs<->roof {want_legs:.2f} and pallet<->plate {z_pal_plate:.2f} (+-0.02); roof<->cone vertical >= "
-          f"{SPEC['wheel_frame_z_min']}; ball<->paw lip vertical >= {want_lip:.2f} (SPEC 3.2 >= 1.00, minus z_lift)")
+    if sculpt:
+        # no roof (the band top glides under the frame covers), no paw lips (the static yarn ring floats over the
+        # skid rings), no roof top under the cone (the wheel envelope's ledges are): any frame upward face under the
+        # slanted cone, and a missing interface fails instead of passing on inf
+        g_cone = census_select(cl, "frame", None, "wheel", "slanted")[0]
+        g_lip = census_select(cl, "wheel", p.z_umb_top + lift + p.rib_h, "frame", "flat", z_tol=z_tol)[0]
+        want_legs = sk.gap_z
+        R.add("V6.designed_z_gaps", "other designed Z gaps from the ray census at phi 0 / psi 0 (sculpt: covers, "
+                                    "static ring)",
+              status_of(abs(g_legs - want_legs) <= 0.02 and abs(g_pal - z_pal_plate) <= 0.02
+                        and math.isfinite(g_cone) and g_cone >= SPEC["wheel_frame_z_min"] and abs(g_lip - gz) <= 0.02),
+              {"head_band_top_to_chest_cover": r4(g_legs), "pallet_top_to_umbrella_plate": r4(g_pal),
+               "frame_ledge_to_umbrella_cone_vertical": r4(g_cone), "skid_rings_to_static_ring_vertical": r4(g_lip),
+               "ridge_axial_play_vertical_(info)": r4(g_ridge)},
+              f"legs<->chest cover {want_legs:.4f}, pallet<->plate {z_pal_plate:.2f} and skid rings<->static ring "
+              f"{gz:.4f} (+-0.02); frame<->cone vertical >= {SPEC['wheel_frame_z_min']} (present)")
+    else:
+        g_cone = census_select(cl, "frame", p.z_roof1, "wheel", "slanted")[0]
+        g_lip = census_select(cl, "wheel", None, "frame", None)[0]          # ball rim / knob -> paw lips (field)
+        want_legs = p.z_roof0 - p.z_band1 - lift
+        want_lip = 1.0 - lift - 0.02
+        R.add("V6.designed_z_gaps", "other designed Z gaps (SPEC 3.2) from the ray census at phi 0 / psi 0",
+              status_of(abs(g_legs - want_legs) <= 0.02 and abs(g_pal - z_pal_plate) <= 0.02
+                        and g_cone >= SPEC["wheel_frame_z_min"] and g_lip >= want_lip),
+              {"head_band_top_to_roof_underside": r4(g_legs), "pallet_top_to_umbrella_plate": r4(g_pal),
+               "roof_top_to_umbrella_cone_vertical": r4(g_cone), "ball_rim_to_paw_lip_vertical": r4(g_lip),
+               "ridge_axial_play_vertical_(info)": r4(g_ridge)},
+              f"legs<->roof {want_legs:.2f} and pallet<->plate {z_pal_plate:.2f} (+-0.02); roof<->cone vertical >= "
+              f"{SPEC['wheel_frame_z_min']}; ball<->paw lip vertical >= {want_lip:.2f} (SPEC 3.2 >= 1.00, minus "
+              f"z_lift)")
     info["census"] = census
 
     # =============================================================== V7 print pose (exported STL)
@@ -905,6 +1094,7 @@ def _com(m: Manifold):
 
 def v11(R: Report, M, psis, C, phis_c):
     p = M.params
+    sculpt = hasattr(M.skin, "sculpt")
     F = M.frame
     Fnr, removed = ridgeless_frame(M)
     exp_ridge = 2 * 0.5 * (2 * p.ridge_h) * p.ridge_h * 2 * math.pi * (p.post_r + p.ridge_h / 3)
@@ -982,6 +1172,7 @@ def v11(R: Report, M, psis, C, phis_c):
 
     # which feature stops the ridge-less lift?
     stops = {}
+    all_pcs = {}
     for bname in ("head", "wheel"):
         body = M.head_at(p.psi_print) if bname == "head" else M.wheel_at(p.phi_print)
         dz = lift_nr[bname] + 0.03
@@ -992,15 +1183,33 @@ def v11(R: Report, M, psis, C, phis_c):
             cx, cy = 0.5 * (bb[0] + bb[3]), 0.5 * (bb[1] + bb[4])
             pcs.append({"vol": r4(q.volume()), "z": [r4(bb[2]), r4(bb[5])], "r_from_O": r4(math.hypot(cx, cy)),
                         "xy": [r4(cx), r4(cy)]})
+            if sculpt:   # (the static ring's contacts are whole annuli about O: their bbox centre is O itself)
+                v = np.asarray(q.to_mesh().vert_properties, dtype=np.float64)[:, :2]
+                pcs[-1]["r_min_from_O"] = r4(np.hypot(v[:, 0], v[:, 1]).min())
         pcs.sort(key=lambda d: -d["vol"])
+        all_pcs[bname] = pcs
         stops[bname] = {"max_lift_play": lift_nr[bname], "lift_play_scan": lift_scan[bname],
                         "contacts_at_play+0.03": pcs[:6]}
-    # head must be stopped by the roof (z ~ roof underside) and the wheel by the paw lips (r >= paw_lip_r, z > ball top)
-    head_roof = any(abs(c["z"][0] - M.params.z_roof0) < 0.1 for c in stops["head"]["contacts_at_play+0.03"])
-    wheel_paw = all(c["r_from_O"] is not None and c["r_from_O"] >= p.paw_lip_r - 1.0 and c["z"][0] >= p.z_umb_top
-                    for c in stops["wheel"]["contacts_at_play+0.03"]) and stops["wheel"]["contacts_at_play+0.03"]
+    if sculpt:
+        # head stopped by the frame covers over its band (the chest over the full-height legs, the cover over the
+        # lowered legs: z ~ cover underside), the wheel by the static yarn ring over its skid rings (z > umbrella
+        # top, outside the cap's radial gap); every contact piece must be one of these
+        sk = M.skin
+        z_cov = (p.z_band1 + p.z_lift + sk.gap_z, sk.leg_low_top + p.z_lift + sk.gap_z)
+        head_roof = bool(all_pcs["head"]) and all(min(abs(c["z"][0] - z) for z in z_cov) < 0.1 for c in all_pcs["head"])
+        wheel_paw = bool(all_pcs["wheel"]) and all(c["z"][0] >= p.z_umb_top + p.z_lift and c["r_min_from_O"] >=
+                                                   sk.cap_r + sk.cap_gap - 0.05 for c in all_pcs["wheel"])
+        stops.update(n_contacts={k: len(v) for k, v in all_pcs.items()}, cover_underside_z=[r4(z) for z in z_cov])
+        name = "ridge-less lift stop: head by the frame covers over its band, wheel by the static yarn ring"
+    else:
+        # head must be stopped by the roof (z ~ roof underside) and the wheel by the paw lips (r >= paw_lip_r,
+        # z > ball top)
+        head_roof = any(abs(c["z"][0] - M.params.z_roof0) < 0.1 for c in stops["head"]["contacts_at_play+0.03"])
+        wheel_paw = all(c["r_from_O"] is not None and c["r_from_O"] >= p.paw_lip_r - 1.0 and c["z"][0] >= p.z_umb_top
+                        for c in stops["wheel"]["contacts_at_play+0.03"]) and stops["wheel"]["contacts_at_play+0.03"]
+        name = "ridge-less lift stop: head by the roof (I3 slot / bridges), wheel by the paw lips"
     lim = SPEC["ridgeless_lift_max"] + SPEC["lift_tol"]
-    R.add("V11.second_capture", "ridge-less lift stop: head by the roof (I3 slot / bridges), wheel by the paw lips",
+    R.add("V11.second_capture", name,
           status_of(lift_nr["head"] <= lim and lift_nr["wheel"] <= lim and head_roof and bool(wheel_paw),
                     warn=max(lift_nr.values()) > SPEC["ridgeless_lift_max"] - 0.01),
           stops, f"lift <= {SPEC['ridgeless_lift_max']} (+{SPEC['lift_tol']}) and the contact is at the intended stop; "

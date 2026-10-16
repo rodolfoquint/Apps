@@ -8,8 +8,8 @@ non-zero if any check fails.
 V1  D = 24.710 +- 0.001, pallets (+-12.983, 8.675) +- 0.001 (nominal; other variants report the recomputed values),
     plus a cross-check that the CAD sections carry exactly these values (pallet disc centres, post spacing).
     Sculpt skins (purrbobble/sculpt.py rebuilds all three bodies from the sculpt): the bodies themselves are probed
-    as well - posts at O and P in the frame, both bores clear, the head bore walled and roofed as the classic hub
-    collar did (r 6.85, up to z 8.35), the pallet pins in the head.
+    as well - posts at O and P in the frame, both bores clear, the head bore walled (>= the classic hub collar's
+    2.5 mm, SPEC 4.3 disc(P, 7.5)) and roofed (0.4), the pallet pins' contact halves in the head.
 V7  print pose (phi 12.0, psi 5.96): three disjoint, valid, watertight, single-component shells (also after an
     STL round trip through trimesh); global minimum gap >= 0.35; pallet <-> tooth gap >= 1.3.
 Also: bbox / volume / solid PLA mass per body, overall size, head I_h about P and COM height above P
@@ -90,10 +90,18 @@ def _probe(c, r0, r1, z0, z1, n=96) -> Manifold:
 
 def v1_sculpt_bodies(M) -> dict:
     """Sculpt skins: the frame and head are rebuilt from the sculpt (posts added again by hand, no hub collar), so
-    the section cross-checks above say nothing about the bodies.  Probe them: the posts at O and P are in the frame,
-    the wheel / head bores around them are clear, the head walls and roofs its blind bore as the classic hub collar
-    did (disc(P, 6.90) up to z_roof0 8.4: wall >= 2.5 from the bore, roof 0.4 over bore_roof_z), and the pallet pins
-    are in the head (band slab up to z_pallet_top).  Floating bodies are probed at their lifted z."""
+    the section cross-checks above say nothing about the bodies.  Probe the bodies themselves:
+
+    * cad_post_O / _P: the posts are in the frame (cylinder r post_r - 0.05 between root fillet and top chamfer);
+    * cad_bore_O / _P: the wheel / head bores around them are clear;
+    * cad_bore_wall_P: the head walls its blind bore as SPEC 4.3 asks (disc(P, 7.5) inside the face; the classic
+      heads that miss it get the hub collar disc(P, R_hub_cut - swept_gap - 0.05) up to z_roof0): minimum radial
+      wall from the bore profile over the bore height >= that collar's wall - 0.05, and a roof >= 0.4 over the bore;
+    * cad_pallet_body_L / _R: the pallet pins' wheel-facing halves (the contact arcs v_escapement fits; the other
+      half lies in the finger) are in the head over the band height up to z_pallet_top.
+    Floating bodies are probed at their lifted z."""
+    from shapely.geometry import Point
+    from shapely.ops import nearest_points
     p = M.params
     zl = p.z_lift
     O, P = (0.0, 0.0), tuple(M.P)
@@ -105,20 +113,45 @@ def v1_sculpt_bodies(M) -> dict:
     za, zb = p.post_z0 + p.post_root_fillet + 0.05, p.post_z1 - p.post_chamfer - 0.05
     for name, c, body in (("O", O, "wheel"), ("P", P, "head")):
         f = inside(M.frame, _probe(c, 0.0, p.post_r - 0.05, za, zb))
-        out[f"cad_post_{name}"] = {"in_frame": round(f, 5), "spec": PROBE_MIN, "pass": f >= PROBE_MIN}
+        out[f"cad_post_{name}"] = {"in_frame": round(f, 5), "spec": PROBE_MIN, "pass": bool(f >= PROBE_MIN)}
         bore = _probe(c, 0.0, p.bore_r - 0.05, p.z_band0 + p.bore_chamfer + zl + 0.05, p.bore_roof_z + zl - 0.05)
         v = float((M.bodies[body] ^ bore).volume())
-        out[f"cad_bore_{name}"] = {"body": body, "material_in_bore_mm3": round(v, 5), "pass": v <= 1e-6}
-    r_w = p.R_hub_cut - p.swept_gap - 0.05 - 0.05            # the classic collar radius (6.90) less 0.05
-    wall = _probe(P, p.groove_apex_r + 0.05, r_w, p.z_band0 + zl + 0.05, p.z_roof0 + zl - 0.05)
-    roof = _probe(P, 0.0, r_w, p.bore_roof_z + zl + 0.05, p.z_roof0 + zl - 0.05)
-    fw, fr = inside(M.head, wall), inside(M.head, roof)
-    out["cad_bore_wall_P"] = {"wall_in_head": round(fw, 5), "roof_in_head": round(fr, 5), "r_wall": round(r_w, 3),
-                              "wall_mm": round(r_w - p.bore_r, 3), "roof_mm": round(p.z_roof0 - p.bore_roof_z, 3),
-                              "spec": PROBE_MIN, "pass": min(fw, fr) >= PROBE_MIN}
-    for i, (x, y) in enumerate(p.pallets):
-        f = inside(M.head, _probe((x, y), 0.0, p.rp - 0.05, p.z_band0 + zl + 0.05, p.z_pallet_top + zl - 0.05))
-        out[f"cad_pallet_body_{'LR'[i]}"] = {"in_head": round(f, 5), "spec": PROBE_MIN, "pass": f >= PROBE_MIN}
+        out[f"cad_bore_{name}"] = {"body": body, "material_in_bore_mm3": round(v, 5), "pass": bool(v <= 1e-6)}
+    # bore wall: per slice, the nearest point outside the head beyond the bore profile (solids.bore_profile in world
+    # z: groove apex at ridge_z, roof lifted with the head), measured from the plain bore radius as the collar's is
+    r_col = p.R_hub_cut - p.swept_gap - 0.05
+    spec_w = round(r_col - p.bore_r - 0.05, 3)
+    dz = p.groove_apex_r - p.bore_r
+    worst, thin = (math.inf, None, None), []
+    for z in np.arange(p.z_band0 + zl + p.bore_chamfer + 0.05, p.bore_roof_z + zl - 0.02, 0.1):
+        rb = p.bore_r + max(0.0, dz - abs(z - p.ridge_z))
+        air = g2.difference(g2.circle(P, rb + 4.0, 0.005), M.head.slice(float(z)), g2.circle(P, rb + 0.02, 0.001))
+        if air.is_empty():
+            continue
+        q = nearest_points(Point(P), g2.to_shapely(air))[1]
+        w = math.hypot(q.x - P[0], q.y - P[1]) - p.bore_r
+        ang = math.degrees(math.atan2(q.y - P[1], q.x - P[0])) % 360
+        if w < worst[0]:
+            worst = (w, float(z), ang)
+        if w < spec_w:
+            thin.append(float(z))
+    roof = _probe(P, 0.0, p.bore_r - 0.05, p.bore_roof_z + zl + 0.05, p.z_roof0 + zl - 0.05)
+    fr = inside(M.head, roof)
+    out["cad_bore_wall_P"] = {"min_wall_mm": round(worst[0], 3) if worst[1] is not None else ">= 4",
+                              "at_z": None if worst[1] is None else round(worst[1], 2),
+                              "at_deg_about_P": None if worst[2] is None else round(worst[2], 1),
+                              "z_below_spec": [round(min(thin), 2), round(max(thin), 2)] if thin else [],
+                              "spec_wall_mm": spec_w, "roof_in_head": round(fr, 5),
+                              "spec_roof_mm": round(p.z_roof0 - p.bore_roof_z, 3),
+                              "note": "deg about P from +x (270 = towards O); spec = classic hub collar "
+                                      f"disc(P, {r_col:.2f}) wall - 0.05",
+                              "pass": bool((worst[1] is None or worst[0] >= spec_w) and fr >= PROBE_MIN)}
+    for i, ((x, y), u) in enumerate(zip(p.pallets, p.u)):
+        pin = _probe((x, y), 0.0, p.rp - 0.05, p.z_band0 + zl + 0.05, p.z_pallet_top + zl - 0.05)
+        half = pin.trim_by_plane((-u[0], -u[1], 0.0), -(x * u[0] + y * u[1]) + 0.05)
+        f, f_disc = inside(M.head, half), inside(M.head, pin)
+        out[f"cad_pallet_body_{'LR'[i]}"] = {"contact_half_in_head": round(f, 5), "full_disc_in_head": round(f_disc, 5),
+                                             "spec": PROBE_MIN, "pass": bool(f >= PROBE_MIN)}
     return out
 
 

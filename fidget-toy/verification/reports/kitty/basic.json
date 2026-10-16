@@ -1,7 +1,7 @@
 {
  "skin": "kitty",
  "variant": "nominal",
- "build_time_s": 24.61,
+ "build_time_s": 16.37,
  "params": {
   "skin": "kitty",
   "variant": "nominal",
@@ -98,28 +98,28 @@
   "z_roof1": 10.4,
   "z_front0": 13.7,
   "z_front1": 17.7,
-  "z_feat": 18.3,
-  "z_umb_top": 13.3,
+  "z_feat": 22.5,
+  "z_umb_top": 10.5,
   "z_knob_top": 18.3,
   "z_decor1": 12.0,
   "z_lift": 0.0,
-  "R_u": 18.0,
+  "R_u": 15.0,
   "umb_r0": 14.3,
-  "umb_rim_z0": 11.7,
-  "umb_rim_z1": 12.3,
+  "umb_rim_z0": 8.7,
+  "umb_rim_z1": 9.5,
   "umb_fillet": 1.0,
-  "r_k": 11.0,
-  "wheel_drive": "well",
+  "r_k": 5.0,
+  "wheel_drive": "dish",
   "well_d": 8.4,
   "well_depth": 2.0,
   "well_rim_r": 1.0,
   "knob_d": 10.0,
   "knob_top_fillet": 2.5,
   "knob_root_fillet": 1.0,
-  "relief_w": 0.8,
-  "relief_depth": 0.75,
+  "relief_w": 0.6,
+  "relief_depth": 0.5,
   "relief_r_max": 16.5,
-  "relief_bevel": 0.3,
+  "relief_bevel": 0.0,
   "relief_knob_clear": 7.5,
   "keepout": [
    [
@@ -176,9 +176,9 @@
   "rib_roof_i3_grow": 0.5,
   "face_top_round": 1.5,
   "face_top_steps": 6,
-  "face_pillow_xy": 4.0,
-  "face_pillow_z": 2.0,
-  "face_pillow_steps": 20,
+  "face_pillow_xy": 0.0,
+  "face_pillow_z": 0.0,
+  "face_pillow_steps": 0,
   "frame_top_fillet": 1.0,
   "frame_top_steps": 3,
   "phi_print": 12.0,
@@ -190,32 +190,89 @@
  "skin_contract": {
   "warnings": [
    "B_i only 1.32 mm inside Face2D (contract 3.0)",
-   "disc(P, 7.5) not inside Face2D (24.1 mm^2 outside); hub collar z 7.4-8.4 added",
-   "Face2D has 9.1 mm^2 narrower than 6.0 mm"
+   "Face2D has 5.6 mm^2 narrower than 6.0 mm"
   ],
   "leg_B_margin": [
    1.324,
    1.324
   ],
-  "hub_disc_outside_area": 24.128,
-  "narrower_than_6mm_area": 9.137,
-  "crown_collar": {
-   "applied": false,
-   "pieces_beyond": 1,
-   "bad_rays": 0,
-   "thin_cap_at_notch_deg": [],
-   "range_deg": [
-    56.53,
-    123.47
-   ]
-  },
+  "hub_disc_outside_area": 24.129,
+  "narrower_than_6mm_area": 5.55,
   "stop_pad_area_ratio": 0.867,
   "stop_pad_contact_mm": [
    4.93,
    5.97,
-   5.97,
+   5.91,
    4.93
-  ]
+  ],
+  "note": "sculpt skin: hub collar / crown collar items n/a (not built); bore wall: V1 cad_bore_wall_P"
+ },
+ "sculpt": true,
+ "sculpt_info": {
+  "cover_boss_mm2": 65.4,
+  "head_pinches_before_weld": 112,
+  "head_blob_mm2": 1154.7,
+  "legs_lowered_mm2": 194.2,
+  "head_always_covered_mm2": 826.2,
+  "floor_area_mm2": {
+   "3.437": 553.4,
+   "3.637": 553.4,
+   "3.837": 553.4,
+   "4.037": 553.4,
+   "4.237": 553.4,
+   "4.437": 553.4,
+   "4.637": 553.3,
+   "4.837": 552.8,
+   "5.037": 552.4,
+   "5.237": 552.0,
+   "5.437": 550.9,
+   "5.637": 296.1,
+   "5.837": 296.1,
+   "6.037": 294.4,
+   "6.237": 289.6,
+   "6.437": 270.3,
+   "6.637": 197.8,
+   "6.837": 166.8,
+   "7.037": 93.0,
+   "7.237": 53.0,
+   "7.437": 53.0,
+   "7.637": 53.0,
+   "7.837": 53.0,
+   "8.037": 35.2,
+   "8.237": 34.9,
+   "8.437": 34.7,
+   "8.637": 34.3,
+   "8.837": 34.0,
+   "9.037": 33.5,
+   "9.237": 33.1,
+   "9.437": 32.5,
+   "9.637": 31.9,
+   "9.837": 31.2,
+   "10.037": 30.4,
+   "10.237": 29.6,
+   "10.437": 28.5,
+   "10.637": 27.2,
+   "10.837": 25.7,
+   "11.037": 24.1,
+   "11.237": 22.4,
+   "11.437": 20.6,
+   "11.637": 18.7,
+   "11.837": 16.7,
+   "12.037": 14.5,
+   "12.237": 12.4,
+   "12.437": 10.1,
+   "12.637": 7.1,
+   "12.837": 3.9,
+   "13.037": 1.6,
+   "13.237": 0.3,
+   "13.437": 0.0,
+   "13.637": 0.0,
+   "13.837": 0.0,
+   "14.037": 0.0
+  },
+  "frame_pinches_before_weld": 135,
+  "t_sculpt_s": 130.7,
+  "cache": "hit"
  },
  "V1": {
   "recomputed": {
@@ -302,9 +359,48 @@
      24.70975553421278
     ],
     "pass": true
+   },
+   "cad_post_O": {
+    "in_frame": 1.0,
+    "spec": 0.999,
+    "pass": true
+   },
+   "cad_bore_O": {
+    "body": "wheel",
+    "material_in_bore_mm3": 0.0,
+    "pass": true
+   },
+   "cad_post_P": {
+    "in_frame": 1.0,
+    "spec": 0.999,
+    "pass": true
+   },
+   "cad_bore_P": {
+    "body": "head",
+    "material_in_bore_mm3": 0.0,
+    "pass": true
+   },
+   "cad_bore_wall_P": {
+    "wall_in_head": 0.96891,
+    "roof_in_head": 0.9324,
+    "r_wall": 6.85,
+    "wall_mm": 2.5,
+    "roof_mm": 0.4,
+    "spec": 0.999,
+    "pass": false
+   },
+   "cad_pallet_body_L": {
+    "in_head": 1.0,
+    "spec": 0.999,
+    "pass": true
+   },
+   "cad_pallet_body_R": {
+    "in_head": 0.95023,
+    "spec": 0.999,
+    "pass": false
    }
   },
-  "pass": true
+  "pass": false
  },
  "V7": {
   "pose": {
@@ -315,31 +411,31 @@
    "frame": {
     "status": "Error.NoError",
     "components": 1,
-    "genus": 3,
+    "genus": 73,
     "watertight": true,
     "winding_consistent": true,
-    "volume_mm3": 26677.98,
-    "triangles": 418856,
+    "volume_mm3": 32361.41,
+    "triangles": 759232,
     "pass": true
    },
    "wheel": {
     "status": "Error.NoError",
     "components": 1,
-    "genus": 0,
+    "genus": 1,
     "watertight": true,
     "winding_consistent": true,
-    "volume_mm3": 5993.31,
-    "triangles": 32466,
+    "volume_mm3": 6529.76,
+    "triangles": 71838,
     "pass": true
    },
    "head": {
     "status": "Error.NoError",
     "components": 1,
-    "genus": 1,
+    "genus": 28,
     "watertight": true,
     "winding_consistent": true,
-    "volume_mm3": 12383.64,
-    "triangles": 114902,
+    "volume_mm3": 12117.93,
+    "triangles": 510514,
     "pass": true
    }
   },
@@ -393,66 +489,66 @@
  "mass": {
   "frame": {
    "bbox": [
-    -31.522,
-    -26.399,
+    -33.698,
+    -26.544,
     0.0,
-    33.595,
-    65.112,
-    17.4
+    32.625,
+    58.899,
+    20.904
    ],
    "size": [
-    65.12,
-    91.51,
-    17.4
+    66.32,
+    85.44,
+    20.9
    ],
-   "volume_mm3": 26678.0,
-   "mass_solid_pla_g": 33.08
+   "volume_mm3": 32361.4,
+   "mass_solid_pla_g": 40.13
   },
   "wheel": {
    "bbox": [
-    -17.996,
-    -17.996,
+    -14.999,
+    -14.999,
     3.0,
-    17.996,
-    17.996,
-    13.3
+    14.999,
+    14.999,
+    21.508
    ],
    "size": [
-    35.99,
-    35.99,
-    10.3
+    30.0,
+    30.0,
+    18.51
    ],
-   "volume_mm3": 5993.3,
-   "mass_solid_pla_g": 7.43
+   "volume_mm3": 6529.8,
+   "mass_solid_pla_g": 8.1
   },
   "head": {
    "bbox": [
-    -22.732,
+    -23.73,
     5.269,
     3.0,
-    22.221,
-    58.827,
-    19.3
+    22.22,
+    50.063,
+    19.5
    ],
    "size": [
-    44.95,
-    53.56,
-    16.3
+    45.95,
+    44.79,
+    16.5
    ],
-   "volume_mm3": 12383.6,
-   "mass_solid_pla_g": 15.36
+   "volume_mm3": 12117.9,
+   "mass_solid_pla_g": 15.03
   },
   "overall_size_WxHxD": [
-   65.12,
-   91.51,
-   19.3
+   66.32,
+   85.44,
+   21.51
   ],
-  "total_mass_solid_g": 55.87,
+  "total_mass_solid_g": 63.26,
   "head_inertia": {
-   "mass_g": 15.36,
-   "I_P_kgm2": 5.855e-06,
-   "com_above_P_mm": 11.65,
-   "com_x_mm": 0.037,
+   "mass_g": 15.03,
+   "I_P_kgm2": 3.339e-06,
+   "com_above_P_mm": 7.06,
+   "com_x_mm": -0.038,
    "spec_I_range": [
     4e-06,
     8e-06
@@ -461,33 +557,28 @@
     8.0,
     14.0
    ],
-   "pass": true
+   "pass": false,
+   "status": "warn",
+   "note": "sculpt skin: outside the SPEC 4.3 band; gated by V13 in v_escapement (accepted only if V4 passes)"
   },
   "wheel_inertia": {
-   "mass_g": 7.43,
-   "J_O_kgm2": 9.322e-07
+   "mass_g": 8.1,
+   "J_O_kgm2": 6.025e-07
   }
  },
  "section_report": {
-  "overall_W": 65.12,
-  "overall_H": 91.51,
+  "overall_W": 66.13,
+  "overall_H": 85.22,
   "backdrop_bounds": [
-   -31.52,
-   -26.4,
-   33.6,
-   65.11
+   -33.6,
+   -26.43,
+   32.53,
+   58.79
   ],
-  "i3_area": 887.4,
-  "headband_area": 1249.1,
-  "faceup_area": 1207.5,
-  "facemid_area": 320.2,
-  "fill_area": 1146.5,
-  "roof_area": 2012.8,
-  "fill_slivers_removed_area": 8.44,
+  "headband_area": 1000.7,
   "stoppads_area": 13.68,
-  "max_bridge_width": 15.0,
-  "n_bridge_pieces": 1
+  "note": "sculpt bodies: classic I3 slot / face / fill / roof / bridge sections not built"
  },
- "pass": true,
- "time_s": 53.05
+ "pass": false,
+ "time_s": 557.52
 }
