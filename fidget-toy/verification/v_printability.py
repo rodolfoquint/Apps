@@ -61,7 +61,7 @@ paws / rib fields in the bodies, although the sections still hold them) are judg
     * V9: bed = the first layer; horizontal undersides that overhang their own layer below by <= 1.0 and oblique
       sculpted overhangs whose per-layer reach is <= 1.0 are 'sculpt_overhang' (reported, warn); other undersides
       are 'sculpt_float': every point within the float reach (1.90) of support (own material below, any body's top
-      <= gap_z + z_lift below) or on a straight strand <= 13.5 between such anchors, else FAIL;
+      <= gap_z + z_lift + floor_rest below) or on a straight strand <= 13.5 between such anchors, else FAIL;
     * SLICER: bridges / overhangs off the listed levels are judged by that support on whole paths (consecutive
       extrusions chained): a stretch farther than 1.90 from material 0.2-0.8 below must be a bridge between two
       supported points (<= 13.5, straying <= 1.0 from the line between them), never a free end (> 1.0);
@@ -94,7 +94,7 @@ import shapely  # noqa: E402
 import trimesh  # noqa: E402
 from manifold3d import CrossSection, JoinType, Manifold  # noqa: E402
 
-from purrbobble.assemble import mesh_arrays, write_3mf, write_stl  # noqa: E402
+from purrbobble.assemble import mesh_arrays, part_settings, write_3mf, write_stl  # noqa: E402
 from purrbobble.model import build  # noqa: E402
 
 # --------------------------------------------------------------------------------------------- criteria
@@ -268,7 +268,9 @@ def sculpt_geom(M) -> dict:
         band2d = max(g2.pieces(band2d), key=lambda q: q.area())
         sw_band = g2.grow(swept(band2d, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01)
         low2d_cav = g2.union([sw_band, g2.circle(O, p.wheel_ex_r, 0.01)])
-        ring_r = [float(r) for r in np.arange(sk.cap_r + sk.cap_gap + 1.2, p.R_u - 1.0 + 1e-6, sk.ring_pitch)]
+        from purrbobble.sculpt import seams
+        ring_r = [float(r) for r in np.arange(sk.cap_r + seams(sk, p)["cap_gap"] + 1.2, p.R_u - 1.0 + 1e-6,
+                                              sk.ring_pitch)]
         rings = [g2.difference(g2.circle(O, r + p.rib_w / 2, 0.01), g2.circle(O, r - p.rib_w / 2, 0.01))
                  for r in ring_r]
         _SCULPT_GEOM[key] = {"band2d": band2d, "low2d_cav": low2d_cav,
@@ -1388,7 +1390,7 @@ def v9_overhangs(M, bodies: dict, L: Layers) -> dict:
                              f"{SHORT_RUN} and oblique sculpted overhangs reaching <= {SHORT_RUN} per layer are "
                              f"'sculpt_overhang' (warn); other undersides ('sculpt_float') need every point within "
                              f"{SHORT_RUN} of own material below or {allowance_float:.2f} of any body's top <= gap_z + "
-                             f"z_lift below, or on a straight strand <= {SPAN['roof']} between such anchors")
+                             f"z_lift + floor_rest below, or on a straight strand <= {SPAN['roof']} between such anchors")
     for k, t in tms.items():
         n = t.face_normals
         zc = t.triangles_center[:, 2]
@@ -1740,10 +1742,11 @@ def _strand_test(Q: CrossSection, anchors: CrossSection, span: float, step: floa
 
 
 def _support_tops(M, bodies, z, cache=None) -> CrossSection:
-    """Material of any body reaching up to within gap_z + z_lift (+ tol) of height z: what a float's strands sag
-    onto (the sculpt's gaps: frame covers gap_z over the lifted band, the static ring and the head's floors
-    gap_z + z_lift over the wheel's rings / the frame)."""
-    zz = round(z - (M.skin.gap_z + M.params.z_lift + RIB_GAP_TOL), 5)
+    """Material of any body reaching up to within the sculpt's widest designed Z seam (+ tol) of height z: what a
+    float's strands sag onto (frame covers gap_z + z_lift over the lifted band, the static ring gap_z + z_lift over
+    the wheel's rings, the head's floors gap_z + z_lift + floor_rest over the frame)."""
+    from purrbobble.sculpt import seams
+    zz = round(z - (seams(M.skin, M.params)["gap_z_floors"] + RIB_GAP_TOL), 5)
     if cache is not None and zz in cache:
         return cache[zz]
     out = compose([b.slice(zz) for b in bodies.values()])
@@ -1755,9 +1758,10 @@ def _support_tops(M, bodies, z, cache=None) -> CrossSection:
 def _sculpt_float(M, body, Lz, q, below, bodies, gap, hit, allowance_float, rec):
     """Sculpt skins: an underside overhanging its own layer below by more than SHORT_RUN.  Supported are the points
     within SHORT_RUN of the body's own material below (overhang perimeters) and within the float reach of any body's
-    top <= gap_z + z_lift below (the strands sag onto it, as for the rib floats); every other point must lie on a
-    straight strand <= SPAN['roof'] between such anchors (a bridge - a cantilever has no second anchor).  Nothing of
-    another body may lie less than 2 layers below (it would fuse).  Returns (failure notes, unsupported parts)."""
+    top <= gap_z + z_lift + floor_rest below (the strands sag onto it, as for the rib floats); every other point must
+    lie on a straight strand <= SPAN['roof'] between such anchors (a bridge - a cantilever has no second anchor).
+    Nothing of another body may lie less than 2 layers below (it would fuse).  Returns (failure notes, unsupported
+    parts)."""
     tops = q ^ _support_tops(M, bodies, Lz)
     zone = q ^ compose([grow(below, SHORT_RUN), grow(tops, allowance_float)])
     unsup = keep_pieces(q - zone, 0.05)
@@ -1790,9 +1794,9 @@ def _sculpt_oblique(M, k, t, comp, c, a, L: Layers, bodies, allowance_float, cac
     """Sculpt skins: an oblique overhang of the sculpt (faces steeper than 45.5 deg from vertical, not horizontal:
     ears, cheeks, chin, arms, paws, the yarn ball's strands).  For every layer it spans, the new material inside the
     cluster's plan (hull + 0.3) is measured against its support - the body's layer below (overhang perimeters reach
-    SHORT_RUN) and any body's material within gap_z + z_lift below the layer (float reach); what lies beyond both
-    must be on a strand <= SPAN['roof'] between them, else FAIL.  Reported as 'sculpt_overhang' (warn).  The
-    horizontal undersides first printed in a layer (hreg: level -> region) are judged on their own and left out."""
+    SHORT_RUN) and any body's material within gap_z + z_lift + floor_rest below the layer (float reach); what lies
+    beyond both must be on a strand <= SPAN['roof'] between them, else FAIL.  Reported as 'sculpt_overhang' (warn).
+    The horizontal undersides first printed in a layer (hreg: level -> region) are judged on their own and left out."""
     n = t.face_normals[comp]
     A = t.area_faces[comp]
     ang = np.degrees(np.arcsin(np.clip(-n[:, 2], 0.0, 1.0)))
@@ -2143,7 +2147,12 @@ def parse_gcode(path: Path) -> dict:
 
 def slicer_check(M, bodies: dict, stl_path: Path, mf_path: Path | None, workdir: Path, keep: bool) -> dict:
     exe = shutil.which("prusa-slicer") or shutil.which("PrusaSlicer")
-    out = {"settings": " ".join(SLICER_OPTS), "runs": {}}
+    opts = list(SLICER_OPTS)
+    if is_sculpt(M):
+        # (sculpt skins: no crown roof; the frame covers bridge in every direction, so the slicer picks it, as the
+        # 3MF's frame part says: assemble.part_settings)
+        opts[opts.index("--bridge-angle") + 1] = "0"
+    out = {"settings": " ".join(opts), "runs": {}}
     if exe is None:
         out["status"] = "not-run"
         out["note"] = "prusa-slicer not found on PATH"
@@ -2168,7 +2177,7 @@ def slicer_check(M, bodies: dict, stl_path: Path, mf_path: Path | None, workdir:
     for tag, src in inputs:
         g = workdir / f"slice_{tag}.gcode"
         t0 = time.time()
-        r = subprocess.run([exe, "--export-gcode", *SLICER_OPTS, "-o", str(g), str(src)], capture_output=True,
+        r = subprocess.run([exe, "--export-gcode", *opts, "-o", str(g), str(src)], capture_output=True,
                            text=True, timeout=900)
         log = (r.stdout + "\n" + r.stderr)
         warn = _slicer_warnings(log)
@@ -2234,7 +2243,7 @@ def slicer_check(M, bodies: dict, stl_path: Path, mf_path: Path | None, workdir:
     for k, body in bodies.items():
         pth = workdir / f"alone_{k}.stl"
         write_stl(pth, {k: body})
-        r = subprocess.run([exe, "--export-gcode", *SLICER_OPTS, "-o", str(workdir / f"alone_{k}.gcode"), str(pth)],
+        r = subprocess.run([exe, "--export-gcode", *opts, "-o", str(workdir / f"alone_{k}.gcode"), str(pth)],
                            capture_output=True, text=True, timeout=900)
         ws = _slicer_warnings(r.stdout + "\n" + r.stderr)
         attrib[k] = [w.split(" | ")[2] if len(w.split(" | ")) > 2 else w for w in ws] or ["no warning"]
@@ -2852,8 +2861,8 @@ def _sculpt_findings(c: dict, add) -> None:
                 "finger roots", {"min_height": bh.get("min"), "per_axis": bh.get("per_axis"),
                                  "bending_stress_ratio_vs_full_band": bh.get("bending_stress_ratio_vs_full_band")})
     for r in c.get("V9_overhangs", {}).get("unlisted_or_failed", []):
-        fix = ("raise / lower the floor so it rests on support (a body's top <= gap_z + z_lift below) or is anchored "
-               "on both sides within the span, or chamfer the underside to <= 45 deg")
+        fix = ("raise / lower the floor so it rests on support (a body's top <= gap_z + z_lift + floor_rest below) "
+               "or is anchored on both sides within the span, or chamfer the underside to <= 45 deg")
         if r["class"] == "sculpt_overhang":
             fix = "chamfer or round the sculpted overhang to reach <= 1.0 per layer, or support it"
         add("fail", "V9 overhang", f"{r['body']} z {r['z']} {r['class']}: " + "; ".join(r.get("notes") or []), fix,
@@ -2956,7 +2965,7 @@ def main(argv=None) -> int:
         write_stl(stl_path, bodies)
     if not mf_path.exists() or stale:
         mf_path = tmpdir / f"model_{a.skin}_{a.variant}.3mf"
-        write_3mf(mf_path, bodies, name=f"purrbobble_{a.skin}_{a.variant}")
+        write_3mf(mf_path, bodies, name=f"purrbobble_{a.skin}_{a.variant}", settings=part_settings(M.skin))
     rep["files"] = {"exported": exported, "used_stl": str(stl_path), "used_3mf": str(mf_path)}
     if stale:
         rep["files"]["stale_export"] = {"reason": stale, "note": "the deliverables under stl/ predate the current "

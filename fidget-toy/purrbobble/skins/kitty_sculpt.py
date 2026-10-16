@@ -44,7 +44,7 @@ class SculptKittySkin(Skin):
     mass_limit_g = 55.0
     # integration (purrbobble/sculpt.py)
     cap_r = 10.0            # spinning centre of the yarn ball
-    cap_gap = 0.5           # radial gap cap <-> static ring
+    cap_gap = 0.5           # radial gap cap <-> static ring (+ the variant's extra gap_xy)
     cap_min_h = 1.5         # the cap is at least this tall above the umbrella top
     ring_pitch = 2.0        # skid rings on the umbrella top (the static ring floats on them)
     dish_d, dish_depth = 7.5, 3.0     # finger dish in the cap, centred at (r_k, 0) = (5, 0) (param_overrides)
@@ -53,17 +53,22 @@ class SculptKittySkin(Skin):
     float_z = 5.4           # lowest head floor where the head swings over its own uncovered footprint / cushion
     float_top = 14.0        # highest floor level considered
     floor_step = 0.2        # floors are quantised to this
+    floor_rest = 0.2        # head floors clear the frame by gap_z + z_lift + this: face up, the head rests on its
+                            # band's back ribs (gap_z lower than printed) and keeps one layer under its floors then
     t_min = 0.8             # the head keeps at least this much material under its surface (else: pocket)
-    cover_min = 8.8         # legs whose sweep passes under sculpt thinner than this are lowered to leg_low_top;
-    leg_low_top = 3.97      # the others keep a cover >= cover_min - z_band1 - gap_z above them
-    cover_t = 1.2           # frame over the lowered legs: at least this thick (low bosses where the sculpt is thinner)
+    overhang_max = 0.9      # a floor terrace overhangs the head's material below it by at most this ...
+    float_reach = 1.8       # ... or reaches at most this far beyond frame just under its seam (V9 float reach 1.9)
+    leg_low_top = 4.27      # legs whose sweep passes under sculpt too thin for a cover_t frame cover over their top
+                            # seam are lowered to this (1.27 tall); a cover >= cover_t runs over them
+    cover_t = 1.2           # frame over the legs: at least this thick (low bosses where the sculpt is thinner)
     ball_keep_r = 18.5      # the head body never swings over the yarn ball (r <= this about O)
     pad_back = 2.0          # stop pad backing (fill around each pad)
     gap_xy, gap_z = 0.5, 0.4137      # (gap_z off round numbers too, see sculpt.GRID_OFFSET)
     head_slice_z = 13.0
     narrow_below_y = 32.0
     # the wheel's umbrella shrinks under the sculpt's yarn ball: r 15 (cone 45 deg from r 14.3 at z 8.0), top 10.5,
-    # so the static ring of the ball above it stays >= 2 mm thick where the ball dips under the chin
+    # so the static ring of the ball above it stays >= 2 mm thick where the ball dips under the chin (nominal 2.2;
+    # loose 1.8, its seams being z_lift wider)
     # The finger drives the wheel in the cap's dish at r 5 (r_k: also the lever arm of the V4 dynamics' finger load);
     # the classic recessed well is not cut (wheel_drive "dish").
     param_overrides = {"z_feat": 22.5, "R_u": 15.0, "umb_rim_z0": 8.7, "umb_rim_z1": 9.5, "z_umb_top": 10.5,

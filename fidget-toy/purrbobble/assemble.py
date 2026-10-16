@@ -29,6 +29,15 @@ PART_SETTINGS = {
 }
 
 
+def part_settings(skin) -> dict:
+    """PART_SETTINGS for a skin.  A sculpt skin has no crown roof: its bridges are the frame covers over the legs
+    and the band, running every which way, so the frame keeps PrusaSlicer's automatic bridge direction (a fixed
+    180 deg hung the covers' bridge lines off their free edges at the wheel cavity)."""
+    if hasattr(skin, "sculpt"):
+        return dict(PART_SETTINGS, frame=dict(PART_SETTINGS["frame"], bridge_angle="0"))
+    return PART_SETTINGS
+
+
 def print_bodies(model) -> dict:
     return model.print_pose()
 
@@ -71,7 +80,12 @@ def write_stl(path, bodies: dict | Manifold) -> int:
     for b in bodies.values():
         v, f = mesh_arrays(b)
         tris.append(v[f])
-    T = np.concatenate(tris, axis=0)
+    T = np.concatenate(tris, axis=0).astype(np.float32)
+    # sub-micron sliver triangles can collapse once rounded to float32 (two corners equal): a reader merging the
+    # vertices would split them off as zero-volume shells.  Their two remaining edges run a -> b and b -> a, so
+    # dropping them keeps the mesh closed.
+    same = ((T[:, 0] == T[:, 1]).all(1) | (T[:, 1] == T[:, 2]).all(1) | (T[:, 0] == T[:, 2]).all(1))
+    T = T[~same]
     n = np.cross(T[:, 1] - T[:, 0], T[:, 2] - T[:, 0])
     ln = np.linalg.norm(n, axis=1, keepdims=True)
     n = np.divide(n, ln, out=np.zeros_like(n), where=ln > 0)
@@ -322,7 +336,7 @@ def write_3mf_multicolour(path, M, name: str = "purrbobble") -> dict:
     for k, (m, ckey) in colour_parts(M).items():
         body = k.split("_")[0]
         bodies[k] = m
-        settings[k] = dict(PART_SETTINGS.get(body, {}), extruder=str(slot_of[ckey]))
+        settings[k] = dict(part_settings(M.skin).get(body, {}), extruder=str(slot_of[ckey]))
     info = write_3mf(path, bodies, name=name, settings=settings)
     info["slots"] = {str(n): c for n, c in colours.items()}
     return info

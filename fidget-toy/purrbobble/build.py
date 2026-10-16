@@ -24,7 +24,7 @@ from pathlib import Path
 from manifold3d import Manifold
 
 from . import core2d
-from .assemble import check_print_pose, write_3mf, write_3mf_multicolour, write_stl
+from .assemble import check_print_pose, part_settings, write_3mf, write_3mf_multicolour, write_stl
 from .model import Model, build
 from .params import VARIANTS
 
@@ -148,7 +148,7 @@ def build_one(skin: str, variant: str, stl_dir: Path, render_dir: Path | None, v
             write_stl(stl_dir / f"{base}_{k}.stl", {k: b})
             files.append(_rel(stl_dir / f"{base}_{k}.stl"))
     if threemf:
-        write_3mf(stl_dir / f"{base}.3mf", bodies, name=base)
+        write_3mf(stl_dir / f"{base}.3mf", bodies, name=base, settings=part_settings(M.skin))
         files.append(_rel(stl_dir / f"{base}.3mf"))
         # multi-colour version: one volume per colour region with its filament slot (assemble.colour_slots)
         write_3mf_multicolour(stl_dir / f"{base}_multicolour.3mf", M, name=base + "_multicolour")
