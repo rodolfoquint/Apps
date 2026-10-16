@@ -269,6 +269,20 @@ def _watertight_merged(v: np.ndarray, f: np.ndarray) -> bool:
     return bool(t.is_watertight)
 
 
+def finish_welded(m: Manifold, p, name: str) -> Manifold:
+    """weld_pinches + solids.finish; if pinch vertices survive (a weld sphere landing tangent to another surface can
+    re-create one), simplify by 1e-5 and weld again with a slightly larger radius and more rounds."""
+    from . import solids
+    err = None
+    for attempt in range(3):
+        src = m if attempt == 0 else m.simplify(max(p.mesh_simplify, 1e-5))
+        try:
+            return solids.finish(weld_pinches(src, r=0.06 + 0.02 * attempt, iters=16 + 8 * attempt), p, name)
+        except AssertionError as e:
+            err = e
+    raise err
+
+
 def float32_stable(m: Manifold, p, name: str, rounds: int = 6, poses=()) -> Manifold:
     """The body as it is exported (float32 vertices: STL, 3MF and the build cache): round-trip it until the float32
     mesh is itself one clean shell that stays closed when a reader merges its vertices by position.  Rounding can
@@ -312,13 +326,13 @@ def _finish_trimmed(m: Manifold, near_at, z0: float, p, name: str, info: dict, l
         mt, a_ = trim_feathers(m, near_at, z0, m.bounding_box()[5])
         log(f"{name} feathers: {a_:.1f} mm^2 of slab sections cut")
         try:
-            out = solids.finish(weld_pinches(mt), p, name)
+            out = finish_welded(mt, p, name)
             info[f"{name}_feathers_cut_mm2"] = round(a_, 1)
             return out
         except AssertionError as e:
             info[f"{name}_feathers_cut_mm2"] = f"not applied ({str(e)[:120]})"
             log(f"{name} feathers not applied: {e}")
-    return solids.finish(weld_pinches(m), p, name)
+    return finish_welded(m, p, name)
 
 
 def trim_feathers(m: Manifold, near_at, z0: float, z1: float, w: float = 0.6, h: float = 0.1) -> tuple:
@@ -482,7 +496,7 @@ def integrate(M, verbose: bool = False) -> dict:
     a, dep = sk.dish_d / 2.0, sk.dish_depth
     rs = (a * a + dep * dep) / (2 * dep)
     dish = Manifold.sphere(rs, 96).translate((cxy[0], cxy[1], ztop - dep + rs))
-    wheel = solids.finish(weld_pinches(wheel - dish), p, "wheel")
+    wheel = finish_welded(wheel - dish, p, "wheel")
     log("wheel")
 
     # ---------------- frame parts the mechanism needs: stop pads (with backing), posts, back ribs
@@ -775,7 +789,7 @@ def integrate(M, verbose: bool = False) -> dict:
     Kf = Ks - solids.union3([Eh, Ew])
     frame = solids.union3([Kf, ribs_back, posts, pads])
     info["frame_pinches_before_weld"] = len(solids.pinch_vertices(frame))
-    frame = solids.finish(weld_pinches(frame), p, "frame")
+    frame = finish_welded(frame, p, "frame")
     log("frame")
     # as exported: float32 vertices (STL, 3MF, build cache) must give the same single clean shells
     frame = float32_stable(frame, p, "frame")
