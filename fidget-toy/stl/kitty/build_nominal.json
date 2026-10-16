@@ -21,8 +21,8 @@
   ]
  ],
  "info": {
-  "t_sections_s": 7.19,
-  "t_solids_s": 6.02,
+  "t_sections_s": 14.28,
+  "t_solids_s": 0.03,
   "skin_contract": {
    "warnings": [
     "B_i only 1.32 mm inside Face2D (contract 3.0)",
@@ -61,9 +61,10 @@
   "head_feature_parts": {},
   "frame_colour_masks": [],
   "sculpt": {
-   "head_pinches_before_weld": 128,
+   "cover_boss_mm2": 65.4,
+   "head_pinches_before_weld": 112,
    "head_blob_mm2": 1154.7,
-   "legs_lowered_mm2": 159.5,
+   "legs_lowered_mm2": 194.2,
    "head_always_covered_mm2": 826.2,
    "floor_area_mm2": {
     "3.437": 553.4,
@@ -77,9 +78,9 @@
     "5.037": 552.4,
     "5.237": 552.0,
     "5.437": 550.9,
-    "5.637": 296.0,
-    "5.837": 296.0,
-    "6.037": 293.3,
+    "5.637": 296.1,
+    "5.837": 296.1,
+    "6.037": 294.4,
     "6.237": 289.6,
     "6.437": 270.3,
     "6.637": 197.8,
@@ -121,8 +122,8 @@
     "13.837": 0.0,
     "14.037": 0.0
    },
-   "frame_pinches_before_weld": 105,
-   "t_sculpt_s": 97.2
+   "frame_pinches_before_weld": 135,
+   "t_sculpt_s": 92.0
   }
  },
  "sections": {
@@ -134,29 +135,29 @@
    32.53,
    58.79
   ],
-  "i3_area": 726.6,
   "headband_area": 1000.7,
-  "faceup_area": 851.3,
-  "facemid_area": 124.7,
-  "fill_area": 766.9,
-  "roof_area": 1635.9,
-  "fill_slivers_removed_area": 33.86,
   "stoppads_area": 13.68,
-  "max_bridge_width": 15.0,
-  "n_bridge_pieces": 1
+  "classic_sections_not_in_bodies": [
+   "roof2d",
+   "i3",
+   "faceup2d",
+   "facemid2d",
+   "fill2d",
+   "bridges"
+  ]
  },
  "bodies": {
   "frame": {
-   "volume_mm3": 32090.9,
-   "mass_solid_g": 39.79,
-   "triangles": 659394,
+   "volume_mm3": 32361.4,
+   "mass_solid_g": 40.13,
+   "triangles": 759232,
    "bbox": [
     -33.698,
     -26.544,
     0.0,
     32.625,
     58.899,
-    20.902
+    20.904
    ],
    "size": [
     66.32,
@@ -183,9 +184,9 @@
    ]
   },
   "head": {
-   "volume_mm3": 12217.3,
-   "mass_solid_g": 15.15,
-   "triangles": 517824,
+   "volume_mm3": 12117.9,
+   "mass_solid_g": 15.03,
+   "triangles": 510514,
    "bbox": [
     -23.73,
     5.269,
@@ -210,8 +211,8 @@
   "bodies": {
    "frame": {
     "components": 1,
-    "genus": 42,
-    "volume_mm3": 32090.93,
+    "genus": 73,
+    "volume_mm3": 32361.41,
     "status": "Error.NoError"
    },
    "wheel": {
@@ -223,7 +224,7 @@
    "head": {
     "components": 1,
     "genus": 28,
-    "volume_mm3": 12217.34,
+    "volume_mm3": 12117.93,
     "status": "Error.NoError"
    }
   },
@@ -244,12 +245,12 @@
     "a": "wheel",
     "b": "head",
     "overlap_mm3": 0.0,
-    "min_gap": 1.0999999999999996
+    "min_gap": 1.0
    }
   ],
   "global_min_gap": 0.3500194891453687
  },
- "stl_triangles": 1249056,
+ "stl_triangles": 1341584,
  "files": [
   "stl/kitty/purrbobble_kitty_nominal.stl",
   "stl/kitty/purrbobble_kitty_nominal_frame.stl",
@@ -259,6 +260,6 @@
   "stl/kitty/purrbobble_kitty_nominal_multicolour.3mf"
  ],
  "renders": [],
- "time_build_export_s": 268.03,
- "time_total_s": 268.31
+ "time_build_export_s": 127.59,
+ "time_total_s": 127.82
 }
