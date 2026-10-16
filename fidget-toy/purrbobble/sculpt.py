@@ -811,7 +811,12 @@ def integrate(M, verbose: bool = False) -> dict:
         # with the collar's envelope where the two come close (no thin wall between them), and opened down into
         # the band's channel over the full-height legs (no film of cover between the band's top seam and the slot)
         zs0, zs1 = fz0 + zl - (gz + sk.floor_rest + 0.05), fz1 + zl + gt + sk.floor_rest + 0.05
-        notch = g2.intersect(g2.circle(P, p.R_hub_cut + 0.05, 0.005), g2.circle(O, fl + gxy + 1.3, 0.005))
+        # (the notch: the collar's lens beyond the slot, closed r 1.0 onto the slot so that no web is left between
+        # them; the lens alone stops 0.3-0.5 short of the slot)
+        slot2d = g2.circle(O, fl + gxy, 0.005)
+        lens = g2.intersect(g2.circle(P, p.R_hub_cut + 0.05, 0.005), g2.circle(O, fl + gxy + 1.3, 0.005))
+        notch = g2.intersect(g2.difference(g2.closing(g2.union([slot2d, lens]), 1.0, 0.005), slot2d),
+                             g2.circle(O, fl + gxy + 1.3, 0.005))
         chim = g2.intersect(g2.grow(g2.grow(swept(keep, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01), 0.05,
                                     0.005), g2.circle(O, fl + gxy + 0.05, 0.005))
         Ew = solids.union3([Ew, ext(g2.circle(O, fl + gxy, 0.005, hole=True), zs0, zs1),
@@ -829,8 +834,13 @@ def integrate(M, verbose: bool = False) -> dict:
     # Removing frame only widens the clearances.
     Kf0 = Ks - solids.union3([Eh, Ew])
     r_wx = getattr(sk, "flange_r", None) or p.R_u           # (the wheel's widest radius)
-    mech = g2.union([g2.grow(sw_band, 0.6, 0.01), g2.circle(O, r_wx + gxy + 0.6, 0.01),
-                     g2.circle(P, p.R_hub_cut + 0.6, 0.01), g2.grow(S["stoppads2d"], sk.pad_back + 0.6, 0.01)])
+    mech0 = g2.union([g2.grow(sw_band, 0.6, 0.01), g2.circle(O, r_wx + gxy + 0.6, 0.01),
+                      g2.circle(P, p.R_hub_cut + 0.6, 0.01)])
+    # (the pads with their backing are kept out up to their tops (+ gap_z): above them the cushion's tapering edge
+    # at the head's envelope is trimmed like anywhere else)
+    pad_zones = [(g2.grow(b_, 0.6, 0.01), zp + gz + 0.1) for b_, zp in ((pads_low_blk, pad_low_top),
+                                                                         (pads_full_blk, p.z_band1))
+                 if not b_.is_empty()]
     near_hb = g2.grow(HB, 0.3, 0.01)
 
     def thin_of(cs):
@@ -843,6 +853,7 @@ def integrate(M, verbose: bool = False) -> dict:
             zs = (zA + 0.01, 0.5 * (zA + zB), zB - 0.01)
             fk = g2.union([Kf0.slice(z) for z in zs])
             kth = g2.union([thin_of(Ks.slice(z)) for z in zs])
+            mech = g2.union([mech0] + [pz for pz, ztop in pad_zones if zA < ztop])
             bound = g2.difference(g2.grow(sec, 1.25, 0.01), mech)
             thin = g2.intersect(g2.difference(thin_of(fk), g2.grow(kth, 0.05, 0.005)), bound)
             top = Kf0.slice(zB - 0.005)
@@ -865,13 +876,42 @@ def integrate(M, verbose: bool = False) -> dict:
         Eh = solids.union3([Eb, nested_stack(aug, p.eps_stack, grows_up=True), Ec])
     Kf = Ks - solids.union3([Eh, Ew])
     frame = solids.union3([Kf, ribs_back, posts, pads])
-    # convex vertical edges where the neck's envelope meets the band's channel (and the pad backing) in the neck
-    # zone are rounded r 1 (V12 corners); the pads' contact faces are left as they are
-    fz = g2.intersect(frame.slice(5.5), rect((-13.0, 16.5, 13.0, 22.0)))
-    corners = g2.drop_small(g2.difference(fz, g2.opening(fz, 2.0, 0.005), g2.grow(S["stoppads2d"], 0.3, 0.005)),
-                            0.005)
-    if not corners.is_empty():
-        frame = frame - ext(g2.grow(corners, 0.02, 0.005), p.z_bp + p.rib_h + 0.1, sm["band_top_seam_z"] + 0.3)
+    # convex vertical edges where the neck's envelope meets the band's channel and the pads' backing (the neck zone)
+    # are rounded r 1 (V12 corners): per 0.25 mm slab, the small convex-corner pieces of the frame's own sections
+    # (section - opening(section, 2.0): pieces <= 4 mm across and >= 0.08 deep, sampled at the slab's bottom,
+    # middle and top; the sections are clipped 6 mm wider than the zone so that the clip makes no corners in it),
+    # inside the zone; never the posts (the head's and the wheel's journals) or the pads' contact faces
+    import shapely
+    neck_box, clip = rect((-13.0, 16.5, 13.0, 22.0)), rect((-19.0, 10.5, 19.0, 28.0))
+    keep_out = g2.union([g2.grow(S["stoppads2d"], 0.3, 0.005)] +
+                        [g2.circle(c_, p.post_r + p.post_root_fillet + 0.5, 0.005) for c_ in (O, P)])
+    z_lo, z_hi = p.z_bp + p.rib_h + 0.1, sm["band_top_seam_z"] + 0.3
+    corner_cuts, corner_mm2 = [], 0.0
+    for za in np.arange(z_lo, z_hi - 1e-6, 0.25):
+        zb_ = float(min(za + 0.25, z_hi))
+        pcs = []
+        for z in (za + 0.01, 0.5 * (za + zb_), zb_ - 0.01):
+            fs = g2.intersect(frame.slice(float(z)), clip)
+            op = g2.opening(fs, 2.0, 0.005)
+            op_shp = g2.to_shapely(op)
+            for q in g2.pieces(g2.difference(fs, g2.grow(op, 0.01, 0.005))):
+                sq = g2.to_shapely(q)
+                if sq.is_empty:
+                    continue
+                bx = sq.bounds
+                if math.hypot(bx[2] - bx[0], bx[3] - bx[1]) > 4.0:
+                    continue                                 # (a wall narrower than 2.0: not a corner)
+                pts = shapely.get_coordinates(sq.boundary)
+                if len(pts) and float(shapely.distance(shapely.points(pts), op_shp).max()) >= 0.08:
+                    pcs.append(q)
+        if pcs:
+            c2 = g2.drop_small(g2.difference(g2.intersect(g2.union(pcs), neck_box), keep_out), 0.005)
+            if not c2.is_empty():
+                corner_mm2 += c2.area()
+                corner_cuts.append(ext(g2.grow(c2, 0.02, 0.005), float(za), zb_))
+    info["neck_corners_mm2"] = round(corner_mm2, 2)
+    if corner_cuts:
+        frame = frame - solids.union3(corner_cuts)
     info["frame_pinches_before_weld"] = len(solids.pinch_vertices(frame))
     frame = finish_welded(frame, p, "frame")
     log("frame")

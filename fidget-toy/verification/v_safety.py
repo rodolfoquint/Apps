@@ -847,6 +847,14 @@ class World:
         out[ok] = acc[iy[ok], ix[ok]]
         return out
 
+    def lookup_val(self, field: np.ndarray, xy: np.ndarray, fill: float = 1e3) -> np.ndarray:
+        ix = np.rint((xy[:, 0] - self.gx0) / self.h).astype(np.int64)
+        iy = np.rint((xy[:, 1] - self.gy0) / self.h).astype(np.int64)
+        ok = (ix >= 0) & (ix < self.nx) & (iy >= 0) & (iy < self.ny)
+        out = np.full(len(xy), fill, dtype=np.float64)
+        out[ok] = field[iy[ok], ix[ok]]
+        return out
+
     def gaps(self, lv: ZLevel, mover: str, phi: float, psi: float, cap: float = 30.0):
         """Gap (nearest neighbour material in front of the surface) and neighbour id for every edge point."""
         P, N = lv.edges[mover]
@@ -1667,23 +1675,24 @@ def run_v12(R: Report, M, W: World, fast: bool, rep_dir: Path, tag: str, render:
 
 
 def exposure_masks(W: World, poses) -> list[list[np.ndarray]]:
-    """Per pose, per level: cells a probe sphere can touch (within r of an accessible probe centre)."""
-    res = []
-    for phi, psi in poses:
-        acc = W.accessible(phi, psi)
-        res.append([(_edt(a, W.h) <= W.touch) if a.any() else np.zeros_like(a) for a in acc])
-    return res
+    """Per pose, per level: distance (mm) from every cell to the nearest accessible probe centre (1e3: none)."""
+    return [[_edt(a, W.h) for a in W.accessible(phi, psi)] for phi, psi in poses]
 
 
-def touched(W: World, masks, poses, body: str, P3: np.ndarray) -> np.ndarray:
+def touched(W: World, fields, poses, body: str, P3: np.ndarray) -> np.ndarray:
+    """Surface points (body frame) the probe sphere reaches, in 3-D: at some pose an accessible probe centre on some
+    level z_k lies within r + h sqrt(2) (the raster tolerance) of the point, hypot(xy distance, z_k - z).  (The
+    nearest level's plane alone misses points between levels and on upward faces, which the probe reaches from
+    the level above, and the probe offset along the normal flagged points no probe centre can reach.)"""
     zs = np.asarray(W.zs)
-    k = np.clip(np.rint((P3[:, 2] - zs[0]) / (zs[1] - zs[0])).astype(int), 0, len(zs) - 1)
     hit = np.zeros(len(P3), bool)
-    for (phi, psi), mk in zip(poses, masks):
+    for (phi, psi), fl in zip(poses, fields):
         xy = W.to_world(body, P3[:, :2], phi, psi)
-        for kk in np.unique(k):
-            sel = k == kk
-            hit[sel] |= W.lookup_acc(mk[kk], xy[sel])
+        for k, zk in enumerate(zs):
+            dz = np.abs(P3[:, 2] - zk)
+            sel = np.flatnonzero(~hit & (dz <= W.touch))
+            if len(sel):
+                hit[sel] |= np.hypot(W.lookup_val(fl[k], xy[sel]), dz[sel]) <= W.touch
     return hit
 
 
@@ -1772,8 +1781,7 @@ def run_edges(R: Report, M, W: World) -> dict:
         if len(P3) == 0:
             out["sharp"][b] = {"stats": st, "points": []}
             continue
-        probe = P3 + N3 * (W.r + 0.1)
-        exp = touched(W, masks, poses, b, probe) | touched(W, masks, poses, b, P3)
+        exp = touched(W, masks, poses, b, P3)
         Pe = P3[exp]
         fr = ball_fraction(body, Pe) if len(Pe) else np.zeros(0)
         pts = [{"at": rl(q, 2), "ball_fraction": round(float(f), 3)} for q, f in zip(Pe, fr)]
