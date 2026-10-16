@@ -858,8 +858,8 @@ def integrate(M, verbose: bool = False) -> dict:
     log("frame")
     # as exported: float32 vertices (STL, 3MF, build cache) must give the same single clean shells
     frame = float32_stable(frame, p, "frame")
-    head = float32_stable(head, p, "head", poses=((P, p.psi_print),))
-    wheel = float32_stable(wheel, p, "wheel", poses=((O, p.phi_print),))
+    head = float32_stable(head, p, "head")
+    wheel = float32_stable(wheel, p, "wheel")        # (the print pose is made clean in Model.print_pose)
     log("float32-stable")
     M.frame, M.head, M.wheel = frame, head, wheel
     info.update({"t_sculpt_s": round(time.time() - t0, 1)})

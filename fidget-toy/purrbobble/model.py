@@ -32,6 +32,7 @@ class Model:
     sections: core2d.Sections
     skin: Skin
     info: dict = field(default_factory=dict)
+    _pp: dict | None = field(default=None, repr=False)      # (cached float32-clean print pose, sculpt skins)
 
     @property
     def O(self) -> tuple:
@@ -59,7 +60,15 @@ class Model:
         return {"frame": self.frame, "wheel": self.wheel_at(phi_deg), "head": self.head_at(psi_deg)}
 
     def print_pose(self) -> dict:
-        return self.posed(self.params.phi_print, self.params.psi_print)
+        b = self.posed(self.params.phi_print, self.params.psi_print)
+        if hasattr(self.skin, "sculpt"):
+            # the sculpt bodies are float32-clean as built; turned to the print pose, float32 rounding can make new
+            # sliver triangles: the exported (and checked) posed head and wheel are made float32-clean themselves
+            from .sculpt import float32_stable
+            if self._pp is None:
+                self._pp = {k: (float32_stable(v, self.params, k) if k != "frame" else v) for k, v in b.items()}
+            return dict(self._pp)
+        return b
 
 
 def build(skin: str | Skin = "kitty", variant: str = "nominal", params: Params | None = None,
