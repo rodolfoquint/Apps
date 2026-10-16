@@ -127,6 +127,27 @@ ends; features must stay >= 3 mm inside FaceUp2D (or outside the r 1.5 rim when 
 than 6 mm) are reported in `M.info["skin_contract"]["warnings"]`. Inertia (I_h in [4, 8]e-6 kg m^2, COM 8-14
 above P) is reported by `verification/v_basic.py`.
 
+## Sculpt skins (`skins/kitty_sculpt.py`, `sculpt.py`)
+
+The skin `kitty` is the owner's sculpted model (`sculpt/Yarn_Cuddle_Kitty_Meshy_AI.3mf`, scaled ×1.139, face up,
+back on z = 0), not a parametric skin; `kitty_classic` is the round-4 parametric kitty. A sculpt skin has a
+`sculpt()` method (the test is `hasattr(skin, "sculpt")`); `build()` then builds only the wheel and the sections
+and `sculpt.integrate(M)` cuts the sculpt into the three bodies around the unchanged escapement core:
+
+* **wheel** = escape wheel + umbrella (R_u 15) + hidden flange (Ø 32.4) + skid rings + the yarn ball's centre
+  (r `cap_r` 10) as a spinning cap with a finger dish (Ø 7.5 × 3 at r_k 5);
+* **head** = the sculpt over `skin.head_blob()` (ears and bow included) from per-point quantised floors up, plus the
+  head band (hub, collar, legs, pallet fingers; legs under thin cushion lowered to `leg_low_top`);
+* **frame** = the rest of the sculpt minus the swept head / wheel envelopes, plus back ribs, posts and stop pads.
+
+`sculpt.seams(skin, params)` returns the effective clearances (gap under a floating body grows with z_lift, the
+seam over it stays gap_z; head floors keep `floor_rest` more), `sculpt.skid_ring_r(skin, params)` the skid-ring
+radii; the checkers read both. The integration takes 5-10 min per variant, so its bodies are cached in
+`build_cache/` under a hash of every geometry source file, the sculpt file, the skin's attributes and the
+parameters (`PURRBOBBLE_NO_CACHE=1` disables it); `M.info["sculpt"]` holds the integration's statistics. Every
+body is made float32-stable (it survives the STL / 3MF / cache round trip as one clean shell), and
+`Model.print_pose()` does the same for the posed bodies.
+
 ## Mesh hygiene
 
 * Faceting is conservative: solids are inscribed, every clearance-making cut (bores, V-grooves, keep-outs, holes)
