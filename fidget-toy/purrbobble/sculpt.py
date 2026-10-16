@@ -800,10 +800,11 @@ def integrate(M, verbose: bool = False) -> dict:
         info["seam_chamfer_mm3"] = round(ch.volume(), 1)
         Ew = solids.union3([Ew, ch])
     if fl:
-        # the flange's slot: gz + 0.05 above and below it (the skid rings and back ribs stay the stops), merged with
-        # the collar's envelope where the two come close (no thin wall between them), and opened down into the band's
-        # channel over the full-height legs (no film of cover between the band's top seam and the slot)
-        fg = gz + 0.05
+        # the flange's slot: gz + floor_rest + 0.05 above and below it (the skid rings and back ribs stay the stops,
+        # and the flange keeps floor_rest when the wheel rests on them, face up or down), merged with the collar's
+        # envelope where the two come close (no thin wall between them), and opened down into the band's channel
+        # over the full-height legs (no film of cover between the band's top seam and the slot)
+        fg = gz + sk.floor_rest + 0.05
         zs0, zs1 = fz0 + zl - fg, fz1 + zl + fg
         notch = g2.intersect(g2.circle(P, p.R_hub_cut + 0.05, 0.005), g2.circle(O, fl + gxy + 1.3, 0.005))
         chim = g2.intersect(g2.grow(g2.grow(swept(keep, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01), 0.05,
