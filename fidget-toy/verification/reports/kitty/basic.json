@@ -1,7 +1,7 @@
 {
  "skin": "kitty",
  "variant": "nominal",
- "build_time_s": 21.73,
+ "build_time_s": 29.32,
  "params": {
   "skin": "kitty",
   "variant": "nominal",
@@ -209,10 +209,13 @@
  },
  "sculpt": true,
  "sculpt_info": {
-  "cover_boss_mm2": 65.4,
-  "head_pinches_before_weld": 112,
+  "cover_boss_mm2": 132.4,
+  "film_raised_mm2": 841.7,
+  "terrace_raised_mm2": 50.0,
+  "head_pinches_before_weld": 110,
+  "head_feathers_cut_mm2": 15.6,
   "head_blob_mm2": 1154.7,
-  "legs_lowered_mm2": 194.2,
+  "legs_lowered_mm2": 194.5,
   "head_always_covered_mm2": 826.2,
   "floor_area_mm2": {
    "3.437": 553.4,
@@ -226,52 +229,54 @@
    "5.037": 552.4,
    "5.237": 552.0,
    "5.437": 550.9,
-   "5.637": 296.1,
-   "5.837": 296.1,
-   "6.037": 294.4,
-   "6.237": 289.6,
-   "6.437": 270.3,
-   "6.637": 197.8,
-   "6.837": 166.8,
-   "7.037": 93.0,
-   "7.237": 53.0,
-   "7.437": 53.0,
-   "7.637": 53.0,
+   "5.637": 398.1,
+   "5.837": 383.0,
+   "6.037": 378.2,
+   "6.237": 366.2,
+   "6.437": 361.5,
+   "6.637": 352.4,
+   "6.837": 210.8,
+   "7.037": 168.4,
+   "7.237": 105.7,
+   "7.437": 62.8,
+   "7.637": 53.3,
    "7.837": 53.0,
-   "8.037": 35.2,
-   "8.237": 34.9,
-   "8.437": 34.7,
-   "8.637": 34.3,
-   "8.837": 34.0,
-   "9.037": 33.5,
-   "9.237": 33.1,
-   "9.437": 32.5,
-   "9.637": 31.9,
-   "9.837": 31.2,
-   "10.037": 30.4,
-   "10.237": 29.6,
-   "10.437": 28.5,
-   "10.637": 27.2,
-   "10.837": 25.7,
-   "11.037": 24.1,
-   "11.237": 22.4,
-   "11.437": 20.6,
-   "11.637": 18.7,
-   "11.837": 16.7,
-   "12.037": 14.5,
-   "12.237": 12.4,
-   "12.437": 10.1,
-   "12.637": 7.1,
-   "12.837": 3.9,
-   "13.037": 1.6,
-   "13.237": 0.3,
-   "13.437": 0.0,
+   "8.037": 53.0,
+   "8.237": 35.5,
+   "8.437": 34.9,
+   "8.637": 34.7,
+   "8.837": 34.3,
+   "9.037": 34.0,
+   "9.237": 33.5,
+   "9.437": 33.1,
+   "9.637": 32.5,
+   "9.837": 31.9,
+   "10.037": 31.2,
+   "10.237": 30.4,
+   "10.437": 29.4,
+   "10.637": 28.2,
+   "10.837": 26.8,
+   "11.037": 25.3,
+   "11.237": 23.7,
+   "11.437": 22.0,
+   "11.637": 20.3,
+   "11.837": 18.4,
+   "12.037": 16.4,
+   "12.237": 14.3,
+   "12.437": 12.2,
+   "12.637": 9.5,
+   "12.837": 6.8,
+   "13.037": 3.7,
+   "13.237": 1.5,
+   "13.437": 0.3,
    "13.637": 0.0,
    "13.837": 0.0,
    "14.037": 0.0
   },
-  "frame_pinches_before_weld": 135,
-  "t_sculpt_s": 130.7,
+  "seam_chamfer_mm3": 408.7,
+  "frame_pinches_before_weld": 88,
+  "frame_feathers_cut_mm2": 4.8,
+  "t_sculpt_s": 521.9,
   "cache": "hit"
  },
  "V1": {
@@ -381,23 +386,17 @@
     "pass": true
    },
    "cad_bore_wall_P": {
-    "min_wall_mm": 1.251,
-    "at_z": 7.55,
-    "at_deg_about_P": 257.6,
-    "z_below_spec": [
-     7.45,
-     7.95
-    ],
-    "deg_below_spec": [
-     222.5,
-     317.4
-    ],
-    "air_inside_spec_wall_mm2": 10.02,
+    "min_wall_mm": 2.545,
+    "at_z": 7.85,
+    "at_deg_about_P": 259.3,
+    "z_below_spec": [],
+    "deg_below_spec": [],
+    "air_inside_spec_wall_mm2": 0.0,
     "spec_wall_mm": 2.5,
     "roof_in_head": 1.0,
     "spec_roof_mm": 0.4,
     "note": "deg about P from +x (270 = towards O); spec = classic hub collar disc(P, 6.90) wall - 0.05; air_inside = largest per-slice area of air inside that wall",
-    "pass": false
+    "pass": true
    },
    "cad_pallet_body_L": {
     "contact_half_in_head": 1.0,
@@ -408,15 +407,15 @@
    },
    "cad_pallet_body_R": {
     "contact_half_in_head": 1.0,
-    "full_disc_in_head": 0.95023,
+    "full_disc_in_head": 0.95424,
     "spec": 0.999,
     "outer_half_beyond_tip_circle": true,
     "pass": true,
     "status": "warn",
-    "note": "outer half: 2.61 mm^3 of the pin not in the head at x 13.56..15.08, y 8.24..10.69, z 3.97..6.85"
+    "note": "outer half: 2.40 mm^3 of the pin not in the head at x 13.54..15.08, y 8.23..10.69, z 4.27..6.85"
    }
   },
-  "pass": false
+  "pass": true
  },
  "V7": {
   "pose": {
@@ -427,11 +426,11 @@
    "frame": {
     "status": "Error.NoError",
     "components": 1,
-    "genus": 73,
+    "genus": 86,
     "watertight": true,
     "winding_consistent": true,
-    "volume_mm3": 32361.41,
-    "triangles": 759232,
+    "volume_mm3": 32259.02,
+    "triangles": 811490,
     "pass": true
    },
    "wheel": {
@@ -447,12 +446,12 @@
    "head": {
     "status": "Error.NoError",
     "components": 1,
-    "genus": 28,
-    "watertight": true,
+    "genus": 27,
+    "watertight": false,
     "winding_consistent": true,
-    "volume_mm3": 12117.93,
-    "triangles": 510514,
-    "pass": true
+    "volume_mm3": 12076.85,
+    "triangles": 632968,
+    "pass": false
    }
   },
   "pairs": [
@@ -477,7 +476,7 @@
   ],
   "checks": {
    "three_valid_shells": {
-    "pass": true
+    "pass": false
    },
    "disjoint": {
     "pass": true
@@ -491,7 +490,7 @@
    "pallet_tooth_gap": {
     "pallet_2d": 1.3776,
     "headband_2d": 1.3776,
-    "band_slab_3d": 1.3776,
+    "band_slab_3d": 1.3836,
     "spec": 1.3,
     "pass": true
    }
@@ -500,7 +499,7 @@
    "shells": 3,
    "all_watertight": true
   },
-  "pass": true
+  "pass": false
  },
  "mass": {
   "frame": {
@@ -510,15 +509,15 @@
     0.0,
     32.625,
     58.899,
-    20.904
+    20.787
    ],
    "size": [
     66.32,
     85.44,
-    20.9
+    20.79
    ],
-   "volume_mm3": 32361.4,
-   "mass_solid_pla_g": 40.13
+   "volume_mm3": 32259.0,
+   "mass_solid_pla_g": 40.0
   },
   "wheel": {
    "bbox": [
@@ -539,32 +538,32 @@
   },
   "head": {
    "bbox": [
-    -23.73,
-    5.269,
+    -23.728,
+    5.275,
     3.0,
-    22.22,
-    50.063,
+    22.214,
+    50.061,
     19.5
    ],
    "size": [
-    45.95,
+    45.94,
     44.79,
     16.5
    ],
-   "volume_mm3": 12117.9,
-   "mass_solid_pla_g": 15.03
+   "volume_mm3": 12076.9,
+   "mass_solid_pla_g": 14.98
   },
   "overall_size_WxHxD": [
    66.32,
    85.44,
    21.51
   ],
-  "total_mass_solid_g": 63.26,
+  "total_mass_solid_g": 63.08,
   "head_inertia": {
-   "mass_g": 15.03,
-   "I_P_kgm2": 3.339e-06,
-   "com_above_P_mm": 7.06,
-   "com_x_mm": -0.038,
+   "mass_g": 14.98,
+   "I_P_kgm2": 3.314e-06,
+   "com_above_P_mm": 6.98,
+   "com_x_mm": -0.02,
    "spec_I_range": [
     4e-06,
     8e-06
@@ -595,6 +594,13 @@
   "stoppads_area": 13.68,
   "note": "sculpt bodies: classic I3 slot / face / fill / roof / bridge sections not built; headband_area is the section the sculpt band is cut from"
  },
+ "slice": {
+  "ok": true,
+  "filament_g": "0.00",
+  "filament_mm": "17529.55",
+  "time": "5h 9m 1s",
+  "support_material": false
+ },
  "pass": false,
- "time_s": 687.2
+ "time_s": 1716.56
 }
