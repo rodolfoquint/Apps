@@ -2927,7 +2927,9 @@ def _stale_export(M, build_json: Path) -> str | None:
     except Exception as ex:  # pragma: no cover
         return f"unreadable {build_json.name}: {ex!r}"
     why = []
-    for k, b in M.bodies.items():
+    # (the builder reports the exported bodies, i.e. the print pose: a sculpt skin's posed head and wheel are re-made
+    # float32-clean there, so their triangle counts differ from the design-frame bodies)
+    for k, b in M.print_pose().items():
         d = (info.get("bodies") or {}).get(k) or {}
         if "volume_mm3" in d and abs(float(d["volume_mm3"]) - b.volume()) > max(0.2, 1e-4 * b.volume()):
             why.append(f"{k} volume {d['volume_mm3']} vs {b.volume():.1f}")
