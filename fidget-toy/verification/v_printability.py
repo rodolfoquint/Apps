@@ -49,7 +49,7 @@ SLICER  PrusaSlicer CLI (0.2 layers, 0.4 nozzle, PLA, 3 perimeters, 5/5 solid la
 
 Sculpt skins (purrbobble/sculpt.py: frame and head cut from a sculpted mesh, no roof / fill walls / face layers /
 paws / rib fields in the bodies, although the sections still hold them) are judged on what is built instead:
-    * zones: the built back ribs (clipped to the low cavity), the wheel's skid rings (designed 0.8), 'sculpt' for the
+    * zones: the built back ribs (sculpt.back_ribs2d), the wheel's skid rings (designed 0.8), 'sculpt' for the
       sculpted surface; a thin XY piece within 0.6 of the >= 1.2 core of the same body one layer up or down is the
       tapering 'edge' of a sculpted wall (warn), one that stays thin in both neighbouring layers is a 'wall' (fail); a
       thin horizontal shell sampled >= 1.0 inside its section is a 'plate' (fail);
@@ -248,7 +248,8 @@ def sculpt_geom(M) -> dict:
     do not carry it; design frame):
     band2d     the head band's plan (hub, legs, fingers and the always-covered face part);
     low2d_cav  the cavity cut down to the plate top under the band's sweep and the wheel;
-    ribs_back  the back ribs as built (Ribs_back2d clipped to low2d_cav shrunk 0.3);
+    ribs_back  the back ribs as built (sculpt.back_ribs2d: Ribs_back2d clipped to low2d_cav shrunk 0.3, fill-in
+               arcs, spokes);
     rings      the skid rings on the wheel's umbrella top (annuli rib_w wide)."""
     key = id(M)
     if key not in _SCULPT_GEOM:
@@ -263,21 +264,22 @@ def sculpt_geom(M) -> dict:
             C = g2.intersect(C, g2.rot_about(HB, float(a_), P))
         C = g2.grow(C, -gxy, 0.01)
         mech2d = g2.union([S["hub2d"], S["legs2d"], S["fingers2d"]])
-        band2d = g2.intersect(S["headband2d"], g2.union([g2.grow(C, -0.5, 0.01), g2.grow(mech2d, 0.05, 0.01)]))
+        Cin = C                                   # (as integrate(): C's part that stays inside C at every pose)
+        for a_ in np.linspace(-p.psi_b, p.psi_b, 41):
+            Cin = g2.intersect(Cin, g2.rot_about(C, float(a_), P))
+        band2d = g2.intersect(S["headband2d"], g2.union([g2.grow(Cin, -0.5, 0.01), g2.grow(mech2d, 0.05, 0.01)]))
         band2d = g2.clean(g2.opening(band2d, 0.5, 0.005), "solid")
         band2d = max(g2.pieces(band2d), key=lambda q: q.area())
         sw_band = g2.grow(swept(band2d, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01)
         low2d_cav = g2.union([sw_band, g2.circle(O, p.wheel_ex_r, 0.01)])
-        from purrbobble.sculpt import skid_ring_r
+        from purrbobble.sculpt import back_ribs2d, skid_ring_r
         ring_r = skid_ring_r(sk, p)
         rings = [g2.difference(g2.circle(O, r + p.rib_w / 2, 0.01), g2.circle(O, r - p.rib_w / 2, 0.01))
                  for r in ring_r]
         _SCULPT_GEOM[key] = {"band2d": band2d, "low2d_cav": low2d_cav,
-                             # (as integrate(): clipped to the cavity, then what the clip leaves narrower than
-                             # 0.9 rib_w dropped)
-                             "ribs_back": g2.drop_small(g2.opening(g2.intersect(S["ribs_back2d"],
-                                                                               g2.grow(low2d_cav, -0.3, 0.01)),
-                                                                   0.9 * p.rib_w, 0.005), 0.1),
+                             # (as integrate(): clipped to the cavity, what the clip leaves narrower than
+                             # 0.9 rib_w dropped, plus the fill-in arcs and the spoke web: one helper)
+                             "ribs_back": back_ribs2d(p, S, band2d, low2d_cav),
                              "rings": compose(rings), "ring_r": ring_r}
     return _SCULPT_GEOM[key]
 
@@ -757,7 +759,7 @@ def v8_walls_rays(M, bodies, zoner: Zoner, n_rays: int, thinmaps: dict) -> dict:
         d = {"min": rnd(np.min(th)), "p01": rnd(np.percentile(th, 1)), "median": rnd(np.median(th)),
              "no_hit": int(np.isinf(th).sum()), "frac_below_1.2": rnd(float((th < WALL_MIN).mean()), 4),
              "zones": {}}
-        thin = np.nonzero(th < WALL_MIN)[0]
+        thin = np.nonzero(th < WALL_MIN - 1e-3)[0]          # (float tolerance, as v8_shells)
         kinds = {}
         for i in thin:
             kind, need = zone_policy(lab[i], p)
@@ -944,6 +946,8 @@ def _sculpt_back_plate(M, frame_t) -> dict:
         th = _vertical_extent(frame_t, np.c_[xs, ys, np.full(len(xs), -0.01)], +1)
         if not len(th):
             continue
+        # (as printed: 0.2 layers sliced at their mid-height, so a plate 1.944 thick prints its 10th layer: 2.0)
+        th = LAYER_H * np.floor((th + LAYER_H / 2) / LAYER_H + 1e-9)
         j = int(np.argmin(th))
         thin = th < PLATE_MIN - 1e-3
         if nm == "plate":
@@ -997,13 +1001,19 @@ def v8_shells(M, bodies, names, crit: float) -> dict:
             d_edge = _taper_edge_dist(bodies[k], Lz, crit, R, np.c_[xs, ys])
             interior = d_edge > edge_d
             bad = (th < crit - 1e-3) & interior
+            notch = _shell_notches(bodies[k], np.c_[xs, ys], th, bad, Lz) if bad.any() else np.zeros(len(th), bool)
+            n_notch = int(notch.sum())
+            bad &= ~notch
             row = {"body": k, "z": rnd(Lz, 4), "area_mm2": rnd(R.area(), 2), "samples": int(len(xs)),
                    "min_all": rnd(th.min()), "at_min_all": rnd([xs[np.argmin(th)], ys[np.argmin(th)]], 2),
                    "min_interior": rnd(th[interior].min()) if interior.any() else None,
                    "area_below_interior_mm2": rnd(bad.sum() * 0.09, 2),
                    "area_below_all_mm2": rnd((th < crit - 1e-3).sum() * 0.09, 2)}
             if crit > WALL_MIN:
-                row["area_below_1.2_interior_mm2"] = rnd(((th < WALL_MIN - 1e-3) & interior).sum() * 0.09, 2)
+                row["area_below_1.2_interior_mm2"] = rnd(((th < WALL_MIN - 1e-3) & interior & ~notch).sum() * 0.09,
+                                                         2)
+            if n_notch:
+                row["notch_samples_(warn)"] = n_notch
             if bad.any():
                 j = int(np.argmin(np.where(bad, th, np.inf)))
                 row["at_min_interior"] = rnd([xs[j], ys[j]], 2)
@@ -1021,6 +1031,31 @@ def v8_shells(M, bodies, names, crit: float) -> dict:
         status = "not-run"
         out["note"] = "no horizontal underside above the first layer"
     out["status"] = status
+    return out
+
+
+def _shell_notches(body: Manifold, P: np.ndarray, th: np.ndarray, bad: np.ndarray, Lz: float,
+                   grid: float = 0.3) -> np.ndarray:
+    """Thin shell samples that are notches, not thin shells: the vertical ray exits into a groove narrower than 0.4
+    (no air disc of r 0.2 around the exit point in the slice just above it: a weld groove or crease the slicer's
+    0.45 extrusions bridge), or the sample is isolated (fewer than 2 of its 4 grid neighbours are thin)."""
+    out = np.zeros(len(th), bool)
+    idx = np.flatnonzero(bad)
+    if not len(idx):
+        return out
+    key = {(int(round(x / grid)), int(round(y / grid))): i for i, (x, y) in enumerate(P)}
+    for i in idx:
+        x, y = P[i]
+        gx, gy = int(round(x / grid)), int(round(y / grid))
+        nb = [key.get((gx + dx, gy + dy)) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
+        if sum(1 for j in nb if j is not None and bad[j]) < 2:
+            out[i] = True
+            continue
+        z_exit = Lz - 1e-3 + float(th[i])
+        sl = body.slice(z_exit + 0.01)
+        disc = CrossSection.circle(0.2, 24).translate((float(x), float(y)))
+        if (disc ^ sl).area() > 1e-4:                 # material within 0.2 of the exit point: a narrow groove
+            out[i] = True
     return out
 
 
@@ -1702,8 +1737,10 @@ def _classify_piece(M, body, Lz, q, below, bodies, allt, owner, names, allowance
 
 
 def rib_tops(bodies, body, z):
-    """Top faces of the OTHER bodies at height z (material just below z, none just above): the skid-rib tops."""
-    return compose([bodies[o].slice(z - 2e-3) - bodies[o].slice(z + 2e-3) for o in bodies if o != body])
+    """Top faces of the OTHER bodies at height z (material just below z, none just above): the skid-rib tops.
+    Hairlines narrower than 0.1 are not top faces (float32 vertices make a vertical wall - e.g. the band cavity's
+    outer wall - lean by ~1e-4: the slice difference leaves a hairline along it, which supports nothing)."""
+    return compose([opening(bodies[o].slice(z - 2e-3) - bodies[o].slice(z + 2e-3), 0.1) for o in bodies if o != body])
 
 
 # ---------------------------------------------------------------------------------------------- V9, sculpt skins
@@ -2167,8 +2204,9 @@ def slicer_check(M, bodies: dict, stl_path: Path, mf_path: Path | None, workdir:
     exe = shutil.which("prusa-slicer") or shutil.which("PrusaSlicer")
     opts = list(SLICER_OPTS)
     if is_sculpt(M):
-        # (sculpt skins: no crown roof; the frame covers bridge in every direction, so the slicer picks it, as the
-        # 3MF's frame part says: assemble.part_settings)
+        # (sculpt skins: no crown roof; the frame covers bridge in every direction, so the slicer picks it, and the
+        # head's and wheel's first layers float over a rib web that every strand direction crosses: automatic for
+        # every part, as the 3MF's parts say - assemble.part_settings)
         opts[opts.index("--bridge-angle") + 1] = "0"
     out = {"settings": " ".join(opts), "runs": {}}
     if exe is None:

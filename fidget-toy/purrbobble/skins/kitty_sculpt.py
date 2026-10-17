@@ -45,12 +45,18 @@ class SculptKittySkin(Skin):
     # integration (purrbobble/sculpt.py)
     cap_r = 10.0            # spinning centre of the yarn ball
     cap_gap = 0.5           # radial gap cap <-> static ring (+ the variant's extra gap_xy)
-    seam_chamfer = 0.4      # the static ring's inner edge is chamfered 45 deg from this far under the yarn surface
-    # hidden flange ring on the wheel (r 14.7 -> 16.2, z 8.5-9.45 under the yarn ball's static ring): the wheel is
-    # then 32.4 wide, more than the 31.7 small-parts cylinder (V10).  Limits: the head's hub collar is 17.81 from O
-    # (deep 17.65; >= 1.4 clear), the chin's floor envelope at r 18.44, and the ring over it stays >= 2 thick
+    seam_chamfer = 0.6      # the static ring's inner edge is chamfered 45 deg from this far under the yarn surface
+    # hidden flange ring on the wheel (out to r 16.2 under the yarn ball's static ring): the wheel is then 32.4 wide,
+    # more than the 31.7 small-parts cylinder (V10).  No free lip: its underside rises flange_angle from vertical
+    # from the umbrella's cone (r 14.5, z 8.2) to the rim (z 9.39), its top is flat at flange_top: the rim is 0.86
+    # tall, the flange >= 1.2 thick inside D 31.4.  The vertical room is set by the frame over it (the slot's top gap
+    # 0.66, one stair step 0.2 so that it prints, >= 2.0 up to the yarn's strand crevices, r 14.9: 13.15 high):
+    # a 45 deg underside would leave a 0.35 rim, 50 deg 0.62.  Limits: the head's hub collar is 17.81 from O (deep
+    # 17.65; >= 1.4 clear), the chin's floor envelope at r 18.44.
     flange_r = 16.2
-    flange_z = (8.5, 9.45)
+    flange_angle = 55.0     # underside, degrees from vertical (0.29 mm reach per 0.2 mm layer)
+    flange_top = 10.25      # (0.25 under the umbrella top)
+    flange_z0 = 8.5         # the slot's floor lies the slot gap (gap_z + floor_rest + 0.05) under this
     cap_min_h = 1.5         # the cap is at least this tall above the umbrella top
     ring_pitch = 1.9        # skid rings on the umbrella top (the static ring floats on them): r 11.7 and 13.6 in
     ring_r_max = 13.6       # every variant (the outer ring's envelope stays inside the strand edge at r 14.65)
@@ -60,7 +66,7 @@ class SculptKittySkin(Skin):
     float_z = 6.95          # lowest head floor where the head swings over its own uncovered footprint: the cushion
                             # around the head (<= 6.3-6.5) stays whole under it (no moat; V12 pinch, cut-out look)
     pad_low_top = 4.736     # stop pads under the head (the lowered legs bank on them), every variant
-    blob_offset = 0.05      # the head body's outline: 0.05 outside the head blob (an inset sliced the cheeks', ears'
+    blob_offset = 0.10      # the head body's outline: 0.10 outside the head blob (an inset sliced the cheeks', ears'
                             # and bow's bulges flat at their equators)
     neck_trim_z0 = 5.4      # knife-edge trim along the neck line from here up
     float_top = 14.0        # highest floor level considered

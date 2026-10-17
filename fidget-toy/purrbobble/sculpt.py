@@ -209,16 +209,21 @@ def stack_sections(slabs: list[tuple[float, float, CrossSection]], eps: float) -
     return Manifold.batch_boolean(parts, _ADD) if len(parts) > 1 else (parts[0] if parts else Manifold())
 
 
-def seam_chamfer(K: Manifold, r_s: float, c: float, z_lo: float, n: int = 720) -> Manifold:
+def seam_chamfer(K: Manifold, r_s: float, c: float, z_lo: float, n: int = 720, land: float = 1.2,
+                 fin: float = 3.3, z_min: float | None = None) -> Manifold:
     """A 45 deg chamfer cutter for the outer side of a circular seam at r_s about O: at each angle it removes what
-    lies above the line rising outward at 45 deg from (r_s, h - c), h being the sculpt's highest point within 1 mm
-    outside the seam there (so the edge is c below the surface and blunt however steeply the yarn strands fall
-    away from it; taken at the seam itself, so the chamfer does not dig under strand crests nearby).  Built as one
-    closed ring mesh: profile (r_s - 0.3 .. r_s + c + 2.5) swept around O."""
+    lies above the line rising outward at 45 deg from (r_s, h - c), h being the sculpt's highest point at the seam
+    (so the edge is c below the surface and blunt however steeply the yarn strands fall away from it; taken at the
+    seam itself, so the chamfer does not dig under strand crests nearby).  Where a strand crest stands at the seam
+    as a tall acute fin - more than `fin` above the height up to which the ring is still `land` wide outward from
+    the seam (the cut leaves two such, 3.8-4.0 tall, on the owner's ball) - the cutter drops over +-1 deg so that
+    the fin keeps only `land` above that height (never below z_min: the ring over the wheel keeps its thickness;
+    lower crests are left alone, they are blunt and supported).  Built as one closed ring mesh: profile
+    (r_s - 0.3 .. r_s + c + 2.5) swept around O."""
     import shapely
     from shapely.geometry import Polygon
     th = np.linspace(0.0, 2 * math.pi, n, endpoint=False)
-    rr = r_s + np.array([0.0, 0.1])
+    rr = r_s + np.arange(0.0, land + 0.05 + 1e-9, 0.05)
     X = np.cos(th)[:, None] * rr[None, :]
     Y = np.sin(th)[:, None] * rr[None, :]
     H = np.full(X.shape, z_lo)
@@ -232,9 +237,22 @@ def seam_chamfer(K: Manifold, r_s: float, c: float, z_lo: float, n: int = 720) -
         if pg is None or pg.is_empty:
             break
         H[shapely.contains_xy(pg, X, Y)] = z
-    h = H.max(axis=1)
+    h = H[:, :2].max(axis=1)                                # (the seam itself: r_s .. r_s + 0.05)
     k = max(1, n // 360)                                    # max-filter over +-1 deg: no notches between samples
     h = np.minimum(np.max(np.stack([np.roll(h, j) for j in range(-k, k + 1)]), axis=0), h + 0.1)
+    # tall fins: the ring is >= land wide outward from the seam up to z_land (every sample out to r_s + land
+    # reaches it); a crest standing more than `fin` above that keeps only `land` of it (after the max filter)
+    z_land = H.min(axis=1)
+    if z_min is not None:
+        z_land = np.maximum(z_land, z_min)
+    tall = np.flatnonzero(h - z_land > fin)
+    hn = h.copy()
+    w = 2 * k                                               # +-1 deg
+    for i in tall:
+        for j in range(i - w, i + w + 1):
+            hn[j % n] = min(hn[j % n], z_land[i] + land + c)
+    h = hn
+    seam_chamfer.last_tall = int(len(tall))
     prof = [(r_s - 0.3, -c), (r_s, -c), (r_s + c + 2.5, 2.5), (r_s - 0.3, 2.5)]     # (r, z - h), CCW in (r, z)
     m = len(prof)
     V = np.zeros((n * m, 3))
@@ -428,8 +446,87 @@ def seams(sk, p) -> dict:
             "collar_top_seam_z": p.z_roof0 + zl + gt,               # frame over the hub collar (disc(P, R_hub_cut))
             "lowered_env_top": sk.leg_low_top + zl + gt,            # underside of the covers over the lowered legs
             "lowered_cover_top": sk.leg_low_top + zl + gt + sk.cover_t,
-            # stop pads under the head (the lowered legs bank on them): the same height in every variant
-            "pad_low_top": sk.pad_low_top}
+            # stop pads the lowered legs bank on: pad_low_top, and at least 0.05 into the cover over the lowered legs
+            # (loose: the cover's underside rises with z_lift)
+            "pad_low_top": max(sk.pad_low_top, sk.leg_low_top + zl + gt + 0.05)}
+
+
+WHEEL_SPOKES = 12          # spokes about O under the wheel (strands over the teeth's first layer: <= 4.7 mm per run)
+
+
+def back_ribs2d(p, S, band2d: CrossSection, low2d_cav: CrossSection, spokes: bool = True) -> CrossSection:
+    """The frame's back ribs as built (z_bp .. z_bp + rib_h; design frame; the checkers call this too).  Ribs_back2d
+    is clipped to the low cavity shrunk 0.3 and what the clip leaves narrower than 0.9 rib_w is dropped.  The head
+    band's underside floats over the rib tops at the print pose and must lie within the float reach (pitch - rib_w)
+    / 2 of one everywhere (V9 rib float, <= 1.90): where the clip dropped an arc (the arc that runs along the cavity's
+    outer edge at the band's tip, r 19.5 about P, is cut to a 0.5 sliver there) or shortened one, fill-in arcs about
+    P are added at full width inside the clip, as core2d's (whose fill-in serves the classic band, not this one).
+    Radial spokes about P join the arcs into a web (spokes=True): the slicer prints the band's first layer as
+    straight bridge strands, one direction per region, and a straight strand runs tangent to the arcs somewhere
+    whatever its direction - 15-21 mm over no rib on this band, whose always-covered face part lies above P (the
+    classic band, legs and hub only, crossed the arcs at 180 deg).  The spokes, every `step` (the tangential pitch at
+    the band's farthest point <= the rib pitch: every other one from the hub ring, the rest from where the hub
+    ones' pitch passes the rib pitch), cut every strand to about the rib pitch (<= 5 mm) in any direction."""
+    P, O = tuple(p.P), (0.0, 0.0)
+    clip = g2.grow(low2d_cav, -0.3, 0.01)
+    rib2d = g2.drop_small(g2.opening(g2.intersect(S["ribs_back2d"], clip), 0.9 * p.rib_w, 0.005), 0.1)
+    # (fill-in arcs keep core2d's rib rules too: 0.3 inside the swept band, off the wheel's disc (its own rings
+    # there) and the posts' roots, 0.3 clear of the stop pads)
+    post_clear = g2.union([g2.circle(c, p.post_r + p.post_root_fillet + p.rib_post_clear, 0.01) for c in (O, P)])
+    fclip = g2.difference(g2.intersect(clip, g2.grow(S["swept_headband2d_exact"], -0.3, 0.01)),
+                          g2.circle(O, p.fill_wheel_r, 0.01), post_clear, g2.grow(S["stoppads2d"], 0.3, 0.01))
+    reach = (p.rib_back_pitch - p.rib_w) / 2.0 + 0.02     # 1.87, as core2d's (V9 allows 1.90)
+    under = g2.difference(g2.rot_about(band2d, p.psi_print, P), g2.circle(P, p.bore_r + 0.05, 0.01))
+    for _ in range(4):
+        unc = g2.drop_small(g2.opening(g2.difference(under, g2.grow(rib2d, reach, 0.005)), 0.05, 0.005), 0.005)
+        if unc.is_empty():
+            break
+        segs = []
+        for q in g2.pieces(unc):
+            pts = np.vstack([np.asarray(c, float) for c in q.to_polygons()])
+            r0 = float(np.mean(np.hypot(pts[:, 0] - P[0], pts[:, 1] - P[1])))
+            # (a local arc: the zone that part of the band sweeps, not a whole ring)
+            loc = swept(g2.grow(g2.rot_about(q, -p.psi_print, P), 1.5, 0.01), P, p.psi_b, p.n_sweep, allowance=0.0)
+            for dr in (0.0, -0.3, 0.3, -0.6, 0.6, -0.9, 0.9, -1.2, -1.5):
+                r = r0 + dr
+                seg = g2.intersect(g2.difference(g2.circle(P, r + p.rib_w / 2, g2.TOL_DECO),
+                                                 g2.circle(P, r - p.rib_w / 2, g2.TOL_DECO)), loc, fclip)
+                seg = g2.drop_small(g2.opening(seg, 0.95 * p.rib_w, 0.005), 0.3)     # full-width rib only
+                if not seg.is_empty() and g2.difference(q, g2.grow(seg, reach + 0.03, 0.01)).area() < 1e-3:
+                    segs.append(seg)
+                    break
+        if not segs:
+            break
+        # (closed 0.3 around the new arcs: one next to an existing arc leaves no hairline slit between them)
+        add = g2.union(segs)
+        rib2d = g2.union([rib2d, add, g2.intersect(g2.closing(g2.union([rib2d, add]), 0.3, 0.005),
+                                                   g2.grow(add, 0.6, 0.005), clip)])
+    if spokes:
+        pts = np.vstack([np.asarray(c, float) for c in band2d.to_polygons()])
+        r_max = float(np.hypot(pts[:, 0] - P[0], pts[:, 1] - P[1]).max())
+        n = 2 * int(math.ceil(math.pi * r_max / p.rib_back_pitch))          # (even: alternate hub / outer spokes)
+        step = 2.0 * math.pi / n
+        r_split = p.rib_back_pitch / (2.0 * step) - p.rib_w / 2.0
+        bars = []
+        for k in range(n):
+            u = np.array([math.cos(k * step), math.sin(k * step)])
+            w = np.array([-u[1], u[0]]) * (p.rib_w / 2.0)
+            a0 = np.asarray(P) + u * (p.rib_back_r0 if k % 2 == 0 else r_split)
+            a1 = np.asarray(P) + u * (r_max + 5.0)
+            bars.append(g2.poly([a0 - w, a1 - w, a1 + w, a0 + w]))
+        # (and under the wheel: WHEEL_SPOKES about O from the inner ring to the outer one, inside the rings' clip -
+        # the teeth's first layer otherwise runs up to 9.8 mm between the rings about O)
+        r_in, r_out = min(p.rib_rings_O), max(p.rib_rings_O)
+        for k in range(WHEEL_SPOKES):
+            t = 2.0 * math.pi * (k + 0.5) / WHEEL_SPOKES
+            u = np.array([math.cos(t), math.sin(t)])
+            w = np.array([-u[1], u[0]]) * (p.rib_w / 2.0)
+            bars.append(g2.intersect(g2.poly([u * r_in - w, u * r_out - w, u * r_out + w, u * r_in + w]),
+                                     g2.difference(g2.circle(O, p.rib_rings_clip, 0.01), post_clear)))
+        sp = g2.drop_small(g2.opening(g2.union([g2.intersect(g2.union(bars[:n]), fclip)] + bars[n:]),
+                                      0.95 * p.rib_w, 0.005), 0.3)
+        rib2d = g2.union([rib2d, sp])
+    return rib2d
 
 
 def skid_ring_r(sk, p) -> list[float]:
@@ -499,15 +596,24 @@ def integrate(M, verbose: bool = False) -> dict:
     cap = K ^ ext(cap2d, zt - EPS, 60.0)
     cap = cap + ext(cap2d, zt - EPS, zt + sk.cap_min_h)
     wheel = solids.union3([M.wheel, ribs, cap])
-    # hidden flange ring (skin.flange_r / flange_z): it widens the wheel past the small-parts cylinder (V10) under
-    # the yarn ball's static ring, above the band (1.1 clear of its top: pressing the ball must not land it on the
-    # legs, V5x) and clear of the head's hub collar (V6.face_ball)
+    # hidden flange ring (skin.flange_r): it widens the wheel past the small-parts cylinder (V10) under the yarn
+    # ball's static ring.  No free lip: its underside leaves the umbrella's 45 deg cone at r umb_r0 + 0.2 and rises
+    # flange_angle from vertical out to the rim (no horizontal underside); its top is flat at flange_top out to the
+    # rim (under the umbrella top: it crosses the rim fillet, no coplanar or tangent faces), the highest the frame
+    # over it allows (see the slot).  It stays >= 1.1 above the band (within its reach the band is <= z_pallet_top:
+    # pressing the ball must not land it on the legs, V5x) and clear of the head's hub collar (V6.face_ball)
     fl = getattr(sk, "flange_r", None)
     wheel_nf = wheel                          # (the wheel envelope is built from the wheel without the flange)
+    fl_top = None
     if fl:
-        fz0, fz1 = sk.flange_z
-        wheel = solids.union3([wheel, ext(g2.difference(g2.circle(O, fl, 0.005), g2.circle(O, p.R_u - 0.3, 0.005)),
-                                          fz0 + zl, fz1 + zl)])
+        kf = math.tan(math.radians(90.0 - sk.flange_angle))                 # underside rise per mm of radius
+        rx, zx = p.umb_r0 + 0.2, p.z_teeth1 + 0.2 + zl                      # (on the umbrella's cone)
+        und = lambda r: zx + kf * (r - rx)                                  # noqa: E731
+        fl_top = sk.flange_top + zl
+        r_in = max(ring_r) if ring_r else p.R_u - 1.4
+        prof = [(p.umb_r0, und(p.umb_r0)), (fl, und(fl)), (fl, fl_top), (r_in, fl_top), (r_in, und(p.umb_r0) + 0.6)]
+        wheel = solids.union3([wheel, solids.revolve_rz(prof, g2.nseg(fl, g2.TOL_FUNC, mult=8))])
+        info["flange_rim_z"] = [round(und(fl), 3), round(fl_top, 3)]
     # finger dish in the cap: a sphere cut, opening sk.dish_d at (r_k, 0), sk.dish_depth below the cap's surface
     cxy = (p.r_k, 0.0)                        # (the drive lever arm in the V4 dynamics, too)
     ztop = _top_z(K, cxy, sk.dish_d / 2.0)
@@ -542,22 +648,15 @@ def integrate(M, verbose: bool = False) -> dict:
     bank = g2.union([g2.grow(g2.rot_about(band2d, s_ * p.psi_b, P), 3 * p.eps_stack, 0.001) for s_ in (-1, 1)])
     pad_pcs = g2.pieces(S["stoppads2d"])
     pad_low = [not g2.intersect(pc, HB).is_empty() for pc in pad_pcs]
-    pads, blk_low, blk_full = [], [], []
+    pad_blks, blk_low, blk_full = [], [], []
     for pad, low in zip(pad_pcs, pad_low):
         blk = g2.union([pad, g2.intersect(S["fill2d"], g2.grow(pad, sk.pad_back, 0.01))])
         blk = g2.clean(g2.drop_small(g2.opening(blk, 0.4, 0.005), 0.5), "solid")
         blk = g2.clean(g2.difference(g2.union([pad, g2.opening(blk, 2.0, 0.005)]), bank), "solid")   # (r 1)
-        if low:
-            pads.append(ext(blk, p.z_bp - EPS, pad_low_top))
-        else:
-            # (the backing of a full-height pad stays 0.05 under the sculpt's surface: where the chest falls into
-            # the neck crease it would stand above it; the pad's own fin keeps the full height)
-            fin = g2.intersect(blk, g2.grow(pad, 0.3, 0.005))
-            pads += [ext(fin, p.z_bp - EPS, p.z_band1),
-                     ext(g2.difference(blk, fin), p.z_bp - EPS, p.z_band1) ^ K.translate((0.0, 0.0, -0.05))]
+        pad_blks.append((pad, blk))
         (blk_low if low else blk_full).append(blk)
-    pads = solids.union3(pads)
-    # (the real block outlines: what the head's floors must clear, and what supports them in print)
+    # (the block outlines by the head-blob classification: what the head's floors must clear - unchanged by the
+    # pads' physical heights below, which only lower them)
     pads_low_blk = g2.union(blk_low or [CrossSection()])
     pads_full_blk = g2.union(blk_full or [CrossSection()])
     posts = solids.union3([solids.post(p, O), solids.post(p, P)])
@@ -566,11 +665,11 @@ def integrate(M, verbose: bool = False) -> dict:
     # ---------------- head
     # under the band's sweep and the wheel the frame is cut down to the plate top, with the back ribs inside
     # (the band's own cavity is the first slab of its envelope below, which starts at the plate top); ribs clipped
-    # to a sliver at the cavity edge are dropped
+    # to a sliver at the cavity edge are dropped; fill-in arcs keep the band's underside within the float reach and
+    # spokes cut every bridge strand of its first layer to <= the rib pitch (back_ribs2d)
     sw_band = g2.grow(swept(band2d, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01)
     low2d_cav = g2.union([sw_band, g2.circle(O, p.wheel_ex_r, 0.01)])
-    rib2d = g2.intersect(S["ribs_back2d"], g2.grow(low2d_cav, -0.3, 0.01))
-    rib2d = g2.drop_small(g2.opening(rib2d, 0.9 * p.rib_w, 0.005), 0.1)       # (opening takes a width)
+    rib2d = back_ribs2d(p, S, band2d, low2d_cav)
     ribs_back = ext(rib2d, p.z_bp - EPS, p.z_bp + p.rib_h)
     # legs lowered where their sweep passes under sculpt thinner than cover_min (outside the head and the ball)
     foot = K.slice(0.3)
@@ -598,18 +697,34 @@ def integrate(M, verbose: bool = False) -> dict:
         if not sw_low.is_empty() else CrossSection()
     Ks = K
     if not boss2d.is_empty():
-        # tapered 45 deg down into the cushion (no flat plateau with vertical edges in its quilting grooves)
+        # tapered 45 deg down into the cushion (no flat plateau with vertical edges in its quilting grooves); its walls
+        # run 0.1 into the solid (a wall across a crease is not perforated by the welding) and never into C
         core, bslabs = boss2d, []
         nb = int(math.ceil((cov_top - 4.8) / 0.1))
+        dom = g2.difference(g2.grow(foot, -0.5, 0.01), C)
         for kb in range(nb + 1):
             z1b = cov_top - kb * 0.1
             z0b = cov_top - (kb + 1) * 0.1 if kb < nb else 0.0
-            bslabs.append((z0b, z1b, g2.intersect(g2.closing(g2.grow(core, 0.05 + kb * 0.1, 0.01), 0.5, 0.01),
-                                                  g2.grow(foot, -0.5, 0.01))))
+            bslabs.append((z0b, z1b, g2.intersect(g2.closing(g2.grow(core, 0.10 + kb * 0.1, 0.01), 0.5, 0.01), dom)))
         boss2d = bslabs[0][2]
         Ks = K + nested_stack(bslabs[::-1], p.eps_stack, grows_up=False)
         TV = TopView(Ks, 2.5, 0.1)
     info["cover_boss_mm2"] = round(boss2d.area(), 1)
+    # hidden fill of the undercuts over the lowered legs: where the top view stays above the cover's top, the sculpt
+    # is made solid from below the envelope top up to cov_top (+ a floor step where it stands that much higher), so
+    # the cover is >= cover_t in every crease (hairline crevices under the ball flank, arms and cheeks, which a top
+    # view cannot see; loose has them at 0.1)
+    if not sw_low.is_empty():
+        reg = g2.grow(sw_low, gxy + 0.5, 0.01)
+        fill = g2.difference(g2.intersect(reg, TV.at(cov_top, up=True)), solid_through(z_fl - 0.05, cov_top))
+        fill = g2.drop_small(g2.opening(fill, 0.1, 0.005), 0.05)
+        fill = g2.intersect(g2.grow(fill, 0.13, 0.005), reg, g2.grow(foot, -0.5, 0.01),
+                            TV.at(cov_top + sk.floor_step + 0.05, up=True))
+        fill = g2.difference(fill, C)
+        if not fill.is_empty():
+            Ks = Ks + ext(fill, z_fl - 1.0, cov_top + sk.floor_step)
+            TV = TopView(Ks, 2.5, 0.1)
+        info["cover_fill_mm2"] = round(fill.area(), 1)
     # stacked slabs, each section strictly inside the one below (eps_stack): the full band up to leg_low_top, the
     # band without the lowered legs up to the pallet top, then without the pallet fingers (they run under the
     # umbrella) up to the band top, then the hub collar over the bore (to z_roof0, as in the classic head).  (A cut
@@ -623,6 +738,22 @@ def integrate(M, verbose: bool = False) -> dict:
     collar2d = g2.circle(P, p.R_hub_cut - p.swept_gap - 0.05, g2.TOL_FUNC)
     band = solids.union3([ext(b0, p.z_band0, sk.leg_low_top), ext(keep, sk.leg_low_top, p.z_pallet_top),
                           ext(top, p.z_pallet_top, p.z_band1), ext(collar2d, p.z_band1, p.z_roof0)])
+    # the stop pads: full band height only where a full-height leg banks on them (+-psi_b); where only lowered legs
+    # do, they stop at pad_low_top (a full-height fin would stand as a blade in the neck crease).  Each block stays
+    # 0.05 under the sculpt's surface, except the contact strip up to the lowered legs' top.
+    pads, phys_low, phys_full = [], [], []
+    for pad, blk in pad_blks:
+        banked_full = any(not g2.intersect(g2.grow(pad, 0.3, 0.005), g2.rot_about(keep, s_ * p.psi_b, P)).is_empty()
+                          for s_ in (-1, 1))
+        z_top = p.z_band1 if banked_full else pad_low_top
+        fin = g2.intersect(blk, g2.grow(pad, 0.3, 0.005))
+        pads += [ext(fin, p.z_bp - EPS, z_top if banked_full else sk.leg_low_top + zl + 0.1),
+                 ext(blk, p.z_bp - EPS, z_top) ^ K.translate((0.0, 0.0, -0.05))]
+        (phys_full if banked_full else phys_low).append(blk)
+    pads = solids.union3(pads)
+    pads_phys = [(g2.union(phys_low), pad_low_top), (g2.union(phys_full), p.z_band1)]
+    pads_phys = [(b_, zp) for b_, zp in pads_phys if not b_.is_empty()]
+    info["pads_full_height"] = len(phys_full)
 
     def band_at(z):
         """The (lifted) band's footprint at height z."""
@@ -638,7 +769,7 @@ def integrate(M, verbose: bool = False) -> dict:
         from .sweep import _sweep
         return _sweep(cs.simplify(0.01), P, np.linspace(-p.psi_b, p.psi_b, 41), 0.05, 0.001)
 
-    # the head body's outline: blob_offset (0.05) outside the blob (the blob's outline is made of the sculpt's own
+    # the head body's outline: blob_offset (0.10) outside the blob (the blob's outline is made of the sculpt's own
     # slice contours: a prism wall on them would touch the sculpt surface tangentially, and one inside them slices
     # the cheeks', ears' and bow's bulges flat at their equators; the sliver of cushion taken in lies under the
     # head's floors, which float above the cushion, so it stays frame)
@@ -706,8 +837,10 @@ def integrate(M, verbose: bool = False) -> dict:
     def no_slivers():
         # no slivers of a lower floor (they would be lost when the outlines are simplified for the sweep, and the
         # frame cut would miss them): the head points present below each level are opened by 0.1 (their floor rises)
+        # (taken inside the blob's outline less 0.05: the outset band blob_offset is cushion, never lower floor)
+        inner = g2.grow(HBb, -0.05, 0.005)
         for L in levels[1:]:
-            R[L] = g2.clean(g2.difference(HBb, g2.opening(g2.difference(HBb, R[L]), 0.1, 0.005)), "solid")
+            R[L] = g2.clean(g2.difference(HBb, g2.opening(g2.difference(inner, R[L]), 0.1, 0.005)), "solid")
 
     no_slivers()
     # printable underside: a floor terrace (the points whose floor is exactly L) may reach at most overhang_max beyond
@@ -718,6 +851,8 @@ def integrate(M, verbose: bool = False) -> dict:
     # collar's and the sweep of every head point with a lower floor), solid 0.6 deep (no films), plus the stop pads'
     # real blocks.
     pushed = 0.0
+    sw_keep = g2.grow(swept(keep, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01)
+    in_c0 = g2.grow(g2.intersect(sw_low_all, C), 0.05, 0.005) if not sw_low_all.is_empty() else CrossSection()
     for k in range(1, len(levels) - 1):
         L, Ln = levels[k], levels[k + 1]
         T = g2.difference(R[L], R[Ln])
@@ -725,24 +860,34 @@ def integrate(M, verbose: bool = False) -> dict:
             continue
         lower = g2.difference(HBb, R[L])                    # head points with floor < L
         zf = L - gzf - 0.01
-        cut = [g2.grow(swp(lower), gxy, 0.01)] if not lower.is_empty() else []
-        if zf < z_fl:
-            cut.append(sw_band)
-        elif zf < sm["band_top_seam_z"]:
-            cut.append(g2.grow(swept(keep, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01))
-        if p.z_band1 + zl <= zf <= sm["collar_top_seam_z"]:
-            cut.append(g2.circle(P, p.R_hub_cut, 0.005))
-        fr = g2.difference(Ks.slice(zf), g2.union(cut)) if cut else Ks.slice(zf)
-        fr = g2.intersect(fr, g2.intersect(*[Ks.slice(float(z)) for z in np.arange(zf - 0.6, zf + 1e-6, 0.1)]))
-        pads_here = [b_ for b_, zp in ((pads_low_blk, pad_low_top), (pads_full_blk, p.z_band1))
-                     if zf <= zp and not b_.is_empty()]
+        sw_lower = g2.grow(swp(lower), gxy, 0.01) if not lower.is_empty() else None
+
+        def frame_at(z):
+            """The frame at height z as far as the floors know it: the sculpt (+ bosses) minus the envelopes there."""
+            cut = [sw_lower] if sw_lower is not None else []
+            if z < z_fl:
+                cut.append(sw_band)
+            elif z < sm["band_top_seam_z"]:
+                cut.append(sw_keep)
+                if not in_c0.is_empty():
+                    cut.append(in_c0)
+            if p.z_band1 + zl <= z <= sm["collar_top_seam_z"]:
+                cut.append(g2.circle(P, p.R_hub_cut, 0.005))
+            return g2.difference(Ks.slice(z), g2.union(cut)) if cut else Ks.slice(z)
+
+        # (solid 0.6 deep under the floor with the envelopes cut at every depth: no films, no frame over a cut)
+        fr = g2.intersect(*[frame_at(float(z)) for z in np.arange(zf - 0.6, zf + 1e-6, 0.1)])
+        pads_here = [b_ for b_, zp in pads_phys if zf <= zp]
         fr = g2.opening(g2.union([fr] + pads_here), 0.6, 0.005)
         own = g2.union([g2.grow(g2.opening(g2.intersect(lower, kslice(L - 0.1)), 0.15, 0.005), -0.1, 0.005),
                         band_at(L - 0.1)])
         Tw = g2.rot_about(T, p.psi_print, P)
         sup = g2.rot_about(g2.intersect(g2.grow(g2.intersect(Tw, fr), sk.float_reach, 0.01), Tw), -p.psi_print, P)
         ok = g2.union([g2.grow(own, sk.overhang_max, 0.01), sup])
-        up = g2.drop_small(g2.intersect(g2.difference(T, ok), TV.at(Ln + sk.t_min, up=True)), 0.01)
+        # (pushed only where the raised floor leaves >= 1.2 of sculpt over it, or where there is none at Ln anyway:
+        # a push must not leave a film of head)
+        guard = g2.union([solid_through(Ln + 0.01, Ln + 1.2), g2.difference(HBb, kslice(Ln + 0.01))])
+        up = g2.drop_small(g2.intersect(g2.difference(T, ok), guard), 0.01)
         if not up.is_empty():
             pushed += up.area()
             R[Ln] = g2.clean(g2.union([R[Ln], up]), "solid")      # (still nested: up lies in R[L])
@@ -755,9 +900,6 @@ def integrate(M, verbose: bool = False) -> dict:
     for k, L in enumerate(levels[1:]):                                          # outline: no walls along it)
         L0 = levels[k]
         cut_slabs.append((L0 if k else p.z_band0 - 1.0, L, g2.union([R[L], ring])))
-        env_slabs.append((L0 - gzf, L - gzf, g2.grow(swp(g2.difference(HBb, R[L])), gxy, 0.01)))
-    env_slabs.append((levels[-1] - gzf, 60.0, g2.grow(swp(HBb), gxy, 0.01)))
-    log("head floor sweeps")
     cut = nested_stack(cut_slabs, p.eps_stack, grows_up=False)
     log("head floor cut stack")
     body = (K ^ ext(HBb, p.z_band0 + zl, 60.0)) - cut
@@ -776,6 +918,21 @@ def integrate(M, verbose: bool = False) -> dict:
                                                               (80, sk.neck_y + 1.5), (-80, sk.neck_y + 1.5)]))
         near = lambda z: neck                                                     # noqa: E731
     head = _finish_trimmed(head, near, sk.neck_trim_z0 + zl, p, "head", info, log)
+    # the floor envelope for the frame: per level, the sweep of the head points with a lower floor WHERE THE HEAD
+    # REALLY HAS MATERIAL below that level (the head's slices every 0.05 mm, cumulated, grown 0.05), not the columns
+    # of the blob that hold only cushion (their low formal floors would cut a moat into the cushion beside the head)
+    hz = np.arange(p.z_band0 + zl + 0.005, levels[-1] + 0.3, 0.05)
+    cum, j = CrossSection(), 0
+    for k, L in enumerate(levels[1:]):
+        while j < len(hz) and hz[j] < L:
+            cum = g2.union([cum, head.slice(float(hz[j]))])
+            j += 1
+        real = g2.intersect(g2.difference(HBb, R[L]), g2.grow(cum, 0.05, 0.005))
+        env_slabs.append((levels[k] - gzf, L - gzf,
+                          g2.grow(swp(real), gxy, 0.01) if not real.is_empty() else CrossSection()))
+    allh = g2.intersect(HBb, g2.grow(g2.union([cum, head.project()]), 0.05, 0.005))
+    env_slabs.append((levels[-1] - gzf, 60.0, g2.grow(swp(allh), gxy, 0.01)))
+    log("head floor sweeps (real material)")
     info.update({"head_blob_mm2": round(HB.area(), 1), "legs_lowered_mm2": round(low2d.area(), 1),
                  "head_always_covered_mm2": round(C.area(), 1),
                  "floor_area_mm2": {float(L): round(R[L].area(), 1) for L in levels[1:]}})
@@ -785,7 +942,10 @@ def integrate(M, verbose: bool = False) -> dict:
     sw = lambda cs: g2.grow(swept(cs, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01)    # (band: functional)
     # the band's envelope (the band is lifted by zl itself; the seams over it are gap_z): the full band to the
     # lowered legs' top, the rest to the band top; the collar's (a disc about P: its own sweep) over it
-    band_env = [(p.z_bp, z_fl, sw_band), (z_fl, sm["band_top_seam_z"], sw(keep))]
+    # (inside C, where the head always covers, the frame over the lowered legs is cut up to the band top seam: no
+    # cover is needed there, and the head floors' envelope over it would leave a film of it)
+    in_c = g2.grow(g2.intersect(sw_low_all, C), 0.05, 0.005) if not sw_low_all.is_empty() else CrossSection()
+    band_env = [(p.z_bp, z_fl, sw_band), (z_fl, sm["band_top_seam_z"], g2.union([sw(keep), in_c]))]
     Ec = ext(g2.circle(P, p.R_hub_cut, 0.005, hole=True), p.z_band1 + zl, sm["collar_top_seam_z"])
     Eb = stack_sections(band_env, p.eps_stack)
     Eh = solids.union3([Eb, nested_stack(env_slabs, p.eps_stack, grows_up=True), Ec])
@@ -796,21 +956,48 @@ def integrate(M, verbose: bool = False) -> dict:
     zc = zt - 0.25
     Ew = wheel_envelope(wheel_nf ^ ext(CrossSection.circle(40.0, 64), -1.0, zc), gxy, gz, z_floor=p.z_bp)
     r_ring = (max(ring_r) + p.rib_w / 2 if rings else sk.cap_r)
-    Ew = solids.union3([Ew, ext(g2.circle(O, p.R_u + gxy, 0.005, hole=True), zc - 0.05, zt + gt),
+    # (with a flange, its slot below takes the umbrella disc's place: a disc top coplanar with a slot ceiling level
+    # leaves pinch vertices)
+    Ew = solids.union3([Ew, ext(g2.circle(O, p.R_u + gxy, 0.005, hole=True), zc - 0.05, zt + gt) if not fl
+                        else Manifold(),
                         ext(g2.circle(O, r_ring + gxy, 0.005, hole=True), zt + gt - 0.05, zt + p.rib_h + gt),
                         ext(g2.circle(O, sk.cap_r + cap_gap, 0.005, hole=True), zt + p.rib_h + gt - 0.05, 60.0)])
     # the static ring's inner edge at the cap's seam: a 45 deg chamfer sk.seam_chamfer under the yarn surface (the
     # strands fall steeply away from the seam: a vertical cut leaves knife edges there, V8 / V12)
     if getattr(sk, "seam_chamfer", 0.0) > 0:
-        ch = seam_chamfer(K, sk.cap_r + cap_gap, sk.seam_chamfer, zt + p.rib_h + gt + 0.5)
+        ch = seam_chamfer(K, sk.cap_r + cap_gap, sk.seam_chamfer, zt + p.rib_h + gt + 0.5,
+                          z_min=zt + p.rib_h + gt + 2.0)      # (the static ring stays >= 2.0 over the skid rings)
+        info["seam_remnant_samples_cut"] = getattr(seam_chamfer, "last_tall", 0)
         info["seam_chamfer_mm3"] = round(ch.volume(), 1)
         Ew = solids.union3([Ew, ch])
     if fl:
         # the flange's slot: floor_rest + 0.05 more than the seams under / over it (the skid rings and back ribs
         # stay the stops, and the flange keeps floor_rest when the wheel rests on them, face up or down), merged
         # with the collar's envelope where the two come close (no thin wall between them), and opened down into
-        # the band's channel over the full-height legs (no film of cover between the band's top seam and the slot)
-        zs0, zs1 = fz0 + zl - (gz + sk.floor_rest + 0.05), fz1 + zl + gt + sk.floor_rest + 0.05
+        # the band's channel over the full-height legs (no film of cover between the band's top seam and the slot).
+        # The floor stays flat at flange_z0 less that gap (the flange's underside only rises outward from there).
+        # The ceiling is a staircase that every frame layer prints off the one below: it falls 45 deg from dc
+        # beyond the rim to the wall (no flat ceiling beyond the rim), runs flat the slot's top gap over the flange
+        # top 0.95 inward of that cone (overhang <= 1.0), then one floor_step higher inward to the static ring's
+        # step over the skid rings at r_ring + gap_xy (overhang <= 1.0, it carries the static ring in print).  The
+        # frame over it keeps >= 2.0 up to the yarn's strand crevices (r 14.9: 13.15 high, r 16.55: 12.90).  dc
+        # keeps the rim's top edge >= gap_xy from the cone at rest and >= floor_rest + 0.05 at the upper stop.
+        g_top = gt + sk.floor_rest + 0.05
+        zs0, zs1 = sk.flange_z0 + zl - (gz + sk.floor_rest + 0.05), fl_top + g_top
+        ro = fl + gxy
+        dc = max(gxy * math.sqrt(2) - g_top, (sk.floor_rest + 0.05) * (math.sqrt(2) - 1))
+        dc = math.ceil(100 * (dc + 0.005)) / 100                            # (0.11; loose 0.12)
+        rk, zs2 = fl + dc - 0.95, zs1 + sk.floor_step
+        assert zs1 >= zt + gt - 1e-9, "the flange's slot must take the umbrella disc's place"
+        # (the wall part is the prism of the 2-D slot circle the notch is cut from, as before: a revolved floor
+        # leaves pinch vertices against the notch's edge; the staircase is revolved from 0.25 inside the prism, its
+        # cone continued 0.05 inside the prism's wall: no coincident faces)
+        zw = zs1 - (gxy - dc)                                                # (the cone's foot on the wall)
+        slot = solids.union3([ext(g2.circle(O, ro, 0.005, hole=True), zs0, zw),
+                              solids.revolve_rz([(0.0, zw - 0.25), (ro - 0.05, zw - 0.25), (ro - 0.05, zw + 0.05),
+                                                 (fl + dc, zs1), (rk, zs1), (rk, zs2), (0.0, zs2)],
+                                                g2.nseg(fl, g2.TOL_FUNC, mult=8), hole=True)])
+        info["flange_slot_z"] = [round(zs0, 4), round(zs1, 4), round(zs2, 4)]
         # (the notch: the collar's lens beyond the slot, closed r 1.0 onto the slot so that no web is left between
         # them; the lens alone stops 0.3-0.5 short of the slot)
         slot2d = g2.circle(O, fl + gxy, 0.005)
@@ -819,8 +1006,7 @@ def integrate(M, verbose: bool = False) -> dict:
                              g2.circle(O, fl + gxy + 1.3, 0.005))
         chim = g2.intersect(g2.grow(g2.grow(swept(keep, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01), 0.05,
                                     0.005), g2.circle(O, fl + gxy + 0.05, 0.005))
-        Ew = solids.union3([Ew, ext(g2.circle(O, fl + gxy, 0.005, hole=True), zs0, zs1),
-                            ext(notch, zs0, sm["collar_top_seam_z"] + 0.03),
+        Ew = solids.union3([Ew, slot, ext(notch, zs0, sm["collar_top_seam_z"] + 0.03),
                             ext(chim, sm["band_top_seam_z"] - 0.05, zs0 + 0.05)])
         info["flange_d"] = 2 * fl
     log("wheel envelope")
@@ -833,14 +1019,29 @@ def integrate(M, verbose: bool = False) -> dict:
     # Sections stay nested upward, and every addition stays within 1.25 of its own slab's envelope (no cascade).
     # Removing frame only widens the clearances.
     Kf0 = Ks - solids.union3([Eh, Ew])
+    # eave: the frame over the full-height band's channel is printed as a cover from the channel's walls; where it
+    # spans farther than the float reach (1.9) from frame under the ceiling, its underside steps up 0.2 per 0.2 mm
+    # (45 deg) so it is self-supporting from the walls (no free ends over the channel; the slicer's layer 8.0)
+    ceil = sm["band_top_seam_z"]
+    sup2d = Kf0.slice(ceil - 0.3)
+    roof2d = g2.intersect(sw(keep), Kf0.slice(ceil + 0.3))
+    eave = []
+    for j in range(12):
+        e2 = g2.grow(g2.difference(roof2d, g2.grow(sup2d, 1.9 + 0.2 * j, 0.01)), -p.eps_stack, 0.001)
+        if e2.is_empty():
+            break
+        eave.append((ceil + 0.2 * j, ceil + 0.2 * (j + 1), e2))
+    if eave:
+        Ee = nested_stack(eave, p.eps_stack, grows_up=False)
+        Eh = solids.union3([Eh, Ee])
+        Kf0 = Kf0 - Ee
+    info["eave_mm2"] = round(eave[0][2].area(), 1) if eave else 0.0
     r_wx = getattr(sk, "flange_r", None) or p.R_u           # (the wheel's widest radius)
     mech0 = g2.union([g2.grow(sw_band, 0.6, 0.01), g2.circle(O, r_wx + gxy + 0.6, 0.01),
                       g2.circle(P, p.R_hub_cut + 0.6, 0.01)])
     # (the pads with their backing are kept out up to their tops (+ gap_z): above them the cushion's tapering edge
     # at the head's envelope is trimmed like anywhere else)
-    pad_zones = [(g2.grow(b_, 0.6, 0.01), zp + gz + 0.1) for b_, zp in ((pads_low_blk, pad_low_top),
-                                                                         (pads_full_blk, p.z_band1))
-                 if not b_.is_empty()]
+    pad_zones = [(g2.grow(b_, 0.6, 0.01), zp + gz + 0.1) for b_, zp in pads_phys]
     near_hb = g2.grow(HB, 0.3, 0.01)
 
     def thin_of(cs):
@@ -873,7 +1074,7 @@ def integrate(M, verbose: bool = False) -> dict:
     info["frame_thin_cut_mm2"] = round(thin_mm2, 1)
     log(f"frame thin parts / films at the floor envelope: {thin_mm2:.1f} mm^2 of slab sections")
     if thin_mm2 > 0:
-        Eh = solids.union3([Eb, nested_stack(aug, p.eps_stack, grows_up=True), Ec])
+        Eh = solids.union3([Eb, nested_stack(aug, p.eps_stack, grows_up=True), Ec] + ([Ee] if eave else []))
     Kf = Ks - solids.union3([Eh, Ew])
     frame = solids.union3([Kf, ribs_back, posts, pads])
     # convex vertical edges where the neck's envelope meets the band's channel and the pads' backing (the neck zone)
