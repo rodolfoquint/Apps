@@ -1,0 +1,570 @@
+<title>Purr-Bobble Kitty</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a toy-box spec sheet. The live toy fills the stage at the top; the clockwork, the computed
+   numbers and the print card follow as one readable column with a wide data band for tables. */
+:root {
+  --paper: #f6f4fb;
+  --card: #ffffff;
+  --ink: #241f3a;
+  --muted: #625c7c;
+  --line: #dcd6ea;
+  --accent: #d63a72;
+  --accent-soft: #fbe3ec;
+  --ok: #1f8a5b;
+  --warn: #b86e00;
+  --bad: #c0392b;
+  --stage: #ece8f6;
+  --font-display: "Fredoka", "Baloo 2", "Nunito", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #16131f; --card: #1f1b2b; --ink: #eeeaf7; --muted: #a8a1c2; --line: #342d48;
+    --accent: #ff7aa8; --accent-soft: #3a2232; --ok: #4cc38a; --warn: #f0a845; --bad: #ff7b6b;
+    --stage: #221d31; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #16131f; --card: #1f1b2b; --ink: #eeeaf7; --muted: #a8a1c2; --line: #342d48;
+  --accent: #ff7aa8; --accent-soft: #3a2232; --ok: #4cc38a; --warn: #f0a845; --bad: #ff7b6b;
+  --stage: #221d31; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--font-body); font-size: 17px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 56px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.12; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2.3rem, 6vw, 3.6rem); letter-spacing: -0.01em; }
+h2 { font-size: clamp(1.6rem, 3.4vw, 2.1rem); }
+h3 { font-size: 1.15rem; }
+p { margin: 0; max-width: 65ch; }
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+/* ---------- header */
+header { display: grid; gap: 14px; }
+.lede { font-size: 1.2rem; color: var(--ink); }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 0.92rem; }
+.facts span { white-space: nowrap; }
+
+/* ---------- stage */
+.stage-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .stage-grid { grid-template-columns: minmax(0, 1fr); } }
+.stage {
+  position: relative; background: var(--stage); border-radius: var(--radius);
+  aspect-ratio: 4 / 3.4; max-width: 100%; overflow: hidden;
+}
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.stage .fallback { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.stage .hint { position: absolute; left: 12px; bottom: 10px; font-size: 0.8rem; color: var(--muted); pointer-events: none; }
+.stage .status { position: absolute; right: 12px; top: 10px; font-size: 0.8rem; color: var(--muted); }
+
+.panel { display: grid; gap: 20px; }
+.group { display: grid; gap: 8px; }
+.group > .eyebrow { margin-bottom: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: 600 0.98rem/1 var(--font-display); color: var(--ink); background: var(--card);
+  border: 1.5px solid var(--line); border-radius: 999px; padding: 10px 16px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.chip .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c, var(--accent)); }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.seg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--card); }
+.seg button {
+  font: 500 0.86rem/1.2 var(--font-body); color: var(--ink); background: transparent; border: 0;
+  padding: 9px 4px; cursor: pointer; border-right: 1px solid var(--line);
+}
+.seg button:last-child { border-right: 0; }
+.seg button small { display: block; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); font-weight: 700; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn {
+  font: 500 0.9rem/1 var(--font-body); color: var(--ink); background: var(--card); border: 1.5px solid var(--line);
+  border-radius: 10px; padding: 9px 12px; cursor: pointer;
+}
+.btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.readouts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.readout { background: var(--card); padding: 10px 12px; display: grid; gap: 2px; }
+.readout b { font: 500 1.35rem/1.1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.readout span { font-size: 0.8rem; color: var(--muted); }
+.note { font-size: 0.86rem; color: var(--muted); }
+
+/* ---------- sections */
+section { display: grid; gap: 18px; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 860px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.prose { display: grid; gap: 14px; }
+.diagram { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; display: grid; gap: 8px; }
+.diagram canvas { width: 100%; aspect-ratio: 1 / 1.05; max-width: 100%; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.82rem; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+table { border-collapse: collapse; width: 100%; min-width: 540px; font-size: 0.92rem; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.steps { display: grid; gap: 10px; padding: 0; margin: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font: 600 1rem/1.6 var(--font-display); color: var(--accent); }
+.settings { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 18px; font-size: 0.94rem; }
+.settings dt { color: var(--muted); }
+.settings dd { margin: 0; }
+
+.pill { display: inline-block; font: 500 0.75rem/1 var(--font-mono); padding: 4px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.pill.ok { color: var(--ok); } .pill.warn { color: var(--warn); } .pill.bad { color: var(--bad); } .pill.na { color: var(--muted); }
+.label-card { border: 2px dashed var(--line); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 6px; background: var(--card); }
+footer { color: var(--muted); font-size: 0.88rem; display: grid; gap: 6px; }
+
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">3D-printable fidget · print-in-place · ages 6+</span>
+    <h1>Purr-Bobble Kitty</h1>
+    <p class="lede">Turn the yarn ball and the kitty’s head shivers with giggles. Inside is a medieval clock escapement with no spring: your thumb is the mainspring and her head is the regulator.</p>
+    <div class="facts mono">
+      <span>1 print · 3 captive parts</span><span>PLA, no supports</span><span id="fact-size">60 × 91 × 18 mm</span><span id="fact-mass">≈ 44 g</span><span id="fact-time">≈ 5 h 40 min print</span>
+    </div>
+  </header>
+
+  <section aria-label="Live model">
+    <div class="stage-grid">
+      <div class="stage" id="stage">
+        <img class="fallback" id="fallback" alt="Rendered front view of the Purr-Bobble kitty holding its yarn ball" src="renders/kitty_face.png">
+        <canvas id="three" aria-label="Interactive 3D model of the toy; drag to orbit"></canvas>
+        <span class="status mono" id="status">loading model…</span>
+        <span class="hint">Drag to turn · scroll or pinch to zoom</span>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <span class="eyebrow">Character</span>
+          <div class="chips" role="group" aria-label="Character">
+            <button class="chip" id="skin-kitty" data-skin="kitty" aria-pressed="true" style="--c:#f2787d"><span class="dot"></span>Purr Kitty</button>
+            <button class="chip" id="skin-bee" data-skin="bee" aria-pressed="false" style="--c:#f2c230"><span class="dot"></span>Bumble</button>
+            <button class="chip" id="skin-robot" data-skin="robot" aria-pressed="false" style="--c:#86b9f0"><span class="dot"></span>Pip the Robot</button>
+          </div>
+        </div>
+        <div class="group">
+          <span class="eyebrow">How hard you push the ball</span>
+          <div class="seg" role="group" aria-label="Finger torque">
+            <button id="t-1" data-t="0" aria-pressed="true">Gentle<small>1 N·mm</small></button>
+            <button id="t-3" data-t="1" aria-pressed="false">Steady<small>3 N·mm</small></button>
+            <button id="t-10" data-t="2" aria-pressed="false">Firm<small>10 N·mm</small></button>
+            <button id="t-40" data-t="3" aria-pressed="false">Hard<small>40 N·mm</small></button>
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn" id="play" aria-pressed="true">Pause</button>
+          <button class="btn" id="slow" aria-pressed="true">Slow motion ×8</button>
+          <button class="btn" id="view-front">Front view</button>
+        </div>
+        <div class="readouts" aria-live="polite">
+          <div class="readout"><b id="r-rps">–</b><span>ball turns per second</span></div>
+          <div class="readout"><b id="r-hz">–</b><span>head shivers per second</span></div>
+          <div class="readout"><b id="r-swing">–</b><span>head swing, end to end</span></div>
+          <div class="readout"><b id="r-clicks">–</b><span>tooth clicks per second</span></div>
+        </div>
+        <p class="note">The motion is the recorded output of the contact-dynamics simulation that verified the design, run on the actual CAD shapes and masses of this character. It is not a hand-made animation.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="how">
+    <span class="eyebrow">The mechanism</span>
+    <h2 id="how">A clock escapement with the spring taken out</h2>
+    <div class="two">
+      <div class="prose">
+        <p>Under the yarn ball sits an 8-pointed star: the escape wheel. Two legs hang down from the kitty’s head, one each side of the star, and each ends in a round pallet tip.</p>
+        <p>When you push the ball, a star point shoves one pallet out of the way. That kicks the head over, which swings the other pallet into the next gap, where the next point catches it and kicks it back. One tooth, one shiver: the head buzzes back and forth eight times per turn of the ball.</p>
+        <p>A clock would add a spring to set the rhythm. Here the head’s own weight and swing do it, so the faster you push, the faster she giggles, and the ball feels like it is turning through honey. Let go and everything stops at once.</p>
+        <p>This family of “runaway” escapements dates back to 13th-century tower clocks. What is new here is that the regulator is the character’s head, that it is printed already assembled, and that its shape was found by search.</p>
+      </div>
+      <div class="diagram">
+        <canvas id="diagram" aria-label="Top view of the star wheel and the head's pallets moving, from the simulation"></canvas>
+        <div class="legend"><span><i style="background:var(--accent)"></i>head legs and pallet tips</span><span><i style="background:var(--muted)"></i>8-tooth star wheel</span><span class="mono" id="dg-time">t = 0 ms</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="computed">
+    <span class="eyebrow">What the computer decided</span>
+    <h2 id="computed">The search that shaped the star and the pallets</h2>
+    <p>A random search over more than 1,000 escapement geometries kept only shapes in which a hand-pushed wheel can never lock the head or slip past it. It checked both directions, posts printed 0.4 mm off, pallets 0.2 mm too fat or thin, loose bearings and friction up to μ 0.5. Every hidden pocket and gap in the body was then computed as the swept shape of the motion. The winning numbers:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Quantity</th><th>Value</th><th>Why it matters</th></tr></thead>
+        <tbody>
+          <tr><td>Star wheel</td><td class="num">8 teeth · tip r 14.30 · root r 8.90</td><td>Eight shivers per turn; teeth tall enough to grab, short enough to never lock.</td></tr>
+          <tr><td>Pallet tips</td><td class="num">Ø 4.29 at (±12.98, 8.68)</td><td>Round tips span 2½ teeth (112.5°) so one is always in a gap.</td></tr>
+          <tr><td>Head pivot</td><td class="num">24.71 mm above the wheel axis</td><td>Placed so the push angle stays under the friction-lock limit.</td></tr>
+          <tr><td>Head swing limit</td><td class="num">±12.42°</td><td>Four stop pads catch the legs; the head can never fling past.</td></tr>
+          <tr><td>Worst push angle</td><td class="num">59.2° (limit 62.7°)</td><td>Above the limit, friction would jam the toy at μ 0.35.</td></tr>
+          <tr><td>Tolerance box tested</td><td class="num">pivot ±0.4 · tips ±0.2 · play 0.25–0.5</td><td>0 jams in the static screen, 60 of 60 dynamic corner runs keep shivering.</td></tr>
+          <tr><td>Bearings</td><td class="num">Ø 8.00 posts in Ø 8.70 bores</td><td>0.35 mm gap; a V-ridge keeps each part from lifting off.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="print">
+    <span class="eyebrow">Make one</span>
+    <h2 id="print">Print it, free it, play</h2>
+    <div class="two">
+      <div class="group">
+        <h3>Slicer settings</h3>
+        <dl class="settings">
+          <dt>Material</dt><dd>PLA or PLA+ only (dry PETG is too grippy and can stall)</dd>
+          <dt>Layer / nozzle</dt><dd class="mono">0.20 mm / 0.4 mm</dd>
+          <dt>Orientation</dt><dd>As exported: back on the bed, face up. Do not scale.</dd>
+          <dt>Supports, brim</dt><dd>None</dd>
+          <dt>Walls</dt><dd>3 perimeters, 5 top and 5 bottom layers</dd>
+          <dt>Infill</dt><dd>Frame 20% gyroid; head and ball 100% (the 3MF sets this per part)</dd>
+          <dt>Bridges</dt><dd>Fan 100%, about 25 mm/s, thick bridges off, <b>bridging angle 180°</b> (already set in the 3MF; with an STL, set it for the whole print)</dd>
+          <dt>Seam</dt><dd>Rear / aligned, never on the posts or bores</dd>
+        </dl>
+        <p class="note">If your printer tends to fuse tight gaps, use the <b>loose</b> file (0.40 mm bearings, 0.60 mm swept gaps, 0.6 mm float gaps). If the ball skips teeth, try <b>deep</b>; if it feels notchy, try <b>shallow</b>.</p>
+      </div>
+      <div class="group">
+        <h3>Freeing the mechanism</h3>
+        <ol class="steps">
+          <li><span>Let the bed cool below 30 °C before taking the print off.</span></li>
+          <li><span>Hold the body and rock the head left and right ten times with gentle thumb pressure. You will feel crisp releases.</span></li>
+          <li><span>Turn the ball slowly with a fingertip in its dimple: five turns each way, then 30 seconds fast each way.</span></li>
+          <li><span>If the ball will not move, look for strings in the slit around it and under the chin, clear them with a pick, then retry. Never use pliers.</span></li>
+          <li><span>Pull the head and the ball firmly (about 20 N). Neither should move more than about 1 mm.</span></li>
+        </ol>
+      </div>
+    </div>
+    <p><b>Multi-colour:</b> each character also has a <span class="mono">_multicolour.3mf</span> with the colours above already split into four filament slots (body, ball and accents, cushion or head, face details). Use it with an AMS, MMU or tool-changer and a wipe tower; with one filament, print the plain 3MF, since the face is raised and debossed and still reads in one colour.</p>
+    <p>Print files (3MF per character, with per-part infill) and the parametric source are on the <a href="https://github.com/rodolfoquint/Apps/tree/claude/kids-fidget-toy/fidget-toy" target="_blank" rel="noopener">claude/kids-fidget-toy branch</a>. Rebuild every STL with <span class="mono">python3 -m purrbobble.build --all</span>.</p>
+  </section>
+
+  <section aria-labelledby="checks">
+    <span class="eyebrow">Verification</span>
+    <h2 id="checks">What has been checked, and what hasn’t</h2>
+    <p>Every character was rebuilt and run through four independent checkers: escapement dynamics on the real CAD shapes, a 3-D collision sweep of the whole motion, layer-by-layer printability with a real PrusaSlicer slice, and a child-safety audit. Warnings are listed in the reports; failures block release.</p>
+    <div class="table-wrap">
+      <table id="checks-table">
+        <thead><tr><th>Character</th><th>Escapement</th><th>Motion &amp; clearances</th><th>Printability</th><th>Child safety</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="note" id="checks-note"></p>
+    <p>None of this replaces a test print. Print the kitty first, check that it frees by hand and turns both ways, and only then make the others.</p>
+  </section>
+
+  <section aria-labelledby="safety">
+    <span class="eyebrow">Safety</span>
+    <h2 id="safety">Designed for small hands</h2>
+    <div class="two">
+      <div class="prose">
+        <p>All three parts are larger than the choking-hazard test cylinder: the ball is 36 mm across, the head at least 41 mm, the body about 60–65 × 84–92 mm. Each moving part is held by two separate features, so nothing comes loose even if one breaks. There are no springs, magnets, screws, glued eyes or stickers.</p>
+        <p>The clockwork is sealed between the back plate, the ball and the body. Almost every moving edge you can reach keeps a constant gap or stays under 2 mm. The exception is beside the head’s neck, where the ends of its collar slide along the round edge of the body: there the gap opens to about 5 mm and closes to 0.55 mm as the head swings. It is a blunt, rounded edge driven only by your finger (the head weighs about 15 g and stores a few millijoules at its fastest buzz), but a 4 mm test fingertip can reach it, so the safety audit flags it on all three characters. It is the one open safety finding.</p>
+      </div>
+      <div class="label-card">
+        <span class="eyebrow">Suggested label</span>
+        <p><b>Ages 6+.</b> Home 3D-printed toy, not certified to EN 71 or ASTM F963. An adult should check it for cracks before each play session. Not for children who still put toys in their mouths.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Purr-Bobble: designed with Claude Code. Mechanism concepts, judging, CAD and verification were produced by AI agents and checked by simulation; the numbers above come from those runs.</span>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function () {
+  "use strict";
+  const NAMES = { kitty: "Purr Kitty", bee: "Bumble", robot: "Pip the Robot" };
+  const state = { skin: "kitty", t: 0, playing: true, slow: 8, simT: 0, last: null };
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion) state.playing = false;
+
+  const $ = (id) => document.getElementById(id);
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  let meta = null, motion = null, checks = null;
+
+  // ---------------------------------------------------------------- motion traces
+  function prepTrace(run) {
+    // loop on the last point where psi crosses its starting value in the same direction (seamless loop)
+    const psi = run.psi_deg, phi = run.phi_deg, n = psi.length;
+    const s0 = Math.sign(psi[1] - psi[0]) || 1;
+    let end = n - 1;
+    for (let i = n - 2; i > n / 2; i--) {
+      if ((psi[i] - psi[0]) * (psi[i + 1] - psi[0]) <= 0 && Math.sign(psi[i + 1] - psi[i]) === s0) { end = i; break; }
+    }
+    return { dt: run.dt_ms / 1000, n: end, phiSpan: phi[end] - phi[0], run };
+  }
+  function sample(tr, tSim) {
+    const total = tr.n * tr.dt;
+    const loops = Math.floor(tSim / total);
+    const u = (tSim - loops * total) / tr.dt;
+    const i = Math.min(tr.n - 1, Math.floor(u)), f = u - i;
+    const r = tr.run;
+    const phi = r.phi_deg[i] + (r.phi_deg[i + 1] - r.phi_deg[i]) * f + loops * tr.phiSpan;
+    const psi = r.psi_deg[i] + (r.psi_deg[i + 1] - r.psi_deg[i]) * f;
+    return { phi, psi, ms: (u * tr.dt) * 1000 };
+  }
+  function currentTrace() {
+    const m = motion && motion[state.skin];
+    if (!m) return null;
+    const run = m.runs[state.t];
+    if (!run._tr) run._tr = prepTrace(run);
+    return run._tr;
+  }
+
+  // ---------------------------------------------------------------- readouts
+  function updateReadouts() {
+    const m = motion && motion[state.skin];
+    if (!m) return;
+    const r = m.runs[state.t];
+    $("r-rps").textContent = Math.abs(r.rps).toFixed(2);
+    $("r-hz").textContent = r.f_head_hz.toFixed(1) + " Hz";
+    $("r-swing").textContent = r.swing_pp_deg.toFixed(1) + "°";
+    $("r-clicks").textContent = String(Math.round(r.clicks_per_s));
+    updateFacts();
+  }
+  // header facts follow the selected character (size from the build report, weight and time from the slicer)
+  function updateFacts() {
+    const f = checks && checks.facts && checks.facts[state.skin];
+    if (!f) return;
+    if (f.size_mm) $("fact-size").textContent = f.size_mm.map((v) => v.toFixed(1)).join(" × ") + " mm";
+    if (f.mass_g) $("fact-mass").textContent = "≈ " + Math.round(f.mass_g) + " g";
+    if (f.print_time) $("fact-time").textContent = "≈ " + f.print_time + " print";
+  }
+
+  // ---------------------------------------------------------------- 2-D diagram
+  const dg = $("diagram"), dctx = dg.getContext("2d");
+  function drawDiagram(pose) {
+    const m = motion && motion[state.skin];
+    const dpr = window.devicePixelRatio || 1;
+    const w = dg.clientWidth, h = dg.clientHeight;
+    if (dg.width !== Math.round(w * dpr)) { dg.width = Math.round(w * dpr); dg.height = Math.round(h * dpr); }
+    dctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    dctx.clearRect(0, 0, w, h);
+    if (!m) return;
+    const P = m.P;
+    // view box in mm: x -26..26, y -19..36 (star, legs, hub)
+    const x0 = -27, x1 = 27, y0 = -19, y1 = 37;
+    const s = Math.min(w / (x1 - x0), h / (y1 - y0));
+    const ox = (w - s * (x1 - x0)) / 2 - s * x0, oy = (h + s * (y1 - y0)) / 2 + s * y0;
+    const X = (x) => ox + s * x, Y = (y) => oy - s * y;
+    function poly(pts, angDeg, cx, cy, fill, stroke) {
+      const a = angDeg * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
+      dctx.beginPath();
+      pts.forEach((p, k) => {
+        const dx = p[0] - cx, dy = p[1] - cy;
+        const x = cx + c * dx - sn * dy, y = cy + sn * dx + c * dy;
+        k ? dctx.lineTo(X(x), Y(y)) : dctx.moveTo(X(x), Y(y));
+      });
+      dctx.closePath();
+      if (fill) { dctx.fillStyle = fill; dctx.fill(); }
+      if (stroke) { dctx.strokeStyle = stroke; dctx.lineWidth = 1.2; dctx.stroke(); }
+    }
+    const ink = css("--muted"), acc = css("--accent"), line = css("--line");
+    // axes
+    dctx.fillStyle = line;
+    [[0, 0], P].forEach((q) => { dctx.beginPath(); dctx.arc(X(q[0]), Y(q[1]), 3, 0, 7); dctx.fill(); });
+    poly(m.star, pose.phi, 0, 0, ink + "55", ink);
+    dctx.save();
+    dctx.beginPath(); dctx.rect(X(x0), Y(y1), s * (x1 - x0), s * (y1 - y0)); dctx.clip();
+    m.head_band.forEach((ring) => poly(ring, pose.psi, P[0], P[1], acc + "40", acc));
+    dctx.restore();
+    $("dg-time").textContent = "t = " + pose.ms.toFixed(1).padStart(5, " ") + " ms (simulated)";
+  }
+
+  // ---------------------------------------------------------------- 3-D stage
+  let renderer, scene, camera, controls, groups = {}, cache = {};
+  function initThree() {
+    if (!window.THREE || !THREE.OrbitControls) throw new Error("three.js unavailable");
+    const canvas = $("three");
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(30, 1, 1, 2000);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x6f6690, 0.55));
+    const key = new THREE.DirectionalLight(0xffffff, 0.95); key.position.set(-70, 110, 150); scene.add(key);
+    const rim = new THREE.DirectionalLight(0xffffff, 0.35); rim.position.set(90, -30, 70); scene.add(rim);
+    controls = new THREE.OrbitControls(camera, canvas);
+    controls.enableDamping = true; controls.dampingFactor = 0.08; controls.enablePan = false;
+    controls.minDistance = 90; controls.maxDistance = 420;
+    resize();
+    window.addEventListener("resize", resize);
+  }
+  function frontView() {
+    const b = meta[state.skin].bbox;
+    const cx = (b[0][0] + b[1][0]) / 2, cy = (b[0][1] + b[1][1]) / 2, cz = (b[0][2] + b[1][2]) / 2;
+    controls.target.set(cx, cy, cz);
+    camera.position.set(cx - 50, cy - 18, cz + 205);
+    controls.update();
+  }
+  function resize() {
+    if (!renderer) return;
+    const el = $("stage"), w = el.clientWidth, h = el.clientHeight;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  function b64(s) {
+    const bin = atob(s), u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    return u8.buffer;
+  }
+  function decodeMesh(d) {
+    // positions: int16 quantised over the body's bounding box; normals computed here (vertices are already
+    // split along sharp edges by the exporter, so creases stay crisp)
+    const q = new Int16Array(b64(d.positions)), pos = new Float32Array(q.length);
+    for (let i = 0; i < q.length; i += 3) {
+      pos[i] = d.offset[0] + q[i] * d.scale[0];
+      pos[i + 1] = d.offset[1] + q[i + 1] * d.scale[1];
+      pos[i + 2] = d.offset[2] + q[i + 2] * d.scale[2];
+    }
+    const ib = b64(d.indices);
+    const idx = d.index_type === "u16" ? new Uint16Array(ib) : new Uint32Array(ib);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    g.setIndex(new THREE.BufferAttribute(idx, 1));
+    g.computeVertexNormals();
+    return g;
+  }
+  function loadSkin(skin) {
+    if (cache[skin]) return cache[skin];
+    const files = meta[skin].files;           // {region: {file, body: frame|wheel|head, color}}
+    const P = meta[skin].P;
+    const names = Object.keys(files);
+    cache[skin] = Promise.all(names.map((name) =>
+      fetch("models/" + files[name].file).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then((d) => [name, d]))).then((parts) => {
+      const root = new THREE.Group();
+      // pivot groups: the wheel turns about O = (0, 0), the head swings about P, both about +Z
+      const wheel = new THREE.Group(), head = new THREE.Group();
+      head.position.set(P[0], P[1], 0);
+      root.add(wheel); root.add(head);
+      parts.forEach(([name, d]) => {
+        const f = files[name];
+        // palette values are sRGB; the renderer outputs sRGB, so convert them to linear for the material
+        const col = new THREE.Color(f.color).convertSRGBToLinear();
+        const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.55, metalness: 0.0 });
+        const obj = new THREE.Mesh(decodeMesh(d), mat);
+        if (f.body === "wheel") wheel.add(obj);
+        else if (f.body === "head") { obj.position.set(-P[0], -P[1], 0); head.add(obj); }
+        else root.add(obj);
+      });
+      return { root, wheel, head };
+    });
+    return cache[skin];
+  }
+  function showSkin(skin) {
+    $("status").textContent = "loading " + NAMES[skin] + "…";
+    return loadSkin(skin).then((g) => {
+      Object.values(groups).forEach((x) => scene.remove(x.root));
+      groups = { [skin]: g };
+      scene.add(g.root);
+      $("status").textContent = "";
+      $("fallback").hidden = true;
+      if (!state.viewed) { frontView(); state.viewed = true; }
+    });
+  }
+
+  // ---------------------------------------------------------------- loop
+  function frame(now) {
+    requestAnimationFrame(frame);
+    const dtReal = state.last == null ? 0 : Math.min(0.05, (now - state.last) / 1000);
+    state.last = now;
+    if (state.playing) state.simT += dtReal / state.slow;
+    const tr = currentTrace();
+    let pose = { phi: 0, psi: 0, ms: 0 };
+    if (tr) pose = sample(tr, state.simT);
+    const g = groups[state.skin];
+    if (g && g.wheel) {
+      g.wheel.rotation.z = pose.phi * Math.PI / 180;
+      g.head.rotation.z = pose.psi * Math.PI / 180;
+    }
+    if (controls) controls.update();
+    if (renderer) renderer.render(scene, camera);
+    drawDiagram(pose);
+  }
+
+  // ---------------------------------------------------------------- checks table
+  function renderChecks() {
+    const tb = document.querySelector("#checks-table tbody");
+    if (!checks) { tb.innerHTML = ""; return; }
+    const pill = (s) => {
+      const cls = s === "pass" ? "ok" : s === "warn" ? "warn" : s === "fail" ? "bad" : "na";
+      const txt = s === "pass" ? "pass" : s === "warn" ? "pass, with warnings" : s === "fail" ? "fail" : "not run";
+      return '<span class="pill ' + cls + '">' + txt + "</span>";
+    };
+    tb.innerHTML = ["kitty", "bee", "robot"].map((k) => {
+      const c = checks.skins[k] || {};
+      return "<tr><td>" + NAMES[k] + "</td><td>" + pill(c.escapement) + "</td><td>" + pill(c.kinematics) +
+        "</td><td>" + pill(c.printability) + "</td><td>" + pill(c.safety) + "</td></tr>";
+    }).join("");
+    $("checks-note").textContent = checks.note || "";
+  }
+
+  // ---------------------------------------------------------------- controls
+  function press(groupSel, el) {
+    document.querySelectorAll(groupSel).forEach((b) => b.setAttribute("aria-pressed", String(b === el)));
+  }
+  document.querySelectorAll("[data-skin]").forEach((b) => b.addEventListener("click", () => {
+    state.skin = b.dataset.skin; press("[data-skin]", b); updateReadouts();
+    if (renderer) showSkin(state.skin).catch(fail);
+    else $("fallback").src = "renders/" + state.skin + "_face.png";
+  }));
+  document.querySelectorAll("[data-t]").forEach((b) => b.addEventListener("click", () => {
+    state.t = Number(b.dataset.t); press("[data-t]", b); updateReadouts();
+  }));
+  $("play").addEventListener("click", () => {
+    state.playing = !state.playing;
+    $("play").textContent = state.playing ? "Pause" : "Play";
+    $("play").setAttribute("aria-pressed", String(state.playing));
+  });
+  $("slow").addEventListener("click", () => {
+    state.slow = state.slow === 1 ? 8 : 1;
+    $("slow").setAttribute("aria-pressed", String(state.slow !== 1));
+    $("slow").textContent = state.slow === 1 ? "Real time" : "Slow motion ×8";
+  });
+  $("view-front").addEventListener("click", () => { if (controls) frontView(); });
+  if (!state.playing) { $("play").textContent = "Play"; $("play").setAttribute("aria-pressed", "false"); }
+
+  function fail(e) {
+    $("status").textContent = "3D view unavailable; showing a render";
+    $("fallback").hidden = false;
+    $("three").hidden = true;
+    if (window.console) console.warn(e);
+  }
+
+  Promise.all([
+    fetch("models/models.json").then((r) => r.json()),
+    fetch("models/motion.json").then((r) => r.json()),
+    fetch("models/checks.json").then((r) => r.json()).catch(() => null),
+  ]).then(([m, mo, ch]) => {
+    meta = m; motion = mo; checks = ch;
+    updateReadouts(); renderChecks();
+    try { initThree(); } catch (e) { fail(e); }
+    requestAnimationFrame(frame);
+    if (renderer) showSkin(state.skin).catch(fail);
+  }).catch((e) => { $("status").textContent = "could not load model data"; if (window.console) console.warn(e); });
+})();
+</script>

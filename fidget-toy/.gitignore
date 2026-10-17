@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+renders/**/_tmp/
+# Raw meshes are rebuilt in seconds with `python3 -m purrbobble.build --all`; the 3MF per skin is committed.
+stl/**/*.stl
+# Per-job logs of verification/run_all.py
+verification/reports/run_all/
+# Viewer meshes are regenerated with `python3 tools/export_web.py`
+web/models/*.glb
+# (one JSON per skin and colour region, e.g. kitty_frame_plate.json; models/motion/checks.json are committed)
+web/models/*_*.json
+# cached face-up copy of the sculpt (purrbobble/sculpt.load_sculpt)
+sculpt/*.npz
+# integrated sculpt bodies (purrbobble/model.py: keyed by a hash of every input, rebuilt when anything changes)
+build_cache/

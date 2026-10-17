@@ -1,0 +1,5988 @@
+{
+ "skin": "kitty_classic",
+ "variant": "loose",
+ "pose": {
+  "phi": 12.0,
+  "psi": 5.96
+ },
+ "z_lift": 0.2,
+ "checks": {
+  "V8_topology": {
+   "status": "pass",
+   "bodies": {
+    "frame": {
+     "components": 1,
+     "status": "Error.NoError",
+     "genus": 3,
+     "volume_mm3": 26657.41,
+     "watertight": true,
+     "winding_consistent": true,
+     "euler": -4,
+     "pass": true
+    },
+    "wheel": {
+     "components": 1,
+     "status": "Error.NoError",
+     "genus": 0,
+     "volume_mm3": 5984.89,
+     "watertight": true,
+     "winding_consistent": true,
+     "euler": 2,
+     "pass": true
+    },
+    "head": {
+     "components": 1,
+     "status": "Error.NoError",
+     "genus": 1,
+     "volume_mm3": 12279.27,
+     "watertight": true,
+     "winding_consistent": true,
+     "euler": 0,
+     "pass": true
+    }
+   },
+   "stl": {
+    "path": "/home/user/Apps/fidget-toy/stl/kitty_classic/purrbobble_kitty_classic_loose.stl",
+    "shells": 3,
+    "watertight_shells": 3,
+    "shell_volumes": [
+     5984.9,
+     12279.3,
+     26657.4
+    ],
+    "model_volumes": [
+     5984.9,
+     12279.3,
+     26657.4
+    ],
+    "matches_model": true,
+    "pass": true
+   },
+   "3mf": null,
+   "pass": true
+  },
+  "V8_walls_raycast": {
+   "method": "inward ray from area-weighted surface samples (trimesh/embree), thickness = first exit; every thin structural sample is re-checked in the XY slice at its height (ThinMap): 'wall' = strip >= 2 mm long thinner than 1.2 (fail), 'corner' = acute-corner tip / short stub (warn), 'edge_z_only' = XY section >= 1.2 wide there (stepped edge round seen by a vertical ray, warn)",
+   "samples_per_body": 12000,
+   "bodies": {
+    "frame": {
+     "min": 0.016,
+     "p01": 0.798,
+     "median": 2.6,
+     "no_hit": 0,
+     "frac_below_1.2": 0.0446,
+     "zones": {
+      "cosmetic:plate_relief": {
+       "policy": "cosmetic",
+       "n_thin": 15,
+       "min": 0.069,
+       "kinds": {
+        "cosmetic": 15
+       },
+       "worst": [
+        {
+         "at": [
+          -27.3,
+          6.13,
+          2.94
+         ],
+         "t": 0.069,
+         "normal": [
+          0.9,
+          -0.44,
+          0.0
+         ],
+         "kind": "cosmetic"
+        },
+        {
+         "at": [
+          -27.77,
+          17.6,
+          2.92
+         ],
+         "t": 0.266,
+         "normal": [
+          -0.82,
+          0.57,
+          0.0
+         ],
+         "kind": "cosmetic"
+        },
+        {
+         "at": [
+          -16.53,
+          -23.56,
+          2.93
+         ],
+         "t": 0.302,
+         "normal": [
+          -0.26,
+          0.97,
+          0.0
+         ],
+         "kind": "cosmetic"
+        },
+        {
+         "at": [
+          26.23,
+          20.87,
+          2.94
+         ],
+         "t": 0.454,
+         "normal": [
+          0.98,
+          -0.21,
+          0.0
+         ],
+         "kind": "cosmetic"
+        },
+        {
+         "at": [
+          -8.18,
+          61.02,
+          2.95
+         ],
+         "t": 0.5,
+         "normal": [
+          0.21,
+          -0.98,
+          0.0
+         ],
+         "kind": "cosmetic"
+        }
+       ],
+       "status": "warn"
+      },
+      "fill_roof": {
+       "policy": "structural",
+       "n_thin": 2,
+       "min": 0.022,
+       "kinds": {
+        "corner": 1,
+        "edge_z_only": 1
+       },
+       "worst": [
+        {
+         "at": [
+          2.2,
+          17.43,
+          8.27
+         ],
+         "t": 0.022,
+         "normal": [
+          -0.29,
+          0.96,
+          0.0
+         ],
+         "kind": "corner"
+        },
+        {
+         "at": [
+          -26.51,
+          4.65,
+          9.4
+         ],
+         "t": 1.0,
+         "normal": [
+          -0.0,
+          0.0,
+          1.0
+         ],
+         "kind": "edge_z_only"
+        }
+       ],
+       "status": "warn"
+      },
+      "funnel_seat": {
+       "policy": "structural",
+       "n_thin": 3,
+       "min": 0.016,
+       "kinds": {
+        "corner": 3
+       },
+       "worst": [
+        {
+         "at": [
+          -2.17,
+          17.41,
+          9.2
+         ],
+         "t": 0.016,
+         "normal": [
+          0.1,
+          -1.0,
+          0.0
+         ],
+         "kind": "corner"
+        },
+        {
+         "at": [
+          2.48,
+          17.37,
+          10.06
+         ],
+         "t": 0.158,
+         "normal": [
+          -0.16,
+          -0.99,
+          0.0
+         ],
+         "kind": "corner"
+        },
+        {
+         "at": [
+          -9.02,
+          14.34,
+          9.86
+         ],
+         "t": 0.274,
+         "normal": [
+          -0.96,
+          -0.28,
+          0.0
+         ],
+         "kind": "corner"
+        }
+       ],
+       "status": "warn"
+      },
+      "paw_lip": {
+       "policy": "structural",
+       "n_thin": 8,
+       "min": 0.187,
+       "kinds": {
+        "edge_z_only": 8
+       },
+       "worst": [
+        {
+         "at": [
+          -16.94,
+          -1.78,
+          14.85
+         ],
+         "t": 0.187,
+         "normal": [
+          0.0,
+          -0.0,
+          1.0
+         ],
+         "kind": "edge_z_only"
+        },
+        {
+         "at": [
+          -13.28,
+          -10.64,
+          14.95
+         ],
+         "t": 0.264,
+         "normal": [
+          -0.0,
+          -0.0,
+          1.0
+         ],
+         "kind": "edge_z_only"
+        },
+        {
+         "at": [
+          -17.01,
+          -2.2,
+          14.85
+         ],
+         "t": 0.302,
+         "normal": [
+          0.0,
+          0.0,
+          1.0
+         ],
+         "kind": "edge_z_only"
+        },
+        {
+         "at": [
+          14.82,
+          -8.53,
+          15.24
+         ],
+         "t": 0.637,
+         "normal": [
+          0.0,
+          0.0,
+          1.0
+         ],
+         "kind": "edge_z_only"
+        },
+        {
+         "at": [
+          16.03,
+          -6.36,
+          15.24
+         ],
+         "t": 0.779,
+         "normal": [
+          0.0,
+          -0.0,
+          1.0
+         ],
+         "kind": "edge_z_only"
+        }
+       ],
+       "status": "warn"
+      },
+      "rib_back": {
+       "policy": "designed",
+       "n_thin": 498,
+       "min": 0.628,
+       "kinds": {
+        "designed": 498
+       },
+       "worst": [
+        {
+         "at": [
+          8.72,
+          18.99,
+          2.24
+         ],
+         "t": 0.628,
+         "normal": [
+          -0.98,
+          -0.21,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          17.84,
+          32.82,
+          2.47
+         ],
+         "t": 0.631,
+         "normal": [
+          0.99,
+          -0.17,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          -9.23,
+          18.94,
+          2.27
+         ],
+         "t": 0.65,
+         "normal": [
+          -0.88,
+          -0.48,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          -18.85,
+          21.74,
+          2.49
+         ],
+         "t": 0.701,
+         "normal": [
+          0.96,
+          0.28,
+          -0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          10.35,
+          13.32,
+          2.53
+         ],
+         "t": 0.738,
+         "normal": [
+          0.71,
+          -0.71,
+          0.0
+         ],
+         "kind": "designed"
+        }
+       ],
+       "required": 0.77,
+       "status": "warn",
+       "note": "rays at clipped / rounded rib ends; rib body width checked in V8_ribs"
+      },
+      "stop_pad": {
+       "policy": "structural",
+       "n_thin": 9,
+       "min": 0.295,
+       "kinds": {
+        "corner": 8,
+        "edge_z_only": 1
+       },
+       "worst": [
+        {
+         "at": [
+          8.89,
+          13.58,
+          4.84
+         ],
+         "t": 0.295,
+         "normal": [
+          -0.74,
+          -0.68,
+          0.0
+         ],
+         "kind": "edge_z_only"
+        },
+        {
+         "at": [
+          19.85,
+          21.61,
+          5.86
+         ],
+         "t": 0.475,
+         "normal": [
+          -0.8,
+          -0.6,
+          0.0
+         ],
+         "kind": "corner"
+        },
+        {
+         "at": [
+          8.18,
+          18.34,
+          7.48
+         ],
+         "t": 0.481,
+         "normal": [
+          -0.86,
+          0.52,
+          0.0
+         ],
+         "kind": "corner"
+        },
+        {
+         "at": [
+          8.16,
+          18.26,
+          2.01
+         ],
+         "t": 0.483,
+         "normal": [
+          -0.89,
+          0.46,
+          0.0
+         ],
+         "kind": "corner"
+        },
+        {
+         "at": [
+          -8.94,
+          13.44,
+          2.45
+         ],
+         "t": 0.534,
+         "normal": [
+          0.98,
+          -0.21,
+          0.0
+         ],
+         "kind": "corner"
+        }
+       ],
+       "status": "warn"
+      }
+     }
+    },
+    "wheel": {
+     "min": 0.521,
+     "p01": 0.999,
+     "median": 5.05,
+     "no_hit": 0,
+     "frac_below_1.2": 0.0414,
+     "zones": {
+      "cosmetic:relief": {
+       "policy": "cosmetic",
+       "n_thin": 497,
+       "min": 0.521,
+       "kinds": {
+        "cosmetic": 497
+       },
+       "worst": [
+        {
+         "at": [
+          -11.34,
+          11.98,
+          13.5
+         ],
+         "t": 0.521,
+         "normal": [
+          0.71,
+          -0.7,
+          0.0
+         ],
+         "kind": "cosmetic"
+        },
+        {
+         "at": [
+          11.68,
+          -8.23,
+          13.44
+         ],
+         "t": 0.6,
+         "normal": [
+          -0.82,
+          0.58,
+          0.0
+         ],
+         "kind": "cosmetic"
+        },
+        {
+         "at": [
+          12.83,
+          -7.56,
+          13.33
+         ],
+         "t": 0.6,
+         "normal": [
+          0.86,
+          -0.51,
+          0.0
+         ],
+         "kind": "cosmetic"
+        },
+        {
+         "at": [
+          9.98,
+          13.13,
+          13.49
+         ],
+         "t": 0.6,
+         "normal": [
+          -0.6,
+          -0.8,
+          0.0
+         ],
+         "kind": "cosmetic"
+        },
+        {
+         "at": [
+          11.93,
+          -8.92,
+          13.46
+         ],
+         "t": 0.601,
+         "normal": [
+          0.82,
+          -0.57,
+          0.0
+         ],
+         "kind": "cosmetic"
+        }
+       ],
+       "status": "warn"
+      }
+     }
+    },
+    "head": {
+     "min": 0.076,
+     "p01": 0.79,
+     "median": 4.4,
+     "no_hit": 0,
+     "frac_below_1.2": 0.1938,
+     "zones": {
+      "bore_hub": {
+       "policy": "structural",
+       "n_thin": 1,
+       "min": 1.19,
+       "kinds": {
+        "edge_z_only": 1
+       },
+       "worst": [
+        {
+         "at": [
+          -0.56,
+          29.08,
+          4.04
+         ],
+         "t": 1.19,
+         "normal": [
+          0.1,
+          -0.7,
+          0.71
+         ],
+         "kind": "edge_z_only"
+        }
+       ],
+       "status": "warn"
+      },
+      "cosmetic:face_feature": {
+       "policy": "cosmetic",
+       "n_thin": 49,
+       "min": 0.076,
+       "kinds": {
+        "cosmetic": 49
+       },
+       "worst": [
+        {
+         "at": [
+          -13.76,
+          44.34,
+          17.83
+         ],
+         "t": 0.076,
+         "normal": [
+          -0.66,
+          -0.75,
+          -0.0
+         ],
+         "kind": "cosmetic"
+        },
+        {
+         "at": [
+          -15.73,
+          51.62,
+          17.62
+         ],
+         "t": 0.188,
+         "normal": [
+          -0.98,
+          0.22,
+          0.0
+         ],
+         "kind": "cosmetic"
+        },
+        {
+         "at": [
+          7.21,
+          54.24,
+          17.67
+         ],
+         "t": 0.332,
+         "normal": [
+          0.58,
+          -0.81,
+          0.0
+         ],
+         "kind": "cosmetic"
+        },
+        {
+         "at": [
+          -12.93,
+          52.02,
+          17.62
+         ],
+         "t": 0.332,
+         "normal": [
+          -0.4,
+          -0.92,
+          0.0
+         ],
+         "kind": "cosmetic"
+        },
+        {
+         "at": [
+          -12.57,
+          51.86,
+          17.7
+         ],
+         "t": 0.332,
+         "normal": [
+          -0.4,
+          -0.92,
+          -0.0
+         ],
+         "kind": "cosmetic"
+        }
+       ],
+       "status": "warn"
+      },
+      "rib_band": {
+       "policy": "designed",
+       "n_thin": 317,
+       "min": 0.538,
+       "kinds": {
+        "designed": 317
+       },
+       "worst": [
+        {
+         "at": [
+          -12.25,
+          16.32,
+          7.83
+         ],
+         "t": 0.538,
+         "normal": [
+          -0.59,
+          0.81,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          11.52,
+          19.6,
+          7.97
+         ],
+         "t": 0.56,
+         "normal": [
+          -0.95,
+          -0.31,
+          -0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          -10.52,
+          17.55,
+          7.78
+         ],
+         "t": 0.566,
+         "normal": [
+          -0.4,
+          0.91,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          -16.66,
+          33.49,
+          7.61
+         ],
+         "t": 0.567,
+         "normal": [
+          -0.92,
+          -0.38,
+          -0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          13.0,
+          19.35,
+          7.69
+         ],
+         "t": 0.648,
+         "normal": [
+          0.41,
+          0.91,
+          0.0
+         ],
+         "kind": "designed"
+        }
+       ],
+       "required": 0.77,
+       "status": "warn",
+       "note": "rays at clipped / rounded rib ends; rib body width checked in V8_ribs"
+      },
+      "rib_front": {
+       "policy": "designed",
+       "n_thin": 1893,
+       "min": 0.777,
+       "kinds": {
+        "designed": 1893
+       },
+       "worst": [
+        {
+         "at": [
+          5.38,
+          35.38,
+          11.96
+         ],
+         "t": 0.777,
+         "normal": [
+          0.47,
+          0.88,
+          -0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          6.81,
+          34.53,
+          13.78
+         ],
+         "t": 0.778,
+         "normal": [
+          0.58,
+          0.82,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          6.81,
+          34.53,
+          13.76
+         ],
+         "t": 0.779,
+         "normal": [
+          0.58,
+          0.82,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          -8.77,
+          32.83,
+          12.65
+         ],
+         "t": 0.779,
+         "normal": [
+          -0.73,
+          0.68,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          -9.13,
+          31.15,
+          11.04
+         ],
+         "t": 0.779,
+         "normal": [
+          0.78,
+          -0.63,
+          0.0
+         ],
+         "kind": "designed"
+        }
+       ],
+       "required": 0.77,
+       "status": "pass"
+      },
+      "rib_groove": {
+       "policy": "designed",
+       "n_thin": 66,
+       "min": 0.582,
+       "kinds": {
+        "designed": 66
+       },
+       "worst": [
+        {
+         "at": [
+          -16.57,
+          38.53,
+          5.1
+         ],
+         "t": 0.582,
+         "normal": [
+          -0.99,
+          0.17,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          -16.57,
+          38.57,
+          5.24
+         ],
+         "t": 0.607,
+         "normal": [
+          -0.99,
+          0.17,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          -15.96,
+          38.48,
+          5.0
+         ],
+         "t": 0.687,
+         "normal": [
+          0.78,
+          -0.63,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          10.58,
+          42.96,
+          4.9
+         ],
+         "t": 0.776,
+         "normal": [
+          -0.55,
+          -0.84,
+          0.0
+         ],
+         "kind": "designed"
+        },
+        {
+         "at": [
+          -14.68,
+          40.93,
+          5.0
+         ],
+         "t": 0.777,
+         "normal": [
+          -0.68,
+          0.74,
+          0.0
+         ],
+         "kind": "designed"
+        }
+       ],
+       "required": 0.77,
+       "status": "warn",
+       "note": "rays at clipped / rounded rib ends; rib body width checked in V8_ribs"
+      }
+     }
+    }
+   },
+   "structural_thin_clusters": [
+    {
+     "body": "frame",
+     "zone": "stop_pad",
+     "kind": "corner",
+     "n": 2,
+     "min_t": 0.589,
+     "centroid": [
+      9.02,
+      13.22,
+      6.41
+     ],
+     "z_range": [
+      6.22,
+      6.59
+     ],
+     "area_est_mm2": 3.07
+    },
+    {
+     "body": "frame",
+     "zone": "funnel_seat",
+     "kind": "corner",
+     "n": 1,
+     "min_t": 0.274,
+     "centroid": [
+      -9.02,
+      14.34,
+      9.86
+     ],
+     "z_range": [
+      9.86,
+      9.86
+     ],
+     "area_est_mm2": 1.53
+    },
+    {
+     "body": "frame",
+     "zone": "stop_pad",
+     "kind": "corner",
+     "n": 1,
+     "min_t": 0.481,
+     "centroid": [
+      8.18,
+      18.34,
+      7.48
+     ],
+     "z_range": [
+      7.48,
+      7.48
+     ],
+     "area_est_mm2": 1.53
+    },
+    {
+     "body": "frame",
+     "zone": "stop_pad",
+     "kind": "corner",
+     "n": 1,
+     "min_t": 0.483,
+     "centroid": [
+      8.16,
+      18.26,
+      2.01
+     ],
+     "z_range": [
+      2.01,
+      2.01
+     ],
+     "area_est_mm2": 1.53
+    },
+    {
+     "body": "frame",
+     "zone": "stop_pad",
+     "kind": "corner",
+     "n": 1,
+     "min_t": 0.549,
+     "centroid": [
+      -9.44,
+      13.3,
+      7.59
+     ],
+     "z_range": [
+      7.59,
+      7.59
+     ],
+     "area_est_mm2": 1.53
+    },
+    {
+     "body": "frame",
+     "zone": "fill_roof",
+     "kind": "corner",
+     "n": 1,
+     "min_t": 0.022,
+     "centroid": [
+      2.2,
+      17.43,
+      8.27
+     ],
+     "z_range": [
+      8.27,
+      8.27
+     ],
+     "area_est_mm2": 1.53
+    },
+    {
+     "body": "frame",
+     "zone": "stop_pad",
+     "kind": "corner",
+     "n": 1,
+     "min_t": 0.534,
+     "centroid": [
+      -8.94,
+      13.44,
+      2.45
+     ],
+     "z_range": [
+      2.45,
+      2.45
+     ],
+     "area_est_mm2": 1.53
+    },
+    {
+     "body": "frame",
+     "zone": "stop_pad",
+     "kind": "corner",
+     "n": 1,
+     "min_t": 0.475,
+     "centroid": [
+      19.85,
+      21.61,
+      5.86
+     ],
+     "z_range": [
+      5.86,
+      5.86
+     ],
+     "area_est_mm2": 1.53
+    },
+    {
+     "body": "frame",
+     "zone": "stop_pad",
+     "kind": "corner",
+     "n": 1,
+     "min_t": 0.676,
+     "centroid": [
+      20.22,
+      22.01,
+      2.52
+     ],
+     "z_range": [
+      2.52,
+      2.52
+     ],
+     "area_est_mm2": 1.53
+    },
+    {
+     "body": "frame",
+     "zone": "funnel_seat",
+     "kind": "corner",
+     "n": 1,
+     "min_t": 0.016,
+     "centroid": [
+      -2.17,
+      17.41,
+      9.2
+     ],
+     "z_range": [
+      9.2,
+      9.2
+     ],
+     "area_est_mm2": 1.53
+    },
+    {
+     "body": "frame",
+     "zone": "funnel_seat",
+     "kind": "corner",
+     "n": 1,
+     "min_t": 0.158,
+     "centroid": [
+      2.48,
+      17.37,
+      10.06
+     ],
+     "z_range": [
+      10.06,
+      10.06
+     ],
+     "area_est_mm2": 1.53
+    }
+   ],
+   "status": "warn"
+  },
+  "V8_walls_layers": {
+   "method": "per layer mid-height: pieces of slice - opening(slice, 1.2) (>= 0.02 mm^2), classified 'wall' (strip >= 2 mm long) or 'corner' (acute-corner tip / stub); w_est = local width estimate",
+   "bodies": {
+    "frame": {
+     "stop_pad": {
+      "policy": "structural",
+      "n_layers": 17,
+      "z_range": [
+       2.1,
+       8.3
+      ],
+      "area_sum_mm2": 31.34,
+      "wall_pieces": 0,
+      "corner_pieces": 128,
+      "thinnest_wall_w_est": "inf",
+      "examples": [
+       {
+        "z": 2.1,
+        "xy": [
+         9.19,
+         13.55
+        ],
+        "area": 0.371,
+        "length": 1.17,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 2.1,
+        "xy": [
+         -9.19,
+         13.55
+        ],
+        "area": 0.378,
+        "length": 1.15,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 2.1,
+        "xy": [
+         8.33,
+         18.14
+        ],
+        "area": 0.23,
+        "length": 0.72,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 2.1,
+        "xy": [
+         -8.33,
+         18.08
+        ],
+        "area": 0.229,
+        "length": 0.72,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 2.1,
+        "xy": [
+         -19.94,
+         21.87
+        ],
+        "area": 0.221,
+        "length": 0.7,
+        "w_min": null,
+        "kind": "corner"
+       }
+      ],
+      "status": "warn"
+     },
+     "rib_back": {
+      "policy": "designed",
+      "n_layers": 3,
+      "z_range": [
+       2.1,
+       2.5
+      ],
+      "area_sum_mm2": 1610.68,
+      "wall_pieces": 57,
+      "corner_pieces": 0,
+      "thinnest_wall_w_est": 0.39,
+      "examples": [
+       {
+        "z": 2.1,
+        "xy": [
+         -13.8,
+         -0.0
+        ],
+        "area": 69.435,
+        "length": 28.35,
+        "w_min": 0.78,
+        "kind": "wall"
+       },
+       {
+        "z": 2.1,
+        "xy": [
+         -11.0,
+         0.0
+        ],
+        "area": 55.103,
+        "length": 22.74,
+        "w_min": 0.81,
+        "kind": "wall"
+       },
+       {
+        "z": 2.1,
+        "xy": [
+         -7.0,
+         0.0
+        ],
+        "area": 35.006,
+        "length": 14.74,
+        "w_min": 0.81,
+        "kind": "wall"
+       },
+       {
+        "z": 2.1,
+        "xy": [
+         19.85,
+         11.24
+        ],
+        "area": 11.66,
+        "length": 14.55,
+        "w_min": 0.39,
+        "kind": "wall"
+       },
+       {
+        "z": 2.1,
+        "xy": [
+         -19.84,
+         11.23
+        ],
+        "area": 11.661,
+        "length": 14.57,
+        "w_min": 0.4,
+        "kind": "wall"
+       },
+       {
+        "z": 2.1,
+        "xy": [
+         17.07,
+         15.32
+        ],
+        "area": 12.071,
+        "length": 14.92,
+        "w_min": 0.42,
+        "kind": "wall"
+       },
+       {
+        "z": 2.1,
+        "xy": [
+         -17.36,
+         15.88
+        ],
+        "area": 12.071,
+        "length": 14.92,
+        "w_min": 0.42,
+        "kind": "wall"
+       },
+       {
+        "z": 2.1,
+        "xy": [
+         -6.0,
+         24.71
+        ],
+        "area": 30.138,
+        "length": 12.75,
+        "w_min": 0.79,
+        "kind": "wall"
+       }
+      ],
+      "status": "pass"
+     },
+     "cosmetic:plate_relief": {
+      "policy": "cosmetic",
+      "n_layers": 3,
+      "z_range": [
+       2.5,
+       2.9
+      ],
+      "area_sum_mm2": 32.08,
+      "wall_pieces": 5,
+      "corner_pieces": 41,
+      "thinnest_wall_w_est": 0.41,
+      "examples": [
+       {
+        "z": 2.5,
+        "xy": [
+         19.26,
+         56.42
+        ],
+        "area": 0.039,
+        "length": 0.88,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 2.7,
+        "xy": [
+         -17.27,
+         -23.72
+        ],
+        "area": 0.395,
+        "length": 1.07,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 2.7,
+        "xy": [
+         23.12,
+         -22.53
+        ],
+        "area": 0.429,
+        "length": 1.08,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 2.7,
+        "xy": [
+         14.31,
+         -22.47
+        ],
+        "area": 0.154,
+        "length": 0.95,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 2.7,
+        "xy": [
+         4.5,
+         -22.42
+        ],
+        "area": 0.268,
+        "length": 1.03,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 2.7,
+        "xy": [
+         21.37,
+         55.31
+        ],
+        "area": 3.811,
+        "length": 4.01,
+        "w_min": 0.8,
+        "kind": "wall"
+       },
+       {
+        "z": 2.9,
+        "xy": [
+         -27.73,
+         5.23
+        ],
+        "area": 2.447,
+        "length": 4.22,
+        "w_min": 0.41,
+        "kind": "wall"
+       },
+       {
+        "z": 2.9,
+        "xy": [
+         -21.13,
+         44.97
+        ],
+        "area": 2.106,
+        "length": 3.13,
+        "w_min": 0.77,
+        "kind": "wall"
+       }
+      ],
+      "status": "warn"
+     },
+     "funnel_seat": {
+      "policy": "structural",
+      "n_layers": 11,
+      "z_range": [
+       7.7,
+       10.3
+      ],
+      "area_sum_mm2": 7.79,
+      "wall_pieces": 0,
+      "corner_pieces": 44,
+      "thinnest_wall_w_est": "inf",
+      "examples": [
+       {
+        "z": 7.7,
+        "xy": [
+         9.19,
+         13.54
+        ],
+        "area": 0.391,
+        "length": 1.18,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 7.7,
+        "xy": [
+         -9.19,
+         13.51
+        ],
+        "area": 0.398,
+        "length": 1.2,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 7.9,
+        "xy": [
+         9.19,
+         13.54
+        ],
+        "area": 0.391,
+        "length": 1.18,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 7.9,
+        "xy": [
+         -9.19,
+         13.53
+        ],
+        "area": 0.398,
+        "length": 1.2,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 8.1,
+        "xy": [
+         9.19,
+         13.54
+        ],
+        "area": 0.391,
+        "length": 1.18,
+        "w_min": null,
+        "kind": "corner"
+       }
+      ],
+      "status": "warn"
+     },
+     "fill_roof": {
+      "policy": "structural",
+      "n_layers": 3,
+      "z_range": [
+       8.3,
+       8.7
+      ],
+      "area_sum_mm2": 0.56,
+      "wall_pieces": 0,
+      "corner_pieces": 6,
+      "thinnest_wall_w_est": "inf",
+      "examples": [
+       {
+        "z": 8.3,
+        "xy": [
+         -2.59,
+         17.5
+        ],
+        "area": 0.092,
+        "length": 0.73,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 8.3,
+        "xy": [
+         2.58,
+         17.49
+        ],
+        "area": 0.094,
+        "length": 0.74,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 8.5,
+        "xy": [
+         -2.57,
+         17.49
+        ],
+        "area": 0.093,
+        "length": 0.74,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 8.5,
+        "xy": [
+         2.56,
+         17.49
+        ],
+        "area": 0.095,
+        "length": 0.75,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 8.7,
+        "xy": [
+         -2.56,
+         17.49
+        ],
+        "area": 0.093,
+        "length": 0.74,
+        "w_min": null,
+        "kind": "corner"
+       }
+      ],
+      "status": "warn"
+     },
+     "paw": {
+      "policy": "structural",
+      "n_layers": 14,
+      "z_range": [
+       10.5,
+       13.1
+      ],
+      "area_sum_mm2": 3.98,
+      "wall_pieces": 0,
+      "corner_pieces": 56,
+      "thinnest_wall_w_est": "inf",
+      "examples": [
+       {
+        "z": 10.5,
+        "xy": [
+         -18.42,
+         -3.06
+        ],
+        "area": 0.072,
+        "length": 0.58,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 10.5,
+        "xy": [
+         18.43,
+         -3.07
+        ],
+        "area": 0.072,
+        "length": 0.58,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 10.5,
+        "xy": [
+         -16.99,
+         7.78
+        ],
+        "area": 0.07,
+        "length": 0.42,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 10.5,
+        "xy": [
+         16.99,
+         7.75
+        ],
+        "area": 0.07,
+        "length": 0.42,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 10.7,
+        "xy": [
+         -18.42,
+         -3.06
+        ],
+        "area": 0.072,
+        "length": 0.58,
+        "w_min": null,
+        "kind": "corner"
+       }
+      ],
+      "status": "warn"
+     },
+     "paw_lip": {
+      "policy": "structural",
+      "n_layers": 3,
+      "z_range": [
+       13.3,
+       13.7
+      ],
+      "area_sum_mm2": 0.8,
+      "wall_pieces": 0,
+      "corner_pieces": 12,
+      "thinnest_wall_w_est": "inf",
+      "examples": [
+       {
+        "z": 13.3,
+        "xy": [
+         -18.23,
+         -3.03
+        ],
+        "area": 0.072,
+        "length": 0.58,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 13.3,
+        "xy": [
+         18.23,
+         -3.04
+        ],
+        "area": 0.072,
+        "length": 0.58,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 13.3,
+        "xy": [
+         -16.81,
+         7.69
+        ],
+        "area": 0.07,
+        "length": 0.42,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 13.3,
+        "xy": [
+         16.81,
+         7.66
+        ],
+        "area": 0.07,
+        "length": 0.42,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 13.5,
+        "xy": [
+         -18.03,
+         -2.99
+        ],
+        "area": 0.069,
+        "length": 0.58,
+        "w_min": null,
+        "kind": "corner"
+       }
+      ],
+      "status": "warn"
+     }
+    },
+    "wheel": {
+     "cosmetic:relief": {
+      "policy": "cosmetic",
+      "n_layers": 4,
+      "z_range": [
+       12.9,
+       13.5
+      ],
+      "area_sum_mm2": 537.93,
+      "wall_pieces": 55,
+      "corner_pieces": 94,
+      "thinnest_wall_w_est": 0.22,
+      "examples": [
+       {
+        "z": 12.9,
+        "xy": [
+         -2.51,
+         -14.89
+        ],
+        "area": 0.035,
+        "length": 0.67,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 12.9,
+        "xy": [
+         2.97,
+         -14.83
+        ],
+        "area": 0.029,
+        "length": 0.61,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 12.9,
+        "xy": [
+         -4.95,
+         -14.15
+        ],
+        "area": 0.054,
+        "length": 0.79,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 12.9,
+        "xy": [
+         5.32,
+         -14.06
+        ],
+        "area": 0.042,
+        "length": 0.71,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 12.9,
+        "xy": [
+         5.18,
+         -11.94
+        ],
+        "area": 0.047,
+        "length": 0.74,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 13.1,
+        "xy": [
+         -9.45,
+         -11.14
+        ],
+        "area": 1.793,
+        "length": 2.46,
+        "w_min": 0.6,
+        "kind": "wall"
+       },
+       {
+        "z": 13.3,
+        "xy": [
+         -6.96,
+         -12.59
+        ],
+        "area": 3.18,
+        "length": 4.0,
+        "w_min": 0.56,
+        "kind": "wall"
+       },
+       {
+        "z": 13.3,
+        "xy": [
+         -10.87,
+         -13.11
+        ],
+        "area": 6.245,
+        "length": 6.45,
+        "w_min": 1.11,
+        "kind": "wall"
+       }
+      ],
+      "status": "warn"
+     }
+    },
+    "head": {
+     "band": {
+      "policy": "structural",
+      "n_layers": 14,
+      "z_range": [
+       4.9,
+       7.5
+      ],
+      "area_sum_mm2": 1.98,
+      "wall_pieces": 0,
+      "corner_pieces": 28,
+      "thinnest_wall_w_est": "inf",
+      "examples": [
+       {
+        "z": 4.9,
+        "xy": [
+         -14.55,
+         42.82
+        ],
+        "area": 0.071,
+        "length": 0.58,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 4.9,
+        "xy": [
+         10.44,
+         45.45
+        ],
+        "area": 0.071,
+        "length": 0.58,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 5.1,
+        "xy": [
+         -14.56,
+         42.75
+        ],
+        "area": 0.071,
+        "length": 0.58,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 5.1,
+        "xy": [
+         10.44,
+         45.45
+        ],
+        "area": 0.071,
+        "length": 0.58,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 5.3,
+        "xy": [
+         -14.56,
+         42.75
+        ],
+        "area": 0.071,
+        "length": 0.58,
+        "w_min": null,
+        "kind": "corner"
+       }
+      ],
+      "status": "warn"
+     },
+     "rib_groove": {
+      "policy": "designed",
+      "n_layers": 3,
+      "z_range": [
+       4.9,
+       5.3
+      ],
+      "area_sum_mm2": 79.6,
+      "wall_pieces": 3,
+      "corner_pieces": 0,
+      "thinnest_wall_w_est": 0.38,
+      "examples": [
+       {
+        "z": 4.9,
+        "xy": [
+         -12.25,
+         42.34
+        ],
+        "area": 26.534,
+        "length": 30.14,
+        "w_min": 0.38,
+        "kind": "wall"
+       },
+       {
+        "z": 5.1,
+        "xy": [
+         -12.12,
+         42.42
+        ],
+        "area": 26.534,
+        "length": 30.14,
+        "w_min": 0.38,
+        "kind": "wall"
+       },
+       {
+        "z": 5.3,
+        "xy": [
+         -11.94,
+         42.55
+        ],
+        "area": 26.534,
+        "length": 30.14,
+        "w_min": 0.38,
+        "kind": "wall"
+       }
+      ],
+      "status": "pass"
+     },
+     "rib_band": {
+      "policy": "designed",
+      "n_layers": 2,
+      "z_range": [
+       7.7,
+       7.9
+      ],
+      "area_sum_mm2": 560.14,
+      "wall_pieces": 2,
+      "corner_pieces": 0,
+      "thinnest_wall_w_est": 0.1,
+      "examples": [
+       {
+        "z": 7.7,
+        "xy": [
+         -10.56,
+         27.35
+        ],
+        "area": 280.068,
+        "length": 40.77,
+        "w_min": 0.1,
+        "kind": "wall"
+       },
+       {
+        "z": 7.9,
+        "xy": [
+         -10.63,
+         27.37
+        ],
+        "area": 280.068,
+        "length": 40.77,
+        "w_min": 0.1,
+        "kind": "wall"
+       }
+      ],
+      "status": "pass"
+     },
+     "rib_front": {
+      "policy": "designed",
+      "n_layers": 14,
+      "z_range": [
+       11.1,
+       13.7
+      ],
+      "area_sum_mm2": 2974.46,
+      "wall_pieces": 28,
+      "corner_pieces": 28,
+      "thinnest_wall_w_est": 0.22,
+      "examples": [
+       {
+        "z": 11.1,
+        "xy": [
+         -13.68,
+         42.04
+        ],
+        "area": 1.238,
+        "length": 1.72,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 11.1,
+        "xy": [
+         5.06,
+         31.5
+        ],
+        "area": 190.706,
+        "length": 41.56,
+        "w_min": 0.22,
+        "kind": "wall"
+       },
+       {
+        "z": 11.1,
+        "xy": [
+         9.8,
+         44.47
+        ],
+        "area": 1.249,
+        "length": 1.73,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 11.1,
+        "xy": [
+         -9.64,
+         43.11
+        ],
+        "area": 19.268,
+        "length": 23.07,
+        "w_min": 0.81,
+        "kind": "wall"
+       },
+       {
+        "z": 11.3,
+        "xy": [
+         -13.68,
+         42.04
+        ],
+        "area": 1.238,
+        "length": 1.72,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 11.3,
+        "xy": [
+         5.06,
+         31.5
+        ],
+        "area": 190.706,
+        "length": 41.56,
+        "w_min": 0.22,
+        "kind": "wall"
+       },
+       {
+        "z": 11.3,
+        "xy": [
+         -9.64,
+         43.11
+        ],
+        "area": 19.268,
+        "length": 23.07,
+        "w_min": 0.81,
+        "kind": "wall"
+       },
+       {
+        "z": 11.5,
+        "xy": [
+         5.06,
+         31.5
+        ],
+        "area": 190.706,
+        "length": 41.56,
+        "w_min": 0.22,
+        "kind": "wall"
+       }
+      ],
+      "status": "pass"
+     },
+     "cosmetic:face_feature": {
+      "policy": "cosmetic",
+      "n_layers": 10,
+      "z_range": [
+       16.9,
+       19.1
+      ],
+      "area_sum_mm2": 55.28,
+      "wall_pieces": 15,
+      "corner_pieces": 33,
+      "thinnest_wall_w_est": 0.07,
+      "examples": [
+       {
+        "z": 16.9,
+        "xy": [
+         -8.01,
+         51.76
+        ],
+        "area": 0.517,
+        "length": 1.43,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 16.9,
+        "xy": [
+         -4.79,
+         51.83
+        ],
+        "area": 0.253,
+        "length": 0.85,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 17.1,
+        "xy": [
+         -7.57,
+         51.39
+        ],
+        "area": 0.62,
+        "length": 1.95,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 17.1,
+        "xy": [
+         -4.61,
+         51.69
+        ],
+        "area": 0.357,
+        "length": 1.31,
+        "w_min": null,
+        "kind": "corner"
+       },
+       {
+        "z": 17.3,
+        "xy": [
+         -8.75,
+         50.44
+        ],
+        "area": 0.876,
+        "length": 2.13,
+        "w_min": 0.36,
+        "kind": "wall"
+       },
+       {
+        "z": 17.5,
+        "xy": [
+         -8.68,
+         50.4
+        ],
+        "area": 13.682,
+        "length": 8.78,
+        "w_min": 0.13,
+        "kind": "wall"
+       },
+       {
+        "z": 17.5,
+        "xy": [
+         4.95,
+         53.19
+        ],
+        "area": 12.033,
+        "length": 7.8,
+        "w_min": 0.78,
+        "kind": "wall"
+       },
+       {
+        "z": 17.7,
+        "xy": [
+         -15.17,
+         49.31
+        ],
+        "area": 2.141,
+        "length": 6.19,
+        "w_min": 0.07,
+        "kind": "wall"
+       }
+      ],
+      "status": "warn"
+     }
+    }
+   },
+   "structural_thin_walls": [],
+   "status": "warn"
+  },
+  "V8_back_plate": {
+   "criterion": ">= 2.0",
+   "samples": 18411,
+   "min_excl_cosmetic": 2.0,
+   "min_incl_cosmetic_grooves": 2.0,
+   "at_min": [
+    -17.67,
+    -24.05
+   ],
+   "status": "pass"
+  },
+  "V8_roof": {
+   "criterion": ">= 2.0 (vertical, over the head channels; interior = off the r 1.0 top-edge round and the keep-out cone)",
+   "samples": 10503,
+   "min_interior": 2.0,
+   "at_min_interior": [
+    -16.86,
+    5.28
+   ],
+   "min_all": 1.752,
+   "at_min_all": [
+    -12.66,
+    11.58
+   ],
+   "area_below_2.0_mm2": 6.4,
+   "area_below_2.0_interior_mm2": 0.0,
+   "status": "warn",
+   "note": "thinner only within the r 1.0 top-edge round of the body outline and where the 45 deg umbrella keep-out trims the roof's inner edge (r 17.1-17.4 about O): edge geometry"
+  },
+  "V8_fingers": {
+   "criterion": ">= 4.29 (chord perpendicular to the finger axis, pallet centre -> root)",
+   "per_finger": [
+    {
+     "pallet": "L",
+     "min_width": 4.284,
+     "at_t_from_pallet_centre": 0.0,
+     "width_at_pallet_centre": 4.284,
+     "width_at_root": 28.1
+    },
+    {
+     "pallet": "R",
+     "min_width": 4.284,
+     "at_t_from_pallet_centre": 0.0,
+     "width_at_pallet_centre": 4.284,
+     "width_at_root": 28.1
+    }
+   ],
+   "min": 4.284,
+   "status": "pass"
+  },
+  "V8_legs": {
+   "criterion": ">= 7.0 (chord perpendicular to A->B where the leg is not under the face)",
+   "per_leg": [
+    {
+     "leg": "L",
+     "min_width_free_span": 6.161,
+     "at": [
+      -16.55,
+      13.7
+     ],
+     "at_frac_from_A": 0.142,
+     "free_span_len": 14.29,
+     "len_below_7.0": 1.69
+    },
+    {
+     "leg": "R",
+     "min_width_free_span": 6.161,
+     "at": [
+      16.55,
+      13.7
+     ],
+     "at_frac_from_A": 0.142,
+     "free_span_len": 14.29,
+     "len_below_7.0": 1.69
+    }
+   ],
+   "min": 6.161,
+   "status": "warn",
+   "bending_stress_ratio_narrowed_vs_root": 0.49,
+   "note": "narrowed near the pallet end A by WheelEx2D = SweptInv(disc(O, 14.90)) - the SPEC's own HeadBand2D definition; the narrowed section sees less bending than the full-width root"
+  },
+  "V8_posts": {
+   "criterion": "D 8.0 (inscribed, faceting tol 0.01)",
+   "per_post": [
+    {
+     "post": "O",
+     "z": [
+      3.2,
+      3.95,
+      6.05,
+      6.9
+     ],
+     "inscribed_d": [
+      7.992,
+      7.992,
+      7.992,
+      7.992
+     ]
+    },
+    {
+     "post": "P",
+     "z": [
+      3.2,
+      3.95,
+      6.05,
+      6.9
+     ],
+     "inscribed_d": [
+      7.992,
+      7.992,
+      7.992,
+      7.992
+     ]
+    }
+   ],
+   "min_d": 7.992,
+   "status": "pass"
+  },
+  "V8_slivers_2d": {
+   "criterion": "no sliver (strip >= 2 mm long) narrower than 1.6 in Fill2D (pads excluded) / Roof2D",
+   "sections": {
+    "fill2d": {
+     "walls": [],
+     "corners": 0
+    },
+    "roof2d": {
+     "walls": [],
+     "corners": 0
+    }
+   },
+   "status": "pass"
+  },
+  "V8_stop_pads": {
+   "criterion": "pads are <= 0.6 thick by construction ([Rot(Leg) (+) 0.55] - Swept(HB)); every part must be backed by the fill wall (no free fin > 0.8 long)",
+   "pads": [
+    {
+     "centroid": [
+      8.76,
+      15.72
+     ],
+     "area_mm2": 3.41,
+     "max_width": 0.65,
+     "unbacked_area_mm2": 0.0,
+     "unbacked_fin_length": 0.0
+    },
+    {
+     "centroid": [
+      -8.76,
+      15.72
+     ],
+     "area_mm2": 3.41,
+     "max_width": 0.65,
+     "unbacked_area_mm2": 0.0,
+     "unbacked_fin_length": 0.0
+    },
+    {
+     "centroid": [
+      -18.34,
+      24.17
+     ],
+     "area_mm2": 3.96,
+     "max_width": 0.65,
+     "unbacked_area_mm2": 0.0,
+     "unbacked_fin_length": 0.0
+    },
+    {
+     "centroid": [
+      18.34,
+      24.17
+     ],
+     "area_mm2": 3.96,
+     "max_width": 0.65,
+     "unbacked_area_mm2": 0.0,
+     "unbacked_fin_length": 0.0
+    }
+   ],
+   "worst_unbacked_fin_length": 0.0,
+   "status": "pass"
+  },
+  "V8_ribs": {
+   "criterion": "rib pieces reach the designed width 0.8",
+   "sections": {
+    "ribs_back2d": {
+     "pieces": 19,
+     "pieces_narrower_than_0.74": 0,
+     "tip_area_below_0.4_mm2": 0.0
+    },
+    "ribs_roof2d": {
+     "pieces": 0,
+     "pieces_narrower_than_0.74": 0,
+     "tip_area_below_0.4_mm2": 0.0
+    },
+    "ribs_band2d": {
+     "pieces": 1,
+     "pieces_narrower_than_0.74": 0,
+     "tip_area_below_0.4_mm2": 0.0
+    },
+    "ribs_front2d": {
+     "pieces": 1,
+     "pieces_narrower_than_0.74": 0,
+     "tip_area_below_0.4_mm2": 0.0
+    },
+    "groove_rib2d": {
+     "pieces": 1,
+     "pieces_narrower_than_0.74": 0,
+     "tip_area_below_0.4_mm2": 0.0
+    }
+   },
+   "status": "pass"
+  },
+  "V8_slivers_frame_layers": {
+   "criterion": "frame layers z 2.6-10.4: no sliver (strip >= 2 mm long) narrower than 1.6 (stop pads and posts excluded; cosmetic relief warns)",
+   "by_zone": {
+    "cosmetic:plate_relief/corner": {
+     "n_pieces": 33,
+     "z_range": [
+      2.7,
+      2.9
+     ],
+     "area_sum": 25.43,
+     "min_w": 0.61,
+     "worst": [
+      {
+       "z": 2.9,
+       "xy": [
+        -8.0,
+        -22.65
+       ],
+       "area": 0.101,
+       "zone": "cosmetic:plate_relief",
+       "kind": "corner",
+       "length": 0.73,
+       "w": 0.61
+      },
+      {
+       "z": 2.9,
+       "xy": [
+        -7.45,
+        -21.38
+       ],
+       "area": 0.142,
+       "zone": "cosmetic:plate_relief",
+       "kind": "corner",
+       "length": 0.92,
+       "w": 0.7
+      },
+      {
+       "z": 2.7,
+       "xy": [
+        27.53,
+        15.54
+       ],
+       "area": 0.433,
+       "zone": "cosmetic:plate_relief",
+       "kind": "corner",
+       "length": 1.26,
+       "w": 0.87
+      },
+      {
+       "z": 2.9,
+       "xy": [
+        -25.18,
+        21.98
+       ],
+       "area": 0.584,
+       "zone": "cosmetic:plate_relief",
+       "kind": "corner",
+       "length": 1.22,
+       "w": 0.87
+      }
+     ]
+    },
+    "cosmetic:plate_relief/wall": {
+     "n_pieces": 14,
+     "z_range": [
+      2.7,
+      2.9
+     ],
+     "area_sum": 42.94,
+     "min_w": 0.41,
+     "worst": [
+      {
+       "z": 2.9,
+       "xy": [
+        -27.88,
+        4.91
+       ],
+       "area": 4.235,
+       "zone": "cosmetic:plate_relief",
+       "kind": "wall",
+       "length": 5.95,
+       "w": 0.41
+      },
+      {
+       "z": 2.9,
+       "xy": [
+        -16.2,
+        -23.49
+       ],
+       "area": 1.809,
+       "zone": "cosmetic:plate_relief",
+       "kind": "wall",
+       "length": 2.4,
+       "w": 0.45
+      },
+      {
+       "z": 2.9,
+       "xy": [
+        24.56,
+        -21.92
+       ],
+       "area": 1.959,
+       "zone": "cosmetic:plate_relief",
+       "kind": "wall",
+       "length": 2.53,
+       "w": 0.45
+      },
+      {
+       "z": 2.9,
+       "xy": [
+        -28.4,
+        -16.17
+       ],
+       "area": 1.916,
+       "zone": "cosmetic:plate_relief",
+       "kind": "wall",
+       "length": 2.48,
+       "w": 0.45
+      }
+     ]
+    },
+    "fill_roof/corner": {
+     "n_pieces": 24,
+     "z_range": [
+      4.3,
+      10.3
+     ],
+     "area_sum": 2.03,
+     "min_w": 0.2,
+     "worst": [
+      {
+       "z": 4.3,
+       "xy": [
+        18.45,
+        31.02
+       ],
+       "area": 0.047,
+       "zone": "fill_roof",
+       "kind": "corner",
+       "length": 0.59,
+       "w": 0.2
+      },
+      {
+       "z": 4.3,
+       "xy": [
+        -18.44,
+        31.01
+       ],
+       "area": 0.047,
+       "zone": "fill_roof",
+       "kind": "corner",
+       "length": 0.6,
+       "w": 0.21
+      },
+      {
+       "z": 4.5,
+       "xy": [
+        18.51,
+        31.23
+       ],
+       "area": 0.059,
+       "zone": "fill_roof",
+       "kind": "corner",
+       "length": 0.65,
+       "w": 0.25
+      },
+      {
+       "z": 4.5,
+       "xy": [
+        -18.5,
+        31.21
+       ],
+       "area": 0.058,
+       "zone": "fill_roof",
+       "kind": "corner",
+       "length": 0.65,
+       "w": 0.27
+      }
+     ]
+    },
+    "funnel_seat/corner": {
+     "n_pieces": 42,
+     "z_range": [
+      8.1,
+      10.3
+     ],
+     "area_sum": 9.11,
+     "min_w": 0.25,
+     "worst": [
+      {
+       "z": 8.1,
+       "xy": [
+        14.73,
+        3.86
+       ],
+       "area": 0.071,
+       "zone": "funnel_seat",
+       "kind": "corner",
+       "length": 0.78,
+       "w": 0.25
+      },
+      {
+       "z": 8.7,
+       "xy": [
+        -15.28,
+        3.95
+       ],
+       "area": 0.06,
+       "zone": "funnel_seat",
+       "kind": "corner",
+       "length": 0.65,
+       "w": 0.25
+      },
+      {
+       "z": 8.1,
+       "xy": [
+        -14.72,
+        3.83
+       ],
+       "area": 0.071,
+       "zone": "funnel_seat",
+       "kind": "corner",
+       "length": 0.79,
+       "w": 0.26
+      },
+      {
+       "z": 8.7,
+       "xy": [
+        2.44,
+        15.71
+       ],
+       "area": 0.062,
+       "zone": "funnel_seat",
+       "kind": "corner",
+       "length": 0.66,
+       "w": 0.26
+      }
+     ]
+    }
+   },
+   "n_wall_pieces": 0,
+   "n_corner_pieces": 113,
+   "status": "warn"
+  },
+  "V9_overhangs": {
+   "criterion": "faces > 45.0 deg from vertical (+0.5 deg tol) must be bed, listed bridge (roof <= 13.5, umbrella plate <= 10.5, bores D 8.7), listed rib float (pitch <= 4.5, gap 0.40) or chamfer micro-step <= 0.3",
+   "bodies": {
+    "frame": {
+     "steep_area_mm2": 1213.5,
+     "bed_area_mm2": 4663.77,
+     "oblique_steep_area_mm2": 0.0,
+     "levels": [
+      0.25,
+      0.5,
+      2.0,
+      2.145,
+      3.7,
+      3.9,
+      4.1,
+      4.3,
+      4.5,
+      4.7,
+      4.9,
+      5.1,
+      5.3,
+      5.5,
+      5.7,
+      8.2,
+      8.4
+     ],
+     "faces_45deg_area_mm2": 154.91,
+     "max_oblique_angle_from_vertical_deg": null
+    },
+    "wheel": {
+     "steep_area_mm2": 624.47,
+     "bed_area_mm2": 0.0,
+     "oblique_steep_area_mm2": 0.0,
+     "levels": [
+      3.2,
+      8.2
+     ],
+     "faces_45deg_area_mm2": 597.84,
+     "max_oblique_angle_from_vertical_deg": null
+    },
+    "head": {
+     "steep_area_mm2": 2121.28,
+     "bed_area_mm2": 0.0,
+     "oblique_steep_area_mm2": 0.0,
+     "levels": [
+      3.2,
+      7.6,
+      8.2,
+      11.0,
+      13.9
+     ],
+     "faces_45deg_area_mm2": 66.99,
+     "max_oblique_angle_from_vertical_deg": null
+    }
+   },
+   "pieces": [
+    {
+     "body": "frame",
+     "z": 0.25,
+     "area_mm2": 70.34,
+     "centroid": [
+      -27.59,
+      19.4
+     ],
+     "bbox": [
+      -31.4,
+      -26.27,
+      33.47,
+      64.99
+     ],
+     "max_dist_to_own_anchor": 0.27,
+     "below": {
+      "bed@0.25": 69.8
+     },
+     "min_gap_below": 0.25,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 0.5,
+     "area_mm2": 35.32,
+     "centroid": [
+      -27.78,
+      19.48
+     ],
+     "bbox": [
+      -31.52,
+      -26.4,
+      33.6,
+      65.11
+     ],
+     "max_dist_to_own_anchor": 0.16,
+     "below": {
+      "bed@0.50": 37.0
+     },
+     "min_gap_below": 0.5,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 3.7,
+     "area_mm2": 0.88,
+     "centroid": [
+      -20.4,
+      26.95
+     ],
+     "bbox": [
+      -20.58,
+      24.01,
+      -18.06,
+      30.61
+     ],
+     "max_dist_to_own_anchor": 0.2,
+     "below": {
+      "frame@1.10": 0.8
+     },
+     "min_gap_below": 1.1,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 3.7,
+     "area_mm2": 0.88,
+     "centroid": [
+      20.4,
+      26.94
+     ],
+     "bbox": [
+      18.06,
+      24.01,
+      20.58,
+      30.61
+     ],
+     "max_dist_to_own_anchor": 0.2,
+     "below": {
+      "frame@1.10": 0.8
+     },
+     "min_gap_below": 1.1,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 3.9,
+     "area_mm2": 1.66,
+     "centroid": [
+      -20.5,
+      27.41
+     ],
+     "bbox": [
+      -20.78,
+      24.0,
+      -18.11,
+      30.81
+     ],
+     "max_dist_to_own_anchor": 0.22,
+     "below": {
+      "frame@1.30": 1.8
+     },
+     "min_gap_below": 1.3,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 3.9,
+     "area_mm2": 1.66,
+     "centroid": [
+      20.5,
+      27.41
+     ],
+     "bbox": [
+      18.12,
+      24.0,
+      20.78,
+      30.81
+     ],
+     "max_dist_to_own_anchor": 0.22,
+     "below": {
+      "frame@1.30": 1.7
+     },
+     "min_gap_below": 1.3,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 4.1,
+     "area_mm2": 1.7,
+     "centroid": [
+      -20.63,
+      27.88
+     ],
+     "bbox": [
+      -20.98,
+      24.0,
+      -18.21,
+      31.01
+     ],
+     "max_dist_to_own_anchor": 0.21,
+     "below": {
+      "frame@1.50": 1.8
+     },
+     "min_gap_below": 1.5,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 4.1,
+     "area_mm2": 1.7,
+     "centroid": [
+      20.63,
+      27.88
+     ],
+     "bbox": [
+      18.21,
+      24.0,
+      20.98,
+      31.01
+     ],
+     "max_dist_to_own_anchor": 0.21,
+     "below": {
+      "frame@1.50": 1.8
+     },
+     "min_gap_below": 1.5,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 4.3,
+     "area_mm2": 1.75,
+     "centroid": [
+      -20.87,
+      27.64
+     ],
+     "bbox": [
+      -21.18,
+      23.99,
+      -18.31,
+      31.22
+     ],
+     "max_dist_to_own_anchor": 0.21,
+     "below": {
+      "frame@1.70": 1.8
+     },
+     "min_gap_below": 1.7,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 4.3,
+     "area_mm2": 1.75,
+     "centroid": [
+      20.87,
+      27.65
+     ],
+     "bbox": [
+      18.31,
+      23.99,
+      21.18,
+      31.22
+     ],
+     "max_dist_to_own_anchor": 0.22,
+     "below": {
+      "frame@1.70": 1.6
+     },
+     "min_gap_below": 1.7,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 4.5,
+     "area_mm2": 1.79,
+     "centroid": [
+      -21.08,
+      27.65
+     ],
+     "bbox": [
+      -21.38,
+      23.99,
+      -18.41,
+      31.42
+     ],
+     "max_dist_to_own_anchor": 0.21,
+     "below": {
+      "frame@1.90": 1.8
+     },
+     "min_gap_below": 1.9,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 4.5,
+     "area_mm2": 1.79,
+     "centroid": [
+      21.08,
+      27.65
+     ],
+     "bbox": [
+      18.41,
+      23.99,
+      21.38,
+      31.42
+     ],
+     "max_dist_to_own_anchor": 0.21,
+     "below": {
+      "frame@1.90": 1.8
+     },
+     "min_gap_below": 1.9,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 4.7,
+     "area_mm2": 1.85,
+     "centroid": [
+      -21.27,
+      27.68
+     ],
+     "bbox": [
+      -21.59,
+      23.99,
+      -18.46,
+      31.62
+     ],
+     "max_dist_to_own_anchor": 0.21,
+     "below": {
+      "frame@2.10": 1.7
+     },
+     "min_gap_below": 2.1,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 4.7,
+     "area_mm2": 1.85,
+     "centroid": [
+      21.27,
+      27.68
+     ],
+     "bbox": [
+      18.46,
+      23.99,
+      21.59,
+      31.62
+     ],
+     "max_dist_to_own_anchor": 0.21,
+     "below": {
+      "frame@2.10": 1.4
+     },
+     "min_gap_below": 2.1,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 4.9,
+     "area_mm2": 1.9,
+     "centroid": [
+      -21.47,
+      27.72
+     ],
+     "bbox": [
+      -21.79,
+      23.97,
+      -18.52,
+      31.82
+     ],
+     "max_dist_to_own_anchor": 0.21,
+     "below": {
+      "frame@2.30": 1.9
+     },
+     "min_gap_below": 2.3,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 4.9,
+     "area_mm2": 1.9,
+     "centroid": [
+      21.47,
+      27.72
+     ],
+     "bbox": [
+      18.52,
+      23.97,
+      21.79,
+      31.82
+     ],
+     "max_dist_to_own_anchor": 0.25,
+     "below": {
+      "frame@2.30": 1.9
+     },
+     "min_gap_below": 2.3,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 5.1,
+     "area_mm2": 1.98,
+     "centroid": [
+      -21.67,
+      27.75
+     ],
+     "bbox": [
+      -22.39,
+      23.63,
+      -18.57,
+      32.02
+     ],
+     "max_dist_to_own_anchor": 0.22,
+     "below": {
+      "frame@2.50": 1.9
+     },
+     "min_gap_below": 2.5,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 5.1,
+     "area_mm2": 1.98,
+     "centroid": [
+      21.67,
+      27.75
+     ],
+     "bbox": [
+      18.57,
+      23.54,
+      22.45,
+      32.02
+     ],
+     "max_dist_to_own_anchor": 0.22,
+     "below": {
+      "frame@2.50": 2.0
+     },
+     "min_gap_below": 2.5,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 5.3,
+     "area_mm2": 2.05,
+     "centroid": [
+      -21.88,
+      27.72
+     ],
+     "bbox": [
+      -22.49,
+      23.5,
+      -18.61,
+      32.23
+     ],
+     "max_dist_to_own_anchor": 0.22,
+     "below": {
+      "frame@2.70": 2.1
+     },
+     "min_gap_below": 2.7,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 5.3,
+     "area_mm2": 2.05,
+     "centroid": [
+      21.88,
+      27.72
+     ],
+     "bbox": [
+      18.61,
+      23.49,
+      22.49,
+      32.23
+     ],
+     "max_dist_to_own_anchor": 0.21,
+     "below": {
+      "frame@2.70": 2.1
+     },
+     "min_gap_below": 2.7,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 5.5,
+     "area_mm2": 2.11,
+     "centroid": [
+      -22.05,
+      27.98
+     ],
+     "bbox": [
+      -22.48,
+      23.58,
+      -18.65,
+      32.43
+     ],
+     "max_dist_to_own_anchor": 0.22,
+     "below": {
+      "frame@2.90": 2.0
+     },
+     "min_gap_below": 2.9,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 5.5,
+     "area_mm2": 2.11,
+     "centroid": [
+      22.05,
+      27.98
+     ],
+     "bbox": [
+      18.65,
+      23.6,
+      22.47,
+      32.43
+     ],
+     "max_dist_to_own_anchor": 0.21,
+     "below": {
+      "frame@2.90": 2.2
+     },
+     "min_gap_below": 2.9,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "chamfer_micro_step",
+     "status": "pass",
+     "notes": [
+      "overhangs its own layer below by <= 0.3 (stair-stepped chamfer / mesh hygiene ledge)"
+     ]
+    },
+    {
+     "body": "frame",
+     "z": 5.7,
+     "area_mm2": 106.38,
+     "centroid": [
+      -18.54,
+      35.59
+     ],
+     "bbox": [
+      -22.5,
+      23.78,
+      22.5,
+      47.21
+     ],
+     "max_dist_to_own_anchor": "inf",
+     "below": {
+      "head@1.00": 42.0,
+      "head@0.40": 26.4,
+      "frame@3.10": 22.1,
+      "frame@3.70": 15.6
+     },
+     "min_gap_below": 0.4,
+     "free_edge_runs": {
+      "n": 2,
+      "max_chord": 42.89,
+      "max_path": 56.91,
+      "closed_unanchored_ring": false
+     },
+     "class": "bridge:crown skirt (leg channels, over the band groove rib)",
+     "span_limit": 13.5,
+     "span_est_2x_anchor_dist": "inf",
+     "rib_supported": {
+      "rib_top_area_mm2": 26.53,
+      "area_beyond_anchor_and_rib_reach_mm2": 4.32,
+      "max_strand_anchor_to_rib_zone": 9.45
+     },
+     "free_edge_runs_rib_supported": {
+      "n": 4,
+      "max_chord": 11.18
+     },
+     "area_beyond_half_span_mm2": 0.0,
+     "beyond_half_span_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "frame",
+     "z": 5.7,
+     "area_mm2": 0.48,
+     "centroid": [
+      -9.23,
+      13.52
+     ],
+     "bbox": [
+      -9.49,
+      12.94,
+      -8.89,
+      14.43
+     ],
+     "max_dist_to_own_anchor": 0.62,
+     "below": {
+      "frame@3.10": 0.5
+     },
+     "min_gap_below": 3.1,
+     "free_edge_runs": {
+      "n": 1,
+      "max_chord": 0.92,
+      "max_path": 1.23,
+      "closed_unanchored_ring": false
+     },
+     "class": "bridge:crown skirt (leg channels, over the band groove rib)",
+     "span_limit": 13.5,
+     "span_est_2x_anchor_dist": 1.24,
+     "area_beyond_half_span_mm2": 0.0,
+     "beyond_half_span_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "frame",
+     "z": 5.7,
+     "area_mm2": 0.48,
+     "centroid": [
+      9.23,
+      13.52
+     ],
+     "bbox": [
+      8.89,
+      12.95,
+      9.49,
+      14.43
+     ],
+     "max_dist_to_own_anchor": 0.6,
+     "below": {
+      "frame@3.10": 0.4,
+      "frame@3.70": 0.1
+     },
+     "min_gap_below": 3.1,
+     "free_edge_runs": {
+      "n": 1,
+      "max_chord": 0.92,
+      "max_path": 1.33,
+      "closed_unanchored_ring": false
+     },
+     "class": "bridge:crown skirt (leg channels, over the band groove rib)",
+     "span_limit": 13.5,
+     "span_est_2x_anchor_dist": 1.21,
+     "area_beyond_half_span_mm2": 0.0,
+     "beyond_half_span_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "frame",
+     "z": 5.7,
+     "area_mm2": 0.31,
+     "centroid": [
+      8.4,
+      18.05
+     ],
+     "bbox": [
+      8.02,
+      17.41,
+      8.74,
+      18.45
+     ],
+     "max_dist_to_own_anchor": 0.55,
+     "below": {
+      "frame@3.10": 0.2,
+      "frame@3.70": 0.1
+     },
+     "min_gap_below": 3.1,
+     "free_edge_runs": {
+      "n": 1,
+      "max_chord": 0.55,
+      "max_path": 0.8,
+      "closed_unanchored_ring": false
+     },
+     "class": "bridge:crown skirt (leg channels, over the band groove rib)",
+     "span_limit": 13.5,
+     "span_est_2x_anchor_dist": 1.1,
+     "area_beyond_half_span_mm2": 0.0,
+     "beyond_half_span_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "frame",
+     "z": 5.7,
+     "area_mm2": 0.31,
+     "centroid": [
+      -8.4,
+      18.05
+     ],
+     "bbox": [
+      -8.74,
+      17.39,
+      -8.02,
+      18.45
+     ],
+     "max_dist_to_own_anchor": 0.56,
+     "below": {
+      "frame@3.10": 0.2
+     },
+     "min_gap_below": 3.1,
+     "free_edge_runs": {
+      "n": 1,
+      "max_chord": 0.56,
+      "max_path": 0.81,
+      "closed_unanchored_ring": false
+     },
+     "class": "bridge:crown skirt (leg channels, over the band groove rib)",
+     "span_limit": 13.5,
+     "span_est_2x_anchor_dist": 1.12,
+     "area_beyond_half_span_mm2": 0.0,
+     "beyond_half_span_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "frame",
+     "z": 5.7,
+     "area_mm2": 0.3,
+     "centroid": [
+      19.91,
+      21.87
+     ],
+     "bbox": [
+      19.34,
+      21.51,
+      20.24,
+      22.3
+     ],
+     "max_dist_to_own_anchor": 0.5,
+     "below": {
+      "frame@3.10": 0.2,
+      "frame@3.70": 0.1
+     },
+     "min_gap_below": 3.1,
+     "free_edge_runs": {
+      "n": 1,
+      "max_chord": 0.59,
+      "max_path": 0.79,
+      "closed_unanchored_ring": false
+     },
+     "class": "bridge:crown skirt (leg channels, over the band groove rib)",
+     "span_limit": 13.5,
+     "span_est_2x_anchor_dist": 1.0,
+     "area_beyond_half_span_mm2": 0.0,
+     "beyond_half_span_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "frame",
+     "z": 5.7,
+     "area_mm2": 0.3,
+     "centroid": [
+      -19.91,
+      21.87
+     ],
+     "bbox": [
+      -20.24,
+      21.51,
+      -19.33,
+      22.32
+     ],
+     "max_dist_to_own_anchor": 0.5,
+     "below": {
+      "frame@3.10": 0.3
+     },
+     "min_gap_below": 3.1,
+     "free_edge_runs": {
+      "n": 1,
+      "max_chord": 0.58,
+      "max_path": 0.81,
+      "closed_unanchored_ring": false
+     },
+     "class": "bridge:crown skirt (leg channels, over the band groove rib)",
+     "span_limit": 13.5,
+     "span_est_2x_anchor_dist": 1.0,
+     "area_beyond_half_span_mm2": 0.0,
+     "beyond_half_span_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "frame",
+     "z": 5.7,
+     "area_mm2": 0.25,
+     "centroid": [
+      -16.61,
+      26.37
+     ],
+     "bbox": [
+      -16.85,
+      25.73,
+      -16.36,
+      26.78
+     ],
+     "max_dist_to_own_anchor": 0.35,
+     "below": {
+      "frame@3.10": 0.2,
+      "frame@3.70": 0.1
+     },
+     "min_gap_below": 3.1,
+     "free_edge_runs": {
+      "n": 1,
+      "max_chord": 0.46,
+      "max_path": 0.5,
+      "closed_unanchored_ring": false
+     },
+     "class": "bridge:crown skirt (leg channels, over the band groove rib)",
+     "span_limit": 13.5,
+     "span_est_2x_anchor_dist": 0.7,
+     "area_beyond_half_span_mm2": 0.0,
+     "beyond_half_span_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "frame",
+     "z": 5.7,
+     "area_mm2": 0.24,
+     "centroid": [
+      16.6,
+      26.37
+     ],
+     "bbox": [
+      16.37,
+      25.73,
+      16.84,
+      26.78
+     ],
+     "max_dist_to_own_anchor": 0.34,
+     "below": {
+      "frame@3.10": 0.2,
+      "frame@3.70": 0.1
+     },
+     "min_gap_below": 3.1,
+     "free_edge_runs": {
+      "n": 1,
+      "max_chord": 0.47,
+      "max_path": 0.51,
+      "closed_unanchored_ring": false
+     },
+     "class": "bridge:crown skirt (leg channels, over the band groove rib)",
+     "span_limit": 13.5,
+     "span_est_2x_anchor_dist": 0.67,
+     "area_beyond_half_span_mm2": 0.0,
+     "beyond_half_span_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "frame",
+     "z": 8.4,
+     "area_mm2": 955.5,
+     "centroid": [
+      -12.41,
+      24.98
+     ],
+     "bbox": [
+      -23.96,
+      4.76,
+      23.96,
+      45.22
+     ],
+     "max_dist_to_own_anchor": 13.01,
+     "below": {
+      "head@0.80": 396.0,
+      "head@0.40": 280.5,
+      "frame@6.40": 197.3,
+      "frame@5.80": 35.8,
+      "head@3.70": 22.8,
+      "head@1.30": 22.6
+     },
+     "min_gap_below": 0.4,
+     "free_edge_runs": {
+      "n": 3,
+      "max_chord": 11.93,
+      "max_path": 35.4,
+      "closed_unanchored_ring": false
+     },
+     "class": "bridge:roof (leg channels)",
+     "span_limit": 13.5,
+     "span_est_2x_anchor_dist": 26.02,
+     "rib_supported": {
+      "rib_top_area_mm2": 280.07,
+      "area_beyond_anchor_and_rib_reach_mm2": 0.29,
+      "max_strand_anchor_to_rib_zone": 7.64
+     },
+     "free_edge_runs_rib_supported": {
+      "n": 4,
+      "max_chord": 11.93
+     },
+     "area_beyond_half_span_mm2": 0.0,
+     "beyond_half_span_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "head",
+     "z": 3.2,
+     "area_mm2": 1170.18,
+     "centroid": [
+      -0.94,
+      33.76
+     ],
+     "bbox": [
+      -19.51,
+      5.27,
+      22.22,
+      58.83
+     ],
+     "max_dist_to_own_anchor": "inf",
+     "below": {
+      "frame@1.20": 911.2,
+      "frame@0.60": 259.4
+     },
+     "min_gap_below": 0.6,
+     "free_edge_runs": {
+      "n": 2,
+      "max_chord": 53.56,
+      "max_path": 212.78,
+      "closed_unanchored_ring": true
+     },
+     "class": "rib_float:back-plate ribs",
+     "rib_gap_design": 0.6,
+     "area_over_rib_tops_mm2": 259.67,
+     "max_dist_to_support": 1.87,
+     "support_allowance": 1.9,
+     "unsupported_area_mm2": 0.0,
+     "unsupported_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "head",
+     "z": 8.2,
+     "area_mm2": 60.85,
+     "centroid": [
+      -0.0,
+      24.71
+     ],
+     "bbox": [
+      -4.4,
+      20.31,
+      4.4,
+      29.11
+     ],
+     "max_dist_to_own_anchor": 4.4,
+     "below": {
+      "frame@0.60": 36.6,
+      "frame@2.69": 0.6,
+      "frame@2.44": 0.6,
+      "frame@2.66": 0.6,
+      "frame@2.71": 0.5,
+      "frame@2.74": 0.5
+     },
+     "min_gap_below": 0.6,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "bridge:bore roof",
+     "span_limit": 8.8,
+     "span_est_2x_anchor_dist": 8.8,
+     "rib_supported": {
+      "rib_top_area_mm2": 36.31,
+      "area_beyond_anchor_and_rib_reach_mm2": 0.0,
+      "max_strand_anchor_to_rib_zone": 0.0
+     },
+     "free_edge_runs_rib_supported": {
+      "n": 0,
+      "max_chord": 0.0
+     },
+     "area_beyond_half_span_mm2": 0.0,
+     "beyond_half_span_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "head",
+     "z": 11.0,
+     "area_mm2": 217.5,
+     "centroid": [
+      0.02,
+      32.97
+     ],
+     "bbox": [
+      -21.26,
+      20.05,
+      20.08,
+      45.91
+     ],
+     "max_dist_to_own_anchor": "inf",
+     "below": {
+      "frame@0.60": 215.5,
+      "head@3.40": 1.0,
+      "head@6.30": 0.6
+     },
+     "min_gap_below": 0.6,
+     "free_edge_runs": {
+      "n": 5,
+      "max_chord": 41.33,
+      "max_path": 133.71,
+      "closed_unanchored_ring": true
+     },
+     "class": "rib_float:front-layer ribs over the crown top",
+     "rib_gap_design": 0.6,
+     "area_over_rib_tops_mm2": 216.05,
+     "max_dist_to_support": 0.62,
+     "support_allowance": 1.9,
+     "unsupported_area_mm2": 0.0,
+     "unsupported_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "head",
+     "z": 13.9,
+     "area_mm2": 262.36,
+     "centroid": [
+      -0.84,
+      32.75
+     ],
+     "bbox": [
+      -22.78,
+      18.53,
+      21.63,
+      50.15
+     ],
+     "max_dist_to_own_anchor": 1.9,
+     "below": {
+      "frame@3.50": 136.7,
+      "head@5.30": 55.4,
+      "frame@11.90": 29.4,
+      "head@6.30": 19.5,
+      "head@9.20": 18.6,
+      "frame@11.30": 2.6
+     },
+     "min_gap_below": 3.5,
+     "free_edge_runs": {
+      "n": 2,
+      "max_chord": 31.83,
+      "max_path": 48.64,
+      "closed_unanchored_ring": false
+     },
+     "class": "own_rib_bridge:front layer between its own ribs",
+     "support_allowance": 1.9,
+     "max_dist_to_support": 1.9,
+     "unsupported_area_mm2": 0.0,
+     "unsupported_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "head",
+     "z": 13.9,
+     "area_mm2": 119.58,
+     "centroid": [
+      -15.97,
+      35.41
+     ],
+     "bbox": [
+      -20.08,
+      25.92,
+      18.93,
+      45.11
+     ],
+     "max_dist_to_own_anchor": 1.17,
+     "below": {
+      "frame@3.50": 119.9
+     },
+     "min_gap_below": 3.5,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "own_rib_bridge:front layer between its own ribs",
+     "support_allowance": 1.9,
+     "max_dist_to_support": 1.17,
+     "unsupported_area_mm2": 0.0,
+     "unsupported_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "head",
+     "z": 13.9,
+     "area_mm2": 106.36,
+     "centroid": [
+      13.71,
+      33.26
+     ],
+     "bbox": [
+      -17.27,
+      24.42,
+      16.71,
+      42.03
+     ],
+     "max_dist_to_own_anchor": 1.17,
+     "below": {
+      "frame@3.50": 106.0
+     },
+     "min_gap_below": 3.5,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "own_rib_bridge:front layer between its own ribs",
+     "support_allowance": 1.9,
+     "max_dist_to_support": 1.17,
+     "unsupported_area_mm2": 0.0,
+     "unsupported_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "head",
+     "z": 13.9,
+     "area_mm2": 94.41,
+     "centroid": [
+      11.63,
+      30.69
+     ],
+     "bbox": [
+      -14.25,
+      22.41,
+      14.06,
+      38.96
+     ],
+     "max_dist_to_own_anchor": 1.17,
+     "below": {
+      "frame@3.50": 94.4
+     },
+     "min_gap_below": 3.5,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "own_rib_bridge:front layer between its own ribs",
+     "support_allowance": 1.9,
+     "max_dist_to_support": 1.17,
+     "unsupported_area_mm2": 0.0,
+     "unsupported_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "head",
+     "z": 13.9,
+     "area_mm2": 83.1,
+     "centroid": [
+      -9.2,
+      28.64
+     ],
+     "bbox": [
+      -11.17,
+      20.91,
+      11.17,
+      35.88
+     ],
+     "max_dist_to_own_anchor": 1.17,
+     "below": {
+      "frame@3.50": 82.9
+     },
+     "min_gap_below": 3.5,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "own_rib_bridge:front layer between its own ribs",
+     "support_allowance": 1.9,
+     "max_dist_to_support": 1.17,
+     "unsupported_area_mm2": 0.0,
+     "unsupported_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "head",
+     "z": 13.9,
+     "area_mm2": 6.87,
+     "centroid": [
+      -4.03,
+      52.12
+     ],
+     "bbox": [
+      -7.22,
+      51.2,
+      -1.34,
+      53.05
+     ],
+     "max_dist_to_own_anchor": 1.52,
+     "below": {
+      "frame@11.90": 4.9,
+      "frame@11.30": 1.9,
+      "head@6.30": 0.2
+     },
+     "min_gap_below": 6.3,
+     "free_edge_runs": {
+      "n": 1,
+      "max_chord": 5.64,
+      "max_path": 6.41,
+      "closed_unanchored_ring": false
+     },
+     "class": "own_rib_bridge:front layer between its own ribs",
+     "support_allowance": 1.9,
+     "max_dist_to_support": 1.52,
+     "unsupported_area_mm2": 0.0,
+     "unsupported_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "wheel",
+     "z": 3.2,
+     "area_mm2": 313.73,
+     "centroid": [
+      -7.94,
+      0.0
+     ],
+     "bbox": [
+      -13.99,
+      -13.99,
+      13.99,
+      13.99
+     ],
+     "max_dist_to_own_anchor": "inf",
+     "below": {
+      "frame@1.20": 245.6,
+      "frame@0.60": 67.5
+     },
+     "min_gap_below": 0.6,
+     "free_edge_runs": {
+      "n": 2,
+      "max_chord": 27.98,
+      "max_path": 114.18,
+      "closed_unanchored_ring": true
+     },
+     "class": "rib_float:back-plate ribs",
+     "rib_gap_design": 0.6,
+     "area_over_rib_tops_mm2": 67.83,
+     "max_dist_to_support": 1.63,
+     "support_allowance": 1.9,
+     "unsupported_area_mm2": 0.0,
+     "unsupported_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "wheel",
+     "z": 8.2,
+     "area_mm2": 250.13,
+     "centroid": [
+      -12.59,
+      0.0
+     ],
+     "bbox": [
+      -14.3,
+      -14.3,
+      14.3,
+      14.3
+     ],
+     "max_dist_to_own_anchor": 4.17,
+     "below": {
+      "frame@6.20": 150.4,
+      "frame@5.60": 88.4,
+      "head@1.10": 10.8
+     },
+     "min_gap_below": 1.1,
+     "free_edge_runs": {
+      "n": 8,
+      "max_chord": 9.9,
+      "max_path": 10.11,
+      "closed_unanchored_ring": false
+     },
+     "class": "bridge:umbrella plate (tooth gaps)",
+     "span_limit": 10.5,
+     "span_est_2x_anchor_dist": 8.35,
+     "area_beyond_half_span_mm2": 0.0,
+     "beyond_half_span_regions": [],
+     "status": "pass",
+     "notes": []
+    },
+    {
+     "body": "wheel",
+     "z": 8.2,
+     "area_mm2": 60.85,
+     "centroid": [
+      -0.0,
+      -0.0
+     ],
+     "bbox": [
+      -4.4,
+      -4.4,
+      4.4,
+      4.4
+     ],
+     "max_dist_to_own_anchor": 4.4,
+     "below": {
+      "frame@0.60": 36.6,
+      "frame@2.69": 0.6,
+      "frame@2.44": 0.6,
+      "frame@2.71": 0.5,
+      "frame@2.74": 0.5,
+      "frame@2.47": 0.5
+     },
+     "min_gap_below": 0.6,
+     "free_edge_runs": {
+      "n": 0,
+      "max_chord": 0.0,
+      "max_path": 0.0,
+      "closed_unanchored_ring": false
+     },
+     "class": "bridge:bore roof",
+     "span_limit": 8.8,
+     "span_est_2x_anchor_dist": 8.8,
+     "rib_supported": {
+      "rib_top_area_mm2": 36.31,
+      "area_beyond_anchor_and_rib_reach_mm2": 0.0,
+      "max_strand_anchor_to_rib_zone": 0.0
+     },
+     "free_edge_runs_rib_supported": {
+      "n": 0,
+      "max_chord": 0.0
+     },
+     "area_beyond_half_span_mm2": 0.0,
+     "beyond_half_span_regions": [],
+     "status": "pass",
+     "notes": []
+    }
+   ],
+   "faces_45deg": [
+    {
+     "body": "frame",
+     "area_mm2": 31.25,
+     "centroid": [
+      0.0,
+      0.0,
+      4.61
+     ],
+     "z_range": [
+      4.2,
+      5.0
+     ],
+     "label": "post V-ridge lower flank",
+     "class": "45deg_self_supporting (SPEC 3.4 item 4)"
+    },
+    {
+     "body": "frame",
+     "area_mm2": 31.25,
+     "centroid": [
+      -0.0,
+      24.71,
+      4.61
+     ],
+     "z_range": [
+      4.2,
+      5.0
+     ],
+     "label": "post V-ridge lower flank",
+     "class": "45deg_self_supporting (SPEC 3.4 item 4)"
+    },
+    {
+     "body": "frame",
+     "area_mm2": 23.4,
+     "centroid": [
+      17.44,
+      2.3,
+      13.86
+     ],
+     "z_range": [
+      13.1,
+      14.7
+     ],
+     "label": "paw lip underside",
+     "class": "45deg_self_supporting (SPEC 3.4 item 4)"
+    },
+    {
+     "body": "frame",
+     "area_mm2": 23.4,
+     "centroid": [
+      -17.44,
+      2.3,
+      13.86
+     ],
+     "z_range": [
+      13.1,
+      14.7
+     ],
+     "label": "paw lip underside",
+     "class": "45deg_self_supporting (SPEC 3.4 item 4)"
+    },
+    {
+     "body": "frame",
+     "area_mm2": 22.81,
+     "centroid": [
+      14.33,
+      -10.23,
+      13.85
+     ],
+     "z_range": [
+      13.1,
+      14.7
+     ],
+     "label": "paw lip underside",
+     "class": "45deg_self_supporting (SPEC 3.4 item 4)"
+    },
+    {
+     "body": "frame",
+     "area_mm2": 22.81,
+     "centroid": [
+      -14.33,
+      -10.23,
+      13.85
+     ],
+     "z_range": [
+      13.1,
+      14.7
+     ],
+     "label": "paw lip underside",
+     "class": "45deg_self_supporting (SPEC 3.4 item 4)"
+    },
+    {
+     "body": "wheel",
+     "area_mm2": 530.85,
+     "centroid": [
+      -0.0,
+      -0.0,
+      10.12
+     ],
+     "z_range": [
+      8.2,
+      11.9
+     ],
+     "label": "umbrella 45 deg cone",
+     "class": "45deg_self_supporting (SPEC 3.4 item 4)"
+    },
+    {
+     "body": "wheel",
+     "area_mm2": 25.07,
+     "centroid": [
+      0.0,
+      -0.0,
+      3.49
+     ],
+     "z_range": [
+      3.2,
+      3.8
+     ],
+     "label": "bore entry chamfer",
+     "class": "45deg_self_supporting (SPEC 3.4 item 4)"
+    },
+    {
+     "body": "wheel",
+     "area_mm2": 41.92,
+     "centroid": [
+      0.0,
+      0.0,
+      5.47
+     ],
+     "z_range": [
+      5.0,
+      5.97
+     ],
+     "label": "bore V-groove upper flank",
+     "class": "45deg_self_supporting (SPEC 3.4 item 4)"
+    },
+    {
+     "body": "head",
+     "area_mm2": 25.07,
+     "centroid": [
+      -0.0,
+      24.71,
+      3.49
+     ],
+     "z_range": [
+      3.2,
+      3.8
+     ],
+     "label": "bore entry chamfer",
+     "class": "45deg_self_supporting (SPEC 3.4 item 4)"
+    },
+    {
+     "body": "head",
+     "area_mm2": 41.92,
+     "centroid": [
+      -0.0,
+      24.71,
+      5.47
+     ],
+     "z_range": [
+      5.0,
+      5.97
+     ],
+     "label": "bore V-groove upper flank",
+     "class": "45deg_self_supporting (SPEC 3.4 item 4)"
+    }
+   ],
+   "unlisted_or_failed": [],
+   "status": "pass",
+   "render_2d": "/home/user/Apps/fidget-toy/verification/reports/kitty_classic/printability_overhang_loose.png",
+   "render_3d": "/home/user/Apps/fidget-toy/verification/reports/kitty_classic/printability_overhang3d_loose.png"
+  },
+  "LAYER_quantisation": {
+   "layer_h": 0.2,
+   "n_layers": 98,
+   "slice_at": "mid-height +- 1e-4 (union, conservative)",
+   "pairs": {
+    "frame|wheel": {
+     "min_xy_gap": 0.4,
+     "min_xy_at": {
+      "z": 6.7,
+      "xy": [
+       -4.14,
+       -0.73
+      ]
+     },
+     "worst_layers_xy": [
+      {
+       "z": 6.7,
+       "gap": 0.4,
+       "xy": [
+        -4.14,
+        -0.73
+       ]
+      },
+      {
+       "z": 6.9,
+       "gap": 0.4,
+       "xy": [
+        -0.73,
+        4.14
+       ]
+      },
+      {
+       "z": 3.9,
+       "gap": 0.4,
+       "xy": [
+        -4.14,
+        -0.73
+       ]
+      },
+      {
+       "z": 6.1,
+       "gap": 0.4,
+       "xy": [
+        -4.14,
+        -0.73
+       ]
+      },
+      {
+       "z": 6.3,
+       "gap": 0.4,
+       "xy": [
+        -4.14,
+        -0.73
+       ]
+      },
+      {
+       "z": 6.5,
+       "gap": 0.4,
+       "xy": [
+        -4.14,
+        -0.73
+       ]
+      }
+     ],
+     "min_empty_layers_between": 2,
+     "printed_min_z_gap_mm": 0.4,
+     "stacked_contacts_at_min": [
+      {
+       "upper": "frame",
+       "lower": "wheel",
+       "upper_layer_z": 4.7,
+       "lower_layer_z": 4.1,
+       "empty_layers": 2,
+       "overlap_mm2": 0.86,
+       "at": [
+        4.48,
+        0.04
+       ]
+      },
+      {
+       "upper": "frame",
+       "lower": "wheel",
+       "upper_layer_z": 4.9,
+       "lower_layer_z": 4.3,
+       "empty_layers": 2,
+       "overlap_mm2": 0.89,
+       "at": [
+        4.68,
+        0.0
+       ]
+      },
+      {
+       "upper": "wheel",
+       "lower": "frame",
+       "upper_layer_z": 5.7,
+       "lower_layer_z": 5.1,
+       "empty_layers": 2,
+       "overlap_mm2": 0.89,
+       "at": [
+        4.68,
+        0.02
+       ]
+      },
+      {
+       "upper": "wheel",
+       "lower": "frame",
+       "upper_layer_z": 5.9,
+       "lower_layer_z": 5.3,
+       "empty_layers": 2,
+       "overlap_mm2": 0.86,
+       "at": [
+        4.48,
+        0.06
+       ]
+      }
+     ],
+     "stacked_interfaces": [
+      {
+       "upper": "frame",
+       "lower": "wheel",
+       "upper_layer_z": 4.7,
+       "lower_layer_z": 4.1,
+       "empty_layers": 2,
+       "printed_gap_mm": 0.4,
+       "overlap_mm2": 0.86,
+       "at": [
+        4.48,
+        0.04
+       ]
+      },
+      {
+       "upper": "frame",
+       "lower": "wheel",
+       "upper_layer_z": 4.9,
+       "lower_layer_z": 4.3,
+       "empty_layers": 2,
+       "printed_gap_mm": 0.4,
+       "overlap_mm2": 0.89,
+       "at": [
+        4.68,
+        0.0
+       ]
+      },
+      {
+       "upper": "wheel",
+       "lower": "frame",
+       "upper_layer_z": 5.7,
+       "lower_layer_z": 5.1,
+       "empty_layers": 2,
+       "printed_gap_mm": 0.4,
+       "overlap_mm2": 0.89,
+       "at": [
+        4.68,
+        0.02
+       ]
+      },
+      {
+       "upper": "wheel",
+       "lower": "frame",
+       "upper_layer_z": 5.9,
+       "lower_layer_z": 5.3,
+       "empty_layers": 2,
+       "printed_gap_mm": 0.4,
+       "overlap_mm2": 0.86,
+       "at": [
+        4.48,
+        0.06
+       ]
+      },
+      {
+       "upper": "wheel",
+       "lower": "frame",
+       "upper_layer_z": 3.3,
+       "lower_layer_z": 2.5,
+       "empty_layers": 3,
+       "printed_gap_mm": 0.6,
+       "overlap_mm2": 67.83,
+       "at": [
+        -1.95,
+        -10.59
+       ]
+      },
+      {
+       "upper": "frame",
+       "lower": "wheel",
+       "upper_layer_z": 5.1,
+       "lower_layer_z": 4.3,
+       "empty_layers": 3,
+       "printed_gap_mm": 0.6,
+       "overlap_mm2": 0.89,
+       "at": [
+        4.68,
+        0.0
+       ]
+      },
+      {
+       "upper": "wheel",
+       "lower": "frame",
+       "upper_layer_z": 6.1,
+       "lower_layer_z": 5.3,
+       "empty_layers": 3,
+       "printed_gap_mm": 0.6,
+       "overlap_mm2": 2.69,
+       "at": [
+        4.45,
+        0.05
+       ]
+      },
+      {
+       "upper": "wheel",
+       "lower": "frame",
+       "upper_layer_z": 8.3,
+       "lower_layer_z": 7.5,
+       "empty_layers": 3,
+       "printed_gap_mm": 0.6,
+       "overlap_mm2": 38.44,
+       "at": [
+        -0.0,
+        0.0
+       ]
+      }
+     ],
+     "status": "pass"
+    },
+    "frame|head": {
+     "min_xy_gap": 0.4,
+     "min_xy_at": {
+      "z": 6.7,
+      "xy": [
+       -4.14,
+       25.44
+      ]
+     },
+     "worst_layers_xy": [
+      {
+       "z": 6.7,
+       "gap": 0.4,
+       "xy": [
+        -4.14,
+        25.44
+       ]
+      },
+      {
+       "z": 3.9,
+       "gap": 0.4,
+       "xy": [
+        4.14,
+        23.98
+       ]
+      },
+      {
+       "z": 6.9,
+       "gap": 0.4,
+       "xy": [
+        0.73,
+        28.85
+       ]
+      },
+      {
+       "z": 6.5,
+       "gap": 0.4,
+       "xy": [
+        0.73,
+        28.85
+       ]
+      },
+      {
+       "z": 6.3,
+       "gap": 0.4,
+       "xy": [
+        0.73,
+        28.85
+       ]
+      },
+      {
+       "z": 6.1,
+       "gap": 0.4,
+       "xy": [
+        0.73,
+        28.85
+       ]
+      }
+     ],
+     "min_empty_layers_between": 1,
+     "printed_min_z_gap_mm": 0.2,
+     "stacked_contacts_at_min": [
+      {
+       "upper": "frame",
+       "lower": "head",
+       "upper_layer_z": 5.7,
+       "lower_layer_z": 5.3,
+       "empty_layers": 1,
+       "overlap_mm2": 26.53,
+       "at": [
+        -11.94,
+        42.55
+       ]
+      }
+     ],
+     "stacked_interfaces": [
+      {
+       "upper": "frame",
+       "lower": "head",
+       "upper_layer_z": 5.7,
+       "lower_layer_z": 5.3,
+       "empty_layers": 1,
+       "printed_gap_mm": 0.2,
+       "overlap_mm2": 26.53,
+       "at": [
+        -11.94,
+        42.55
+       ]
+      },
+      {
+       "upper": "frame",
+       "lower": "head",
+       "upper_layer_z": 4.7,
+       "lower_layer_z": 4.1,
+       "empty_layers": 2,
+       "printed_gap_mm": 0.4,
+       "overlap_mm2": 0.86,
+       "at": [
+        -4.48,
+        24.77
+       ]
+      },
+      {
+       "upper": "frame",
+       "lower": "head",
+       "upper_layer_z": 4.9,
+       "lower_layer_z": 4.3,
+       "empty_layers": 2,
+       "printed_gap_mm": 0.4,
+       "overlap_mm2": 0.89,
+       "at": [
+        -4.68,
+        24.73
+       ]
+      },
+      {
+       "upper": "head",
+       "lower": "frame",
+       "upper_layer_z": 5.7,
+       "lower_layer_z": 5.1,
+       "empty_layers": 2,
+       "printed_gap_mm": 0.4,
+       "overlap_mm2": 0.89,
+       "at": [
+        -4.68,
+        24.71
+       ]
+      },
+      {
+       "upper": "frame",
+       "lower": "head",
+       "upper_layer_z": 5.9,
+       "lower_layer_z": 5.3,
+       "empty_layers": 2,
+       "printed_gap_mm": 0.4,
+       "overlap_mm2": 26.53,
+       "at": [
+        -11.94,
+        42.55
+       ]
+      },
+      {
+       "upper": "head",
+       "lower": "frame",
+       "upper_layer_z": 5.9,
+       "lower_layer_z": 5.3,
+       "empty_layers": 2,
+       "printed_gap_mm": 0.4,
+       "overlap_mm2": 0.86,
+       "at": [
+        -4.48,
+        24.75
+       ]
+      },
+      {
+       "upper": "frame",
+       "lower": "head",
+       "upper_layer_z": 8.5,
+       "lower_layer_z": 7.9,
+       "empty_layers": 2,
+       "printed_gap_mm": 0.4,
+       "overlap_mm2": 280.07,
+       "at": [
+        -10.63,
+        27.37
+       ]
+      },
+      {
+       "upper": "head",
+       "lower": "frame",
+       "upper_layer_z": 3.3,
+       "lower_layer_z": 2.5,
+       "empty_layers": 3,
+       "printed_gap_mm": 0.6,
+       "overlap_mm2": 259.67,
+       "at": [
+        8.73,
+        51.8
+       ]
+      },
+      {
+       "upper": "frame",
+       "lower": "head",
+       "upper_layer_z": 5.1,
+       "lower_layer_z": 4.3,
+       "empty_layers": 3,
+       "printed_gap_mm": 0.6,
+       "overlap_mm2": 0.89,
+       "at": [
+        -4.68,
+        24.73
+       ]
+      },
+      {
+       "upper": "frame",
+       "lower": "head",
+       "upper_layer_z": 6.1,
+       "lower_layer_z": 5.3,
+       "empty_layers": 3,
+       "printed_gap_mm": 0.6,
+       "overlap_mm2": 26.53,
+       "at": [
+        -11.94,
+        42.55
+       ]
+      },
+      {
+       "upper": "head",
+       "lower": "frame",
+       "upper_layer_z": 6.1,
+       "lower_layer_z": 5.3,
+       "empty_layers": 3,
+       "printed_gap_mm": 0.6,
+       "overlap_mm2": 2.69,
+       "at": [
+        -4.45,
+        24.77
+       ]
+      },
+      {
+       "upper": "head",
+       "lower": "frame",
+       "upper_layer_z": 8.3,
+       "lower_layer_z": 7.5,
+       "empty_layers": 3,
+       "printed_gap_mm": 0.6,
+       "overlap_mm2": 38.44,
+       "at": [
+        0.0,
+        24.71
+       ]
+      }
+     ],
+     "status": "pass"
+    },
+    "wheel|head": {
+     "min_xy_gap": 1.3776,
+     "min_xy_at": {
+      "z": 4.5,
+      "xy": null
+     },
+     "worst_layers_xy": [
+      {
+       "z": 4.5,
+       "gap": 1.3776,
+       "xy": null
+      },
+      {
+       "z": 4.3,
+       "gap": 1.3776,
+       "xy": null
+      },
+      {
+       "z": 4.7,
+       "gap": 1.3776,
+       "xy": null
+      },
+      {
+       "z": 3.7,
+       "gap": 1.3776,
+       "xy": null
+      },
+      {
+       "z": 3.9,
+       "gap": 1.3776,
+       "xy": null
+      },
+      {
+       "z": 4.1,
+       "gap": 1.3776,
+       "xy": null
+      }
+     ],
+     "min_empty_layers_between": null,
+     "printed_min_z_gap_mm": null,
+     "stacked_contacts_at_min": [],
+     "stacked_interfaces": [],
+     "status": "pass"
+    }
+   },
+   "first_layer": {
+    "bodies_present": {
+     "frame": true,
+     "wheel": false,
+     "head": false
+    },
+    "frame_islands": 1,
+    "lowest_printed_layer_bottom_z": {
+     "frame": 0.0,
+     "wheel": 3.2,
+     "head": 3.2
+    },
+    "status": "pass"
+   },
+   "float_bottom_quantisation": {
+    "wheel": {
+     "model_bottom_z": 3.2,
+     "printed_bottom_z": 3.2
+    },
+    "head": {
+     "model_bottom_z": 3.2,
+     "printed_bottom_z": 3.2
+    }
+   },
+   "status": "pass"
+  },
+  "SLICER": {
+   "settings": "--layer-height 0.2 --first-layer-height 0.2 --nozzle-diameter 0.4 --filament-diameter 1.75 --filament-type PLA --filament-density 1.24 --temperature 210 --first-layer-temperature 215 --bed-temperature 60 --first-layer-bed-temperature 60 --perimeters 3 --top-solid-layers 5 --bottom-solid-layers 5 --fill-density 20% --fill-pattern gyroid --skirts 1 --brim-width 0 --elefant-foot-compensation 0.1 --no-support-material --gcode-comments --retract-lift 0.4 --bridge-fan-speed 100 --no-thick-bridges --center 100,100 --bridge-angle 180 --loglevel 2",
+   "runs": {
+    "stl": {
+     "input": "/home/user/Apps/fidget-toy/stl/kitty_classic/purrbobble_kitty_classic_loose.stl",
+     "returncode": 0,
+     "time_s": 57.1,
+     "warnings": [
+      "print warning: Detected print stability issues: | purrbobble_kitty_classic_loose.stl | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
+     ],
+     "errors": [],
+     "print_time": "5h 4m 54s",
+     "filament_g": 42.03,
+     "filament_m": 14.09,
+     "extrusion_length_by_type_mm": {
+      "Solid infill": 174342.7,
+      "Perimeter": 91429.3,
+      "External perimeter": 62926.7,
+      "Internal infill": 46530.7,
+      "Top solid infill": 21174.2,
+      "Bridge infill": 16059.0,
+      "Overhang perimeter": 2628.5,
+      "Skirt/Brim": 306.6
+     },
+     "support_extrusion_mm": 0,
+     "support_material_setting": "0",
+     "first_layer": {
+      "z": 0.2,
+      "bbox_model_xy": [
+       -30.84,
+       -25.72,
+       32.91,
+       64.44
+      ],
+      "expected_bbox": [
+       -30.85,
+       -25.72,
+       32.92,
+       64.44
+      ],
+      "max_bbox_dev": 0.012,
+      "frac_points_inside_plate": 1.0
+     },
+     "bridges": [
+      {
+       "layer_top_z": 1.4,
+       "type": "Bridge infill",
+       "body": "frame",
+       "n": 496,
+       "length_mm": 1095.5,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 2.0,
+       "type": "Bridge infill",
+       "body": "frame",
+       "n": 61,
+       "length_mm": 117.7,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 3.4,
+       "type": "Bridge infill",
+       "body": "head",
+       "n": 428,
+       "length_mm": 2187.5,
+       "unsupported_mm": 1741.1,
+       "max_unsupported_run": 24.24,
+       "worst_line_model_xy": [
+        -16.07,
+        49.27,
+        10.57,
+        49.27
+       ],
+       "max_dist_to_support": 1.87,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "rib_float:back-plate ribs (run between rib tops)",
+       "limit": 4.5,
+       "rib_reach": 1.9,
+       "status": "warn"
+      },
+      {
+       "layer_top_z": 3.4,
+       "type": "Bridge infill",
+       "body": "wheel",
+       "n": 221,
+       "length_mm": 372.0,
+       "unsupported_mm": 269.3,
+       "max_unsupported_run": 9.48,
+       "worst_line_model_xy": [
+        -3.16,
+        -7.43,
+        6.27,
+        -7.43
+       ],
+       "max_dist_to_support": 1.63,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "rib_float:back-plate ribs (run between rib tops)",
+       "limit": 4.5,
+       "rib_reach": 1.9,
+       "status": "warn"
+      },
+      {
+       "layer_top_z": 3.4,
+       "type": "Overhang perimeter",
+       "body": "head",
+       "n": 676,
+       "length_mm": 717.3,
+       "unsupported_mm": 517.0,
+       "max_unsupported_run": 6.46,
+       "worst_line_model_xy": [
+        21.56,
+        15.19,
+        13.64,
+        28.78
+       ],
+       "max_dist_to_support": 1.87,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "rib_float:back-plate ribs (run between rib tops)",
+       "limit": 4.5,
+       "rib_reach": 1.9,
+       "status": "warn"
+      },
+      {
+       "layer_top_z": 3.4,
+       "type": "Overhang perimeter",
+       "body": "wheel",
+       "n": 383,
+       "length_mm": 427.4,
+       "unsupported_mm": 364.5,
+       "max_unsupported_run": 2.63,
+       "worst_line_model_xy": [
+        -3.39,
+        -7.71,
+        -2.3,
+        -12.44
+       ],
+       "max_dist_to_support": 1.63,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "rib_float:back-plate ribs (run between rib tops)",
+       "limit": 4.5,
+       "rib_reach": 1.9,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 4.2,
+       "type": "Bridge infill",
+       "body": "frame",
+       "n": 14,
+       "length_mm": 41.0,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.05,
+       "worst_line_model_xy": [
+        25.82,
+        10.51,
+        24.15,
+        2.77
+       ],
+       "max_dist_to_support": 0.05,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 6.0,
+       "type": "Overhang perimeter",
+       "body": "frame",
+       "n": 310,
+       "length_mm": 263.2,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "overhang perimeter (short, <= 1.0 mm)",
+       "limit": 1.0,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 6.8,
+       "type": "Bridge infill",
+       "body": "head",
+       "n": 392,
+       "length_mm": 1139.2,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 7.0,
+       "type": "Bridge infill",
+       "body": "head",
+       "n": 122,
+       "length_mm": 233.2,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 8.4,
+       "type": "Bridge infill",
+       "body": "head",
+       "n": 66,
+       "length_mm": 251.7,
+       "unsupported_mm": 54.7,
+       "max_unsupported_run": 4.17,
+       "worst_line_model_xy": [
+        -3.92,
+        20.84,
+        3.91,
+        20.84
+       ],
+       "max_dist_to_support": 0.46,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "bridge:umbrella plate / bore roof",
+       "limit": 8.8,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 8.4,
+       "type": "Bridge infill",
+       "body": "wheel",
+       "n": 358,
+       "length_mm": 955.5,
+       "unsupported_mm": 468.9,
+       "max_unsupported_run": 7.09,
+       "worst_line_model_xy": [
+        -1.6,
+        -11.42,
+        6.7,
+        -11.42
+       ],
+       "max_dist_to_support": 3.19,
+       "beyond_rib_reach_mm": 71.4,
+       "class": "bridge:umbrella plate / bore roof",
+       "limit": 10.5,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 8.4,
+       "type": "Overhang perimeter",
+       "body": "wheel",
+       "n": 328,
+       "length_mm": 217.9,
+       "unsupported_mm": 217.9,
+       "max_unsupported_run": 1.1,
+       "worst_line_model_xy": [
+        -1.63,
+        -13.66,
+        -0.58,
+        -13.75
+       ],
+       "max_dist_to_support": 3.59,
+       "beyond_rib_reach_mm": 21.4,
+       "class": "bridge:umbrella plate / bore roof",
+       "limit": 10.5,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 8.6,
+       "type": "Bridge infill",
+       "body": "frame",
+       "n": 391,
+       "length_mm": 2502.6,
+       "unsupported_mm": 1502.9,
+       "max_unsupported_run": 12.68,
+       "worst_line_model_xy": [
+        -8.17,
+        44.22,
+        8.17,
+        44.22
+       ],
+       "max_dist_to_support": 5.13,
+       "beyond_rib_reach_mm": 161.2,
+       "class": "bridge:roof (leg channels)",
+       "limit": 13.5,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 8.6,
+       "type": "Overhang perimeter",
+       "body": "frame",
+       "n": 295,
+       "length_mm": 188.3,
+       "unsupported_mm": 126.5,
+       "max_unsupported_run": 1.36,
+       "worst_line_model_xy": [
+        15.59,
+        8.45,
+        14.93,
+        9.58
+       ],
+       "max_dist_to_support": 3.78,
+       "beyond_rib_reach_mm": 49.0,
+       "class": "bridge:roof (leg channels)",
+       "limit": 13.5,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 9.6,
+       "type": "Bridge infill",
+       "body": "frame",
+       "n": 177,
+       "length_mm": 431.8,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 10.8,
+       "type": "Bridge infill",
+       "body": "wheel",
+       "n": 16,
+       "length_mm": 54.6,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 11.2,
+       "type": "Overhang perimeter",
+       "body": "head",
+       "n": 631,
+       "length_mm": 528.4,
+       "unsupported_mm": 3.6,
+       "max_unsupported_run": 0.45,
+       "worst_line_model_xy": [
+        7.5,
+        23.38,
+        7.03,
+        23.56
+       ],
+       "max_dist_to_support": 0.43,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "overhang perimeter (short, <= 1.0 mm)",
+       "limit": 1.0,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 11.8,
+       "type": "Bridge infill",
+       "body": "frame",
+       "n": 92,
+       "length_mm": 239.4,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 12.0,
+       "type": "Bridge infill",
+       "body": "wheel",
+       "n": 202,
+       "length_mm": 1601.9,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 14.2,
+       "type": "Bridge infill",
+       "body": "head",
+       "n": 251,
+       "length_mm": 2067.3,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "rib_float:roof-top ribs (I3 front layer)",
+       "limit": 4.5,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 14.2,
+       "type": "Overhang perimeter",
+       "body": "head",
+       "n": 349,
+       "length_mm": 286.0,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "rib_float:roof-top ribs (I3 front layer)",
+       "limit": 4.5,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 15.8,
+       "type": "Bridge infill",
+       "body": "frame",
+       "n": 145,
+       "length_mm": 451.9,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 16.4,
+       "type": "Bridge infill",
+       "body": "head",
+       "n": 113,
+       "length_mm": 240.3,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 16.6,
+       "type": "Bridge infill",
+       "body": "head",
+       "n": 107,
+       "length_mm": 275.6,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 17.0,
+       "type": "Bridge infill",
+       "body": "head",
+       "n": 120,
+       "length_mm": 340.6,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 17.2,
+       "type": "Bridge infill",
+       "body": "head",
+       "n": 300,
+       "length_mm": 1459.8,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      }
+     ],
+     "toolpath_gaps": {
+      "method": "G-code extrusions sampled every 0.15 mm, attributed to bodies by the model layer sections",
+      "pairs": {
+       "frame|wheel": {
+        "min_printed_xy_gap": 0.369,
+        "at_layer_top_z": 7.0,
+        "at_xy": [
+         3.95,
+         -1.38
+        ],
+        "min_empty_layers": 2,
+        "stack_layers": [
+         5.0,
+         4.4
+        ],
+        "status": "pass"
+       },
+       "frame|head": {
+        "min_printed_xy_gap": 0.368,
+        "at_layer_top_z": 7.0,
+        "at_xy": [
+         3.61,
+         26.82
+        ],
+        "min_empty_layers": 2,
+        "stack_layers": [
+         4.8,
+         4.2
+        ],
+        "status": "pass"
+       },
+       "wheel|head": {
+        "min_printed_xy_gap": 1.392,
+        "at_layer_top_z": 4.4,
+        "at_xy": [
+         12.32,
+         8.39
+        ],
+        "min_empty_layers": ">=3",
+        "stack_layers": null,
+        "status": "pass"
+       }
+      }
+     },
+     "status": "warn"
+    },
+    "3mf": {
+     "input": "/tmp/v_print_5y3vjl7d/model_kitty_classic_loose.3mf",
+     "returncode": 0,
+     "time_s": 73.9,
+     "warnings": [
+      "print warning: Detected print stability issues: | purrbobble_kitty_classic_loose | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
+     ],
+     "errors": [],
+     "print_time": "6h 0m 32s",
+     "filament_g": 47.86,
+     "filament_m": 16.05,
+     "extrusion_length_by_type_mm": {
+      "Solid infill": 177584.4,
+      "Internal infill": 109522.1,
+      "Perimeter": 91420.0,
+      "External perimeter": 62919.5,
+      "Top solid infill": 21155.5,
+      "Bridge infill": 10688.9,
+      "Overhang perimeter": 2628.5,
+      "Skirt/Brim": 306.6
+     },
+     "support_extrusion_mm": 0,
+     "support_material_setting": "0",
+     "first_layer": {
+      "z": 0.2,
+      "bbox_model_xy": [
+       -30.84,
+       -25.72,
+       32.91,
+       64.44
+      ],
+      "expected_bbox": [
+       -30.85,
+       -25.72,
+       32.92,
+       64.44
+      ],
+      "max_bbox_dev": 0.012,
+      "frac_points_inside_plate": 1.0
+     },
+     "bridges": [
+      {
+       "layer_top_z": 1.4,
+       "type": "Bridge infill",
+       "body": "frame",
+       "n": 504,
+       "length_mm": 1115.9,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 2.0,
+       "type": "Bridge infill",
+       "body": "frame",
+       "n": 61,
+       "length_mm": 117.7,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 3.4,
+       "type": "Bridge infill",
+       "body": "head",
+       "n": 428,
+       "length_mm": 2187.6,
+       "unsupported_mm": 1741.1,
+       "max_unsupported_run": 24.24,
+       "worst_line_model_xy": [
+        -16.07,
+        49.27,
+        10.57,
+        49.27
+       ],
+       "max_dist_to_support": 1.87,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "rib_float:back-plate ribs (run between rib tops)",
+       "limit": 4.5,
+       "rib_reach": 1.9,
+       "status": "warn"
+      },
+      {
+       "layer_top_z": 3.4,
+       "type": "Bridge infill",
+       "body": "wheel",
+       "n": 220,
+       "length_mm": 372.0,
+       "unsupported_mm": 269.3,
+       "max_unsupported_run": 9.48,
+       "worst_line_model_xy": [
+        -3.16,
+        -7.43,
+        6.27,
+        -7.43
+       ],
+       "max_dist_to_support": 1.63,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "rib_float:back-plate ribs (run between rib tops)",
+       "limit": 4.5,
+       "rib_reach": 1.9,
+       "status": "warn"
+      },
+      {
+       "layer_top_z": 3.4,
+       "type": "Overhang perimeter",
+       "body": "head",
+       "n": 681,
+       "length_mm": 717.3,
+       "unsupported_mm": 517.1,
+       "max_unsupported_run": 6.46,
+       "worst_line_model_xy": [
+        21.56,
+        15.19,
+        13.64,
+        28.78
+       ],
+       "max_dist_to_support": 1.87,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "rib_float:back-plate ribs (run between rib tops)",
+       "limit": 4.5,
+       "rib_reach": 1.9,
+       "status": "warn"
+      },
+      {
+       "layer_top_z": 3.4,
+       "type": "Overhang perimeter",
+       "body": "wheel",
+       "n": 381,
+       "length_mm": 427.4,
+       "unsupported_mm": 364.6,
+       "max_unsupported_run": 2.63,
+       "worst_line_model_xy": [
+        -3.39,
+        -7.71,
+        -2.3,
+        -12.44
+       ],
+       "max_dist_to_support": 1.63,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "rib_float:back-plate ribs (run between rib tops)",
+       "limit": 4.5,
+       "rib_reach": 1.9,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 6.0,
+       "type": "Overhang perimeter",
+       "body": "frame",
+       "n": 313,
+       "length_mm": 263.2,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "overhang perimeter (short, <= 1.0 mm)",
+       "limit": 1.0,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 8.4,
+       "type": "Bridge infill",
+       "body": "head",
+       "n": 66,
+       "length_mm": 251.7,
+       "unsupported_mm": 54.8,
+       "max_unsupported_run": 4.21,
+       "worst_line_model_xy": [
+        -3.9,
+        20.84,
+        3.91,
+        20.84
+       ],
+       "max_dist_to_support": 0.46,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "bridge:umbrella plate / bore roof",
+       "limit": 8.8,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 8.4,
+       "type": "Bridge infill",
+       "body": "wheel",
+       "n": 365,
+       "length_mm": 955.6,
+       "unsupported_mm": 469.1,
+       "max_unsupported_run": 7.09,
+       "worst_line_model_xy": [
+        -1.6,
+        -11.42,
+        6.7,
+        -11.42
+       ],
+       "max_dist_to_support": 3.19,
+       "beyond_rib_reach_mm": 71.4,
+       "class": "bridge:umbrella plate / bore roof",
+       "limit": 10.5,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 8.4,
+       "type": "Overhang perimeter",
+       "body": "wheel",
+       "n": 328,
+       "length_mm": 217.9,
+       "unsupported_mm": 217.9,
+       "max_unsupported_run": 1.11,
+       "worst_line_model_xy": [
+        -1.63,
+        -13.66,
+        -0.58,
+        -13.75
+       ],
+       "max_dist_to_support": 3.59,
+       "beyond_rib_reach_mm": 21.4,
+       "class": "bridge:umbrella plate / bore roof",
+       "limit": 10.5,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 8.6,
+       "type": "Bridge infill",
+       "body": "frame",
+       "n": 389,
+       "length_mm": 2500.4,
+       "unsupported_mm": 1502.9,
+       "max_unsupported_run": 12.68,
+       "worst_line_model_xy": [
+        -8.17,
+        44.22,
+        8.17,
+        44.22
+       ],
+       "max_dist_to_support": 5.13,
+       "beyond_rib_reach_mm": 161.4,
+       "class": "bridge:roof (leg channels)",
+       "limit": 13.5,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 8.6,
+       "type": "Overhang perimeter",
+       "body": "frame",
+       "n": 288,
+       "length_mm": 188.3,
+       "unsupported_mm": 126.6,
+       "max_unsupported_run": 1.41,
+       "worst_line_model_xy": [
+        -16.12,
+        8.34,
+        -16.69,
+        7.1
+       ],
+       "max_dist_to_support": 3.78,
+       "beyond_rib_reach_mm": 48.9,
+       "class": "bridge:roof (leg channels)",
+       "limit": 13.5,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 9.6,
+       "type": "Bridge infill",
+       "body": "frame",
+       "n": 177,
+       "length_mm": 428.0,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 11.2,
+       "type": "Overhang perimeter",
+       "body": "head",
+       "n": 633,
+       "length_mm": 528.4,
+       "unsupported_mm": 3.6,
+       "max_unsupported_run": 0.45,
+       "worst_line_model_xy": [
+        7.5,
+        23.38,
+        7.03,
+        23.56
+       ],
+       "max_dist_to_support": 0.43,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "overhang perimeter (short, <= 1.0 mm)",
+       "limit": 1.0,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 11.8,
+       "type": "Bridge infill",
+       "body": "frame",
+       "n": 92,
+       "length_mm": 239.4,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 14.2,
+       "type": "Bridge infill",
+       "body": "head",
+       "n": 255,
+       "length_mm": 2070.2,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "rib_float:roof-top ribs (I3 front layer)",
+       "limit": 4.5,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 14.2,
+       "type": "Overhang perimeter",
+       "body": "head",
+       "n": 350,
+       "length_mm": 286.0,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "rib_float:roof-top ribs (I3 front layer)",
+       "limit": 4.5,
+       "status": "pass"
+      },
+      {
+       "layer_top_z": 15.8,
+       "type": "Bridge infill",
+       "body": "frame",
+       "n": 145,
+       "length_mm": 450.6,
+       "unsupported_mm": 0.0,
+       "max_unsupported_run": 0.0,
+       "worst_line_model_xy": null,
+       "max_dist_to_support": 0.0,
+       "beyond_rib_reach_mm": 0.0,
+       "class": "UNLISTED",
+       "limit": null,
+       "status": "pass"
+      }
+     ],
+     "toolpath_gaps": {
+      "method": "G-code extrusions sampled every 0.15 mm, attributed to bodies by the model layer sections",
+      "pairs": {
+       "frame|wheel": {
+        "min_printed_xy_gap": 0.369,
+        "at_layer_top_z": 4.0,
+        "at_xy": [
+         3.95,
+         -1.39
+        ],
+        "min_empty_layers": 2,
+        "stack_layers": [
+         5.0,
+         4.4
+        ],
+        "status": "pass"
+       },
+       "frame|head": {
+        "min_printed_xy_gap": 0.377,
+        "at_layer_top_z": 6.8,
+        "at_xy": [
+         4.12,
+         23.98
+        ],
+        "min_empty_layers": 2,
+        "stack_layers": [
+         4.8,
+         4.2
+        ],
+        "status": "pass"
+       },
+       "wheel|head": {
+        "min_printed_xy_gap": 1.393,
+        "at_layer_top_z": 3.6,
+        "at_xy": [
+         12.32,
+         8.39
+        ],
+        "min_empty_layers": ">=3",
+        "stack_layers": null,
+        "status": "pass"
+       }
+      }
+     },
+     "status": "warn"
+    }
+   },
+   "xy_offset_model_to_gcode": [
+    98.963,
+    80.644
+   ],
+   "stl_info": {
+    "manifold": "yes",
+    "number_of_parts": "3",
+    "volume": "44917.761719",
+    "size_x": "65.116280",
+    "size_y": "91.511078",
+    "size_z": "19.500000",
+    "number_of_facets": "578576"
+   },
+   "warnings_per_body_alone": {
+    "frame": [
+     "Floating bridge anchors, Long bridging extrusions"
+    ],
+    "wheel": [
+     "Floating bridge anchors, Loose extrusions"
+    ],
+    "head": [
+     "Loose extrusions, Long bridging extrusions"
+    ]
+   },
+   "status": "warn"
+  }
+ },
+ "files": {
+  "exported": {
+   "stl": "/home/user/Apps/fidget-toy/stl/kitty_classic/purrbobble_kitty_classic_loose.stl",
+   "3mf": null
+  },
+  "used_stl": "/home/user/Apps/fidget-toy/stl/kitty_classic/purrbobble_kitty_classic_loose.stl",
+  "used_3mf": "/tmp/v_print_5y3vjl7d/model_kitty_classic_loose.3mf"
+ },
+ "summary": {
+  "V8_topology": "pass",
+  "V8_walls_raycast": "warn",
+  "V8_walls_layers": "warn",
+  "V8_back_plate": "pass",
+  "V8_roof": "warn",
+  "V8_fingers": "pass",
+  "V8_legs": "warn",
+  "V8_posts": "pass",
+  "V8_slivers_2d": "pass",
+  "V8_stop_pads": "pass",
+  "V8_ribs": "pass",
+  "V8_slivers_frame_layers": "warn",
+  "V9_overhangs": "pass",
+  "LAYER_quantisation": "pass",
+  "SLICER": "warn"
+ },
+ "findings": [
+  {
+   "severity": "warn",
+   "check": "SLICER stl",
+   "finding": "slicer warnings: print warning: Detected print stability issues: | purrbobble_kitty_classic_loose.stl | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports.",
+   "proposed_fix": "per-body attribution in SLICER.warnings_per_body_alone (floats -> 'Floating object part' / 'Loose extrusions' are inherent to print-in-place; 'Long bridging extrusions' come from the V9 failures)",
+   "evidence": {
+    "frame": [
+     "Floating bridge anchors, Long bridging extrusions"
+    ],
+    "wheel": [
+     "Floating bridge anchors, Loose extrusions"
+    ],
+    "head": [
+     "Loose extrusions, Long bridging extrusions"
+    ]
+   }
+  },
+  {
+   "severity": "warn",
+   "check": "SLICER stl",
+   "finding": "layer 3.4 head Bridge infill: strands run up to 24.24 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
+   "proposed_fix": "optional: straight parallel skid ribs + a fixed bridge_angle in the 3MF volume config",
+   "evidence": null
+  },
+  {
+   "severity": "warn",
+   "check": "SLICER stl",
+   "finding": "layer 3.4 wheel Bridge infill: strands run up to 9.48 mm parallel to the arc ribs (all within 1.63 mm of a rib)",
+   "proposed_fix": "optional: straight parallel skid ribs + a fixed bridge_angle in the 3MF volume config",
+   "evidence": null
+  },
+  {
+   "severity": "warn",
+   "check": "SLICER stl",
+   "finding": "layer 3.4 head Overhang perimeter: strands run up to 6.46 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
+   "proposed_fix": "optional: straight parallel skid ribs + a fixed bridge_angle in the 3MF volume config",
+   "evidence": null
+  },
+  {
+   "severity": "warn",
+   "check": "SLICER 3mf",
+   "finding": "slicer warnings: print warning: Detected print stability issues: | purrbobble_kitty_classic_loose | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports.",
+   "proposed_fix": "per-body attribution in SLICER.warnings_per_body_alone (floats -> 'Floating object part' / 'Loose extrusions' are inherent to print-in-place; 'Long bridging extrusions' come from the V9 failures)",
+   "evidence": {
+    "frame": [
+     "Floating bridge anchors, Long bridging extrusions"
+    ],
+    "wheel": [
+     "Floating bridge anchors, Loose extrusions"
+    ],
+    "head": [
+     "Loose extrusions, Long bridging extrusions"
+    ]
+   }
+  },
+  {
+   "severity": "warn",
+   "check": "SLICER 3mf",
+   "finding": "layer 3.4 head Bridge infill: strands run up to 24.24 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
+   "proposed_fix": "optional: straight parallel skid ribs + a fixed bridge_angle in the 3MF volume config",
+   "evidence": null
+  },
+  {
+   "severity": "warn",
+   "check": "SLICER 3mf",
+   "finding": "layer 3.4 wheel Bridge infill: strands run up to 9.48 mm parallel to the arc ribs (all within 1.63 mm of a rib)",
+   "proposed_fix": "optional: straight parallel skid ribs + a fixed bridge_angle in the 3MF volume config",
+   "evidence": null
+  },
+  {
+   "severity": "warn",
+   "check": "SLICER 3mf",
+   "finding": "layer 3.4 head Overhang perimeter: strands run up to 6.46 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
+   "proposed_fix": "optional: straight parallel skid ribs + a fixed bridge_angle in the 3MF volume config",
+   "evidence": null
+  },
+  {
+   "severity": "warn",
+   "check": "V8_roof",
+   "finding": "thinner only within the r 1.0 top-edge round of the body outline and where the 45 deg umbrella keep-out trims the roof's inner edge (r 17.1-17.4 about O): edge geometry",
+   "proposed_fix": "spec conflict / edge geometry - no change needed",
+   "evidence": null
+  },
+  {
+   "severity": "warn",
+   "check": "V8_legs",
+   "finding": "narrowed near the pallet end A by WheelEx2D = SweptInv(disc(O, 14.90)) - the SPEC's own HeadBand2D definition; the narrowed section sees less bending than the full-width root",
+   "proposed_fix": "spec conflict / edge geometry - no change needed",
+   "evidence": null
+  }
+ ],
+ "pass": true,
+ "runtime_s": 794.1
+}

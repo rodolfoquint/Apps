@@ -1,0 +1,16 @@
+rp-0.2 {'T': 3, 'dir': 1, 'freq_Hz': np.float64(7.7), 'swing_pp': 17.0, 'wheel_rps': 0.99, 'impacts_s': 66, 'bank_hits_s': 0, 'Fmax': 7.3}
+rp-0.2 {'T': 3, 'dir': -1, 'freq_Hz': np.float64(7.7), 'swing_pp': 17.0, 'wheel_rps': -0.99, 'impacts_s': 66, 'bank_hits_s': 0, 'Fmax': 7.3}
+rp-0.2 {'T': 20, 'dir': 1, 'freq_Hz': np.float64(22.1), 'swing_pp': 17.4, 'wheel_rps': 2.76, 'impacts_s': 158, 'bank_hits_s': 0, 'Fmax': 20.5}
+rp-0.2 {'T': 20, 'dir': -1, 'freq_Hz': np.float64(22.1), 'swing_pp': 17.4, 'wheel_rps': -2.76, 'impacts_s': 159, 'bank_hits_s': 0, 'Fmax': 20.6}
+rp+0.2 {'T': 3, 'dir': 1, 'freq_Hz': np.float64(27.9), 'swing_pp': 0.2, 'wheel_rps': 0.0, 'impacts_s': 2, 'bank_hits_s': 0, 'Fmax': 7.9}
+rp+0.2 {'T': 3, 'dir': -1, 'freq_Hz': np.float64(27.9), 'swing_pp': 0.2, 'wheel_rps': -0.0, 'impacts_s': 2, 'bank_hits_s': 0, 'Fmax': 7.9}
+rp+0.2 {'T': 20, 'dir': 1, 'freq_Hz': np.float64(2.9), 'swing_pp': 1.5, 'wheel_rps': 0.01, 'impacts_s': 2, 'bank_hits_s': 0, 'Fmax': 8.6}
+rp+0.2 {'T': 20, 'dir': -1, 'freq_Hz': np.float64(2.9), 'swing_pp': 1.5, 'wheel_rps': -0.01, 'impacts_s': 2, 'bank_hits_s': 0, 'Fmax': 8.6}
+D-0.4 {'T': 3, 'dir': 1, 'freq_Hz': np.float64(33333.3), 'swing_pp': 0.0, 'wheel_rps': 0.0, 'impacts_s': 2, 'bank_hits_s': 0, 'Fmax': 17.9}
+D-0.4 {'T': 20, 'dir': 1, 'freq_Hz': np.float64(1.9), 'swing_pp': 14.9, 'wheel_rps': 0.18, 'impacts_s': 14, 'bank_hits_s': 0, 'Fmax': 18.6}
+D+0.4 {'T': 3, 'dir': 1, 'freq_Hz': np.float64(1.0), 'swing_pp': 0.0, 'wheel_rps': -0.0, 'impacts_s': 10, 'bank_hits_s': 0, 'Fmax': 5.8}
+D+0.4 {'T': 20, 'dir': 1, 'freq_Hz': np.float64(1.0), 'swing_pp': 0.4, 'wheel_rps': 0.0, 'impacts_s': 9, 'bank_hits_s': 0, 'Fmax': 15.4}
+x-0.4 {'T': 3, 'dir': 1, 'freq_Hz': np.float64(7.7), 'swing_pp': 17.7, 'wheel_rps': 1.01, 'impacts_s': 114, 'bank_hits_s': 0, 'Fmax': 7.0}
+x-0.4 {'T': 20, 'dir': 1, 'freq_Hz': np.float64(20.2), 'swing_pp': 17.7, 'wheel_rps': 2.48, 'impacts_s': 218, 'bank_hits_s': 0, 'Fmax': 18.4}
+x+0.4 {'T': 3, 'dir': 1, 'freq_Hz': np.float64(7.7), 'swing_pp': 17.6, 'wheel_rps': 0.99, 'impacts_s': 112, 'bank_hits_s': 0, 'Fmax': 7.0}
+x+0.4 {'T': 20, 'dir': 1, 'freq_Hz': np.float64(19.2), 'swing_pp': 17.7, 'wheel_rps': 2.48, 'impacts_s': 218, 'bank_hits_s': 0, 'Fmax': 18.4}

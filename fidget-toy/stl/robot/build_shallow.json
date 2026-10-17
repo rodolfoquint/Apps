@@ -1,0 +1,206 @@
+{
+ "skin": "robot",
+ "variant": "shallow",
+ "pose": {
+  "phi": 12.0,
+  "psi": 5.96
+ },
+ "D": 24.947133262827236,
+ "P": [
+  0.0,
+  24.947133262827236
+ ],
+ "pallets": [
+  [
+   -13.107453262259783,
+   8.758120267367614
+  ],
+  [
+   13.107453262259783,
+   8.758120267367614
+  ]
+ ],
+ "info": {
+  "t_sections_s": 14.79,
+  "t_solids_s": 21.17,
+  "skin_contract": {
+   "warnings": [
+    "B_i only 1.76 mm inside Face2D (contract 3.0)",
+    "disc(P, 7.5) not inside Face2D (19.8 mm^2 outside); hub collar z 7.4-8.4 added",
+    "Face2D has 1.0 mm^2 narrower than 6.0 mm"
+   ],
+   "leg_B_margin": [
+    1.757,
+    1.756
+   ],
+   "hub_disc_outside_area": 19.842,
+   "narrower_than_6mm_area": 1.036,
+   "crown_collar": {
+    "applied": true,
+    "pieces_beyond": 3,
+    "bad_rays": 0,
+    "thin_cap_at_notch_deg": [],
+    "clamped_to_step_rule": false,
+    "range_deg": [
+     47.37,
+     132.63
+    ]
+   },
+   "stop_pad_area_ratio": 0.886,
+   "stop_pad_contact_mm": [
+    4.9,
+    6.39,
+    6.39,
+    4.9
+   ]
+  },
+  "face_features": [
+   "visor",
+   "eye_L",
+   "eye_highlight_L",
+   "eye_R",
+   "eye_highlight_R",
+   "mouth",
+   "cheek_L",
+   "ear_screw_L",
+   "cheek_R",
+   "ear_screw_R",
+   "antenna_bulb"
+  ],
+  "head_base": "<manifold3d.Manifold object at 0x7f9604326b00>",
+  "head_feature_parts": {},
+  "frame_colour_masks": [],
+  "sculpt": {}
+ },
+ "sections": {
+  "overall_W": 59.99,
+  "overall_H": 84.21,
+  "backdrop_bounds": [
+   -30.0,
+   -21.7,
+   30.0,
+   62.51
+  ],
+  "i3_area": 654.7,
+  "headband_area": 1181.2,
+  "faceup_area": 903.4,
+  "facemid_area": 248.7,
+  "fill_area": 878.5,
+  "roof_area": 1748.6,
+  "fill_slivers_removed_area": 6.13,
+  "stoppads_area": 14.0,
+  "max_bridge_width": 15.0,
+  "n_bridge_pieces": 1
+ },
+ "bodies": {
+  "frame": {
+   "volume_mm3": 19263.6,
+   "mass_solid_g": 23.89,
+   "triangles": 177292,
+   "bbox": [
+    -29.997,
+    -21.7,
+    0.0,
+    29.997,
+    62.507,
+    16.0
+   ],
+   "size": [
+    59.99,
+    84.21,
+    16.0
+   ]
+  },
+  "wheel": {
+   "volume_mm3": 6165.4,
+   "mass_solid_g": 7.65,
+   "triangles": 12152,
+   "bbox": [
+    -17.996,
+    -17.996,
+    3.0,
+    17.996,
+    17.996,
+    13.3
+   ],
+   "size": [
+    35.99,
+    35.99,
+    10.3
+   ]
+  },
+  "head": {
+   "volume_mm3": 10341.8,
+   "mass_solid_g": 12.82,
+   "triangles": 52118,
+   "bbox": [
+    -19.488,
+    5.34,
+    3.0,
+    22.245,
+    60.037,
+    18.3
+   ],
+   "size": [
+    41.73,
+    54.7,
+    15.3
+   ]
+  }
+ },
+ "overall_size": [
+  59.99,
+  84.21,
+  18.3
+ ],
+ "print_pose_check": {
+  "bodies": {
+   "frame": {
+    "components": 1,
+    "genus": 3,
+    "volume_mm3": 19263.61,
+    "status": "Error.NoError"
+   },
+   "wheel": {
+    "components": 1,
+    "genus": 0,
+    "volume_mm3": 6165.36,
+    "status": "Error.NoError"
+   },
+   "head": {
+    "components": 1,
+    "genus": 1,
+    "volume_mm3": 10341.8,
+    "status": "Error.NoError"
+   }
+  },
+  "pairs": [
+   {
+    "a": "frame",
+    "b": "wheel",
+    "overlap_mm3": 0.0,
+    "min_gap": 0.3500276189429935
+   },
+   {
+    "a": "frame",
+    "b": "head",
+    "overlap_mm3": 0.0,
+    "min_gap": 0.35001948914536873
+   },
+   {
+    "a": "wheel",
+    "b": "head",
+    "overlap_mm3": 0.0,
+    "min_gap": 1.0999999999999996
+   }
+  ],
+  "global_min_gap": 0.35001948914536873
+ },
+ "stl_triangles": 241562,
+ "files": [
+  "stl/robot/purrbobble_robot_shallow.stl"
+ ],
+ "renders": [],
+ "time_build_export_s": 54.95,
+ "time_total_s": 55.45
+}

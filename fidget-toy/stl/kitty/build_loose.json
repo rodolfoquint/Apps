@@ -1,0 +1,257 @@
+{
+ "skin": "kitty",
+ "variant": "loose",
+ "pose": {
+  "phi": 12.0,
+  "psi": 5.96
+ },
+ "D": 24.70975553421278,
+ "P": [
+  0.0,
+  24.70975553421278
+ ],
+ "pallets": [
+  [
+   -12.982732820414402,
+   8.674784732414674
+  ],
+  [
+   12.982732820414402,
+   8.674784732414674
+  ]
+ ],
+ "info": {
+  "t_sections_s": 9.7,
+  "t_solids_s": 0.04,
+  "skin_contract": {
+   "warnings": [
+    "B_i only 1.32 mm inside Face2D (contract 3.0)",
+    "Face2D has 5.6 mm^2 narrower than 6.0 mm"
+   ],
+   "leg_B_margin": [
+    1.324,
+    1.324
+   ],
+   "hub_disc_outside_area": 24.129,
+   "narrower_than_6mm_area": 5.55,
+   "stop_pad_area_ratio": 0.854,
+   "stop_pad_contact_mm": [
+    4.74,
+    5.91,
+    5.69,
+    4.75
+   ],
+   "note": "sculpt skin: hub collar / crown collar items n/a (not built)"
+  },
+  "face_features": [],
+  "head_base": null,
+  "head_feature_parts": {},
+  "frame_colour_masks": [],
+  "sculpt": {
+   "cover_boss_mm2": 241.6,
+   "relief_mm2": 38.5,
+   "film_raised_mm2": 841.7,
+   "terrace_raised_mm2": 723.7,
+   "frame_thin_cut_mm2": 37.0,
+   "head_pinches_before_weld": 152,
+   "head_feathers_cut_mm2": 20.9,
+   "head_blob_mm2": 1154.7,
+   "legs_lowered_mm2": 196.3,
+   "head_always_covered_mm2": 820.4,
+   "floor_area_mm2": {
+    "3.437": 536.6,
+    "3.637": 536.6,
+    "3.837": 536.6,
+    "4.037": 536.6,
+    "4.237": 536.6,
+    "4.437": 536.6,
+    "4.637": 536.5,
+    "4.837": 536.0,
+    "5.037": 535.6,
+    "5.237": 535.2,
+    "5.437": 534.1,
+    "5.637": 404.2,
+    "5.837": 393.9,
+    "6.037": 385.5,
+    "6.237": 372.4,
+    "6.437": 366.7,
+    "6.637": 365.0,
+    "6.837": 330.5,
+    "7.037": 297.5,
+    "7.237": 265.5,
+    "7.437": 125.1,
+    "7.637": 98.8,
+    "7.837": 86.3,
+    "8.037": 79.0,
+    "8.237": 73.7,
+    "8.437": 69.8,
+    "8.637": 68.8,
+    "8.837": 68.1,
+    "9.037": 67.8,
+    "9.237": 67.4,
+    "9.437": 67.0,
+    "9.637": 66.0,
+    "9.837": 63.3,
+    "10.037": 61.7,
+    "10.237": 61.0,
+    "10.437": 57.0,
+    "10.637": 50.6,
+    "10.837": 43.7,
+    "11.037": 37.1,
+    "11.237": 31.3,
+    "11.437": 27.6,
+    "11.637": 24.8,
+    "11.837": 22.2,
+    "12.037": 19.8,
+    "12.237": 17.4,
+    "12.437": 15.2,
+    "12.637": 12.6,
+    "12.837": 10.1,
+    "13.037": 7.4,
+    "13.237": 4.1,
+    "13.437": 1.8,
+    "13.637": 0.4,
+    "13.837": 0.0,
+    "14.037": 0.0
+   },
+   "seam_chamfer_mm3": 410.5,
+   "frame_pinches_before_weld": 1598,
+   "t_sculpt_s": 579.1,
+   "cache": "hit"
+  }
+ },
+ "sections": {
+  "overall_W": 66.13,
+  "overall_H": 85.22,
+  "backdrop_bounds": [
+   -33.6,
+   -26.43,
+   32.53,
+   58.79
+  ],
+  "headband_area": 1001.4,
+  "stoppads_area": 14.73,
+  "classic_sections_not_in_bodies": [
+   "roof2d",
+   "i3",
+   "faceup2d",
+   "facemid2d",
+   "fill2d",
+   "bridges"
+  ]
+ },
+ "bodies": {
+  "frame": {
+   "volume_mm3": 31820.2,
+   "mass_solid_g": 39.46,
+   "triangles": 907072,
+   "bbox": [
+    -33.698,
+    -26.544,
+    0.0,
+    32.625,
+    58.899,
+    20.774
+   ],
+   "size": [
+    66.32,
+    85.44,
+    20.77
+   ]
+  },
+  "wheel": {
+   "volume_mm3": 6458.8,
+   "mass_solid_g": 8.01,
+   "triangles": 71576,
+   "bbox": [
+    -14.999,
+    -14.999,
+    3.2,
+    14.999,
+    14.999,
+    21.508
+   ],
+   "size": [
+    30.0,
+    30.0,
+    18.31
+   ]
+  },
+  "head": {
+   "volume_mm3": 11859.2,
+   "mass_solid_g": 14.71,
+   "triangles": 439672,
+   "bbox": [
+    -23.726,
+    5.269,
+    3.2,
+    22.22,
+    50.06,
+    19.5
+   ],
+   "size": [
+    45.95,
+    44.79,
+    16.3
+   ]
+  }
+ },
+ "overall_size": [
+  66.32,
+  85.44,
+  21.51
+ ],
+ "print_pose_check": {
+  "bodies": {
+   "frame": {
+    "components": 1,
+    "genus": 73,
+    "volume_mm3": 31820.16,
+    "status": "Error.NoError"
+   },
+   "wheel": {
+    "components": 1,
+    "genus": 1,
+    "volume_mm3": 6458.84,
+    "status": "Error.NoError"
+   },
+   "head": {
+    "components": 1,
+    "genus": 26,
+    "volume_mm3": 11859.24,
+    "status": "Error.NoError"
+   }
+  },
+  "pairs": [
+   {
+    "a": "frame",
+    "b": "wheel",
+    "overlap_mm3": 0.0,
+    "min_gap": 0.4000274434307874
+   },
+   {
+    "a": "frame",
+    "b": "head",
+    "overlap_mm3": 0.0,
+    "min_gap": 0.4000189822588591
+   },
+   {
+    "a": "wheel",
+    "b": "head",
+    "overlap_mm3": 0.0,
+    "min_gap": 1.0
+   }
+  ],
+  "global_min_gap": 0.4000189822588591
+ },
+ "stl_triangles": 1418320,
+ "files": [
+  "stl/kitty/purrbobble_kitty_loose.stl"
+ ],
+ "renders": [
+  "renders/kitty/purrbobble_kitty_loose_face.png",
+  "renders/kitty/purrbobble_kitty_loose_three_quarter.png"
+ ],
+ "time_build_export_s": 15.68,
+ "time_total_s": 26.12
+}

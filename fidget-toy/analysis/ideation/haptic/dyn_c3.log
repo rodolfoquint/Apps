@@ -1,0 +1,10 @@
+{'T': 2, 'dir': 1, 'freq_Hz': np.float64(9.6), 'swing_pp': 16.7, 'wheel_rps': 1.22, 'impacts_s': 64, 'bank_hits_s': 0, 'Fmax': 6.6}
+{'T': 2, 'dir': -1, 'freq_Hz': np.float64(9.6), 'swing_pp': 17.3, 'wheel_rps': -1.21, 'impacts_s': 59, 'bank_hits_s': 0, 'Fmax': 8.0}
+{'T': 5, 'dir': 1, 'freq_Hz': np.float64(16.3), 'swing_pp': 17.4, 'wheel_rps': 1.94, 'impacts_s': 99, 'bank_hits_s': 0, 'Fmax': 12.2}
+{'T': 5, 'dir': -1, 'freq_Hz': np.float64(15.4), 'swing_pp': 17.3, 'wheel_rps': -1.91, 'impacts_s': 100, 'bank_hits_s': 0, 'Fmax': 12.2}
+{'T': 10, 'dir': 1, 'freq_Hz': np.float64(21.2), 'swing_pp': 17.9, 'wheel_rps': 2.67, 'impacts_s': 131, 'bank_hits_s': 0, 'Fmax': 18.5}
+{'T': 10, 'dir': -1, 'freq_Hz': np.float64(22.1), 'swing_pp': 18.0, 'wheel_rps': -2.73, 'impacts_s': 135, 'bank_hits_s': 0, 'Fmax': 18.6}
+{'T': 20, 'dir': 1, 'freq_Hz': np.float64(29.8), 'swing_pp': 16.0, 'wheel_rps': 3.63, 'impacts_s': 171, 'bank_hits_s': 0, 'Fmax': 23.2}
+{'T': 20, 'dir': -1, 'freq_Hz': np.float64(28.8), 'swing_pp': 16.0, 'wheel_rps': -3.64, 'impacts_s': 172, 'bank_hits_s': 0, 'Fmax': 23.1}
+{'T': 40, 'dir': 1, 'freq_Hz': np.float64(43.3), 'swing_pp': 17.5, 'wheel_rps': 5.33, 'impacts_s': 192, 'bank_hits_s': 0, 'Fmax': 36.2}
+{'T': 40, 'dir': -1, 'freq_Hz': np.float64(43.3), 'swing_pp': 17.5, 'wheel_rps': -5.33, 'impacts_s': 192, 'bank_hits_s': 0, 'Fmax': 36.3}

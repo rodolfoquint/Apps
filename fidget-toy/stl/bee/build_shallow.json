@@ -1,0 +1,202 @@
+{
+ "skin": "bee",
+ "variant": "shallow",
+ "pose": {
+  "phi": 12.0,
+  "psi": 5.96
+ },
+ "D": 24.947133262827236,
+ "P": [
+  0.0,
+  24.947133262827236
+ ],
+ "pallets": [
+  [
+   -13.107453262259783,
+   8.758120267367614
+  ],
+  [
+   13.107453262259783,
+   8.758120267367614
+  ]
+ ],
+ "info": {
+  "t_sections_s": 15.54,
+  "t_solids_s": 27.27,
+  "skin_contract": {
+   "warnings": [
+    "B_i only 1.32 mm inside Face2D (contract 3.0)",
+    "disc(P, 7.5) not inside Face2D (21.0 mm^2 outside); hub collar z 7.4-8.4 added"
+   ],
+   "leg_B_margin": [
+    1.324,
+    1.324
+   ],
+   "hub_disc_outside_area": 21.045,
+   "narrower_than_6mm_area": 0.151,
+   "crown_collar": {
+    "applied": false,
+    "pieces_beyond": 1,
+    "bad_rays": 0,
+    "thin_cap_at_notch_deg": [],
+    "range_deg": [
+     57.01,
+     122.99
+    ]
+   },
+   "stop_pad_area_ratio": 0.871,
+   "stop_pad_contact_mm": [
+    4.9,
+    6.06,
+    6.06,
+    4.9
+   ]
+  },
+  "face_features": [
+   "eye_L",
+   "eye_highlight_L",
+   "cheek_L",
+   "bobble_L",
+   "eye_R",
+   "eye_highlight_R",
+   "cheek_R",
+   "bobble_R",
+   "smile"
+  ],
+  "head_base": "<manifold3d.Manifold object at 0x7fd36fd5e790>",
+  "head_feature_parts": {},
+  "frame_colour_masks": [],
+  "sculpt": {}
+ },
+ "sections": {
+  "overall_W": 61.17,
+  "overall_H": 84.8,
+  "backdrop_bounds": [
+   -30.58,
+   -21.49,
+   30.59,
+   63.31
+  ],
+  "i3_area": 646.5,
+  "headband_area": 1278.8,
+  "faceup_area": 994.0,
+  "facemid_area": 347.5,
+  "fill_area": 993.5,
+  "roof_area": 1866.6,
+  "fill_slivers_removed_area": 8.62,
+  "stoppads_area": 13.76,
+  "max_bridge_width": 15.0,
+  "n_bridge_pieces": 1
+ },
+ "bodies": {
+  "frame": {
+   "volume_mm3": 20154.6,
+   "mass_solid_g": 24.99,
+   "triangles": 186892,
+   "bbox": [
+    -30.582,
+    -21.492,
+    0.0,
+    30.585,
+    63.309,
+    16.0
+   ],
+   "size": [
+    61.17,
+    84.8,
+    16.0
+   ]
+  },
+  "wheel": {
+   "volume_mm3": 6013.2,
+   "mass_solid_g": 7.46,
+   "triangles": 14578,
+   "bbox": [
+    -17.996,
+    -17.996,
+    3.0,
+    17.996,
+    17.996,
+    13.3
+   ],
+   "size": [
+    35.99,
+    35.99,
+    10.3
+   ]
+  },
+  "head": {
+   "volume_mm3": 11821.0,
+   "mass_solid_g": 14.66,
+   "triangles": 41420,
+   "bbox": [
+    -19.765,
+    5.34,
+    3.0,
+    22.245,
+    60.402,
+    18.3
+   ],
+   "size": [
+    42.01,
+    55.06,
+    15.3
+   ]
+  }
+ },
+ "overall_size": [
+  61.17,
+  84.8,
+  18.3
+ ],
+ "print_pose_check": {
+  "bodies": {
+   "frame": {
+    "components": 1,
+    "genus": 3,
+    "volume_mm3": 20154.58,
+    "status": "Error.NoError"
+   },
+   "wheel": {
+    "components": 1,
+    "genus": 0,
+    "volume_mm3": 6013.18,
+    "status": "Error.NoError"
+   },
+   "head": {
+    "components": 1,
+    "genus": 1,
+    "volume_mm3": 11821.0,
+    "status": "Error.NoError"
+   }
+  },
+  "pairs": [
+   {
+    "a": "frame",
+    "b": "wheel",
+    "overlap_mm3": 0.0,
+    "min_gap": 0.3500276189429935
+   },
+   {
+    "a": "frame",
+    "b": "head",
+    "overlap_mm3": 0.0,
+    "min_gap": 0.35001948914536873
+   },
+   {
+    "a": "wheel",
+    "b": "head",
+    "overlap_mm3": 0.0,
+    "min_gap": 1.0999999999999996
+   }
+  ],
+  "global_min_gap": 0.35001948914536873
+ },
+ "stl_triangles": 242890,
+ "files": [
+  "stl/bee/purrbobble_bee_shallow.stl"
+ ],
+ "renders": [],
+ "time_build_export_s": 57.03,
+ "time_total_s": 57.37
+}
