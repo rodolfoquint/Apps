@@ -49,7 +49,7 @@ SLICER  PrusaSlicer CLI (0.2 layers, 0.4 nozzle, PLA, 3 perimeters, 5/5 solid la
 
 Sculpt skins (purrbobble/sculpt.py: frame and head cut from a sculpted mesh, no roof / fill walls / face layers /
 paws / rib fields in the bodies, although the sections still hold them) are judged on what is built instead:
-    * zones: the built back ribs (clipped to the low cavity), the wheel's skid rings (designed 0.8), 'sculpt' for the
+    * zones: the built back ribs (sculpt.back_ribs2d), the wheel's skid rings (designed 0.8), 'sculpt' for the
       sculpted surface; a thin XY piece within 0.6 of the >= 1.2 core of the same body one layer up or down is the
       tapering 'edge' of a sculpted wall (warn), one that stays thin in both neighbouring layers is a 'wall' (fail); a
       thin horizontal shell sampled >= 1.0 inside its section is a 'plate' (fail);
@@ -248,7 +248,8 @@ def sculpt_geom(M) -> dict:
     do not carry it; design frame):
     band2d     the head band's plan (hub, legs, fingers and the always-covered face part);
     low2d_cav  the cavity cut down to the plate top under the band's sweep and the wheel;
-    ribs_back  the back ribs as built (Ribs_back2d clipped to low2d_cav shrunk 0.3);
+    ribs_back  the back ribs as built (sculpt.back_ribs2d: Ribs_back2d clipped to low2d_cav shrunk 0.3, fill-in
+               arcs, spokes);
     rings      the skid rings on the wheel's umbrella top (annuli rib_w wide)."""
     key = id(M)
     if key not in _SCULPT_GEOM:
@@ -263,21 +264,22 @@ def sculpt_geom(M) -> dict:
             C = g2.intersect(C, g2.rot_about(HB, float(a_), P))
         C = g2.grow(C, -gxy, 0.01)
         mech2d = g2.union([S["hub2d"], S["legs2d"], S["fingers2d"]])
-        band2d = g2.intersect(S["headband2d"], g2.union([g2.grow(C, -0.5, 0.01), g2.grow(mech2d, 0.05, 0.01)]))
+        Cin = C                                   # (as integrate(): C's part that stays inside C at every pose)
+        for a_ in np.linspace(-p.psi_b, p.psi_b, 41):
+            Cin = g2.intersect(Cin, g2.rot_about(C, float(a_), P))
+        band2d = g2.intersect(S["headband2d"], g2.union([g2.grow(Cin, -0.5, 0.01), g2.grow(mech2d, 0.05, 0.01)]))
         band2d = g2.clean(g2.opening(band2d, 0.5, 0.005), "solid")
         band2d = max(g2.pieces(band2d), key=lambda q: q.area())
         sw_band = g2.grow(swept(band2d, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01)
         low2d_cav = g2.union([sw_band, g2.circle(O, p.wheel_ex_r, 0.01)])
-        from purrbobble.sculpt import skid_ring_r
+        from purrbobble.sculpt import back_ribs2d, skid_ring_r
         ring_r = skid_ring_r(sk, p)
         rings = [g2.difference(g2.circle(O, r + p.rib_w / 2, 0.01), g2.circle(O, r - p.rib_w / 2, 0.01))
                  for r in ring_r]
         _SCULPT_GEOM[key] = {"band2d": band2d, "low2d_cav": low2d_cav,
-                             # (as integrate(): clipped to the cavity, then what the clip leaves narrower than
-                             # 0.9 rib_w dropped)
-                             "ribs_back": g2.drop_small(g2.opening(g2.intersect(S["ribs_back2d"],
-                                                                               g2.grow(low2d_cav, -0.3, 0.01)),
-                                                                   0.9 * p.rib_w, 0.005), 0.1),
+                             # (as integrate(): clipped to the cavity, what the clip leaves narrower than
+                             # 0.9 rib_w dropped, plus the fill-in arcs and the spoke web: one helper)
+                             "ribs_back": back_ribs2d(p, S, band2d, low2d_cav),
                              "rings": compose(rings), "ring_r": ring_r}
     return _SCULPT_GEOM[key]
 
@@ -1735,8 +1737,10 @@ def _classify_piece(M, body, Lz, q, below, bodies, allt, owner, names, allowance
 
 
 def rib_tops(bodies, body, z):
-    """Top faces of the OTHER bodies at height z (material just below z, none just above): the skid-rib tops."""
-    return compose([bodies[o].slice(z - 2e-3) - bodies[o].slice(z + 2e-3) for o in bodies if o != body])
+    """Top faces of the OTHER bodies at height z (material just below z, none just above): the skid-rib tops.
+    Hairlines narrower than 0.1 are not top faces (float32 vertices make a vertical wall - e.g. the band cavity's
+    outer wall - lean by ~1e-4: the slice difference leaves a hairline along it, which supports nothing)."""
+    return compose([opening(bodies[o].slice(z - 2e-3) - bodies[o].slice(z + 2e-3), 0.1) for o in bodies if o != body])
 
 
 # ---------------------------------------------------------------------------------------------- V9, sculpt skins
@@ -2200,8 +2204,9 @@ def slicer_check(M, bodies: dict, stl_path: Path, mf_path: Path | None, workdir:
     exe = shutil.which("prusa-slicer") or shutil.which("PrusaSlicer")
     opts = list(SLICER_OPTS)
     if is_sculpt(M):
-        # (sculpt skins: no crown roof; the frame covers bridge in every direction, so the slicer picks it, as the
-        # 3MF's frame part says: assemble.part_settings)
+        # (sculpt skins: no crown roof; the frame covers bridge in every direction, so the slicer picks it, and the
+        # head's and wheel's first layers float over a rib web that every strand direction crosses: automatic for
+        # every part, as the 3MF's parts say - assemble.part_settings)
         opts[opts.index("--bridge-angle") + 1] = "0"
     out = {"settings": " ".join(opts), "runs": {}}
     if exe is None:

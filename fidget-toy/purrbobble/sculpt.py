@@ -451,6 +451,84 @@ def seams(sk, p) -> dict:
             "pad_low_top": max(sk.pad_low_top, sk.leg_low_top + zl + gt + 0.05)}
 
 
+WHEEL_SPOKES = 12          # spokes about O under the wheel (strands over the teeth's first layer: <= 4.7 mm per run)
+
+
+def back_ribs2d(p, S, band2d: CrossSection, low2d_cav: CrossSection, spokes: bool = True) -> CrossSection:
+    """The frame's back ribs as built (z_bp .. z_bp + rib_h; design frame; the checkers call this too).  Ribs_back2d
+    is clipped to the low cavity shrunk 0.3 and what the clip leaves narrower than 0.9 rib_w is dropped.  The head
+    band's underside floats over the rib tops at the print pose and must lie within the float reach (pitch - rib_w)
+    / 2 of one everywhere (V9 rib float, <= 1.90): where the clip dropped an arc (the arc that runs along the cavity's
+    outer edge at the band's tip, r 19.5 about P, is cut to a 0.5 sliver there) or shortened one, fill-in arcs about
+    P are added at full width inside the clip, as core2d's (whose fill-in serves the classic band, not this one).
+    Radial spokes about P join the arcs into a web (spokes=True): the slicer prints the band's first layer as
+    straight bridge strands, one direction per region, and a straight strand runs tangent to the arcs somewhere
+    whatever its direction - 15-21 mm over no rib on this band, whose always-covered face part lies above P (the
+    classic band, legs and hub only, crossed the arcs at 180 deg).  The spokes, every `step` (the tangential pitch at
+    the band's farthest point <= the rib pitch: every other one from the hub ring, the rest from where the hub
+    ones' pitch passes the rib pitch), cut every strand to about the rib pitch (<= 5 mm) in any direction."""
+    P, O = tuple(p.P), (0.0, 0.0)
+    clip = g2.grow(low2d_cav, -0.3, 0.01)
+    rib2d = g2.drop_small(g2.opening(g2.intersect(S["ribs_back2d"], clip), 0.9 * p.rib_w, 0.005), 0.1)
+    # (fill-in arcs keep core2d's rib rules too: 0.3 inside the swept band, off the wheel's disc (its own rings
+    # there) and the posts' roots, 0.3 clear of the stop pads)
+    post_clear = g2.union([g2.circle(c, p.post_r + p.post_root_fillet + p.rib_post_clear, 0.01) for c in (O, P)])
+    fclip = g2.difference(g2.intersect(clip, g2.grow(S["swept_headband2d_exact"], -0.3, 0.01)),
+                          g2.circle(O, p.fill_wheel_r, 0.01), post_clear, g2.grow(S["stoppads2d"], 0.3, 0.01))
+    reach = (p.rib_back_pitch - p.rib_w) / 2.0 + 0.02     # 1.87, as core2d's (V9 allows 1.90)
+    under = g2.difference(g2.rot_about(band2d, p.psi_print, P), g2.circle(P, p.bore_r + 0.05, 0.01))
+    for _ in range(4):
+        unc = g2.drop_small(g2.opening(g2.difference(under, g2.grow(rib2d, reach, 0.005)), 0.05, 0.005), 0.005)
+        if unc.is_empty():
+            break
+        segs = []
+        for q in g2.pieces(unc):
+            pts = np.vstack([np.asarray(c, float) for c in q.to_polygons()])
+            r0 = float(np.mean(np.hypot(pts[:, 0] - P[0], pts[:, 1] - P[1])))
+            # (a local arc: the zone that part of the band sweeps, not a whole ring)
+            loc = swept(g2.grow(g2.rot_about(q, -p.psi_print, P), 1.5, 0.01), P, p.psi_b, p.n_sweep, allowance=0.0)
+            for dr in (0.0, -0.3, 0.3, -0.6, 0.6, -0.9, 0.9, -1.2, -1.5):
+                r = r0 + dr
+                seg = g2.intersect(g2.difference(g2.circle(P, r + p.rib_w / 2, g2.TOL_DECO),
+                                                 g2.circle(P, r - p.rib_w / 2, g2.TOL_DECO)), loc, fclip)
+                seg = g2.drop_small(g2.opening(seg, 0.95 * p.rib_w, 0.005), 0.3)     # full-width rib only
+                if not seg.is_empty() and g2.difference(q, g2.grow(seg, reach + 0.03, 0.01)).area() < 1e-3:
+                    segs.append(seg)
+                    break
+        if not segs:
+            break
+        # (closed 0.3 around the new arcs: one next to an existing arc leaves no hairline slit between them)
+        add = g2.union(segs)
+        rib2d = g2.union([rib2d, add, g2.intersect(g2.closing(g2.union([rib2d, add]), 0.3, 0.005),
+                                                   g2.grow(add, 0.6, 0.005), clip)])
+    if spokes:
+        pts = np.vstack([np.asarray(c, float) for c in band2d.to_polygons()])
+        r_max = float(np.hypot(pts[:, 0] - P[0], pts[:, 1] - P[1]).max())
+        n = 2 * int(math.ceil(math.pi * r_max / p.rib_back_pitch))          # (even: alternate hub / outer spokes)
+        step = 2.0 * math.pi / n
+        r_split = p.rib_back_pitch / (2.0 * step) - p.rib_w / 2.0
+        bars = []
+        for k in range(n):
+            u = np.array([math.cos(k * step), math.sin(k * step)])
+            w = np.array([-u[1], u[0]]) * (p.rib_w / 2.0)
+            a0 = np.asarray(P) + u * (p.rib_back_r0 if k % 2 == 0 else r_split)
+            a1 = np.asarray(P) + u * (r_max + 5.0)
+            bars.append(g2.poly([a0 - w, a1 - w, a1 + w, a0 + w]))
+        # (and under the wheel: WHEEL_SPOKES about O from the inner ring to the outer one, inside the rings' clip -
+        # the teeth's first layer otherwise runs up to 9.8 mm between the rings about O)
+        r_in, r_out = min(p.rib_rings_O), max(p.rib_rings_O)
+        for k in range(WHEEL_SPOKES):
+            t = 2.0 * math.pi * (k + 0.5) / WHEEL_SPOKES
+            u = np.array([math.cos(t), math.sin(t)])
+            w = np.array([-u[1], u[0]]) * (p.rib_w / 2.0)
+            bars.append(g2.intersect(g2.poly([u * r_in - w, u * r_out - w, u * r_out + w, u * r_in + w]),
+                                     g2.difference(g2.circle(O, p.rib_rings_clip, 0.01), post_clear)))
+        sp = g2.drop_small(g2.opening(g2.union([g2.intersect(g2.union(bars[:n]), fclip)] + bars[n:]),
+                                      0.95 * p.rib_w, 0.005), 0.3)
+        rib2d = g2.union([rib2d, sp])
+    return rib2d
+
+
 def skid_ring_r(sk, p) -> list[float]:
     """Radii of the wheel's skid rings on the umbrella top (the same in every variant; the checkers read them too)."""
     return [float(r) for r in np.arange(sk.cap_r + sk.cap_gap + 1.2, sk.ring_r_max + 1e-6, sk.ring_pitch)]
@@ -578,11 +656,11 @@ def integrate(M, verbose: bool = False) -> dict:
     # ---------------- head
     # under the band's sweep and the wheel the frame is cut down to the plate top, with the back ribs inside
     # (the band's own cavity is the first slab of its envelope below, which starts at the plate top); ribs clipped
-    # to a sliver at the cavity edge are dropped
+    # to a sliver at the cavity edge are dropped; fill-in arcs keep the band's underside within the float reach and
+    # spokes cut every bridge strand of its first layer to <= the rib pitch (back_ribs2d)
     sw_band = g2.grow(swept(band2d, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01)
     low2d_cav = g2.union([sw_band, g2.circle(O, p.wheel_ex_r, 0.01)])
-    rib2d = g2.intersect(S["ribs_back2d"], g2.grow(low2d_cav, -0.3, 0.01))
-    rib2d = g2.drop_small(g2.opening(rib2d, 0.9 * p.rib_w, 0.005), 0.1)       # (opening takes a width)
+    rib2d = back_ribs2d(p, S, band2d, low2d_cav)
     ribs_back = ext(rib2d, p.z_bp - EPS, p.z_bp + p.rib_h)
     # legs lowered where their sweep passes under sculpt thinner than cover_min (outside the head and the ball)
     foot = K.slice(0.3)

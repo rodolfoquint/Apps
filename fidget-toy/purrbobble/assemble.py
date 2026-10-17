@@ -32,9 +32,12 @@ PART_SETTINGS = {
 def part_settings(skin) -> dict:
     """PART_SETTINGS for a skin.  A sculpt skin has no crown roof: its bridges are the frame covers over the legs
     and the band, running every which way, so the frame keeps PrusaSlicer's automatic bridge direction (a fixed
-    180 deg hung the covers' bridge lines off their free edges at the wheel cavity)."""
+    180 deg hung the covers' bridge lines off their free edges at the wheel cavity; 45 / 90 / 135 deg fail other
+    covers).  The head's and the wheel's first layers float over a web of back ribs (arcs and spokes about P, rings
+    and spokes about O: a straight strand in any direction crosses one every <= 5 mm), so they need no fixed angle:
+    every part says 0 (= automatic) explicitly, so that a profile's fixed bridging angle does not apply to them."""
     if hasattr(skin, "sculpt"):
-        return dict(PART_SETTINGS, frame=dict(PART_SETTINGS["frame"], bridge_angle="0"))
+        return {k: dict(v, bridge_angle="0") for k, v in PART_SETTINGS.items()}
     return PART_SETTINGS
 
 

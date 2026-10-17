@@ -140,6 +140,13 @@ and `sculpt.integrate(M)` cuts the sculpt into the three bodies around the uncha
   head band (hub, collar, legs, pallet fingers; legs under thin cushion lowered to `leg_low_top`);
 * **frame** = the rest of the sculpt minus the swept head / wheel envelopes, plus back ribs, posts and stop pads.
 
+The back ribs (`sculpt.back_ribs2d`; the checkers call it too) are core2d's arcs about P and rings about O clipped to
+the plate-level cavity, fill-in arcs where the clip dropped one (every point of the band's underside at the print
+pose within 1.87 of a rib top), and radial spokes about P and O that join them into a web: the head's and the
+wheel's first layers float 0.40 over it as bridge strands, and a straight strand in any direction crosses a rib
+every <= 5 mm (4.5-4.7 in PrusaSlicer's toolpaths at 0, 90 and 180 deg), so the sculpt kitty's 3MF keeps
+PrusaSlicer's automatic bridge direction on every part (`assemble.part_settings`).
+
 `sculpt.seams(skin, params)` returns the effective clearances (gap under a floating body grows with z_lift, the
 seam over it stays gap_z; head floors keep `floor_rest` more), `sculpt.skid_ring_r(skin, params)` the skid-ring
 radii; the checkers read both. The integration takes 5-10 min per variant, so its bodies are cached in
