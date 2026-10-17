@@ -82,11 +82,12 @@ class SculptKittySkin(Skin):
                             # 1.25: a margin over the 1.2 wall rule once rounded to float32)
     ball_keep_r = 18.5      # the head body never swings over the yarn ball (r <= this about O)
     pad_back = 2.0          # stop pad backing (fill around each pad)
-    # visible relief (sculpt.integrate): the cushion behind the head between the left ear and the bow (box x -16..-4,
-    # y 44..56) is lowered to z 5.82 where the left ear's inner half swings over it (it stands 6.2-6.5): the ear's
-    # floors then come down to ~6.44 and its root is deep enough for the V10 protrusion load (13.4 -> ~9.7 MPa).
-    # About 31 mm2 of cushion lowered by <= 0.72 (mean 0.43).
-    reliefs = (((-24.0, 40.0, -5.0, 52.0), (-16.0, 44.0, -4.0, 56.0), 5.82),)
+    # visible relief (sculpt.integrate), for child safety: the left ear is a thin lobe (the head's floors under it
+    # float over the cushion it swings over, ~7.0, under a ~11.5 top) and its root carries the V10 protrusion load
+    # (50 N sideways: 13.4 MPa, SPEC < 10).  Where the ear and its root (head box x -26..-4, y 33..54) swing over the
+    # cushion (box x -28..-2, y 28..58), the cushion is lowered to z 5.0, so their floors come down to 5.64 and the
+    # root is ~1.4 deeper.  (The right ear's root is deeper by itself: ~9.8 MPa.)
+    reliefs = (((-26.0, 33.0, -4.0, 54.0), (-28.0, 28.0, -2.0, 58.0), 5.0),)
     gap_xy, gap_z = 0.5, 0.4137      # (gap_z off round numbers too, see sculpt.GRID_OFFSET)
     head_slice_z = 13.0
     narrow_below_y = 32.0
