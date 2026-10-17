@@ -126,6 +126,7 @@ def weld_pinches(m: Manifold, r: float = 0.06, iters: int = 16) -> Manifold:
 # ------------------------------------------------------------------------------------------------ envelopes
 FLOOR_OFFSET = 0.037   # head floor levels: z_band0 + 0.4 + k 0.2 + this (fewest sculpt flats within 6 um, kitty)
 FEATHER_OFFSET = 0.0071   # trim_feathers slab boundaries: off the floors, the envelope layers and the sculpt's flats
+SHORT_REACH = 1.0       # an underside may overhang its own material below by this in print (V9 / SLICER)
 GRID_OFFSET = 0.0137    # envelope layer boundaries sit off every round height: the sculpt has broad flats (e.g. the
                         # cushion at z 5.0 once scaled) and the mechanism its levels; a layer face coplanar with
                         # either leaves pinch vertices
@@ -379,6 +380,65 @@ def trim_feathers(m: Manifold, near_at, z0: float, z1: float, w: float = 0.6, h:
     if not cuts:
         return m, 0.0
     return m - Manifold.batch_boolean(cuts, OpType.Add), area
+
+
+def cover_eave(frame: Manifold, head_pp: Manifold, z_u: float, region: CrossSection, gzf: float, t_keep: float,
+               r_own: float, r_float: float, step: float = 0.05, grow_cut: float = 0.03,
+               eps: float = 0.002) -> tuple:
+    """45 deg eave under a frame cover printed over a swept cavity: the cover's horizontal underside at z_u (in
+    `region`) is supported in print only within r_own of the frame under it (its walls: overhang perimeters) and
+    within r_float of the head's material at the print pose (head_pp) gzf under it (its strands sag onto it, V9 /
+    SLICER float reach); beyond both, the underside steps up `step` per `step` outward (45 deg, self-supporting) for
+    as long as the frame stays solid t_keep over the step (the cover's own thickness: never thinner, never through
+    its top), and stops there.  Under a thin cushion the eave is a one-step recess of the unsupported strip: its
+    first printed layer then bridges between the supported parts of the layer below, instead of hanging off them.
+    Removes frame only, under its covers (clearances only grow); the cut runs grow_cut past the cover's free
+    edges (no cut wall on a frame face there); each step strictly inside the one below (no shared walls).
+    Returns (frame, info)."""
+    above, below = frame.slice(z_u + 0.01), frame.slice(z_u - 0.01)
+    U = g2.intersect(g2.difference(above, below), region)
+    if U.is_empty():
+        return frame, {"eave_underside_mm2": 0.0}
+    tops = g2.intersect(head_pp.slice(z_u - gzf - 0.02), U)
+    Z = g2.union([g2.grow(below, r_own, 0.005), g2.grow(tops, r_float, 0.005)])
+    Uu = g2.drop_small(g2.difference(U, Z), 0.005)
+    if Uu.is_empty():
+        return frame, {"eave_underside_mm2": 0.0}
+    box = g2.grow(Uu, 1.0, 0.01)
+    zs = [round(z_u + step * j, 4) for j in range(1, int(math.ceil((4.0 + t_keep) / step)) + 1)]
+    sl = {}
+
+    def solid(z0, z1):
+        ks = [z for z in zs if z0 - 1e-6 <= z <= z1 + step - 1e-6]
+        for z in ks:
+            if z not in sl:
+                sl[z] = g2.intersect(frame.slice(z), box)
+        return g2.intersect(*[sl[z] for z in ks])
+
+    steps, prev, k = [], Uu, 1
+    while k * step <= 4.0:
+        h = round(step * k, 4)
+        reg = g2.drop_small(g2.intersect(g2.difference(U, g2.grow(Z, h, 0.005)), prev,
+                                         solid(z_u + h, z_u + h + t_keep)), 0.002)
+        if reg.is_empty():
+            break
+        steps.append((h, reg))
+        prev, k = reg, k + 1
+    if not steps:
+        return frame, {"eave_underside_mm2": 0.0, "eave_unsupported_mm2": round(Uu.area(), 2)}
+    free = g2.difference(g2.grow(box, 1.0, 0.01), above)      # (no cover there: the cut may run past its edges)
+    # (step i is its checked region shrunk eps * i, so that each step lies strictly inside the one below (no shared
+    # walls, no pinches), plus the strip from there across the cover's free edges into the empty space beside it
+    # (grow_cut past the edge: no cut wall on a frame face); never grown into the cover beyond what was checked)
+    secs = [(h_, g2.union([g2.grow(r_, -eps * i, 0.001) if i else r_,
+                           g2.intersect(g2.grow(r_, grow_cut, 0.001), g2.grow(free, eps * i + 0.001, 0.0005))]))
+            for i, (h_, r_) in enumerate(steps)]
+    cut = Manifold.batch_boolean([cs.extrude(h_ + 0.05).translate((0.0, 0.0, z_u - 0.05)) for h_, cs in secs
+                                  if not cs.is_empty()], OpType.Add)
+    out = frame - cut
+    return out, {"eave_underside_mm2": round(steps[0][1].area(), 2), "eave_max_rise": steps[-1][0],
+                 "eave_unsupported_mm2": round(Uu.area(), 2),
+                 "eave_mm3": round(frame.volume() - out.volume(), 2)}
 
 
 def head_envelope(head: Manifold, P, psi_b: float, n: int, gap_xy: float, gap_z: float, h: float = 0.2) -> Manifold:
@@ -893,6 +953,19 @@ def integrate(M, verbose: bool = False) -> dict:
             R[Ln] = g2.clean(g2.union([R[Ln], up]), "solid")      # (still nested: up lies in R[L])
     no_slivers()
     info["terrace_raised_mm2"] = round(pushed, 1)
+    # floor caps (skin.floor_caps: (head-frame polygon, z)): the head's floors in the polygon stay at or below z (a
+    # protrusion's root that the rules above would leave thin - the left ear's root strip between the always-covered
+    # core and the relieved ear).  The frame yields: the floor envelope follows the head's real material.
+    capped = 0.0
+    for poly, zc in getattr(sk, "floor_caps", ()):
+        reg = g2.intersect(g2.poly([tuple(q) for q in poly]), HBb)
+        for L in levels[1:]:
+            if L > zc + 1e-9 and not g2.intersect(R[L], reg).is_empty():
+                capped += g2.intersect(R[L], reg).area() if L == min(l_ for l_ in levels if l_ > zc + 1e-9) else 0.0
+                R[L] = g2.clean(g2.difference(R[L], reg), "solid")
+    if capped:
+        no_slivers()
+    info["floor_capped_mm2"] = round(capped, 1)
     log(f"head floor terraces: {pushed:.1f} mm^2 raised")
     # floors as a stacked cut (sections shrink upward: nested), and the matching swept envelope for the frame
     cut_slabs, env_slabs = [], []
@@ -1113,6 +1186,15 @@ def integrate(M, verbose: bool = False) -> dict:
     info["neck_corners_mm2"] = round(corner_mm2, 2)
     if corner_cuts:
         frame = frame - solids.union3(corner_cuts)
+    # the covers over the lowered legs are printed over the legs' swept channel, anchored on its walls and resting on
+    # the legs only where the head lies in the print pose (psi_print: the other side of the sweep has nothing under
+    # it): beyond the reach of both, their underside rises in a hidden 45 deg eave (V9 sculpt_float, SLICER layer 4.8)
+    if not low2d.is_empty():
+        head_pp = head.translate((-P[0], -P[1], 0.0)).rotate((0.0, 0.0, float(p.psi_print))).translate((P[0], P[1], 0.0))
+        frame, ei = cover_eave(frame, head_pp, z_fl, g2.grow(sw_low_all, 0.1, 0.01), gzf, sk.cover_t + 0.05,
+                               r_own=SHORT_REACH - 0.1, r_float=sk.float_reach)
+        info.update({"low_" + k_: v_ for k_, v_ in ei.items()})
+        log(f"cover eave over the lowered legs: {ei}")
     info["frame_pinches_before_weld"] = len(solids.pinch_vertices(frame))
     frame = finish_welded(frame, p, "frame")
     log("frame")

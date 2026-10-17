@@ -52,7 +52,14 @@ paws / rib fields in the bodies, although the sections still hold them) are judg
     * zones: the built back ribs (sculpt.back_ribs2d), the wheel's skid rings (designed 0.8), 'sculpt' for the
       sculpted surface; a thin XY piece within 0.6 of the >= 1.2 core of the same body one layer up or down is the
       tapering 'edge' of a sculpted wall (warn), one that stays thin in both neighbouring layers is a 'wall' (fail); a
-      thin horizontal shell sampled >= 1.0 inside its section is a 'plate' (fail);
+      thin horizontal shell sampled >= 1.0 inside its section is a 'plate' (fail).  Two more warn classes, in both
+      the layer method and the ray method (ThinMap): a 'crest' is a wall piece standing fully on the layer below
+      (inside its slice grown 0.05) whose thin column, from the >= 1.2 core of the body below up to its tip, is at
+      most 3 layers tall at every point, with no wider part above (0.6 mm: the blunt top of a ridge whose flanks
+      open >= ~90 deg - it prints as a narrow top on a >= 1.2 wall, or the slicer drops its sub-0.2 widths; a fin,
+      a thin waist under a wider part or a more acute ridge stays a 'wall'); a 'source' is a wall piece
+      that the raw sculpt itself has at the same height (one of its own ThinMap pieces, in the body's pose, with
+      the same bounds +-0.3, and no thinner than it - 0.05): the owner's own thin strand edge, which no cut made;
     * V8_roof = the frame's covers over the moving bodies (every non-bed horizontal underside, vertical rays, >= 2.0);
       V8_plates = the head's floors and lowered band and the wheel's undersides (>= 1.2); fingers / legs are measured
       where the whole band exists (below the lowered legs' top) and their band height is reported; back plate =
@@ -282,6 +289,19 @@ def sculpt_geom(M) -> dict:
                              "ribs_back": back_ribs2d(p, S, band2d, low2d_cav),
                              "rings": compose(rings), "ring_r": ring_r}
     return _SCULPT_GEOM[key]
+
+
+def sculpt_posed(M, body: str) -> Manifold:
+    """The raw sculpt (the skin's mesh as the integration reads it) turned like `body` in the print pose: the
+    reference of the 'source' thin-piece class (the sculpted surfaces of the bodies are not lifted by z_lift)."""
+    p = M.params
+    K = M.skin.sculpt()
+    if body == "wheel" and p.phi_print:
+        return K.rotate((0.0, 0.0, float(p.phi_print)))
+    if body == "head" and p.psi_print:
+        px, py = float(p.P[0]), float(p.P[1])
+        return K.translate((-px, -py, 0.0)).rotate((0.0, 0.0, float(p.psi_print))).translate((px, py, 0.0))
+    return K
 
 
 # ============================================================================================ zones
@@ -614,16 +634,23 @@ class ThinMap:
     Each piece gets  length  (long side of its minimum rotated rectangle),  w_est  (2 x the largest distance from a
     point of the piece to the section boundary: ~ the wall width for a strip, small for a corner tip) and  kind :
     'wall' when it is a strip at least WALL_LEN long (a real thin wall / fin / knife edge), else 'corner' (the tip of
-    an acute plan corner or a short stub)."""
+    an acute plan corner or a short stub).  Sculpt skins (edge_test) reclassify wall pieces as 'edge', 'crest' or
+    'source' (warn; see _edges)."""
 
     WALL_LEN = 2.0
     EDGE_GROW = 0.6          # sculpt skins: a thin piece within this of the >= t core one layer up / down is an 'edge'
+    CREST_LAYERS = 3         # sculpt skins: a supported piece over the >= t core within this many layers down: 'crest'
+    CREST_TOL = 0.05         # (support / core tolerance of the crest test: faceting of the sliced mesh)
+    SOURCE_TOL = 0.3         # sculpt skins: bounds tolerance of the match with the raw sculpt's own thin pieces
+    SOURCE_W_TOL = 0.05      # (and the piece is no thinner than the sculpt's own by more than this)
 
-    def __init__(self, body: Manifold, t: float = WALL_MIN, edge_test: bool = False):
+    def __init__(self, body: Manifold, t: float = WALL_MIN, edge_test: bool = False, source: Manifold | None = None):
         self.b, self.t, self.c = body, t, {}
-        self.edge_test, self._core, self._g = edge_test, {}, {}
+        self.edge_test, self._core, self._g, self._sl = edge_test, {}, {}, {}
         bb = body.bounding_box()
         self.zlo, self.zhi = bb[2], bb[5]
+        # (sculpt skins) the raw sculpt in this body's pose: its own thin pieces make the 'source' class
+        self.src = ThinMap(source, t) if (edge_test and source is not None and not source.is_empty()) else None
 
     def at(self, z: float, exact: bool = False):
         key = round(z, 4) if exact else round(round(z / 0.02) * 0.02, 3)
@@ -651,19 +678,87 @@ class ThinMap:
         pt = shapely.Point(x, y)
         return float(g.boundary.distance(pt)) if g.contains(pt) else 0.0
 
+    def _slice_at(self, z: float) -> CrossSection:
+        """The body's slice at z (0.02 grid, cached)."""
+        key = round(round(z / 0.02) * 0.02, 3)
+        if key not in self._sl:
+            self._sl[key] = self.b.slice(float(key)) if self.zlo < key < self.zhi else CrossSection()
+        return self._sl[key]
+
     def _core_at(self, z: float) -> CrossSection:
         """The >= t core of the body at z (opening of the slice; 0.02 grid)."""
         key = round(round(z / 0.02) * 0.02, 3)
         if key not in self._core:
-            self._core[key] = (opening(self.b.slice(float(key)), self.t) if self.zlo < key < self.zhi
+            self._core[key] = (opening(self._slice_at(key), self.t) if self.zlo < key < self.zhi
                                else CrossSection())
         return self._core[key]
+
+    @staticmethod
+    def _inside(q: CrossSection, R: CrossSection, area: float) -> bool:
+        rest = q - R
+        return rest.is_empty() or rest.area() <= 0.02 * area + 1e-3
+
+    def _crest(self, z: float, d: dict, box: CrossSection) -> int:
+        """Sculpt skins: the piece is the blunt top of a ridge - it stands fully on the layer below (inside its slice
+        grown CREST_TOL), and at every point of it the thin column, from the >= t core of the body below (grown
+        CREST_TOL) up to the last layer with material above it, is at most CREST_LAYERS layers tall, with no wider
+        part above (that would be a thin waist).  A ridge whose flanks open >= ~90 deg widens >= 0.4 per layer, so
+        at most 3 of its layers are thinner than t: it prints as a narrow top on a >= t wall (or the slicer drops
+        its sub-0.2 widths), never a free-standing fin.  Returns the layers down to the core under the whole piece
+        (0: not a crest)."""
+        q, a = d["cs"], d["area"]
+
+        def small(cs):
+            return cs.is_empty() or cs.area() <= 0.02 * a + 1e-3
+
+        if not small(q - grow(self._slice_at(z - LAYER_H) ^ box, self.CREST_TOL)):
+            return 0                                        # (not standing on the layer below)
+        n, down, acc = self.CREST_LAYERS, [], CrossSection()
+        for i in range(1, n + 1):                           # down[i - 1]: the core within i layers below
+            acc = acc + grow(self._core_at(z - i * LAYER_H) ^ box, self.CREST_TOL)
+            down.append(acc)
+        if not small(q - down[-1]):
+            return 0                                        # (thin deeper than n layers somewhere: acute)
+        for i in range(1, n + 1):
+            above = self._slice_at(z + i * LAYER_H) ^ q
+            if small(above):
+                break                                       # (the tip)
+            if not small(self._core_at(z + i * LAYER_H) ^ q):
+                return 0                                    # (a wider part above: a thin waist)
+            if not small(above - (down[n - i - 1] if n - i >= 1 else CrossSection())):
+                return 0                                    # (thin over more than n layers there: a fin)
+        return next(i + 1 for i in range(n) if small(q - down[i]))
+
+    def _source(self, z: float, d: dict):
+        """Sculpt skins: the raw sculpt (in this body's pose) has the same thin piece at this height - a ThinMap
+        piece of it whose bounds match the piece's within SOURCE_TOL on every side, which is no wider than the
+        piece by more than SOURCE_W_TOL (no cut thinned it): the owner's own thin edge.  Returns that piece or None."""
+        if self.src is None:
+            return None
+        b = d["cs"].bounds()
+        _, spcs = self.src.at(z)
+        for s_ in spcs:
+            bs = s_["cs"].bounds()
+            if max(abs(b[i] - bs[i]) for i in range(4)) > self.SOURCE_TOL:
+                continue
+            if not self._inside(d["cs"], grow(s_["cs"], self.SOURCE_TOL), d["area"]):
+                continue
+            ws = s_.get("w_min")
+            if ws is None:
+                ws = _wall_min_width(self.src.at(z)[0], s_["cs"], self.t)
+                s_["w_min"] = ws
+            if d.get("w_min", d["w_est"]) >= ws - self.SOURCE_W_TOL:
+                return s_
+        return None
 
     def _edges(self, z: float, pcs: list[dict]) -> list[dict]:
         """Sculpt skins: a 'wall' piece that lies within EDGE_GROW of the >= t core of the same body one layer
         above or below is the tapering edge of a thicker sculpted wall (a gentle slope of the sculpt running out
-        against an envelope cut, the top layer of a rounded crest): kind 'edge' (warn).  A piece that stays thin in
-        both neighbouring layers - a fin, a feather, a knife edge steeper than the layer step - remains a 'wall'."""
+        against an envelope cut, the top layer of a rounded crest): kind 'edge' (warn).  Of the rest, one standing
+        on the layer below over the >= t core within CREST_LAYERS layers down is a 'crest' (warn, _crest), one the
+        raw sculpt itself has there a 'source' (warn, _source).  A piece that stays thin in both neighbouring
+        layers and is neither - a fin, a feather, a knife edge steeper than the layer step that a cut made -
+        remains a 'wall'."""
         if not self.edge_test:
             return pcs
         for d in pcs:
@@ -677,6 +772,15 @@ class ThinMap:
                 if rest.is_empty() or rest.area() <= 0.02 * d["area"] + 1e-3:
                     d["kind"] = "edge"
                     break
+            if d["kind"] != "wall":
+                continue
+            j = self._crest(z, d, box)
+            if j:
+                d["kind"], d["crest_layers"] = "crest", j
+                continue
+            s_ = self._source(z, d)
+            if s_ is not None:
+                d["kind"], d["source_w_min"] = "source", round(float(s_["w_min"]), 3)
         return pcs
 
     def kind_at(self, x: float, y: float, z: float):
@@ -748,7 +852,9 @@ def v8_walls_rays(M, bodies, zoner: Zoner, n_rays: int, thinmaps: dict) -> dict:
     if sculpt:
         out["method"] += ("; sculpt: 'edge' = the strip lies within 0.6 of the >= 1.2 core of the body one layer up or "
                           "down (tapering edge of a sculpted wall, warn), 'plate' = a horizontal face sample "
-                          "(|n_z| > 0.99) >= 1.0 inside its XY section (a thin horizontal shell, fail)")
+                          "(|n_z| > 0.99) >= 1.0 inside its XY section (a thin horizontal shell, fail), 'crest' = a "
+                          "strip standing on the slice 0.2 below over the >= 1.2 core within 3 layers down (warn), "
+                          "'source' = a thin piece the raw sculpt has itself at that height (bounds +-0.3, warn)")
     status = "pass"
     clusters_all = []
     for bi, (k, b) in enumerate(bodies.items()):
@@ -800,7 +906,7 @@ def v8_walls_rays(M, bodies, zoner: Zoner, n_rays: int, thinmaps: dict) -> dict:
             na = t.area / n_rays
             d["area_est_mm2_by_kind"] = {kk: rnd(sum(1 for i in thin if kinds[i] == kk) * na, 2)
                                          for kk in sorted(set(kinds.values()))}
-        xs = [i for i in thin if kinds[i] in ("wall", "corner", "plate")]
+        xs = [i for i in thin if kinds[i] in ("wall", "corner", "plate", "crest", "source")]
         if xs:
             lab_c = _cluster(pts[xs], 1.5)
             for c in sorted(set(lab_c)):
@@ -810,7 +916,8 @@ def v8_walls_rays(M, bodies, zoner: Zoner, n_rays: int, thinmaps: dict) -> dict:
                                      "z_range": rnd([pts[ii][:, 2].min(), pts[ii][:, 2].max()], 2),
                                      "area_est_mm2": rnd(len(ii) * t.area / n_rays, 2)})
         out["bodies"][k] = d
-    out["structural_thin_clusters"] = sorted(clusters_all, key=lambda c: (c["kind"] not in ("wall", "plate"), -c["n"]))
+    out["structural_thin_clusters"] = sorted(clusters_all, key=lambda c: (c["kind"] not in ("wall", "plate"),
+                                                                       c["kind"] in ("crest", "source"), -c["n"]))
     out["status"] = status
     return out
 
@@ -844,8 +951,11 @@ def v8_layer_widths(M, L: Layers, zoner: Zoner, thinmaps: dict) -> dict:
     sculpt = is_sculpt(M)
     if sculpt:
         out["method"] += ("; sculpt: a strip within 0.6 of the >= 1.2 core of the body one layer up or down is the "
-                          "tapering 'edge' of a sculpted wall (warn, area reported), one thin in both neighbours a 'wall'")
+                          "tapering 'edge' of a sculpted wall (warn, area reported), one standing on the layer below "
+                          "over the >= 1.2 core within 3 layers down a 'crest' (warn), one the raw sculpt has itself "
+                          "at that height a 'source' (warn), any other one thin in both neighbours a 'wall'")
         edge_area = defaultdict(float)
+        rec = []
     for k in L.sec:
         tmap = thinmaps[k]
         zones = defaultdict(lambda: {"layers": set(), "area_mm2": 0.0, "walls": 0, "corners": 0, "w_min": math.inf,
@@ -864,6 +974,14 @@ def v8_layer_widths(M, L: Layers, zoner: Zoner, thinmaps: dict) -> dict:
                     zz["edges"] = zz.get("edges", 0) + 1
                     zz["edge_area_mm2"] = zz.get("edge_area_mm2", 0.0) + d["area"]
                     edge_area[k] += d["area"]
+                elif d["kind"] in ("crest", "source"):
+                    zz[d["kind"] + "s"] = zz.get(d["kind"] + "s", 0) + 1
+                    zz[d["kind"] + "_area_mm2"] = zz.get(d["kind"] + "_area_mm2", 0.0) + d["area"]
+                    if zone_policy(zone, p)[0] == "structural":
+                        rec.append({"body": k, "zone": zone, "kind": d["kind"], "z": round(z, 2), "xy": rnd(d["xy"], 2),
+                                    "area": rnd(d["area"], 3), "length": rnd(d["length"], 2),
+                                    "w_min": rnd(d.get("w_min"), 2), "crest_layers": d.get("crest_layers"),
+                                    "source_w_min": d.get("source_w_min")})
                 else:
                     zz["walls" if d["kind"] == "wall" else "corners"] += 1
                 if d["kind"] == "wall":
@@ -891,7 +1009,9 @@ def v8_layer_widths(M, L: Layers, zoner: Zoner, thinmaps: dict) -> dict:
                         "corner_pieces": zz["corners"], "thinnest_wall_w_est": rnd(zz["w_min"], 2),
                         "examples": zz["examples"], "status": st}
             if sculpt:
-                bz[zone].update({"edge_pieces": zz.get("edges", 0), "edge_area_mm2": rnd(zz.get("edge_area_mm2", 0.0), 2)})
+                bz[zone].update({kk + "_pieces": zz.get(kk + "s", 0) for kk in ("edge", "crest", "source")})
+                bz[zone].update({kk + "_area_mm2": rnd(zz.get(kk + "_area_mm2", 0.0), 2)
+                                 for kk in ("edge", "crest", "source")})
             if st == "fail":
                 status = "fail"
             elif st == "warn" and status == "pass":
@@ -901,6 +1021,7 @@ def v8_layer_widths(M, L: Layers, zoner: Zoner, thinmaps: dict) -> dict:
     if sculpt:
         out["n_structural_thin_walls"] = len(walls)
         out["edge_area_mm2_by_body"] = {k: rnd(v, 2) for k, v in edge_area.items()}
+        out["crest_source_pieces"] = sorted(rec, key=lambda d: (d["body"], d["kind"], d["z"]))
     out["status"] = status
     return out
 
@@ -3034,7 +3155,8 @@ def main(argv=None) -> int:
         checked = exported
 
     zoner = Zoner(M)
-    thinmaps = {k: ThinMap(b, WALL_MIN, edge_test=sculpt) for k, b in bodies.items()}
+    thinmaps = {k: ThinMap(b, WALL_MIN, edge_test=sculpt, source=sculpt_posed(M, k) if sculpt else None)
+                for k, b in bodies.items()}
     z_top = max(b.bounding_box()[5] for b in bodies.values())
     L = Layers(bodies, z_top)
     log(f"sliced {L.n} layers")
