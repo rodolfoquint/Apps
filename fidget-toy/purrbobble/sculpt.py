@@ -596,15 +596,24 @@ def integrate(M, verbose: bool = False) -> dict:
     cap = K ^ ext(cap2d, zt - EPS, 60.0)
     cap = cap + ext(cap2d, zt - EPS, zt + sk.cap_min_h)
     wheel = solids.union3([M.wheel, ribs, cap])
-    # hidden flange ring (skin.flange_r / flange_z): it widens the wheel past the small-parts cylinder (V10) under
-    # the yarn ball's static ring, above the band (1.1 clear of its top: pressing the ball must not land it on the
-    # legs, V5x) and clear of the head's hub collar (V6.face_ball)
+    # hidden flange ring (skin.flange_r): it widens the wheel past the small-parts cylinder (V10) under the yarn
+    # ball's static ring.  No free lip: its underside leaves the umbrella's 45 deg cone at r umb_r0 + 0.2 and rises
+    # flange_angle from vertical out to the rim (no horizontal underside); its top is flat at flange_top out to the
+    # rim (under the umbrella top: it crosses the rim fillet, no coplanar or tangent faces), the highest the frame
+    # over it allows (see the slot).  It stays >= 1.1 above the band (within its reach the band is <= z_pallet_top:
+    # pressing the ball must not land it on the legs, V5x) and clear of the head's hub collar (V6.face_ball)
     fl = getattr(sk, "flange_r", None)
     wheel_nf = wheel                          # (the wheel envelope is built from the wheel without the flange)
+    fl_top = None
     if fl:
-        fz0, fz1 = sk.flange_z
-        wheel = solids.union3([wheel, ext(g2.difference(g2.circle(O, fl, 0.005), g2.circle(O, p.R_u - 0.3, 0.005)),
-                                          fz0 + zl, fz1 + zl)])
+        kf = math.tan(math.radians(90.0 - sk.flange_angle))                 # underside rise per mm of radius
+        rx, zx = p.umb_r0 + 0.2, p.z_teeth1 + 0.2 + zl                      # (on the umbrella's cone)
+        und = lambda r: zx + kf * (r - rx)                                  # noqa: E731
+        fl_top = sk.flange_top + zl
+        r_in = max(ring_r) if ring_r else p.R_u - 1.4
+        prof = [(p.umb_r0, und(p.umb_r0)), (fl, und(fl)), (fl, fl_top), (r_in, fl_top), (r_in, und(p.umb_r0) + 0.6)]
+        wheel = solids.union3([wheel, solids.revolve_rz(prof, g2.nseg(fl, g2.TOL_FUNC, mult=8))])
+        info["flange_rim_z"] = [round(und(fl), 3), round(fl_top, 3)]
     # finger dish in the cap: a sphere cut, opening sk.dish_d at (r_k, 0), sk.dish_depth below the cap's surface
     cxy = (p.r_k, 0.0)                        # (the drive lever arm in the V4 dynamics, too)
     ztop = _top_z(K, cxy, sk.dish_d / 2.0)
@@ -947,7 +956,10 @@ def integrate(M, verbose: bool = False) -> dict:
     zc = zt - 0.25
     Ew = wheel_envelope(wheel_nf ^ ext(CrossSection.circle(40.0, 64), -1.0, zc), gxy, gz, z_floor=p.z_bp)
     r_ring = (max(ring_r) + p.rib_w / 2 if rings else sk.cap_r)
-    Ew = solids.union3([Ew, ext(g2.circle(O, p.R_u + gxy, 0.005, hole=True), zc - 0.05, zt + gt),
+    # (with a flange, its slot below takes the umbrella disc's place: a disc top coplanar with a slot ceiling level
+    # leaves pinch vertices)
+    Ew = solids.union3([Ew, ext(g2.circle(O, p.R_u + gxy, 0.005, hole=True), zc - 0.05, zt + gt) if not fl
+                        else Manifold(),
                         ext(g2.circle(O, r_ring + gxy, 0.005, hole=True), zt + gt - 0.05, zt + p.rib_h + gt),
                         ext(g2.circle(O, sk.cap_r + cap_gap, 0.005, hole=True), zt + p.rib_h + gt - 0.05, 60.0)])
     # the static ring's inner edge at the cap's seam: a 45 deg chamfer sk.seam_chamfer under the yarn surface (the
@@ -962,8 +974,30 @@ def integrate(M, verbose: bool = False) -> dict:
         # the flange's slot: floor_rest + 0.05 more than the seams under / over it (the skid rings and back ribs
         # stay the stops, and the flange keeps floor_rest when the wheel rests on them, face up or down), merged
         # with the collar's envelope where the two come close (no thin wall between them), and opened down into
-        # the band's channel over the full-height legs (no film of cover between the band's top seam and the slot)
-        zs0, zs1 = fz0 + zl - (gz + sk.floor_rest + 0.05), fz1 + zl + gt + sk.floor_rest + 0.05
+        # the band's channel over the full-height legs (no film of cover between the band's top seam and the slot).
+        # The floor stays flat at flange_z0 less that gap (the flange's underside only rises outward from there).
+        # The ceiling is a staircase that every frame layer prints off the one below: it falls 45 deg from dc
+        # beyond the rim to the wall (no flat ceiling beyond the rim), runs flat the slot's top gap over the flange
+        # top 0.95 inward of that cone (overhang <= 1.0), then one floor_step higher inward to the static ring's
+        # step over the skid rings at r_ring + gap_xy (overhang <= 1.0, it carries the static ring in print).  The
+        # frame over it keeps >= 2.0 up to the yarn's strand crevices (r 14.9: 13.15 high, r 16.55: 12.90).  dc
+        # keeps the rim's top edge >= gap_xy from the cone at rest and >= floor_rest + 0.05 at the upper stop.
+        g_top = gt + sk.floor_rest + 0.05
+        zs0, zs1 = sk.flange_z0 + zl - (gz + sk.floor_rest + 0.05), fl_top + g_top
+        ro = fl + gxy
+        dc = max(gxy * math.sqrt(2) - g_top, (sk.floor_rest + 0.05) * (math.sqrt(2) - 1))
+        dc = math.ceil(100 * (dc + 0.005)) / 100                            # (0.11; loose 0.12)
+        rk, zs2 = fl + dc - 0.95, zs1 + sk.floor_step
+        assert zs1 >= zt + gt - 1e-9, "the flange's slot must take the umbrella disc's place"
+        # (the wall part is the prism of the 2-D slot circle the notch is cut from, as before: a revolved floor
+        # leaves pinch vertices against the notch's edge; the staircase is revolved from 0.25 inside the prism, its
+        # cone continued 0.05 inside the prism's wall: no coincident faces)
+        zw = zs1 - (gxy - dc)                                                # (the cone's foot on the wall)
+        slot = solids.union3([ext(g2.circle(O, ro, 0.005, hole=True), zs0, zw),
+                              solids.revolve_rz([(0.0, zw - 0.25), (ro - 0.05, zw - 0.25), (ro - 0.05, zw + 0.05),
+                                                 (fl + dc, zs1), (rk, zs1), (rk, zs2), (0.0, zs2)],
+                                                g2.nseg(fl, g2.TOL_FUNC, mult=8), hole=True)])
+        info["flange_slot_z"] = [round(zs0, 4), round(zs1, 4), round(zs2, 4)]
         # (the notch: the collar's lens beyond the slot, closed r 1.0 onto the slot so that no web is left between
         # them; the lens alone stops 0.3-0.5 short of the slot)
         slot2d = g2.circle(O, fl + gxy, 0.005)
@@ -972,8 +1006,7 @@ def integrate(M, verbose: bool = False) -> dict:
                              g2.circle(O, fl + gxy + 1.3, 0.005))
         chim = g2.intersect(g2.grow(g2.grow(swept(keep, P, p.psi_b, p.n_sweep, allowance=0.05), gxy, 0.01), 0.05,
                                     0.005), g2.circle(O, fl + gxy + 0.05, 0.005))
-        Ew = solids.union3([Ew, ext(g2.circle(O, fl + gxy, 0.005, hole=True), zs0, zs1),
-                            ext(notch, zs0, sm["collar_top_seam_z"] + 0.03),
+        Ew = solids.union3([Ew, slot, ext(notch, zs0, sm["collar_top_seam_z"] + 0.03),
                             ext(chim, sm["band_top_seam_z"] - 0.05, zs0 + 0.05)])
         info["flange_d"] = 2 * fl
     log("wheel envelope")
