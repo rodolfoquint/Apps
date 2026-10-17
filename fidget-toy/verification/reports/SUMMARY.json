@@ -1,5 +1,5 @@
 {
- "date": "2026-10-16 14:14:59",
+ "date": "2026-10-16 15:46:56",
  "quick": false,
  "slicer": true,
  "skins": [
@@ -9,13 +9,13 @@
   "kitty_classic"
  ],
  "run_dates": {
-  "bee": "2026-10-16 14:14:59",
-  "robot": "2026-10-16 14:14:59",
-  "kitty_classic": "2026-10-16 14:14:59",
-  "kitty": "2026-10-16 09:26:43"
+  "kitty": "2026-10-16 09:26:43",
+  "bee": "2026-10-16 15:46:56",
+  "robot": "2026-10-16 15:46:56",
+  "kitty_classic": "2026-10-16 15:46:56"
  },
  "not_run": [],
- "wall_time_s": 5092.7,
+ "wall_time_s": 1800.5,
  "all_pass": false,
  "jobs": [
   {
@@ -28,7 +28,8 @@
    "checks": {},
    "notes": [],
    "report": null,
-   "log": "verification/reports/run_all/kitty_build_all.log"
+   "log": "verification/reports/run_all/kitty_build_all.log",
+   "run_date": "2026-10-16 09:26:43"
   },
   {
    "skin": "kitty",
@@ -48,7 +49,8 @@
     "[FAIL] V7 three_valid_shells: {\"pass\": false}"
    ],
    "report": "verification/reports/kitty/basic.json",
-   "log": "verification/reports/run_all/kitty_basic_nominal.log"
+   "log": "verification/reports/run_all/kitty_basic_nominal.log",
+   "run_date": "2026-10-16 09:26:43"
   },
   {
    "skin": "kitty",
@@ -74,7 +76,8 @@
     "[WARN] V4 friction_mu0.5: min swing 8.58 deg is within 2 deg of the 8 deg gate"
    ],
    "report": "verification/reports/kitty/escapement.json",
-   "log": "verification/reports/run_all/kitty_escapement_nominal.log"
+   "log": "verification/reports/run_all/kitty_escapement_nominal.log",
+   "run_date": "2026-10-16 09:26:43"
   },
   {
    "skin": "kitty",
@@ -127,7 +130,8 @@
     "[FAIL] V11.second_capture: {\"head\": {\"max_lift_play\": 0.4126, \"lift_play_scan\": {\"-12.42\": 0.4126, \"-8.28\": 0.4126, \"-4.14\": 0.4126, \"-0.00\": 0.4126, \"+4.14\": 0.4126, \"+8.28\": 0.4126, \"+12.42\": 0.4126}, \"contacts_at_play+0.03\": [{\"vol\": 1.7531, \"z\": [4.6837, 4.7126], \"r_from_O\": 24.1134, \"xy\": [16.9331, 17.1676], \"r_min_from_"
    ],
    "report": "verification/reports/kitty/kinematics.json",
-   "log": "verification/reports/run_all/kitty_kinematics_nominal.log"
+   "log": "verification/reports/run_all/kitty_kinematics_nominal.log",
+   "run_date": "2026-10-16 09:26:43"
   },
   {
    "skin": "kitty",
@@ -180,7 +184,8 @@
     "[WARN] V5x.axial_play_corners: {\"axial_play_head_up/down\": [0.564, 0.564], \"axial_play_wheel_up/down\": [0.564, 0.564], \"relative_head_up_wheel_down\": 1.1279, \"pallet_plate_gap\": 1.0999999999999996, \"head_up_wheel_down\": {\"dz_head\": 0.564, \"dz_wheel\": -0.564, \"poses\": 300, \"poses_with_overlap\": 300, \"max_overlap_mm3\": 0.5299, \"wor"
    ],
    "report": "verification/reports/kitty/kinematics_loose.json",
-   "log": "verification/reports/run_all/kitty_kinematics_loose.log"
+   "log": "verification/reports/run_all/kitty_kinematics_loose.log",
+   "run_date": "2026-10-16 09:26:43"
   },
   {
    "skin": "kitty",
@@ -232,7 +237,8 @@
     "[WARN] SLICER 3mf: slicer warnings: print warning: Detected print stability issues: | purrbobble_kitty_nominal | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
    ],
    "report": "verification/reports/kitty/printability.json",
-   "log": "verification/reports/run_all/kitty_printability_nominal.log"
+   "log": "verification/reports/run_all/kitty_printability_nominal.log",
+   "run_date": "2026-10-16 09:26:43"
   },
   {
    "skin": "kitty",
@@ -280,7 +286,8 @@
     "[WARN] SLICER 3mf: slicer warnings: print warning: Detected print stability issues: | purrbobble_kitty_loose | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports."
    ],
    "report": "verification/reports/kitty/printability_loose.json",
-   "log": "verification/reports/run_all/kitty_printability_loose.log"
+   "log": "verification/reports/run_all/kitty_printability_loose.log",
+   "run_date": "2026-10-16 09:26:43"
   },
   {
    "skin": "kitty",
@@ -336,7 +343,8 @@
     "[FAIL] V12.sharp_points: {\"below_0.15\": 14, \"0.15_to_0.20\": 21, \"min_fraction\": 0.067}"
    ],
    "report": "verification/reports/kitty/safety.json",
-   "log": "verification/reports/run_all/kitty_safety_nominal.log"
+   "log": "verification/reports/run_all/kitty_safety_nominal.log",
+   "run_date": "2026-10-16 09:26:43"
   },
   {
    "skin": "bee",
@@ -344,11 +352,12 @@
    "variant": "all",
    "status": "pass",
    "exit_code": 0,
-   "runtime_s": 80.2,
+   "runtime_s": 214.1,
    "checks": {},
    "notes": [],
    "report": null,
-   "log": "verification/reports/run_all/bee_build_all.log"
+   "log": "verification/reports/run_all/bee_build_all.log",
+   "run_date": "2026-10-16 15:46:56"
   },
   {
    "skin": "bee",
@@ -367,7 +376,8 @@
     "[NOTE] skin contract: disc(P, 7.5) not inside Face2D (24.1 mm^2 outside); hub collar z 7.4-8.4 added"
    ],
    "report": "verification/reports/bee/basic.json",
-   "log": "verification/reports/run_all/bee_basic_nominal.log"
+   "log": "verification/reports/run_all/bee_basic_nominal.log",
+   "run_date": "2026-10-16 14:14:59"
   },
   {
    "skin": "bee",
@@ -390,7 +400,8 @@
     "[WARN] V4 extra x_gravity_side_-x: 2/6 runs fail the V4 gates: T 1 dir 1 dD None drp None rps -0.001 swing 0.42 (rps<0.15,swing<8,JAM); T 1 dir -1 dD None drp None rps 0.002 swing 1.13 (rps<0.15,swing<8,JAM)"
    ],
    "report": "verification/reports/bee/escapement.json",
-   "log": "verification/reports/run_all/bee_escapement_nominal.log"
+   "log": "verification/reports/run_all/bee_escapement_nominal.log",
+   "run_date": "2026-10-16 14:14:59"
   },
   {
    "skin": "bee",
@@ -440,7 +451,8 @@
     "[WARN] V6.head_stop_pads: {\"gap_at_|psi|=12.2\": 0.0411, \"approach_mm_per_deg\": [0.1423, 0.1423], \"gap_vs_psi_(|psi|>=10.9)\": {\"-12.42\": 0.006, \"-12.17\": 0.0411, \"-11.92\": 0.0764, \"-11.67\": 0.1118, \"-11.43\": 0.1473, \"-11.18\": 0.183, \"-10.93\": 0.2188, \"+10.93\": 0.2187, \"+11.18\": 0.183, \"+11.43\": 0.1473, \"+11.67\": 0.1118, \"+11."
    ],
    "report": "verification/reports/bee/kinematics.json",
-   "log": "verification/reports/run_all/bee_kinematics_nominal.log"
+   "log": "verification/reports/run_all/bee_kinematics_nominal.log",
+   "run_date": "2026-10-16 14:14:59"
   },
   {
    "skin": "bee",
@@ -489,7 +501,8 @@
     "[WARN] V6.head_stop_pads: {\"gap_at_|psi|=12.2\": 0.0409, \"approach_mm_per_deg\": [0.1412, 0.1412], \"gap_vs_psi_(|psi|>=10.9)\": {\"-12.42\": 0.006, \"-12.17\": 0.0409, \"-11.92\": 0.0759, \"-11.67\": 0.111, \"-11.43\": 0.1463, \"-11.18\": 0.1817, \"-10.93\": 0.2173, \"+10.93\": 0.2172, \"+11.18\": 0.1817, \"+11.43\": 0.1463, \"+11.67\": 0.111, \"+11."
    ],
    "report": "verification/reports/bee/kinematics_loose.json",
-   "log": "verification/reports/run_all/bee_kinematics_loose.log"
+   "log": "verification/reports/run_all/bee_kinematics_loose.log",
+   "run_date": "2026-10-16 14:14:59"
   },
   {
    "skin": "bee",
@@ -529,7 +542,8 @@
     "[WARN] V8_legs: narrowed near the pallet end A by WheelEx2D = SweptInv(disc(O, 14.90)) - the SPEC's own HeadBand2D definition; the narrowed section sees less bending than the full-width root"
    ],
    "report": "verification/reports/bee/printability.json",
-   "log": "verification/reports/run_all/bee_printability_nominal.log"
+   "log": "verification/reports/run_all/bee_printability_nominal.log",
+   "run_date": "2026-10-16 14:14:59"
   },
   {
    "skin": "bee",
@@ -569,7 +583,8 @@
     "[WARN] V8_legs: narrowed near the pallet end A by WheelEx2D = SweptInv(disc(O, 14.90)) - the SPEC's own HeadBand2D definition; the narrowed section sees less bending than the full-width root"
    ],
    "report": "verification/reports/bee/printability_loose.json",
-   "log": "verification/reports/run_all/bee_printability_loose.log"
+   "log": "verification/reports/run_all/bee_printability_loose.log",
+   "run_date": "2026-10-16 14:14:59"
   },
   {
    "skin": "bee",
@@ -577,7 +592,7 @@
    "variant": "nominal",
    "status": "fail",
    "exit_code": 1,
-   "runtime_s": 533.3,
+   "runtime_s": 875.9,
    "checks": {
     "V10.wheel_min_width": "pass",
     "V10.head_min_width": "pass",
@@ -595,7 +610,7 @@
     "V12.pinch_00": "fail",
     "V12.pinch_01": "warn",
     "V12.pinch_02": "warn",
-    "V12.corners": "fail",
+    "V12.corners": "warn",
     "V12.sharp_points": "warn",
     "DR.raised_height": "pass",
     "DR.line_width": "warn",
@@ -613,7 +628,7 @@
     "[FAIL] V12.pinch_00: {\"gap_min\": 1.721, \"gap_max\": 4.028, \"severity\": \"high\"}",
     "[WARN] V12.pinch_01: {\"gap_min\": 1.883, \"gap_max\": 2.116, \"severity\": \"low\"}",
     "[WARN] V12.pinch_02: {\"gap_min\": 2.585, \"gap_max\": 3.049, \"severity\": \"low\"}",
-    "[FAIL] V12.corners: {\"below_1.0\": 6, \"1.0_to_1.5\": 3, \"min_r_by_body\": {\"frame\": 0.08, \"wheel\": null, \"head\": 1.09}}",
+    "[WARN] V12.corners: {\"below_1.0\": 0, \"1.0_to_1.5\": 1, \"min_r_by_body\": {\"frame\": null, \"wheel\": null, \"head\": 1.09}}",
     "[WARN] V12.sharp_points: {\"below_0.15\": 0, \"0.15_to_0.20\": 1, \"min_fraction\": 0.195}",
     "[WARN] DR.line_width: [{\"surface\": \"face top\", \"at\": [-5.3, 34.81], \"w\": 0.568}, {\"surface\": \"face top\", \"at\": [8.3, 34.81], \"w\": 0.568}, {\"surface\": \"decor top\", \"at\": [-27.13, 14.41], \"w\": 0.75}, {\"surface\": \"decor top\", \"at\": [-27.41, 9.16], \"w\": 0.706}, {\"surface\": \"decor top\", \"at\": [27.13, 14.41], \"w\": 0.75}, {\"sur",
     "[WARN] DR.deboss_depth: [{\"surface\": \"face top\", \"at\": [-5.3, 34.81], \"d\": 0.2}, {\"surface\": \"face top\", \"at\": [8.3, 34.81], \"d\": 0.2}, {\"surface\": \"back plate\", \"at\": [23.48, 31.38], \"d\": 0.3}, {\"surface\": \"back plate\", \"at\": [-23.48, 31.37], \"d\": 0.3}]",
@@ -622,7 +637,8 @@
     "[WARN] DR.colour_swap: {\"coloured_top_area_mm2\": {\"frame\": 0.0, \"wheel\": 0.0, \"head\": 86.7}}"
    ],
    "report": "verification/reports/bee/safety.json",
-   "log": "verification/reports/run_all/bee_safety_nominal.log"
+   "log": "verification/reports/run_all/bee_safety_nominal.log",
+   "run_date": "2026-10-16 15:46:56"
   },
   {
    "skin": "robot",
@@ -630,11 +646,12 @@
    "variant": "all",
    "status": "pass",
    "exit_code": 0,
-   "runtime_s": 77.2,
+   "runtime_s": 205.6,
    "checks": {},
    "notes": [],
    "report": null,
-   "log": "verification/reports/run_all/robot_build_all.log"
+   "log": "verification/reports/run_all/robot_build_all.log",
+   "run_date": "2026-10-16 15:46:56"
   },
   {
    "skin": "robot",
@@ -654,7 +671,8 @@
     "[NOTE] skin contract: Face2D has 1.0 mm^2 narrower than 6.0 mm"
    ],
    "report": "verification/reports/robot/basic.json",
-   "log": "verification/reports/run_all/robot_basic_nominal.log"
+   "log": "verification/reports/run_all/robot_basic_nominal.log",
+   "run_date": "2026-10-16 14:14:59"
   },
   {
    "skin": "robot",
@@ -676,7 +694,8 @@
     "[WARN] V4 extra x_gravity_side_-x: 2/6 runs fail the V4 gates: T 1 dir 1 dD None drp None rps -0.0 swing 0.2 (rps<0.15,swing<8,JAM); T 1 dir -1 dD None drp None rps 0.003 swing 2.25 (rps<0.15,swing<8,JAM)"
    ],
    "report": "verification/reports/robot/escapement.json",
-   "log": "verification/reports/run_all/robot_escapement_nominal.log"
+   "log": "verification/reports/run_all/robot_escapement_nominal.log",
+   "run_date": "2026-10-16 14:14:59"
   },
   {
    "skin": "robot",
@@ -726,7 +745,8 @@
     "[WARN] V6.head_stop_pads: {\"gap_at_|psi|=12.2\": 0.0409, \"approach_mm_per_deg\": [0.1391, 0.1391], \"gap_vs_psi_(|psi|>=10.9)\": {\"-12.42\": 0.006, \"-12.17\": 0.0409, \"-11.92\": 0.0756, \"-11.67\": 0.11, \"-11.43\": 0.1442, \"-11.18\": 0.1781, \"-10.93\": 0.2117, \"+10.93\": 0.2116, \"+11.18\": 0.178, \"+11.43\": 0.1442, \"+11.67\": 0.11, \"+11.92\""
    ],
    "report": "verification/reports/robot/kinematics.json",
-   "log": "verification/reports/run_all/robot_kinematics_nominal.log"
+   "log": "verification/reports/run_all/robot_kinematics_nominal.log",
+   "run_date": "2026-10-16 14:14:59"
   },
   {
    "skin": "robot",
@@ -775,7 +795,8 @@
     "[WARN] V6.head_stop_pads: {\"gap_at_|psi|=12.2\": 0.0407, \"approach_mm_per_deg\": [0.138, 0.138], \"gap_vs_psi_(|psi|>=10.9)\": {\"-12.42\": 0.006, \"-12.17\": 0.0407, \"-11.92\": 0.0751, \"-11.67\": 0.1093, \"-11.43\": 0.1432, \"-11.18\": 0.1768, \"-10.93\": 0.2101, \"+10.93\": 0.2101, \"+11.18\": 0.1767, \"+11.43\": 0.1431, \"+11.67\": 0.1092, \"+11."
    ],
    "report": "verification/reports/robot/kinematics_loose.json",
-   "log": "verification/reports/run_all/robot_kinematics_loose.log"
+   "log": "verification/reports/run_all/robot_kinematics_loose.log",
+   "run_date": "2026-10-16 14:14:59"
   },
   {
    "skin": "robot",
@@ -815,7 +836,8 @@
     "[WARN] V8_legs: narrowed near the pallet end A by WheelEx2D = SweptInv(disc(O, 14.90)) - the SPEC's own HeadBand2D definition; the narrowed section sees less bending than the full-width root"
    ],
    "report": "verification/reports/robot/printability.json",
-   "log": "verification/reports/run_all/robot_printability_nominal.log"
+   "log": "verification/reports/run_all/robot_printability_nominal.log",
+   "run_date": "2026-10-16 14:14:59"
   },
   {
    "skin": "robot",
@@ -855,7 +877,8 @@
     "[WARN] V8_legs: narrowed near the pallet end A by WheelEx2D = SweptInv(disc(O, 14.90)) - the SPEC's own HeadBand2D definition; the narrowed section sees less bending than the full-width root"
    ],
    "report": "verification/reports/robot/printability_loose.json",
-   "log": "verification/reports/run_all/robot_printability_loose.log"
+   "log": "verification/reports/run_all/robot_printability_loose.log",
+   "run_date": "2026-10-16 14:14:59"
   },
   {
    "skin": "robot",
@@ -863,7 +886,7 @@
    "variant": "nominal",
    "status": "fail",
    "exit_code": 1,
-   "runtime_s": 502.2,
+   "runtime_s": 781.2,
    "checks": {
     "V10.wheel_min_width": "pass",
     "V10.head_min_width": "pass",
@@ -882,7 +905,7 @@
     "V12.pinch_01": "fail",
     "V12.pinch_02": "warn",
     "V12.pinch_03": "warn",
-    "V12.corners": "fail",
+    "V12.corners": "warn",
     "V12.sharp_points": "warn",
     "DR.raised_height": "pass",
     "DR.line_width": "warn",
@@ -901,7 +924,7 @@
     "[FAIL] V12.pinch_01: {\"gap_min\": 2.75, \"gap_max\": 8.549, \"severity\": \"medium\"}",
     "[WARN] V12.pinch_02: {\"gap_min\": 1.598, \"gap_max\": 3.418, \"severity\": \"low\"}",
     "[WARN] V12.pinch_03: {\"gap_min\": 1.919, \"gap_max\": 2.155, \"severity\": \"low\"}",
-    "[FAIL] V12.corners: {\"below_1.0\": 14, \"1.0_to_1.5\": 6, \"min_r_by_body\": {\"frame\": 0.06, \"wheel\": null, \"head\": 0.75}}",
+    "[WARN] V12.corners: {\"below_1.0\": 0, \"1.0_to_1.5\": 2, \"min_r_by_body\": {\"frame\": null, \"wheel\": null, \"head\": 1.09}}",
     "[WARN] V12.sharp_points: {\"below_0.15\": 0, \"0.15_to_0.20\": 1, \"min_fraction\": 0.196}",
     "[WARN] DR.line_width: [{\"surface\": \"face top\", \"at\": [-4.4, 39.41], \"w\": 0.478}, {\"surface\": \"face top\", \"at\": [6.8, 39.41], \"w\": 0.478}, {\"surface\": \"face top\", \"at\": [13.22, 42.71], \"w\": 0.739}, {\"surface\": \"face top\", \"at\": [-13.22, 42.71], \"w\": 0.739}, {\"surface\": \"decor top\", \"at\": [-8.8, -19.7], \"w\": 0.71}, {\"surfa",
     "[WARN] DR.deboss_depth: [{\"surface\": \"face top\", \"at\": [-4.4, 39.41], \"d\": 0.15}, {\"surface\": \"face top\", \"at\": [6.8, 39.41], \"d\": 0.15}, {\"surface\": \"face top\", \"at\": [-8.3, 31.11], \"d\": 0.3}, {\"surface\": \"face top\", \"at\": [8.3, 31.11], \"d\": 0.3}, {\"surface\": \"back plate\", \"at\": [21.28, 41.05], \"d\": 0.3}, {\"surface\": \"bac",
@@ -911,117 +934,230 @@
     "[WARN] DR.colour_swap: {\"coloured_top_area_mm2\": {\"frame\": 0.0, \"wheel\": 0.0, \"head\": 58.3}}"
    ],
    "report": "verification/reports/robot/safety.json",
-   "log": "verification/reports/run_all/robot_safety_nominal.log"
+   "log": "verification/reports/run_all/robot_safety_nominal.log",
+   "run_date": "2026-10-16 15:46:56"
   },
   {
    "skin": "kitty_classic",
    "check": "build",
    "variant": "all",
-   "status": "fail",
-   "exit_code": 1,
-   "runtime_s": 7.6,
+   "status": "pass",
+   "exit_code": 0,
+   "runtime_s": 305.6,
    "checks": {},
    "notes": [],
    "report": null,
-   "log": "verification/reports/run_all/kitty_classic_build_all.log"
+   "log": "verification/reports/run_all/kitty_classic_build_all.log",
+   "run_date": "2026-10-16 15:46:56"
   },
   {
    "skin": "kitty_classic",
    "check": "basic",
    "variant": "nominal",
-   "status": "skipped",
-   "exit_code": -2,
-   "runtime_s": 0.0,
-   "checks": {},
+   "status": "pass",
+   "exit_code": 0,
+   "runtime_s": 228.4,
+   "checks": {
+    "V1": "pass",
+    "V7": "pass",
+    "head_inertia": "pass"
+   },
    "notes": [
-    "prerequisite failed"
+    "[NOTE] skin contract: B_i only 1.32 mm inside Face2D (contract 3.0)",
+    "[NOTE] skin contract: disc(P, 7.5) not inside Face2D (24.1 mm^2 outside); hub collar z 7.4-8.4 added",
+    "[NOTE] skin contract: Face2D has 9.1 mm^2 narrower than 6.0 mm"
    ],
    "report": "verification/reports/kitty_classic/basic.json",
-   "log": "verification/reports/run_all/kitty_classic_basic_nominal.log"
+   "log": "verification/reports/run_all/kitty_classic_basic_nominal.log",
+   "run_date": "2026-10-16 15:16:36"
   },
   {
    "skin": "kitty_classic",
    "check": "escapement",
    "variant": "nominal",
-   "status": "skipped",
-   "exit_code": -2,
-   "runtime_s": 0.0,
-   "checks": {},
+   "status": "pass",
+   "exit_code": 0,
+   "runtime_s": 790.7,
+   "checks": {
+    "V2": "pass",
+    "V3": "pass",
+    "V4": "pass",
+    "V13": "pass"
+   },
    "notes": [
-    "prerequisite failed"
+    "[WARN] V2 worst pressure angle 59.2 deg is within 1 deg of the 60 deg gate (case (-0.4, -0.2, 'band')); stable on 2.5x finer grids in development",
+    "[WARN] V2 static-lock margin beyond the +-0.4 pivot box (fat pallets +0.2) is only 0.05 mm (lock from dpivot -0.5)",
+    "[WARN] V4 extra x_bare_wheel: 1/16 runs fail the V4 gates: T 1 dir -1 dD 0.4 drp -0.2 rps -1.467 swing 13.91 (rps>2.2x nominal)",
+    "[WARN] V4 extra x_gravity_side_+x: 3/6 runs fail the V4 gates: T 1 dir 1 dD None drp None rps -0.005 swing 3.5 (rps<0.15,swing<8,JAM); T 1 dir -1 dD None drp None rps 0.002 swing 1.06 (rps<0.15,swing<8,JAM); T 3 dir 1 dD None drp None rps 0.361 swing 7.02 (swing<8)",
+    "[WARN] V4 extra x_gravity_side_-x: 3/6 runs fail the V4 gates: T 1 dir 1 dD None drp None rps -0.001 swing 0.36 (rps<0.15,swing<8,JAM); T 1 dir -1 dD None drp None rps 0.003 swing 2.34 (rps<0.15,swing<8,JAM); T 3 dir 1 dD None drp None rps 0.003 swing 0.89 (rps<0.15,swing<8,JAM)"
    ],
    "report": "verification/reports/kitty_classic/escapement.json",
-   "log": "verification/reports/run_all/kitty_classic_escapement_nominal.log"
+   "log": "verification/reports/run_all/kitty_classic_escapement_nominal.log",
+   "run_date": "2026-10-16 15:16:36"
   },
   {
    "skin": "kitty_classic",
    "check": "kinematics",
    "variant": "nominal",
-   "status": "skipped",
-   "exit_code": -2,
-   "runtime_s": 0.0,
+   "status": "error",
+   "exit_code": -9,
+   "runtime_s": 1091.7,
    "checks": {},
    "notes": [
-    "prerequisite failed"
+    "no fresh report (/home/user/Apps/fidget-toy/verification/reports/kitty_classic/kinematics.json); exit code -9"
    ],
    "report": "verification/reports/kitty_classic/kinematics.json",
-   "log": "verification/reports/run_all/kitty_classic_kinematics_nominal.log"
+   "log": "verification/reports/run_all/kitty_classic_kinematics_nominal.log",
+   "run_date": "2026-10-16 15:16:36"
   },
   {
    "skin": "kitty_classic",
    "check": "kinematics",
    "variant": "loose",
-   "status": "skipped",
-   "exit_code": -2,
-   "runtime_s": 0.0,
+   "status": "error",
+   "exit_code": -9,
+   "runtime_s": 1006.0,
    "checks": {},
    "notes": [
-    "prerequisite failed"
+    "no fresh report (/home/user/Apps/fidget-toy/verification/reports/kitty_classic/kinematics_loose.json); exit code -9"
    ],
    "report": "verification/reports/kitty_classic/kinematics_loose.json",
-   "log": "verification/reports/run_all/kitty_classic_kinematics_loose.log"
+   "log": "verification/reports/run_all/kitty_classic_kinematics_loose.log",
+   "run_date": "2026-10-16 15:16:36"
   },
   {
    "skin": "kitty_classic",
    "check": "printability",
    "variant": "nominal",
-   "status": "skipped",
-   "exit_code": -2,
-   "runtime_s": 0.0,
-   "checks": {},
+   "status": "warn",
+   "exit_code": 0,
+   "runtime_s": 829.9,
+   "checks": {
+    "V8_topology": "pass",
+    "V8_walls_raycast": "warn",
+    "V8_walls_layers": "warn",
+    "V8_back_plate": "pass",
+    "V8_roof": "warn",
+    "V8_fingers": "pass",
+    "V8_legs": "warn",
+    "V8_posts": "pass",
+    "V8_slivers_2d": "pass",
+    "V8_stop_pads": "pass",
+    "V8_ribs": "pass",
+    "V8_slivers_frame_layers": "warn",
+    "V9_overhangs": "pass",
+    "LAYER_quantisation": "pass",
+    "SLICER": "warn"
+   },
    "notes": [
-    "prerequisite failed"
+    "[WARN] SLICER stl: slicer warnings: print warning: Detected print stability issues: | purrbobble_kitty_classic_nominal.stl | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports.",
+    "[WARN] SLICER stl: layer 3.2 head Bridge infill: strands run up to 24.24 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
+    "[WARN] SLICER stl: layer 3.2 wheel Bridge infill: strands run up to 9.48 mm parallel to the arc ribs (all within 1.63 mm of a rib)",
+    "[WARN] SLICER stl: layer 3.2 head Overhang perimeter: strands run up to 6.41 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
+    "[WARN] SLICER 3mf: slicer warnings: print warning: Detected print stability issues: | purrbobble_kitty_classic_nominal | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports.",
+    "[WARN] SLICER 3mf: layer 3.2 head Bridge infill: strands run up to 24.24 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
+    "[WARN] SLICER 3mf: layer 3.2 wheel Bridge infill: strands run up to 9.48 mm parallel to the arc ribs (all within 1.63 mm of a rib)",
+    "[WARN] SLICER 3mf: layer 3.2 head Overhang perimeter: strands run up to 6.41 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
+    "[WARN] V8_roof: thinner only within the r 1.0 top-edge round of the body outline and where the 45 deg umbrella keep-out trims the roof's inner edge (r 17.1-17.4 about O): edge geometry",
+    "[WARN] V8_legs: narrowed near the pallet end A by WheelEx2D = SweptInv(disc(O, 14.90)) - the SPEC's own HeadBand2D definition; the narrowed section sees less bending than the full-width root"
    ],
    "report": "verification/reports/kitty_classic/printability.json",
-   "log": "verification/reports/run_all/kitty_classic_printability_nominal.log"
+   "log": "verification/reports/run_all/kitty_classic_printability_nominal.log",
+   "run_date": "2026-10-16 15:16:36"
   },
   {
    "skin": "kitty_classic",
    "check": "printability",
    "variant": "loose",
-   "status": "skipped",
-   "exit_code": -2,
-   "runtime_s": 0.0,
-   "checks": {},
+   "status": "warn",
+   "exit_code": 0,
+   "runtime_s": 797.7,
+   "checks": {
+    "V8_topology": "pass",
+    "V8_walls_raycast": "warn",
+    "V8_walls_layers": "warn",
+    "V8_back_plate": "pass",
+    "V8_roof": "warn",
+    "V8_fingers": "pass",
+    "V8_legs": "warn",
+    "V8_posts": "pass",
+    "V8_slivers_2d": "pass",
+    "V8_stop_pads": "pass",
+    "V8_ribs": "pass",
+    "V8_slivers_frame_layers": "warn",
+    "V9_overhangs": "pass",
+    "LAYER_quantisation": "pass",
+    "SLICER": "warn"
+   },
    "notes": [
-    "prerequisite failed"
+    "[WARN] SLICER stl: slicer warnings: print warning: Detected print stability issues: | purrbobble_kitty_classic_loose.stl | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports.",
+    "[WARN] SLICER stl: layer 3.4 head Bridge infill: strands run up to 24.24 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
+    "[WARN] SLICER stl: layer 3.4 wheel Bridge infill: strands run up to 9.48 mm parallel to the arc ribs (all within 1.63 mm of a rib)",
+    "[WARN] SLICER stl: layer 3.4 head Overhang perimeter: strands run up to 6.46 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
+    "[WARN] SLICER 3mf: slicer warnings: print warning: Detected print stability issues: | purrbobble_kitty_classic_loose | Floating object part, Floating bridge anchors, Loose extrusions, Long bridging extrusions | Consider enabling supports.",
+    "[WARN] SLICER 3mf: layer 3.4 head Bridge infill: strands run up to 24.24 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
+    "[WARN] SLICER 3mf: layer 3.4 wheel Bridge infill: strands run up to 9.48 mm parallel to the arc ribs (all within 1.63 mm of a rib)",
+    "[WARN] SLICER 3mf: layer 3.4 head Overhang perimeter: strands run up to 6.46 mm parallel to the arc ribs (all within 1.87 mm of a rib)",
+    "[WARN] V8_roof: thinner only within the r 1.0 top-edge round of the body outline and where the 45 deg umbrella keep-out trims the roof's inner edge (r 17.1-17.4 about O): edge geometry",
+    "[WARN] V8_legs: narrowed near the pallet end A by WheelEx2D = SweptInv(disc(O, 14.90)) - the SPEC's own HeadBand2D definition; the narrowed section sees less bending than the full-width root"
    ],
    "report": "verification/reports/kitty_classic/printability_loose.json",
-   "log": "verification/reports/run_all/kitty_classic_printability_loose.log"
+   "log": "verification/reports/run_all/kitty_classic_printability_loose.log",
+   "run_date": "2026-10-16 15:16:36"
   },
   {
    "skin": "kitty_classic",
    "check": "safety",
    "variant": "nominal",
-   "status": "skipped",
-   "exit_code": -2,
-   "runtime_s": 0.0,
-   "checks": {},
+   "status": "fail",
+   "exit_code": 1,
+   "runtime_s": 710.0,
+   "checks": {
+    "V10.wheel_min_width": "pass",
+    "V10.head_min_width": "pass",
+    "V10.no_body_fits": "pass",
+    "V10.protrusion.frame_tower@(-15.9,-1.5)": "pass",
+    "V10.protrusion.frame_tower@(15.9,-1.5)": "pass",
+    "V10.protrusion.post_O": "pass",
+    "V10.protrusion.post_P": "pass",
+    "V10.protrusion.head_lobe@(11.6,51.8)": "pass",
+    "V10.protrusion.head_lobe@(-12.1,52.0)": "pass",
+    "V10.back_panel_0": "warn",
+    "V12.pinch_00": "fail",
+    "V12.pinch_01": "fail",
+    "V12.pinch_02": "warn",
+    "V12.pinch_03": "warn",
+    "V12.corners": "fail",
+    "V12.sharp_points": "warn",
+    "DR.raised_height": "warn",
+    "DR.line_width": "warn",
+    "DR.deboss_depth": "warn",
+    "DR.eyes": "warn",
+    "DR.nose": "pass",
+    "DR.head_vs_ball": "pass",
+    "DR.ears": "warn",
+    "DR.giggle": "pass",
+    "DR.colour_swap": "warn",
+    "V14.renders": "pass"
+   },
    "notes": [
-    "prerequisite failed"
+    "[WARN] V10.back_panel_0: {\"sigma_MPa\": 16.9, \"L_mm\": 18.66, \"t_mm\": 2.98}",
+    "[FAIL] V12.pinch_00: {\"gap_min\": 1.618, \"gap_max\": 4.609, \"severity\": \"high\"}",
+    "[FAIL] V12.pinch_01: {\"gap_min\": 2.417, \"gap_max\": 5.268, \"severity\": \"medium\"}",
+    "[WARN] V12.pinch_02: {\"gap_min\": 1.883, \"gap_max\": 2.116, \"severity\": \"low\"}",
+    "[WARN] V12.pinch_03: {\"gap_min\": 2.391, \"gap_max\": 2.85, \"severity\": \"low\"}",
+    "[FAIL] V12.corners: {\"below_1.0\": 6, \"1.0_to_1.5\": 6, \"min_r_by_body\": {\"frame\": 0.52, \"wheel\": null, \"head\": 0.31}}",
+    "[WARN] V12.sharp_points: {\"below_0.15\": 0, \"0.15_to_0.20\": 4, \"min_fraction\": 0.189}",
+    "[WARN] DR.raised_height: [{\"at\": [-13.8, 26.62], \"h\": 0.4}, {\"at\": [13.8, 26.62], \"h\": 0.4}, {\"at\": [-3.7, 29.07], \"h\": 0.5}, {\"at\": [3.7, 29.07], \"h\": 0.5}, {\"at\": [-0.0, 31.24], \"h\": 0.6}, {\"at\": [-10.01, 32.77], \"h\": 0.55}, {\"at\": [9.99, 32.77], \"h\": 0.55}, {\"at\": [6.99, 47.09], \"h\": 1.2}]",
+    "[WARN] DR.line_width: [{\"surface\": \"face top\", \"at\": [-9.75, 41.18], \"w\": 0.658}, {\"surface\": \"face top\", \"at\": [9.75, 41.18], \"w\": 0.658}, {\"surface\": \"face top\", \"at\": [-10.8, 34.71], \"w\": 0.565}, {\"surface\": \"face top\", \"at\": [9.2, 34.71], \"w\": 0.565}, {\"surface\": \"face top\", \"at\": [-7.7, 31.01], \"w\": 0.442}, {\"surfac",
+    "[WARN] DR.deboss_depth: [{\"surface\": \"face top\", \"at\": [-10.8, 34.71], \"d\": 0.2}, {\"surface\": \"face top\", \"at\": [9.2, 34.71], \"d\": 0.2}, {\"surface\": \"face top\", \"at\": [-7.7, 31.01], \"d\": 0.35}, {\"surface\": \"face top\", \"at\": [12.3, 31.01], \"d\": 0.35}, {\"surface\": \"ball top\", \"at\": [0.0, 0.0], \"d\": 0.25}]",
+    "[WARN] DR.eyes: {\"eye_d\": 9.57, \"eye_spacing_cc\": 17.0, \"face_width_at_eyes\": 34.48, \"eye_d_over_face_w\": 0.278, \"spacing_over_face_w\": 0.493, \"head_circle_centre\": [0.0, 35.47], \"head_circle_r\": 15.77, \"eye_line_below_head_centre_over_r\": -0.283}",
+    "[WARN] DR.ears: {\"ear_rise_above_crown_mm\": 4.4, \"ear_rise_over_head_r\": 0.275, \"farthest_point_from_P_mm\": 35.68, \"tip_travel_each_way_mm\": 7.73, \"tip_travel_p2p_mm\": 15.47}",
+    "[WARN] DR.colour_swap: {\"coloured_top_area_mm2\": {\"frame\": 0.0, \"wheel\": 0.0, \"head\": 142.2}}"
    ],
    "report": "verification/reports/kitty_classic/safety.json",
-   "log": "verification/reports/run_all/kitty_classic_safety_nominal.log"
+   "log": "verification/reports/run_all/kitty_classic_safety_nominal.log",
+   "run_date": "2026-10-16 15:46:56"
   }
  ]
 }

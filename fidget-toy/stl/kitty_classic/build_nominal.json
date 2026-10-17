@@ -21,8 +21,8 @@
   ]
  ],
  "info": {
-  "t_sections_s": 5.31,
-  "t_solids_s": 39.4,
+  "t_sections_s": 10.79,
+  "t_solids_s": 68.9,
   "skin_contract": {
    "warnings": [
     "B_i only 1.32 mm inside Face2D (contract 3.0)",
@@ -75,93 +75,93 @@
    "bow",
    "bow_knot"
   ],
-  "head_base": "<manifold3d.Manifold object at 0x7fa619f4ebf0>",
+  "head_base": "<manifold3d.Manifold object at 0x7f792e14ebf0>",
   "head_feature_parts": {
    "eye_L": [
-    "<manifold3d.Manifold object at 0x7fa619f4ece0>",
+    "<manifold3d.Manifold object at 0x7f792e14ece0>",
     null
    ],
    "blush_L": [
-    "<manifold3d.Manifold object at 0x7fa619f4ee20>",
+    "<manifold3d.Manifold object at 0x7f792e14ee20>",
     null
    ],
    "eye_R": [
-    "<manifold3d.Manifold object at 0x7fa619f4ee70>",
+    "<manifold3d.Manifold object at 0x7f792e14ee70>",
     null
    ],
    "blush_R": [
-    "<manifold3d.Manifold object at 0x7fa619f4ef10>",
+    "<manifold3d.Manifold object at 0x7f792e14ef10>",
     null
    ],
    "nose": [
-    "<manifold3d.Manifold object at 0x7fa619f4ef60>",
+    "<manifold3d.Manifold object at 0x7f792e14ef60>",
     null
    ],
    "smile_hooks": [
-    "<manifold3d.Manifold object at 0x7fa619f4efb0>",
+    "<manifold3d.Manifold object at 0x7f792e14efb0>",
     null
    ],
    "bow": [
-    "<manifold3d.Manifold object at 0x7fa619f4f230>",
+    "<manifold3d.Manifold object at 0x7f792e14f230>",
     null
    ],
    "bow_knot": [
-    "<manifold3d.Manifold object at 0x7fa619f4f190>",
+    "<manifold3d.Manifold object at 0x7f792e14f190>",
     null
    ],
    "eye_highlight0_L": [
     null,
-    "<manifold3d.Manifold object at 0x7fa619f4f2d0>"
+    "<manifold3d.Manifold object at 0x7f792e14f2d0>"
    ],
    "eye_highlight1_L": [
     null,
-    "<manifold3d.Manifold object at 0x7fa619f4f1e0>"
+    "<manifold3d.Manifold object at 0x7f792e14f1e0>"
    ],
    "brow_L": [
     null,
-    "<manifold3d.Manifold object at 0x7fa619f4f370>"
+    "<manifold3d.Manifold object at 0x7f792e14f370>"
    ],
    "inner_ear_L": [
     null,
-    "<manifold3d.Manifold object at 0x7fa619f4f3c0>"
+    "<manifold3d.Manifold object at 0x7f792e14f3c0>"
    ],
    "eye_highlight0_R": [
     null,
-    "<manifold3d.Manifold object at 0x7fa619f4f320>"
+    "<manifold3d.Manifold object at 0x7f792e14f320>"
    ],
    "eye_highlight1_R": [
     null,
-    "<manifold3d.Manifold object at 0x7fa619f4f410>"
+    "<manifold3d.Manifold object at 0x7f792e14f410>"
    ],
    "brow_R": [
     null,
-    "<manifold3d.Manifold object at 0x7fa619f4f4b0>"
+    "<manifold3d.Manifold object at 0x7f792e14f4b0>"
    ],
    "inner_ear_R": [
     null,
-    "<manifold3d.Manifold object at 0x7fa619f4f500>"
+    "<manifold3d.Manifold object at 0x7f792e14f500>"
    ],
    "mouth": [
     null,
-    "<manifold3d.Manifold object at 0x7fa619f4f550>"
+    "<manifold3d.Manifold object at 0x7f792e14f550>"
    ],
    "curl_groove_0": [
     null,
-    "<manifold3d.Manifold object at 0x7fa619f4f5a0>"
+    "<manifold3d.Manifold object at 0x7f792e14f5a0>"
    ],
    "curl_groove_1": [
     null,
-    "<manifold3d.Manifold object at 0x7fa619f4f5f0>"
+    "<manifold3d.Manifold object at 0x7f792e14f5f0>"
    ]
   },
   "frame_colour_masks": [
    [
     "accent",
-    "<manifold3d.Manifold object at 0x7fa619f4ea10>"
+    "<manifold3d.Manifold object at 0x7f792e14ea10>"
    ],
    [
     "accent",
-    "<manifold3d.Manifold object at 0x7fa619f4ea60>"
+    "<manifold3d.Manifold object at 0x7f792e14ea60>"
    ]
   ],
   "sculpt": {}
@@ -300,6 +300,6 @@
   "stl/kitty_classic/purrbobble_kitty_classic_nominal_multicolour.3mf"
  ],
  "renders": [],
- "time_build_export_s": 69.32,
- "time_total_s": 69.63
+ "time_build_export_s": 110.54,
+ "time_total_s": 110.78
 }
