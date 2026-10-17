@@ -953,6 +953,19 @@ def integrate(M, verbose: bool = False) -> dict:
             R[Ln] = g2.clean(g2.union([R[Ln], up]), "solid")      # (still nested: up lies in R[L])
     no_slivers()
     info["terrace_raised_mm2"] = round(pushed, 1)
+    # floor caps (skin.floor_caps: (head-frame polygon, z)): the head's floors in the polygon stay at or below z (a
+    # protrusion's root that the rules above would leave thin - the left ear's root strip between the always-covered
+    # core and the relieved ear).  The frame yields: the floor envelope follows the head's real material.
+    capped = 0.0
+    for poly, zc in getattr(sk, "floor_caps", ()):
+        reg = g2.intersect(g2.poly([tuple(q) for q in poly]), HBb)
+        for L in levels[1:]:
+            if L > zc + 1e-9 and not g2.intersect(R[L], reg).is_empty():
+                capped += g2.intersect(R[L], reg).area() if L == min(l_ for l_ in levels if l_ > zc + 1e-9) else 0.0
+                R[L] = g2.clean(g2.difference(R[L], reg), "solid")
+    if capped:
+        no_slivers()
+    info["floor_capped_mm2"] = round(capped, 1)
     log(f"head floor terraces: {pushed:.1f} mm^2 raised")
     # floors as a stacked cut (sections shrink upward: nested), and the matching swept envelope for the frame
     cut_slabs, env_slabs = [], []

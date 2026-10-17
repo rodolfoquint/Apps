@@ -88,6 +88,10 @@ class SculptKittySkin(Skin):
     # cushion (box x -28..-2, y 28..58), the cushion is lowered to z 5.0, so their floors come down to 5.64 and the
     # root is ~1.4 deeper.  (The right ear's root is deeper by itself: ~9.8 MPa.)
     reliefs = (((-26.0, 33.0, -4.0, 54.0), (-28.0, 28.0, -2.0, 58.0), 5.0),)
+    # (and the strip along the left ear's root chord, between the always-covered core of the head (floors 3.0) and the
+    # relieved ear (5.64), keeps its floors at 5.64 too: a 1-2 mm band left at 6.6-7.0 there made the root's weakest
+    # section, 11.9 MPa; capped: 9.5)
+    floor_caps = ((((-21.13, 31.98), (-3.71, 43.7), (-5.94, 47.02), (-23.36, 35.3)), 5.637),)
     gap_xy, gap_z = 0.5, 0.4137      # (gap_z off round numbers too, see sculpt.GRID_OFFSET)
     head_slice_z = 13.0
     narrow_below_y = 32.0
