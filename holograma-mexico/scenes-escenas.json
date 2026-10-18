@@ -1,0 +1,120 @@
+{
+  "image_style": "Full scene composed for a round display: the main action is centered, everything important sits well inside a central circle, and the picture fades smoothly into pure black toward the edges and corners, like a glowing round window floating in darkness. Joyful festive mood, vivid saturated colors, warm glowing light, rich detail, cinematic photorealistic illustration. People have natural happy faces and correct hands.",
+  "image_negative": "text, letters, words, signs with writing, watermark, logo, signature, frame, border, hard square edges, dull colors, low contrast, blurry, deformed faces, extra fingers, extra limbs, distorted bodies, creepy, scary, caricature, stereotype",
+  "video_style": "Joyful, lively, festive Mexican celebration energy with bright cheerful colors. The camera stays steady with at most a very gentle drift. Everything important stays centered and the edges of the picture stay dark. People move naturally and gracefully with happy faces, correct hands and natural bodies. No cuts, no text, nothing scary.",
+  "loop_style": "The clip ends exactly on its first frame so it loops seamlessly.",
+  "fan_fit": 1.0,
+  "fan_feather": 0.18,
+  "scenes": [
+    {
+      "id": "grito-zocalo",
+      "title": "El Grito en el Zócalo",
+      "subject": "Mexico City's Zócalo at night on Independence Day: the Metropolitan Cathedral with its two bell towers lit in red, white and green, a giant Mexican flag on the tall flagpole in the middle of the plaza, a cheerful crowd below holding small flags, colorful fireworks bursting in the night sky",
+      "motion": "The giant flag waves proudly, red, white and green fireworks burst and sparkle above the cathedral, and the crowd cheers and waves their small flags."
+    },
+    {
+      "id": "mariachi",
+      "title": "Mariachi en Garibaldi",
+      "subject": "A mariachi band playing in Plaza Garibaldi at night: musicians in black charro suits with silver buttons and wide sombreros playing trumpets, violins, guitars, a vihuela and a big guitarrón, warm plaza lights and papel picado overhead",
+      "motion": "The mariachis play with joy, trumpets raised and violin bows moving, swaying to the rhythm and smiling at each other."
+    },
+    {
+      "id": "tulum",
+      "title": "Tulum",
+      "subject": "The Tulum ruins: the stone El Castillo temple on a limestone cliff above a turquoise Caribbean sea, a white sand beach and palm trees, a pink and gold sunrise sky",
+      "motion": "Gentle turquoise waves roll onto the white beach, the palm trees sway, seabirds glide past and the sunrise glows warmer."
+    },
+    {
+      "id": "guelaguetza",
+      "title": "Guelaguetza — Flor de Piña",
+      "subject": "The Guelaguetza festival in Oaxaca: a group of women dancing the Flor de Piña in long colorful embroidered huipiles and skirts, each carrying a pineapple on her shoulder, on an open-air stage with festive decorations",
+      "motion": "The dancers step and sway together in a joyful circle, lifting their pineapples high, their embroidered skirts swinging."
+    },
+    {
+      "id": "palenque",
+      "title": "Palenque",
+      "subject": "The Temple of the Inscriptions at Palenque: a Maya stepped pyramid with a temple on top, surrounded by lush green jungle with soft morning mist and a small waterfall, two colorful toucans perched on a branch",
+      "motion": "Mist drifts slowly through the jungle, the waterfall sparkles, and the toucans hop and flutter playfully in front of the temple."
+    },
+    {
+      "id": "xochimilco",
+      "title": "Xochimilco",
+      "subject": "Brightly painted trajineras (flat wooden boats with arches decorated with painted flowers and patterns, no lettering) floating on a green canal in Xochimilco, a mariachi band playing on one boat, families smiling and waving, flowers everywhere, sunny day",
+      "motion": "The trajineras glide slowly along the canal, the mariachis play and sway, people wave and laugh, and flower petals float on the water.",
+      "loop": false
+    },
+    {
+      "id": "jarabe-tapatio",
+      "title": "Jarabe Tapatío",
+      "subject": "The Jarabe Tapatío: a charro in a black embroidered suit and a china poblana in a sparkling red and green sequined skirt dancing joyfully around a wide charro sombrero on the floor of a festive stage",
+      "motion": "The couple dances the zapateado around the sombrero, her skirt swirling in wide colorful waves, his hands behind his back, both smiling."
+    },
+    {
+      "id": "barrancas-cobre",
+      "title": "Barrancas del Cobre — El Chepe",
+      "subject": "The Copper Canyon in Chihuahua: deep layered canyons in orange, red and green under a blue sky, and the El Chepe passenger train crossing a high bridge over the canyon",
+      "motion": "The Chepe train rolls steadily across the bridge, soft clouds drift and an eagle glides over the canyon.",
+      "loop": false
+    },
+    {
+      "id": "parachicos",
+      "title": "Parachicos de Chiapa de Corzo",
+      "subject": "Parachicos dancers of Chiapa de Corzo during the Fiesta Grande: traditional carved wooden masks, tall headdresses of golden ixtle fiber, colorful striped serapes and embroidered shawls, metal rattles (chinchines) in their hands, confetti in the air",
+      "motion": "The parachicos dance and hop joyfully, shaking their rattles, their golden headdresses bouncing as confetti falls."
+    },
+    {
+      "id": "guanajuato",
+      "title": "Callejoneada en Guanajuato",
+      "subject": "Guanajuato at dusk: hills covered with houses painted bright yellow, blue, pink and orange, church towers and a basilica dome, and a narrow cobblestone alley where an estudiantina of musicians in old Spanish-style costumes with capes and ribbons play guitars and mandolins",
+      "motion": "The estudiantina musicians stroll and play joyfully, the ribbons on their capes swinging, as warm lights twinkle on in the colorful houses."
+    },
+    {
+      "id": "escaramuza",
+      "title": "Escaramuza charra",
+      "subject": "An escaramuza charra team: women riding horses side-saddle in a charro arena, wearing bright Adelita dresses with ruffled skirts and wide sombreros, riding together in a graceful synchronized formation, golden afternoon light",
+      "motion": "The riders canter together in a graceful synchronized curve, their bright skirts flowing and sombreros steady, as dust sparkles in the sunlight."
+    },
+    {
+      "id": "cabo-arco",
+      "title": "El Arco de Cabo San Lucas",
+      "subject": "El Arco, the natural rock arch at Land's End in Cabo San Lucas: golden rocks rising from a deep blue sea, a humpback whale leaping out of the water nearby, a warm sunset sky",
+      "motion": "The humpback whale breaches joyfully with a big splash and dives back, waves sparkle, and pelicans glide past the arch."
+    },
+    {
+      "id": "mercado",
+      "title": "Mercado mexicano",
+      "subject": "A lively Mexican market: stalls piled with colorful fruits, chilies and flowers, piñatas hanging overhead, a smiling woman making tortillas on a hot comal, cheerful shoppers, warm light",
+      "motion": "The tortillera pats and flips tortillas on the comal as steam rises, the piñatas sway gently, and shoppers chat and smile."
+    },
+    {
+      "id": "concheros",
+      "title": "Concheros — danza azteca",
+      "subject": "Concheros (Aztec dancers) performing in a plaza: dancers in red and gold costumes with tall colorful feather headdresses and shell ankle rattles, a drummer playing a huehuetl drum, swirling copal smoke",
+      "motion": "The dancers spin and stomp in rhythm, their tall feather headdresses swaying, the drummer beats the huehuetl and copal smoke swirls."
+    },
+    {
+      "id": "posada",
+      "title": "Las Posadas",
+      "subject": "Las Posadas at night in a Mexican courtyard: smiling children in sweaters cheering around a colorful star piñata hanging from a rope, one blindfolded child holding a decorated stick, paper lanterns, string lights and red poinsettias",
+      "motion": "The piñata swings on its rope as the children laugh, cheer and jump, the blindfolded child swings playfully at it, and the lanterns sway."
+    },
+    {
+      "id": "rosca-reyes",
+      "title": "Día de Reyes — Rosca",
+      "subject": "Día de Reyes: a happy Mexican family around a kitchen table sharing a large oval Rosca de Reyes decorated with candied fruit, cups of steaming hot chocolate, a warm cozy kitchen",
+      "motion": "The family laughs together and passes slices of the rosca, steam rises from the hot chocolate, and a child cheers."
+    },
+    {
+      "id": "ofrenda",
+      "title": "La ofrenda de Día de Muertos",
+      "subject": "A traditional Day of the Dead ofrenda (altar) with several tiers: glowing candles, orange cempasúchil marigolds, pan de muerto, colorful sugar skulls, papel picado banners, copal incense, fruit and a cup of hot chocolate, no photographs",
+      "motion": "Candle flames flicker warmly, copal smoke curls upward, the papel picado flutters and a few marigold petals drift down."
+    },
+    {
+      "id": "janitzio",
+      "title": "Noche de Muertos en Janitzio",
+      "subject": "Day of the Dead night on Lake Pátzcuaro: the island of Janitzio glowing with candles, fishermen in small wooden canoes holding the famous butterfly-shaped fishing nets, hundreds of candles reflecting on the dark water, orange marigolds",
+      "motion": "Candles flicker and their reflections shimmer on the lake, the fishermen gently dip and raise their butterfly nets like wings, and the canoes drift slowly."
+    }
+  ]
+}

@@ -35,6 +35,19 @@ Black pixels leave the fan's LEDs off, so the subject appears to float in the ai
 
 The prompts are in `scenes.json`. The shared style rules (`image_style`, `video_style`) enforce the pure-black, centered look. You can also paste a scene's prompts into the Higgsfield web app by hand: use `subject` + `image_style` for the image, then `motion` + `video_style` for the video.
 
+## Second set: full scenes (`--set escenas`)
+
+`scenes-escenas.json` holds 18 more scenes: full scenes of landmarks, holidays and people, such as El Grito at the Zócalo, a mariachi band, Xochimilco, the Guelaguetza, Las Posadas, Día de Reyes and Día de Muertos in Janitzio.
+
+These are full scenes rather than objects on black. The fan step fades the outer 18% of the circle to black (`fan_feather`), so each one looks like a glowing round window floating in the dark. Scenes with one-way motion, such as the Chepe train or the Xochimilco boats, set `"loop": false`; they get no last frame, and the fan fades hide the restart.
+
+Every command takes `--set escenas`. That set uses its own outputs and spend log in `out-escenas/`:
+
+```bash
+HF_BUDGET_USD=35 python3 generate.py --set escenas image mariachi
+python3 generate.py --set escenas fan
+```
+
 ## Setup
 
 1. Create an API key at [console.higgsfield.ai](https://console.higgsfield.ai) and add API credits there. The API balance is separate from a higgsfield.ai web subscription.

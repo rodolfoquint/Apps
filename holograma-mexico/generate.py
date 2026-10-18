@@ -5,6 +5,7 @@ Each scene is made in two steps: a still image on pure black, then an
 image-to-video clip that animates it. Every attempt is kept under out/ so
 you can pick the best one before spending money on the next step.
 
+  python3 generate.py [--set NAME] COMMAND ...      # --set NAME uses scenes-NAME.json and out-NAME/
   python3 generate.py estimate                      # cost of one image + one video
   python3 generate.py image  SCENE [--extra TEXT] [--seed N] [--dry-run]
   python3 generate.py select SCENE N                # use image attempt N for the video
@@ -17,7 +18,7 @@ you can pick the best one before spending money on the next step.
   python3 generate.py status
 
 Credentials come from HF_API_KEY_ID and HF_API_KEY_SECRET (Higgsfield Cloud).
-HF_BUDGET_USD (default 30) caps the total recorded spend across all runs.
+HF_BUDGET_USD (default 30) caps the total recorded spend of the chosen set.
 """
 
 import argparse
@@ -44,8 +45,20 @@ VIDEO_SECONDS = 15
 FAN_SIZE = 1080
 
 HERE = Path(__file__).resolve().parent
+# Set by use_set(): each set of scenes has its own scene list, outputs and spend log.
+SCENES_FILE = HERE / "scenes.json"
 OUT = HERE / "out"
 SPEND_LOG = OUT / "spend.jsonl"
+
+
+def use_set(name):
+    global SCENES_FILE, OUT, SPEND_LOG
+    if name:
+        SCENES_FILE = HERE / f"scenes-{name}.json"
+        OUT = HERE / f"out-{name}"
+        SPEND_LOG = OUT / "spend.jsonl"
+        if not SCENES_FILE.exists():
+            die(f"no scene list {SCENES_FILE.name}")
 
 
 def die(msg):
@@ -54,7 +67,7 @@ def die(msg):
 
 
 def load_scenes():
-    with open(HERE / "scenes.json", encoding="utf-8") as f:
+    with open(SCENES_FILE, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -261,13 +274,21 @@ def image_body(cfg, scene, extra=None, seed=None):
 
 
 def video_body(cfg, scene, image_url, extra=None, duration=VIDEO_SECONDS):
+    # Scenes with one-way motion (a train crossing, boats gliding past) set
+    # "loop": false and get no last frame; the fan fades hide the restart.
+    loop = scene.get("loop", True)
     parts = [scene["motion"]]
     if extra:
         parts.append(extra)
     parts.append(cfg["video_style"])
-    return {"prompt": " ".join(parts), "first_frame_url": image_url, "last_frame_url": image_url,
+    if loop and cfg.get("loop_style"):
+        parts.append(cfg["loop_style"])
+    body = {"prompt": " ".join(parts), "first_frame_url": image_url,
             "duration": duration, "mode": VIDEO_MODE, "aspect_ratio": "1:1", "sound": "off",
             "multi_shots": False}
+    if loop:
+        body["last_frame_url"] = image_url
+    return body
 
 
 # ---------- commands
@@ -453,13 +474,22 @@ def cmd_frames(args):
           f"{', '.join(f'{t:.1f}s' for t in times)}; left-to-right, top-to-bottom)")
 
 
-def circle_mask(size):
-    mask = OUT / "fan" / f".mask-{size}.png"
+def circle_mask(size, feather=0.0):
+    """Black overlay that hides everything outside the fan's circle. With
+    feather > 0 the outer part of the circle (that fraction of the radius)
+    fades smoothly to black, so full scenes look like a glowing round window."""
+    mask = OUT / "fan" / f".mask-{size}-{feather:.2f}.png"
     if not mask.exists():
         mask.parent.mkdir(parents=True, exist_ok=True)
+        r = size / 2 - 1
+        if feather > 0:
+            r0 = r * (1 - feather)
+            alpha = f"255*clip((hypot(X-{size}/2,Y-{size}/2)-{r0:.1f})/{r - r0:.1f},0,1)"
+        else:
+            alpha = f"if(gt(hypot(X-{size}/2,Y-{size}/2),{r}),255,0)"
         subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi",
                         "-i", f"color=black:s={size}x{size},format=rgba",
-                        "-vf", f"geq=r=0:g=0:b=0:a='if(gt(hypot(X-{size}/2,Y-{size}/2),{size}/2-1),255,0)'",
+                        "-vf", f"geq=r=0:g=0:b=0:a='{alpha}'",
                         "-frames:v", "1", str(mask)], check=True)
     return mask
 
@@ -467,7 +497,7 @@ def circle_mask(size):
 def cmd_fan(args):
     cfg = load_scenes()
     wanted = set(args.scenes)
-    mask = circle_mask(args.size)
+    mask = circle_mask(args.size, cfg.get("fan_feather", 0.0))
     made = 0
     for i, scene in enumerate(cfg["scenes"], start=1):
         if wanted and scene["id"] not in wanted:
@@ -481,7 +511,8 @@ def cmd_fan(args):
         # Square crop, shrink by --fit so the subject sits inside the fan's circle,
         # crush near-blacks to true black (LEDs off = transparent), mask outside
         # the circle, and fade in/out so clips chain cleanly.
-        inner = round(args.size * scene.get("fan_fit", args.fit) / 2) * 2
+        fit = scene.get("fan_fit") or args.fit or cfg.get("fan_fit") or 0.9
+        inner = round(args.size * fit / 2) * 2
         graph = (f"[0:v]crop='min(iw,ih)':'min(iw,ih)',scale={inner}:{inner}:flags=lanczos,"
                  f"pad={args.size}:{args.size}:(ow-iw)/2:(oh-ih)/2:black,"
                  f"colorlevels=rimin=0.06:gimin=0.06:bimin=0.06[v];"
@@ -549,6 +580,7 @@ def cmd_status(args):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--set", default="", help="scene set: uses scenes-NAME.json and out-NAME/")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("estimate").set_defaults(fn=cmd_estimate)
@@ -584,8 +616,9 @@ def main():
     s = sub.add_parser("fan")
     s.add_argument("scenes", nargs="*")
     s.add_argument("--size", type=int, default=FAN_SIZE)
-    s.add_argument("--fit", type=float, default=0.9,
-                   help="scale the picture to this fraction of the circle (default 0.9)")
+    s.add_argument("--fit", type=float,
+                   help="scale the picture to this fraction of the circle (default: the scene's "
+                        "or set's fan_fit, else 0.9)")
     s.set_defaults(fn=cmd_fan)
 
     s = sub.add_parser("loop")
@@ -595,6 +628,7 @@ def main():
     sub.add_parser("status").set_defaults(fn=cmd_status)
 
     args = p.parse_args()
+    use_set(args.set)
     args.fn(args)
 
 
