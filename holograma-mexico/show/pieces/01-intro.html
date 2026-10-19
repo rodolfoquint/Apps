@@ -153,11 +153,11 @@ function drawFlags(t, poses, A, fade) {
 }
 
 // ---------- the vortex: three spiral arms of tricolour sparks, fed until the bloom
-const ARM_N = 300, K = 1.05;
+const ARM_N = 400, K = 1.05;
 const VORTEX = (() => {
   const R = rng(101), list = [];
   for (let a = 0; a < 3; a++) for (let i = 0; i < ARM_N; i++) {
-    list.push({ arm: a * TAU / 3, col: TRI[a], r0: 560 + R() * 170, rc: 8 + R() * 34, ts: 0.05 + R() * 2.3, dur: 1.15 + R() * 0.45,
+    list.push({ arm: a * TAU / 3, col: TRI[a], r0: 560 + R() * 170, rc: 8 + R() * 34, ts: 0.05 + 2.3 * Math.sqrt(R()), dur: 1.15 + R() * 0.45,
       j: (R() - 0.5) * 0.42, s: 0.55 + R() * 0.9, tw: R() * TAU });
   }
   return list;
@@ -220,7 +220,7 @@ function drawCore(t) {
   const bt = t - TB;
   if (bt > 0 && bt < 1.8) {
     const k = ease.out3(bt / 0.55);
-    softGlow(C, C, 120 + 330 * k, WARM, 0.55 * (1 - smooth(0.05, 1.6, bt)), 0.4);
+    softGlow(C, C, 120 + 330 * k, WARM, 0.42 * (1 - smooth(0.05, 1.6, bt)), 0.35);
     // three echoing shock rings
     for (let i = 0; i < 3; i++) {
       const tt = bt - i * 0.09;
@@ -250,7 +250,7 @@ function drawRays(t) {
     const w0 = long ? 10 : 6;
     g.save(); g.rotate(rot + i * TAU / N);
     const lg = g.createLinearGradient(0, 0, L, 0);
-    lg.addColorStop(0, rgba(WARM, 0)); lg.addColorStop(0.07, rgba(WARM, 0.32)); lg.addColorStop(0.3, rgba(col, 0.72)); lg.addColorStop(1, rgba(col, 0));
+    lg.addColorStop(0, rgba(WARM, 0)); lg.addColorStop(0.1, rgba(WARM, 0.03)); lg.addColorStop(0.2, rgba(WARM, 0.3)); lg.addColorStop(0.36, rgba(col, 0.72)); lg.addColorStop(1, rgba(col, 0));
     g.fillStyle = lg; g.beginPath(); g.moveTo(0, -w0 * 0.4); g.lineTo(L * 0.12, -w0); g.lineTo(L, 0); g.lineTo(L * 0.12, w0); g.lineTo(0, w0 * 0.4); g.closePath(); g.fill();
     g.restore();
   }
@@ -260,8 +260,8 @@ function drawRays(t) {
   ctx.filter = 'none'; ctx.globalAlpha = strength; ctx.drawImage(RAYS.cv, 0, 0);
   ctx.restore();
   // the sun's heart
-  softGlow(C, C, 150 * grow, WARM, 0.55 * strength, 0.45);
-  softGlow(C, C, 40 * grow, WHITE, 0.6 * strength, 0.6);
+  softGlow(C, C, 170 * grow, GOLD, 0.5 * strength, 0.4);
+  softGlow(C, C, 46 * grow, WARM, 0.5 * strength, 0.6);
 }
 
 // burst sparks: thrown outward, still carrying the vortex's spin
