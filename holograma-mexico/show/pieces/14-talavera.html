@@ -1,0 +1,344 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Talavera de Puebla: one hand-painted tile draws itself in light and glazes over with a glint;
+// its glaze melts away and the painting becomes a turning kaleidoscope, a mirrored band fans open
+// from under it and small tiles slide out into a ring. Layers turn against each other, sheen and
+// sparkles cross the glaze, then everything folds back under the single tile and fades.
+const { C, ctx, clamp, lerp, smooth, ease, rgba, COLORS } = HG;
+const TAU = Math.PI * 2;
+const COBALT = [70, 120, 255], BLADE = [120, 165, 255], GLAZE = [200, 220, 255], GOLD = [255, 196, 90];
+
+const M = HG.layer(), S = HG.layer(), T = HG.layer(), B = HG.layer(), K = HG.layer();
+const wedge = document.createElement('canvas'); wedge.width = wedge.height = 8;
+const wg = wedge.getContext('2d');
+
+// ---------- helpers (local to this piece)
+
+// N-fold mirrored kaleidoscope of img, drawn into g centred at C, restricted to the soft annulus r0..r1.
+// The source is the tile rotated by sRot, scaled by sScale (screen px per tile px) and offset by (sx, sy).
+// open < 1 folds the wedges together like a hand fan opening from `groups` points; sideFeather
+// (radians) softens the side edges of every blade so a half-open fan reads as blades, not cuts.
+const orderCache = new Map();
+function kaleido(g, img, { n, r0 = 0, r1, rot = 0, sRot = 0, sScale = 1, sx = 0, sy = 0, open = 1, groups = 1, feather = 14, featherIn = feather, zoom = 1, sideFeather = 0 }) {
+  if (open <= 0.001) return;
+  const a = TAU / n, eps = 1.2 / r1 + 0.003;
+  const R = Math.ceil(r1) + 2, oy = Math.ceil(R * Math.sin(eps)) + 2;
+  const ww = R + 2, wh = oy + Math.ceil(R * Math.sin(a + eps)) + 2;
+  if (wedge.width < ww || wedge.height < wh) { wedge.width = Math.max(wedge.width, ww); wedge.height = Math.max(wedge.height, wh); }
+  HG.reset(wg); wg.clearRect(0, 0, wedge.width, wedge.height);
+  wg.save(); wg.translate(1, oy);
+  wg.beginPath(); wg.moveTo(0, 0); wg.arc(0, 0, r1, -eps, a + eps); wg.closePath(); wg.clip();
+  wg.imageSmoothingQuality = 'high';
+  wg.rotate(sRot); wg.scale(sScale, sScale); wg.translate(-img.width / 2 - sx, -img.height / 2 - sy);
+  wg.drawImage(img, 0, 0);
+  wg.restore();
+  // soft annulus
+  wg.globalCompositeOperation = 'destination-in';
+  const m = wg.createRadialGradient(1, oy, 0, 1, oy, r1);
+  const f0 = clamp((r0 - featherIn) / r1), f1 = clamp(r0 / r1), f2 = clamp((r1 - feather) / r1);
+  m.addColorStop(0, r0 > 0 ? 'rgba(0,0,0,0)' : '#000');
+  if (r0 > 0) { m.addColorStop(f0, 'rgba(0,0,0,0)'); m.addColorStop(f1, '#000'); }
+  m.addColorStop(Math.max(f1, f2), '#000'); m.addColorStop(1, 'rgba(0,0,0,0)');
+  wg.fillStyle = m; wg.fillRect(0, 0, wedge.width, wedge.height);
+  // feathered blade sides (the ramp starts at the overlap margin, so a closed fan has no seams)
+  if (sideFeather > 0.002) {
+    const span = a + 2 * eps, f = Math.min(sideFeather, span / 2 - 0.002);
+    const cg = wg.createConicGradient(-eps, 1, oy);
+    cg.addColorStop(0, 'rgba(0,0,0,0)'); cg.addColorStop(f / TAU, '#000');
+    cg.addColorStop((span - f) / TAU, '#000'); cg.addColorStop(span / TAU, 'rgba(0,0,0,0)'); cg.addColorStop(1, 'rgba(0,0,0,0)');
+    wg.fillStyle = cg; wg.fillRect(0, 0, wedge.width, wedge.height);
+  }
+  wg.globalCompositeOperation = 'source-over';
+
+  // copies: alternate wedges mirrored; while folding, outer blades sit under the inner ones
+  const key = n + '/' + groups;
+  if (!orderCache.has(key)) {
+    const gw = TAU / groups, list = [];
+    for (let k = 0; k < n; k++) {
+      const c = (k + 0.5) * a, gc = Math.round(c / gw) * gw;
+      list.push({ k, gc, d: c - gc });
+    }
+    list.sort((p, q) => Math.abs(q.d) - Math.abs(p.d));
+    orderCache.set(key, list);
+  }
+  g.save(); g.imageSmoothingQuality = 'high'; g.globalAlpha = 1;
+  for (const { k, gc, d } of orderCache.get(key)) {
+    const c = gc + d * open;
+    g.setTransform(zoom, 0, 0, zoom, C, C);
+    if (k % 2 === 0) g.rotate(rot + c - a / 2); else { g.rotate(rot + c + a / 2); g.scale(1, -1); }
+    g.drawImage(wedge, 0, 0, ww, wh, -1, -oy, ww, wh);
+  }
+  g.restore();
+}
+
+// kaleidoscope at partial opacity: built at full alpha in K first, so the overlapping wedge seams
+// don't show as brighter spokes, then laid down as one sheet
+function kaleidoA(g, img, opts, alpha) {
+  if (alpha <= 0.003) return;
+  if (alpha >= 0.999) return kaleido(g, img, opts);
+  const k = K.ctx; HG.reset(k); k.clearRect(0, 0, HG.W, HG.W);
+  kaleido(k, img, opts);
+  g.save(); HG.reset(g); g.globalAlpha = alpha; g.drawImage(K.cv, 0, 0); g.restore();
+}
+
+// erase everything inside radius r (soft edge of width w) from layer g
+function hole(g, r, w = 10) {
+  if (r <= 0) return;
+  g.save(); HG.reset(g); g.globalCompositeOperation = 'destination-out';
+  const r0 = Math.max(0, r - w / 2), r1 = r + w / 2;
+  const hg = g.createRadialGradient(C, C, 0, C, C, r1);
+  hg.addColorStop(0, '#000'); hg.addColorStop(r0 / r1, '#000'); hg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = hg; g.fillRect(C - r1, C - r1, 2 * r1, 2 * r1);
+  g.restore();
+}
+
+// the tile itself, its square corners rounding off into a circle as `round` goes 0..1
+function tile(g, img, size, rot, { round = 0, alpha = 1, x = C, y = C } = {}) {
+  if (alpha <= 0.003) return;
+  g.save(); g.translate(x, y); g.rotate(rot);
+  if (round > 0.001) { g.beginPath(); g.roundRect(-size / 2, -size / 2, size, size, round * size / 2); g.clip(); }
+  g.globalAlpha = alpha; g.imageSmoothingQuality = 'high';
+  g.drawImage(img, -size / 2, -size / 2, size, size);
+  g.restore();
+}
+
+// glowing arcs around C (one path, so where arcs meet nothing doubles up); arcs = [[a0, a1], ...]
+function arcsGlow(g, r, arcs, col, { width = 4, blur = 8, alpha = 1 } = {}) {
+  if (alpha <= 0.003 || r <= 0) return;
+  const path = () => { g.beginPath(); for (const [a0, a1] of arcs) if (a1 - a0 > 0.001) { g.moveTo(C + Math.cos(a0) * r, C + Math.sin(a0) * r); g.arc(C, C, r, a0, a1); } };
+  g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = rgba(col, 1); g.lineCap = 'round';
+  g.globalAlpha = alpha * 0.7; g.lineWidth = width * 2.2; g.filter = `blur(${blur}px)`; path(); g.stroke();
+  g.filter = 'none'; g.globalAlpha = alpha; g.lineWidth = Math.max(1.2, width / 2.5); path(); g.stroke();
+  g.restore();
+}
+const arcGlow = (g, r, a0, sweep, col, o) => sweep > 0.001 && arcsGlow(g, r, [[a0, a0 + sweep]], col, o);
+
+// glowing radial blade edges (ribs of a hand fan) at the given angles, between radii r0..r1
+function ribs(g, angles, r0, r1, col, alpha) {
+  if (alpha <= 0.003) return;
+  const path = () => { g.beginPath(); for (const th of angles) { g.moveTo(C + Math.cos(th) * r0, C + Math.sin(th) * r0); g.lineTo(C + Math.cos(th) * r1, C + Math.sin(th) * r1); } };
+  g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = rgba(col, 1); g.lineCap = 'round';
+  g.globalAlpha = alpha * 0.6; g.lineWidth = 7; g.filter = 'blur(6px)'; path(); g.stroke();
+  g.filter = 'none'; g.globalAlpha = alpha; g.lineWidth = 1.6; path(); g.stroke();
+  g.restore();
+}
+
+// four-point glint star
+function star(g, x, y, s, a, rot = 0, col = GLAZE) {
+  if (a <= 0.003 || s <= 0) return;
+  const sp = HG.sprite(col);
+  g.save(); g.globalCompositeOperation = 'lighter'; g.translate(x, y); g.rotate(rot);
+  g.globalAlpha = Math.min(1, a);
+  g.drawImage(sp, -s / 2, -s * 0.045, s, s * 0.09);
+  g.drawImage(sp, -s * 0.045, -s / 2, s * 0.09, s);
+  g.globalAlpha = Math.min(1, a * 0.8);
+  g.drawImage(sp, -s * 0.16, -s * 0.16, s * 0.32, s * 0.32);
+  g.restore();
+}
+
+// add a moving sheen to whatever is in M, shaped by a gradient (only the glaze/paint lights up)
+function sheen(grad, alpha) {
+  if (alpha <= 0.003) return;
+  const s = S.ctx; HG.reset(s); s.clearRect(0, 0, HG.W, HG.W);
+  s.drawImage(M.cv, 0, 0);
+  s.globalCompositeOperation = 'destination-in'; s.fillStyle = grad(s); s.fillRect(0, 0, HG.W, HG.W);
+  HG.reset(s);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha; ctx.drawImage(S.cv, 0, 0); ctx.restore();
+}
+
+// small tiles get a pale-blue glaze so the ring doesn't outshine the mandala (built once from the asset)
+let smallTint = null;
+function tinted(img) {
+  if (smallTint) return smallTint;
+  const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  g.globalCompositeOperation = 'multiply'; g.fillStyle = 'rgb(205,222,255)'; g.fillRect(0, 0, c.width, c.height);
+  g.globalCompositeOperation = 'destination-in'; g.drawImage(img, 0, 0);
+  return (smallTint = c);
+}
+
+// ---------- choreography (all radii at camera scale 1; Z pushes the camera in for the single-tile acts)
+const SIZE = 440;                       // seed tile side; its inscribed circle becomes the kaleidoscope core
+const RC = SIZE / 2;                    // core radius
+const B0 = 238, B1 = 338;               // mirrored band
+const NT = 20, RT = 404, TS = 82;       // ring of small tiles
+const BA = TAU / 16;                    // band blade angle
+const WAVE = [0, 2, 1, 3];              // tile ring builds in 4 balanced waves of 5 (every 72 deg)
+const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
+
+HG.start({
+  duration: 12,
+  assets: {
+    tile: '../assets/14-talavera_glaze.png', ink: '../assets/14-talavera_ink.png',
+    lines: '../assets/14-talavera_lines.png', small: '../assets/14-talavera_small.png',
+  },
+  render(t, A) {
+    // camera: close on the single tile, pulls back as the mandala opens, pushes in again as it folds
+    const zIntro = 1.24 - 0.06 * (1 - ease.out3(t / 3.2));                  // slow push-in on the drawing
+    const Z = lerp(1, zIntro, 1 - ease.inOut3((t - 3.3) / 1.9)) + 0.24 * ease.inOut3((t - 8.9) / 1.7);
+    const breath = Math.sin((t - 4) * 1.6) * bump(t, 4.2, 5.6, 8.0, 9.0);
+    const rc = Math.PI / 4 + (Math.PI / 2) * ease.inOut3((t - 1.0) / 10.2);   // core turns a quarter (tile looks the same)
+    const brot = -0.16 * t - 0.45 * ease.inOut3((t - 3) / 7);                // the band turns against the core
+    const end = smooth(11.0, 11.85, t);                                      // final dissolve
+    const endScale = 1 - 0.05 * ease.in3((t - 10.8) / 1.2);
+    const S1 = SIZE * Z * endScale;                                          // seed tile on screen
+
+    // background haze: a faint cobalt breath held close behind the mandala
+    const haze = smooth(0.8, 3.5, t) * (1 - smooth(9.6, 11.5, t));
+    if (haze > 0) {
+      const hg = ctx.createRadialGradient(C, C, 40, C, C, 440 * Z);
+      hg.addColorStop(0, rgba([20, 40, 120], 0.15 * haze)); hg.addColorStop(0.7, rgba([10, 20, 70], 0.07 * haze)); hg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = hg; ctx.fillRect(0, 0, HG.W, HG.W);
+    }
+
+    // ---------- band: fans open from under the core, later folds shut and tucks back under it
+    const open = ease.inOut3((t - 3.3) / 1.4) * (1 - ease.inOut3((t - 8.65) / 0.9));
+    const zb = lerp(0.62, 1, ease.out3((t - 3.3) / 1.3)) * lerp(1, 0.62, ease.inOut3((t - 8.95) / 0.9));
+    const bandA = 0.95 * smooth(0, 0.12, open + 0.12 * smooth(8.6, 8.7, t)) * (1 - smooth(9.65, 9.85, t));
+    const bg = B.ctx; HG.reset(bg); bg.clearRect(0, 0, HG.W, HG.W);
+    if (bandA > 0.003) {
+      kaleido(bg, A.ink, {
+        n: 16, r0: B0 * Z, r1: B1 * Z, rot: brot, sRot: -0.18 * t, sScale: 0.78 * Z * (1 + 0.03 * breath),
+        open: Math.max(open, 0.002), groups: 8, zoom: zb, feather: 12 * Z, sideFeather: 0.45 * BA * (1 - open),
+      });
+      // cobalt rims on each blade pair, folding with the petals; light ribs on the blade sides while the fan moves
+      const half = (BA / 2) * (1 + open), arcs = [], sides = [];
+      for (let j = 0; j < 8; j++) { const gc = brot + j * TAU / 8; arcs.push([gc - half, gc + half]); sides.push(gc - half, gc + half); }
+      arcsGlow(bg, (B1 + 10) * Z * zb, arcs, COBALT, { width: 4, blur: 8, alpha: 0.5 });
+      ribs(bg, sides, (B0 - 4) * Z * zb, (B1 + 6) * Z * zb, BLADE, 0.55 * smooth(0, 0.1, open) * (1 - smooth(0.7, 1, open)));
+      hole(bg, RC * Z - 2, 8);                 // the core sits on top: whatever is under it is gone
+    }
+
+    // ---------- small tiles slide out from under the band edge into a ring, and back under at the end
+    const tg = T.ctx; HG.reset(tg); tg.clearRect(0, 0, HG.W, HG.W);
+    const rr = 0.16 * t, small = tinted(A.small);
+    let anyTile = false;
+    for (let i = 0; i < NT; i++) {
+      const dl = 0.1 * WAVE[i % 4];
+      const pOut = ease.out3((t - 3.9 - dl) / 1.3);
+      const pIn = ease.inOut3((t - 8.05 - dl) / 0.9);
+      const p = pOut * (1 - pIn);
+      if (p <= 0.002) continue;
+      anyTile = true;
+      const th = i * TAU / NT + rr - 1.1 * (1 - p) * (pIn > 0 ? -1 : 1);
+      const r = lerp(250, RT + 3 * breath, p) * Z;
+      tile(tg, small, TS * Z * lerp(0.35, 1, p), th + Math.PI / 4 + 2.2 * (1 - p), { x: C + Math.cos(th) * r, y: C + Math.sin(th) * r });
+    }
+    if (anyTile) hole(tg, (B1 * zb + 4) * Z, 10);   // tiles exist only outside the band's rim
+
+    // ---------- build the mandala into M (back to front)
+    const g = M.ctx; HG.reset(g); g.clearRect(0, 0, HG.W, HG.W);
+    if (anyTile) { g.globalAlpha = 0.85; g.drawImage(T.cv, 0, 0); g.globalAlpha = 1; }
+    if (bandA > 0.003) { g.globalAlpha = bandA; g.drawImage(B.cv, 0, 0); g.globalAlpha = 1; }
+
+    // gold ring: grows out of the four tile corners as they round off, retracts into them at the end
+    const ringHW = (Math.PI / 4) * ease.inOut3((t - 3.15) / 1.1) * (1 - ease.inOut3((t - 9.25) / 0.95));
+    if (ringHW > 0.001) {
+      const arcs = [];
+      for (let j = 0; j < 4; j++) { const ca = rc + Math.PI / 4 + j * Math.PI / 2; arcs.push([ca - ringHW, ca + ringHW]); }
+      arcsGlow(g, (RC + 9) * Z, arcs, GOLD, { width: 4, blur: 7, alpha: 0.55 * (1 - smooth(9.9, 10.25, t)) });
+    }
+
+    // seed tile (glazed): fills in after the line drawing, returns at the end
+    const glazeIn = smooth(1.25, 2.4, t);
+    const round = smooth(2.85, 3.5, t) * (1 - smooth(9.95, 10.5, t));
+    const k8 = smooth(2.45, 2.85, t) * (1 - smooth(9.92, 10.12, t));
+    // the glaze melts away from the centre outward (and closes back in at the end)
+    const melt = ease.inOut3((t - 3.55) / 0.95) * (1 - ease.inOut3((t - 9.2) / 0.75));
+    const MF = 46 * Z, RCZ = RC * Z, meltR = melt * (RCZ + MF);
+    const seedA = glazeIn * (1 - end) * (round < 0.999 && melt <= 0.001 ? 1 : 0);
+    tile(g, A.tile, S1, rc, { round, alpha: seedA });
+
+    // core kaleidoscope: identical to the tile at rest, then it turns, zooms and wanders
+    const evo = ease.inOut3((t - 3.3) / 6.4);
+    const bloom = bump(t, 3.6, 6.2, 7.4, 9.7);
+    const coreScale = SIZE / 1024 * (1 + 0.55 * bloom + 0.04 * breath);
+    const wander = 70 * bloom;
+    const core = {
+      n: 8, r1: RCZ * (1 + 0.025 * breath), rot: rc, sRot: (Math.PI / 2) * evo, sScale: coreScale * Z,
+      sx: wander * Math.cos(t * 0.9), sy: wander * Math.sin(t * 0.9), feather: 6,
+    };
+    if (k8 > 0.003) {
+      // a milky tin-glaze tone returns under the cobalt at the peak, so it reads as Talavera, not just blue
+      const tone = 0.3 * bump(t, 4.9, 6.2, 7.9, 9.0) * (melt > 0.001 ? 1 : 0);
+      if (melt > 0.001) {
+        kaleidoA(g, A.tile, core, tone);
+        kaleido(g, A.ink, core);
+      }
+      if (meltR < RCZ + MF - 1) {
+        if (k8 < 0.999) {
+          // crossfade with the seed tile underneath: build the core sheet in S, then lay it down once
+          const s = S.ctx; HG.reset(s); s.clearRect(0, 0, HG.W, HG.W);
+          kaleido(s, A.tile, { ...core, r0: meltR, featherIn: MF });
+          g.save(); g.globalAlpha = k8; g.drawImage(S.cv, 0, 0); g.restore();
+        } else kaleido(g, A.tile, { ...core, r0: meltR, featherIn: MF });
+      }
+    }
+
+    // ---------- composite with bloom
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.38; ctx.filter = 'blur(18px)'; ctx.drawImage(M.cv, 0, 0);
+    ctx.filter = 'none'; ctx.restore();
+    ctx.save(); ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(M.cv, 0, 0); ctx.restore();
+
+    // a ring of light rides the melting edge of the glaze
+    if (melt > 0.001 && melt < 0.999) arcGlow(ctx, Math.max(0, meltR - MF * 0.55), 0, TAU, GLAZE, { width: 5, blur: 10, alpha: 0.45 * Math.sin(Math.PI * melt) });
+
+    // line drawing of the tile: draws itself first, lingers faintly, glows again as the tile dissolves
+    const lk = ease.out3((t - 0.3) / 1.7);
+    const lineA = lerp(1, 0.3, smooth(1.5, 2.4, t)) * (1 - smooth(2.4, 3.2, t)) + 0.8 * bump(t, 10.75, 11.15, 11.45, 12.0);
+    for (let j = 0; j < 2; j++) HG.lineReveal(A.lines, C, C, S1, lk, { rotation: rc, color: GLAZE, alpha: lineA * (j ? 0.7 : 1) });
+    // a faint glaze ring leads the drawing outward (echoes the opening ring of the Piedra del Sol)
+    if (lk > 0 && lk < 1) {
+      const rho = lk * (S1 / Math.SQRT2 + 90), tip = S1 / Math.SQRT2;
+      const ra = 0.42 * smooth(0.3, 0.5, t) * (1 - smooth(tip - 40, tip + 50, rho));
+      arcGlow(ctx, rho - 14, 0, TAU, GLAZE, { width: 5, blur: 12, alpha: ra });
+      for (let j = 0; j < 8; j++) { const th = rc + j * TAU / 8 + 0.35 * lk; star(ctx, C + Math.cos(th) * (rho - 14), C + Math.sin(th) * (rho - 14), 46, ra * 1.3, th); }
+    }
+
+    // glint sweeping across the glaze from a fixed light (start and end), with a star on the corner it leaves
+    const GL = Math.PI / 3, vx = Math.cos(GL), vy = Math.sin(GL);
+    const glint = (t0, dur) => {
+      const u = (t - t0) / dur; if (u <= 0 || u >= 1) return;
+      const e = ease.inOut3(u), d = S1 * 0.8;
+      const ox = C + vx * d * lerp(-1, 1, e), oy = C + vy * d * lerp(-1, 1, e);
+      sheen(s => {
+        const lg = s.createLinearGradient(ox - vx * 75, oy - vy * 75, ox + vx * 75, oy + vy * 75);
+        lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(0.5, 'rgba(0,0,0,1)'); lg.addColorStop(1, 'rgba(0,0,0,0)');
+        return lg;
+      }, 0.42 * Math.sin(Math.PI * u));
+      // the tile corner nearest the light's exit catches a star
+      let best = 0, bd = 9;
+      for (let k = 0; k < 4; k++) { const ca = rc + Math.PI / 4 + k * Math.PI / 2, dd = Math.abs(Math.atan2(Math.sin(ca - GL), Math.cos(ca - GL))); if (dd < bd) { bd = dd; best = ca; } }
+      const su = (u - 0.55) / 0.45, cr = S1 / Math.SQRT2 * 0.96;
+      if (su > 0) star(ctx, C + Math.cos(best) * cr, C + Math.sin(best) * cr, 120 * Math.sin(Math.PI * su), 0.9 * Math.sin(Math.PI * su), su * 0.5);
+    };
+    glint(2.0, 1.1);
+    glint(10.3, 1.0);
+
+    // rotating sheen over the mandala while it turns
+    const sh = bump(t, 4.8, 5.8, 8.2, 9.0);
+    if (sh > 0) sheen(s => {
+      const cg = s.createConicGradient(rc + 0.9 * t, C, C);
+      for (let i = 0; i < 4; i++) {
+        cg.addColorStop((i + 0.38) / 4, 'rgba(0,0,0,0)'); cg.addColorStop((i + 0.5) / 4, 'rgba(0,0,0,1)'); cg.addColorStop((i + 0.62) / 4, 'rgba(0,0,0,0)');
+      }
+      return cg;
+    }, 0.28 * sh);
+
+    // kaleidoscopic sparkles: bursts of glints mirrored around the circle [t0, r, count, offset, size, which layer]
+    const bursts = [[5.1, 120, 8, 0.0, 70, 'core'], [6.1, 290, 16, 0.5, 120, 'band'], [7.0, 170, 8, 0.2, 75, 'core'], [7.6, 405, 20, 0.5, 80, 'ring']];
+    for (const [t0, r, n, off, size, wh] of bursts) {
+      const u = (t - t0) / 0.9; if (u <= 0 || u >= 1) continue;
+      const a = Math.sin(Math.PI * u), s = size * Math.sin(Math.PI * Math.pow(u, 0.7));
+      for (let i = 0; i < n; i++) {
+        const th = (i + off) * TAU / n + (wh === 'ring' ? rr : wh === 'band' ? brot : rc);
+        star(ctx, C + Math.cos(th) * r * Z, C + Math.sin(th) * r * Z, s * 0.8, a * 0.9, u * 0.6);
+      }
+    }
+  },
+});
+</script></body></html>

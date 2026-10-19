@@ -1,0 +1,435 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Ajolote: a single bubble rises out of the dark and touches the axolotl's face; the
+// creature is drawn in coral light from that point outward, then fills with its real
+// colour as the light passes. It floats in deep water under a shimmering surface: gills
+// sway and breathe (a per-pixel displacement field), light pulses run out along them,
+// caustics play over its skin and bubbles drift past. At the end the colour drains back
+// into the line drawing, the drawing folds back into the face, and a last bubble rises away.
+// Assets: prepare.py on out/images/ajolote-1.png -> assets/06-ajolote.png and _lines.png.
+const { W, C, ctx, clamp, lerp, smooth, ease, COLORS, rgba } = HG;
+const TAU = Math.PI * 2;
+
+function hash(a, b) {
+  let h = (Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+const sm = x => { x = clamp(x); return x * x * (3 - 2 * x); };
+
+// ---------- artwork geometry (asset pixels of the 1024 cut-out)
+const PIV = [504, 568];          // centre of the creature's enclosing circle (radius ~600)
+const FACE = [318, 440];         // where the light enters and leaves
+const MOUTH = [262, 497];
+const EYES = [[193, 405, 0.85], [428, 416, 1]];
+const FRONDS = [                 // gill fronds: base, tip, half-width, phase
+  { a: [268, 292], b: [238, 52], hw: 62, ph: 0.0 },
+  { a: [200, 345], b: [38, 210], hw: 60, ph: 0.9 },
+  { a: [170, 448], b: [20, 410], hw: 58, ph: 1.8 },
+  { a: [585, 305], b: [742, 80], hw: 64, ph: 0.5 },
+  { a: [612, 372], b: [880, 242], hw: 64, ph: 1.4 },
+  { a: [602, 470], b: [864, 452], hw: 60, ph: 2.3 },
+];
+const TAIL = { a: [785, 585], b: [935, 990], hw: 118 };
+const LEGS = [
+  { a: [282, 600], b: [212, 778], hw: 52, ph: 0.0 },
+  { a: [585, 640], b: [572, 808], hw: 58, ph: 2.6 },
+  { a: [478, 700], b: [468, 838], hw: 45, ph: 1.3 },
+];
+
+// ---------- timeline
+const T_POP = 1.45;                                  // the first bubble touches the face
+const lineK = t => t < 6 ? ease.out3((t - T_POP) / 2.7) : 1 - ease.inOut3((t - 10.0) / 1.25);
+const lineA = t => 1 - 0.82 * smooth(3.7, 5.2, t) + 0.82 * smooth(9.3, 10.1, t);
+const out2 = x => 1 - Math.pow(1 - clamp(x), 2);
+const photoRho = t => t < 7 ? lerp(120, 1080, out2((t - 3.1) / 2.6)) : lerp(1080, 360, ease.inOut3((t - 8.9) / 1.45));
+const photoA = t => smooth(3.1, 3.7, t) * (1 - smooth(9.65, 10.3, t));
+const ambient = t => smooth(0.7, 3.2, t) * (1 - smooth(10.2, 11.7, t));
+const hero = t => smooth(4.6, 5.8, t) * (1 - smooth(8.9, 9.8, t));
+
+// ---------- motion: a slow underwater float (pure functions of t)
+const scaleAt = t => 0.735 * (1 + 0.03 * ease.inOut3((t - 2) / 8));
+const offX = t => 9 * Math.sin(TAU * t / 7.4 + 0.6);
+const offY = t => 13 * Math.sin(TAU * t / 5.2 - 0.9);
+const rotAt = t => 0.035 + 0.028 * Math.sin(TAU * t / 5.2 - 2.0);
+function xf(t) { return { s: scaleAt(t), r: rotAt(t), x: C + offX(t), y: C + offY(t) }; }
+function toCanvas(p, t) {
+  const f = xf(t), dx = (p[0] - PIV[0]) * f.s, dy = (p[1] - PIV[1]) * f.s;
+  return [f.x + dx * Math.cos(f.r) - dy * Math.sin(f.r), f.y + dx * Math.sin(f.r) + dy * Math.cos(f.r)];
+}
+function applyXf(c, t) {
+  const f = xf(t);
+  c.translate(f.x, f.y); c.rotate(f.r); c.scale(f.s, f.s); c.translate(-PIV[0], -PIV[1]);
+}
+
+// ---------- the living creature: a displacement field moves gills, tail and legs
+const N = 800, Q = N / 1024;
+let WK = null;   // work buffers, built once from the assets
+function buildWork(A) {
+  const mk = () => { const c = document.createElement('canvas'); c.width = c.height = N; return c; };
+  const read = img => { const c = mk(), g = c.getContext('2d', { willReadFrequently: true }); g.imageSmoothingQuality = 'high'; g.drawImage(img, 0, 0, N, N); return g.getImageData(0, 0, N, N).data; };
+  const photo = read(A.photo), lines = read(A.lines);
+  // soft highlight knee (hue preserved) so caustics and glow have headroom instead of clipping to white
+  for (let i = 0; i < N * N * 4; i += 4) {
+    const m = Math.max(photo[i], photo[i + 1], photo[i + 2]);
+    if (m > 195) { const f = (195 + (m - 195) * 0.5) / m; photo[i] *= f; photo[i + 1] *= f; photo[i + 2] *= f; }
+  }
+  const lineA_ = new Uint8Array(N * N), gm = new Float32Array(N * N);
+  for (let i = 0; i < N * N; i++) {
+    lineA_[i] = lines[i * 4 + 3];
+    const r = photo[i * 4], g = photo[i * 4 + 1], b = photo[i * 4 + 2], a = photo[i * 4 + 3] / 255;
+    gm[i] = sm(((r - Math.max(g, b)) / 255 - 0.3) / 0.28) * a;       // saturated coral = gill filaments
+  }
+  const pc = mk(), lc = mk(), gc = mk();
+  const px = pc.getContext('2d'), lx = lc.getContext('2d'), gx = gc.getContext('2d');
+  const pd = px.createImageData(N, N), ld = lx.createImageData(N, N), gd = gx.createImageData(N, N);
+  pd.data.set(photo);
+  for (let i = 0; i < N * N; i++) {
+    ld.data[i * 4] = 255; ld.data[i * 4 + 1] = 112; ld.data[i * 4 + 2] = 140; ld.data[i * 4 + 3] = lineA_[i];
+    gd.data[i * 4] = 255; gd.data[i * 4 + 1] = 118; gd.data[i * 4 + 2] = 138; gd.data[i * 4 + 3] = 0;
+  }
+  // regions of influence, stored as flat lists of (pixel, u along the limb, signed width, weight)
+  const touched = new Uint8Array(N * N);
+  function region(seg, beyond) {
+    const ax = seg.a[0] * Q, ay = seg.a[1] * Q, bx = seg.b[0] * Q, by = seg.b[1] * Q, hw = seg.hw * Q;
+    const L = Math.hypot(bx - ax, by - ay), tx = (bx - ax) / L, ty = (by - ay) / L, nx = -ty, ny = tx, reach = hw * 1.9;
+    const pad = reach + L * beyond;
+    const x0 = Math.max(0, Math.floor(Math.min(ax, bx) - pad)), x1 = Math.min(N - 1, Math.ceil(Math.max(ax, bx) + pad));
+    const y0 = Math.max(0, Math.floor(Math.min(ay, by) - pad)), y1 = Math.min(N - 1, Math.ceil(Math.max(ay, by) + pad));
+    const idx = [], us = [], ps = [], ws = [];
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const rx = x - ax, ry = y - ay, u = (rx * tx + ry * ty) / L, p = rx * nx + ry * ny;
+      if (u < -0.2 || u > 1 + beyond) continue;
+      const w = sm((u + 0.2) / 0.4) * (1 - sm((u - 1 - beyond * 0.3) / (beyond * 0.7))) * (1 - sm((Math.abs(p) - hw * 0.9) / (reach - hw * 0.9)));
+      if (w < 0.003) continue;
+      const i = y * N + x; idx.push(i); us.push(u); ps.push(p / hw); ws.push(w); touched[i] = 1;
+    }
+    return { idx: Int32Array.from(idx), u: Float32Array.from(us), p: Float32Array.from(ps), w: Float32Array.from(ws), nx, ny, ...seg };
+  }
+  const fr = FRONDS.map(f => region(f, 0.3)), tail = region(TAIL, 0.15), legs = LEGS.map(l => region(l, 0.15));
+  const list = []; for (let i = 0; i < N * N; i++) if (touched[i]) list.push(i);
+  WK = { photo, lineA: lineA_, gm, pc, lc, gc, px, lx, gx, pd, ld, gd, fr, tail, legs, list: Int32Array.from(list),
+    dx: new Float32Array(N * N), dy: new Float32Array(N * N), sh: new Float32Array(N * N) };
+}
+
+function animate(t) {
+  const { dx, dy, sh, list } = WK;
+  for (let k = 0; k < list.length; k++) { const i = list[k]; dx[i] = 0; dy[i] = 0; sh[i] = 0; }
+  const shimmerOn = hero(t);
+  // gill fronds: a slow wave runs along each frond, and the filaments fluff out and relax
+  for (const R of WK.fr) {
+    const { idx, u, p, w, nx, ny, ph } = R, a1 = 11 * Q, a2 = 7 * Q;
+    for (let k = 0; k < idx.length; k++) {
+      const uu = u[k], g = Math.pow(clamp(uu, 0, 1.25), 1.4), i = idx[k];
+      const sway = a1 * g * Math.sin(TAU * t / 3.3 - 2.3 * uu + ph);
+      const fluff = a2 * p[k] * g * (0.5 + 0.5 * Math.sin(TAU * t / 1.9 - 3.2 * uu + ph * 1.7));
+      const d = (sway + fluff) * w[k];
+      dx[i] += nx * d; dy[i] += ny * d;
+      if (shimmerOn > 0) {
+        const b = 0.5 + 0.5 * Math.cos(TAU * t / 2.4 - 4.4 * uu + ph * 2.1);
+        sh[i] += w[k] * sm((uu - 0.05) / 0.45) * (0.18 + 0.82 * b * b * b * b * b) * shimmerOn;
+      }
+    }
+  }
+  { // tail: a lazy sweep with a lag toward the tip
+    const { idx, u, w, nx, ny } = WK.tail, a = 13 * Q;
+    for (let k = 0; k < idx.length; k++) {
+      const uu = clamp(u[k], 0, 1.15), d = a * Math.pow(uu, 1.6) * Math.sin(TAU * t / 3.1 - 2.4 * uu - 0.5) * w[k];
+      dx[idx[k]] += nx * d; dy[idx[k]] += ny * d;
+    }
+  }
+  for (const R of WK.legs) { // little paddling legs
+    const { idx, u, w, nx, ny, ph } = R, a = 5 * Q;
+    for (let k = 0; k < idx.length; k++) {
+      const uu = clamp(u[k], 0, 1.15), d = a * Math.pow(uu, 1.3) * Math.sin(TAU * t / 3.7 + ph - 0.8 * uu) * w[k];
+      dx[idx[k]] += nx * d; dy[idx[k]] += ny * d;
+    }
+  }
+  // resample photo, line art and gill-glow through the field (inverse mapping, bilinear)
+  const src = WK.photo, la = WK.lineA, gm = WK.gm, po = WK.pd.data, lo = WK.ld.data, go = WK.gd.data;
+  for (let k = 0; k < list.length; k++) {
+    const i = list[k], x = i % N, y = (i - x) / N;
+    let sx = x - dx[i], sy = y - dy[i];
+    sx = sx < 0 ? 0 : sx > N - 1.001 ? N - 1.001 : sx; sy = sy < 0 ? 0 : sy > N - 1.001 ? N - 1.001 : sy;
+    const x0 = sx | 0, y0 = sy | 0, fx = sx - x0, fy = sy - y0, j = y0 * N + x0;
+    const w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy), w01 = (1 - fx) * fy, w11 = fx * fy;
+    const a = j * 4, b = a + 4, c = a + N * 4, d = c + 4, o = i * 4;
+    po[o] = src[a] * w00 + src[b] * w10 + src[c] * w01 + src[d] * w11;
+    po[o + 1] = src[a + 1] * w00 + src[b + 1] * w10 + src[c + 1] * w01 + src[d + 1] * w11;
+    po[o + 2] = src[a + 2] * w00 + src[b + 2] * w10 + src[c + 2] * w01 + src[d + 2] * w11;
+    po[o + 3] = src[a + 3] * w00 + src[b + 3] * w10 + src[c + 3] * w01 + src[d + 3] * w11;
+    lo[o + 3] = la[j] * w00 + la[j + 1] * w10 + la[j + N] * w01 + la[j + N + 1] * w11;
+    const s = sh[i];
+    go[o + 3] = s > 0.002 ? Math.min(255, 255 * s * (gm[j] * w00 + gm[j + 1] * w10 + gm[j + N] * w01 + gm[j + N + 1] * w11)) : 0;
+  }
+  WK.px.putImageData(WK.pd, 0, 0); WK.lx.putImageData(WK.ld, 0, 0); WK.gx.putImageData(WK.gd, 0, 0);
+}
+
+// ---------- caustics: the classic water-caustic iteration, evaluated on a coarse grid
+const CR = 360, CAU = document.createElement('canvas'); CAU.width = CAU.height = CR;
+const caux = CAU.getContext('2d'), cauD = caux.createImageData(CR, CR);
+function caustics(t) {
+  const time = t * 0.42 + 23, inten = 0.005, d = cauD.data, K = 2.6;
+  for (let y = 0; y < CR; y++) for (let x = 0; x < CR; x++) {
+    const px = (x / CR) * K * TAU - 250 + t * 0.05, py = (y / CR) * K * TAU - 250 - t * 0.03;
+    let ix = px, iy = py, c = 1;
+    for (let n = 0; n < 4; n++) {
+      const tt = time * (1 - 3.5 / (n + 1));
+      const nx = px + Math.cos(tt - ix) + Math.sin(tt + iy), ny = py + Math.sin(tt - iy) + Math.cos(tt + ix);
+      ix = nx; iy = ny;
+      c += 1 / Math.hypot(px / (Math.sin(ix + tt) / inten), py / (Math.cos(iy + tt) / inten));
+    }
+    c /= 4; c = 1.17 - Math.pow(c, 1.4);
+    const v = clamp((Math.pow(Math.abs(c), 8) - 0.04) / 0.7);
+    const o = (y * CR + x) * 4; d[o] = d[o + 1] = d[o + 2] = 255; d[o + 3] = v * 255;
+  }
+  caux.putImageData(cauD, 0, 0);
+}
+
+// ---------- bubbles
+function bubbleSprite(size, blur) {
+  const s = document.createElement('canvas'); s.width = s.height = size; const g = s.getContext('2d');
+  const h = size / 2, r = h * 0.78;
+  if (blur) g.filter = `blur(${blur}px)`;
+  const body = g.createRadialGradient(h, h, 0, h, h, r * 1.18);
+  body.addColorStop(0, 'rgba(140,220,255,0.05)'); body.addColorStop(0.62, 'rgba(150,225,255,0.07)');
+  body.addColorStop(0.78, 'rgba(175,235,255,0.42)'); body.addColorStop(0.84, 'rgba(225,248,255,0.85)');
+  body.addColorStop(0.9, 'rgba(160,225,255,0.3)'); body.addColorStop(1, 'rgba(120,210,255,0)');
+  g.fillStyle = body; g.beginPath(); g.arc(h, h, r * 1.18, 0, TAU); g.fill();
+  // a warm reflection of the axolotl along the lower rim
+  const warm = g.createRadialGradient(h + r * 0.25, h + r * 0.55, 0, h + r * 0.25, h + r * 0.55, r * 0.6);
+  warm.addColorStop(0, 'rgba(255,140,160,0.35)'); warm.addColorStop(1, 'rgba(255,140,160,0)');
+  g.globalCompositeOperation = 'lighter'; g.fillStyle = warm; g.beginPath(); g.arc(h, h, r * 0.98, 0, TAU); g.fill();
+  // specular highlight
+  g.save(); g.translate(h - r * 0.4, h - r * 0.42); g.rotate(-0.75); g.scale(1, 0.55);
+  const sp = g.createRadialGradient(0, 0, 0, 0, 0, r * 0.3);
+  sp.addColorStop(0, 'rgba(255,255,255,0.95)'); sp.addColorStop(0.5, 'rgba(235,250,255,0.5)'); sp.addColorStop(1, 'rgba(200,240,255,0)');
+  g.fillStyle = sp; g.beginPath(); g.arc(0, 0, r * 0.3, 0, TAU); g.fill(); g.restore();
+  const sp2 = g.createRadialGradient(h + r * 0.42, h + r * 0.38, 0, h + r * 0.42, h + r * 0.38, r * 0.14);
+  sp2.addColorStop(0, 'rgba(255,255,255,0.5)'); sp2.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = sp2; g.beginPath(); g.arc(h + r * 0.42, h + r * 0.38, r * 0.14, 0, TAU); g.fill();
+  return s;
+}
+const BUB = bubbleSprite(128, 0), BOKEH = bubbleSprite(128, 5);
+function bubble(x, y, size, alpha, t, ph, img = BUB) {
+  if (alpha <= 0.004 || size <= 0) return;
+  const rr = Math.hypot(x - C, y - C), edge = 1 - smooth(440, 515, rr);
+  if (edge <= 0) return;
+  const q = 0.055 * Math.sin(t * 5.3 + ph);       // the surface tension wobble
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.min(1, alpha * edge);
+  ctx.translate(x, y); ctx.rotate(0.3 * Math.sin(t * 1.3 + ph)); ctx.scale(size / 100 * (1 + q), size / 100 * (1 - q));
+  ctx.drawImage(img, -64, -64, 128, 128); ctx.restore();
+}
+// the hero bubble that opens and closes the piece: bigger, with a warm heart and a halo
+function heroBubble(x, y, size, alpha, t) {
+  if (alpha <= 0.004) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  HG.dot(ctx, [90, 200, 255], x, y, size * 3.2, 0.16 * alpha);
+  HG.dot(ctx, [255, 140, 165], x + size * 0.08, y + size * 0.12, size * 1.25, 0.32 * alpha);
+  ctx.restore();
+  bubble(x, y, size, alpha, t, 0.4);
+}
+// ambient bubbles rise in cycles: every cycle re-seeds its lane, all from (index, cycle)
+const LANES = (() => {
+  const R = HG.rng(606), out = [];
+  for (let i = 0; i < 26; i++) {
+    const near = i >= 22;
+    out.push({ i, near, P: near ? 9 + 4 * R() : 6 + 5 * R(), off: R() * 20, size: near ? 46 + 26 * R() : 9 + 15 * Math.pow(R(), 1.6),
+      ph: R() * TAU, wob: 6 + 10 * R(), wf: 0.6 + 0.6 * R() });
+  }
+  return out;
+})();
+function ambientBubbles(t, front, master) {
+  for (const L of LANES) {
+    if (L.near !== front) continue;
+    const z = (t + L.off) / L.P, cyc = Math.floor(z), s = z - cyc;
+    const x0 = 170 + 740 * hash(L.i * 13 + 5, cyc), y = 990 - s * 920;
+    const x = x0 + L.wob * Math.sin(TAU * L.wf * t + L.ph) + 18 * Math.sin(s * 3 + L.ph);
+    const a = smooth(0, 0.12, s) * (1 - smooth(0.8, 1, s)) * (1 - smooth(260, 120, y) * 0) * master;
+    bubble(x, y, L.size * (0.85 + 0.25 * s), (L.near ? 0.32 : 0.62) * a, t, L.ph, L.near ? BOKEH : BUB);
+  }
+}
+// a thin stream of tiny bubbles from below-left
+function stream(t, master) {
+  const EMIT = 0.42, now = Math.floor(t / EMIT);
+  for (let j = now - 22; j <= now; j++) {
+    const te = j * EMIT, age = t - te; if (age < 0) continue;
+    const h = hash(j, 77), y = 960 - age * (95 + 25 * h);
+    if (y < 80) continue;
+    const x = 300 + (age * 9) + (4 + age * 3.5) * Math.sin(age * 3.1 + h * 6);
+    bubble(x, y, 7 + 5 * h + age * 0.8, 0.55 * smooth(0, 0.5, age) * master, t, h * 9);
+  }
+}
+
+// ---------- light: god rays from the surface, and the surface itself
+const RL = HG.layer(), PL = HG.layer(), CL = HG.layer(), BL = HG.layer();
+const RAY_SRC = [C - 300, -700];
+const RAYS = [[-0.30, 0.014, 0.0], [-0.17, 0.022, 1.7], [-0.06, 0.012, 3.1], [0.05, 0.026, 4.4], [0.16, 0.015, 5.6], [0.27, 0.02, 2.4], [0.36, 0.011, 0.9]];
+function rays(t, a) {
+  if (a <= 0) return;
+  const c = RL.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+  c.globalCompositeOperation = 'lighter';
+  const g = c.createLinearGradient(0, 60, 0, 920);
+  g.addColorStop(0, rgba([140, 230, 255], 0)); g.addColorStop(0.14, rgba([140, 230, 255], 1));
+  g.addColorStop(0.5, rgba([70, 195, 235], 0.4)); g.addColorStop(1, rgba([40, 160, 220], 0));
+  c.fillStyle = g;
+  const [sx, sy] = RAY_SRC, L = 1800;
+  for (const [a0, hw, ph] of RAYS) {
+    const a = a0 + 0.025 * Math.sin(t * 0.31 + ph), w = hw * (0.85 + 0.15 * Math.sin(t * 0.43 + ph * 1.3));
+    const br = Math.pow(0.5 + 0.5 * Math.sin(t * 0.55 + ph * 1.9), 1.5);   // each shaft breathes on its own
+    c.globalAlpha = 0.25 + 0.75 * br; c.beginPath(); c.moveTo(sx, sy);
+    c.lineTo(sx + Math.sin(a - w) * L, sy + Math.cos(a - w) * L); c.lineTo(sx + Math.sin(a + w) * L, sy + Math.cos(a + w) * L);
+    c.closePath(); c.fill();
+  }
+  HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.filter = 'blur(9px)'; ctx.globalAlpha = 0.3 * a;
+  ctx.drawImage(RL.cv, 0, 0); HG.reset(ctx);
+}
+function surface(t, a) {
+  if (a <= 0) return;
+  const c = BL.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+  c.drawImage(CAU, -160, 20, 1400, 360);
+  c.globalCompositeOperation = 'destination-in';
+  const g = c.createLinearGradient(0, 20, 0, 380);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.2, 'rgba(0,0,0,1)'); g.addColorStop(0.45, 'rgba(0,0,0,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = g; c.fillRect(0, 0, W, W);
+  c.globalCompositeOperation = 'source-in'; c.fillStyle = rgba([120, 228, 255], 1); c.fillRect(0, 0, W, W);
+  HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.55 * a; ctx.drawImage(BL.cv, 0, 0);
+  ctx.filter = 'blur(12px)'; ctx.globalAlpha = 0.6 * a; ctx.drawImage(BL.cv, 0, 0); HG.reset(ctx);
+}
+
+// ---------- the creature in colour, revealed / withdrawn by a soft front of light from the face
+function photo(t, rho, alpha) {
+  if (rho <= 0 || alpha <= 0) return;
+  const F = toCanvas(FACE, t), feather = 300, c = PL.ctx;
+  HG.reset(c); c.clearRect(0, 0, W, W);
+  c.save(); applyXf(c, t);
+  c.globalCompositeOperation = 'lighter'; c.filter = 'blur(22px)'; c.globalAlpha = 0.42; c.drawImage(WK.pc, 0, 0, 1024, 1024);
+  c.filter = 'none'; c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; c.drawImage(WK.pc, 0, 0, 1024, 1024);
+  c.restore();
+  if (rho < 960) {
+    c.globalCompositeOperation = 'destination-in';
+    const g = c.createRadialGradient(F[0], F[1], 0, F[0], F[1], rho);
+    g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(Math.max(0, 1 - feather / rho), 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.fillRect(0, 0, W, W);
+    // the front of the wave glows coral as it passes over the skin
+    c.globalCompositeOperation = 'source-atop'; c.globalAlpha = smooth(feather * 0.5, feather * 1.3, rho);
+    const rg = c.createRadialGradient(F[0], F[1], Math.max(0, rho - feather), F[0], F[1], rho);
+    rg.addColorStop(0, 'rgba(255,120,150,0)'); rg.addColorStop(0.55, 'rgba(255,150,170,0.45)'); rg.addColorStop(1, 'rgba(255,120,150,0)');
+    c.fillStyle = rg; c.fillRect(0, 0, W, W);
+  }
+  HG.reset(c);
+  HG.reset(ctx); ctx.globalAlpha = alpha; ctx.drawImage(PL.cv, 0, 0); HG.reset(ctx);
+}
+function skinCaustics(t, a) {
+  if (a <= 0) return;
+  const c = CL.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+  c.filter = 'blur(2px)'; c.drawImage(CAU, -300, -260, 1700, 1700); c.filter = 'none';
+  c.globalCompositeOperation = 'source-in'; c.fillStyle = 'rgb(205,240,255)'; c.fillRect(0, 0, W, W);
+  c.globalCompositeOperation = 'destination-in'; c.save(); applyXf(c, t); c.drawImage(WK.pc, 0, 0, 1024, 1024); c.restore();
+  HG.reset(c);
+  HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.3 * a; ctx.drawImage(CL.cv, 0, 0); HG.reset(ctx);
+}
+function gillGlow(t, a) {
+  if (a <= 0) return;
+  ctx.save(); applyXf(ctx, t); ctx.globalCompositeOperation = 'lighter';
+  ctx.filter = 'blur(12px)'; ctx.globalAlpha = 0.85 * a; ctx.drawImage(WK.gc, 0, 0, 1024, 1024);
+  ctx.filter = 'none'; ctx.globalAlpha = 0.3 * a; ctx.drawImage(WK.gc, 0, 0, 1024, 1024);
+  ctx.restore(); HG.reset(ctx);
+}
+function eyeGlints(t, a) {
+  if (a <= 0) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const s = scaleAt(t);
+  for (const [ex, ey, k] of EYES) {
+    const p = toCanvas([ex - 6 * k, ey - 7 * k], t), q = toCanvas([ex + 5 * k, ey + 6 * k], t), tw = 0.85 + 0.15 * Math.sin(t * 2.1 + ex);
+    HG.dot(ctx, [200, 240, 255], p[0], p[1], 14 * k, 0.35 * a * tw);
+    ctx.globalAlpha = 0.85 * a * tw; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p[0], p[1], 3.3 * k, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 0.45 * a * tw; ctx.beginPath(); ctx.arc(q[0], q[1], 1.6 * k, 0, TAU); ctx.fill();
+  }
+  ctx.restore();
+}
+
+HG.start({
+  duration: 12,
+  assets: { photo: '../assets/06-ajolote.png', lines: '../assets/06-ajolote_lines.png' },
+  render(t, A) {
+    if (!WK) buildWork(A);
+    animate(t);
+    const amb = ambient(t), hr = hero(t);
+    if (amb > 0) caustics(t);
+
+    // deep water behind
+    surface(t, amb);
+    rays(t, amb);
+    ambientBubbles(t, false, amb);
+    stream(t, amb);
+
+    // the creature
+    const rho = photoRho(t);
+    photo(t, rho, photoA(t));
+    skinCaustics(t, hr);
+    gillGlow(t, hr);
+    eyeGlints(t, smooth(4.4, 5.4, t) * (1 - smooth(9.0, 9.7, t)));
+    const k = lineK(t), f = xf(t), ctr = toCanvas([512, 512], t), F = toCanvas(FACE, t);
+    if (k > 0) HG.lineReveal(WK.lc, ctr[0], ctr[1], 1024 * f.s, k, { rotation: f.r, cx: F[0], cy: F[1], color: [255, 170, 185], feather: 110, alpha: lineA(t) });
+
+    // the first bubble: rises from the dark and touches the face
+    {
+      const Fp = toCanvas(FACE, T_POP);
+      const at = tt => { const k1 = ease.inOut3((tt - 0.1) / (T_POP - 0.1));
+        return [lerp(Fp[0] + 110, Fp[0], k1) + 16 * Math.sin(tt * 3.4) * (1 - k1), lerp(930, Fp[1], k1)]; };
+      if (t < T_POP + 0.3) {
+        const pop = ease.out3((t - T_POP) / 0.22), p = at(Math.min(t, T_POP));
+        heroBubble(p[0], p[1], 54 * (1 + 0.5 * pop), smooth(0.12, 0.6, t) * (1 - pop), t);
+        for (let j = 1; j <= 3; j++) {           // tiny followers in its wake
+          const q = at(Math.min(t, T_POP) - 0.11 * j);
+          bubble(q[0] + 6 * Math.sin(t * 5 + j), q[1] + 20, 15 - 3 * j, 0.7 * smooth(0.25 + 0.1 * j, 0.7 + 0.1 * j, t) * (1 - smooth(T_POP - 0.1, T_POP + 0.15, t)), t, j);
+        }
+      }
+      const rp = clamp((t - T_POP) / 1.0);
+      if (rp > 0 && rp < 1) {
+        HG.ring(ctx, Fp[0], Fp[1], 30 + 130 * ease.out3(rp), [255, 170, 190], { width: 12, blur: 18, alpha: 0.32 * (1 - rp) * (1 - rp) });
+      }
+      const bp = t - T_POP;
+      if (bp > 0 && bp < 2.2) {
+        for (let j = 0; j < 6; j++) {           // the bubble breaks into tiny bubbles that drift up
+          const a = -Math.PI / 2 + (hash(j, 3) - 0.5) * 2.6, v = 50 + 60 * hash(j, 9), d = v * (1 - Math.exp(-3 * bp)) / 3;
+          const x = Fp[0] + Math.cos(a) * d * 1.6 + 5 * Math.sin(bp * 4 + j), y = Fp[1] + Math.sin(a) * d - 45 * bp * bp;
+          bubble(x, y, 7 + 7 * hash(j, 5), 0.8 * smooth(0, 0.1, bp) * (1 - smooth(1.2, 2.2, bp)), t, j);
+        }
+      }
+    }
+    // a little trio of bubbles from the smile
+    for (const [te, sz, ph] of [[6.6, 21, 0.3], [6.95, 15, 1.9], [7.4, 25, 3.6]]) {
+      const age = t - te; if (age < 0 || age > 3.4) continue;
+      const m = toCanvas(MOUTH, te);
+      const x = m[0] - 14 * Math.min(age, 1) + 7 * Math.sin(age * 3.6 + ph), y = m[1] - 6 - 105 * age - 12 * age * age;
+      bubble(x, y, sz * (0.6 + 0.4 * smooth(0, 0.4, age)) * (1 + 0.12 * age), 0.85 * smooth(0, 0.25, age) * (1 - smooth(2.4, 3.4, age)), t, ph);
+    }
+    // the last bubble: carries the light away
+    {
+      const T_END = 10.8, Fg = toCanvas(FACE, t);
+      const gather = smooth(10.35, 10.8, t) * (1 - smooth(10.8, 11.2, t));   // the drawing's light collects at the face
+      if (gather > 0) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        HG.dot(ctx, [255, 130, 160], Fg[0], Fg[1], 150, 0.45 * gather); HG.dot(ctx, [255, 190, 205], Fg[0], Fg[1], 46, 0.6 * gather);
+        ctx.restore();
+      }
+      const age = t - T_END;
+      if (age > 0) {
+        const Fp = toCanvas(FACE, T_END), x = Fp[0] + 10 * Math.sin(age * 3.4), y = Fp[1] - 40 * age - 230 * age * age;
+        const a = smooth(0, 0.25, age) * (1 - smooth(0.7, 1.12, age));
+        heroBubble(x, y, 54 * (0.5 + 0.5 * ease.outBack(age / 0.4)), a, t);
+      }
+    }
+
+    // in front: soft out-of-focus bubbles and drifting motes
+    ambientBubbles(t, true, amb * 0.9);
+    HG.dust(t, { n: 70, colors: [[140, 225, 245], [255, 150, 170]], alpha: 0.22 * amb, size: 5, r: 490, seed: 6 });
+  },
+});
+</script></body></html>

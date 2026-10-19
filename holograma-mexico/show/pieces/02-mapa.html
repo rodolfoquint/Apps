@@ -1,0 +1,368 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Mapa: two heads of light race from the tip of Yucatán along both coasts and meet at
+// Cabo San Lucas, drawing Mexico; the land fills with a field of glowing points; then a
+// traveller of light hops from place to place, raising a pin at each one and opening a
+// small round window onto it, until nine places glow around the map; then it dissolves.
+const { W, C, ctx, clamp, lerp, smooth, ease, COLORS, rgba } = HG;
+
+const DATA = (() => { const x = new XMLHttpRequest(); x.open('GET', '../assets/02-mapa.json', false); x.send(); return JSON.parse(x.responseText); })();
+
+const TURQ = COLORS.turquoise, ICE = [170, 245, 250], GOLD = COLORS.gold, WARM = COLORS.warm, WHITE = COLORS.white;
+const sine = x => 0.5 - 0.5 * Math.cos(Math.PI * clamp(x));
+const add = c => { c.globalCompositeOperation = 'lighter'; };
+
+// ---------- coastline geometry (arc-length parametrised)
+const pts = r => { const p = []; for (let i = 0; i < r.length; i += 2) p.push([r[i], r[i + 1]]); return p; };
+const P = pts(DATA.rings[0]), n = P.length, cum = [0];
+for (let i = 1; i <= n; i++) cum.push(cum[i - 1] + Math.hypot(P[i % n][0] - P[i - 1][0], P[i % n][1] - P[i - 1][1]));
+const L = cum[n];
+const seg = s => { let lo = 0, hi = n; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (cum[m] <= s) lo = m; else hi = m; } return lo; };
+function at(s) {
+  s = ((s % L) + L) % L; const i = seg(s), a = P[i], b = P[(i + 1) % n], k = (s - cum[i]) / ((cum[i + 1] - cum[i]) || 1);
+  return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+}
+function rangePath(c, sA, sB) {           // polyline along the coast from arc sA to sB (sA < sB, unwrapped)
+  const p0 = at(sA); c.moveTo(p0[0], p0[1]);
+  let w = Math.floor(sA / L), i = seg(sA - w * L) + 1;
+  if (i >= n) { i = 0; w++; }
+  while (cum[i] + w * L < sB) { c.lineTo(P[i][0], P[i][1]); if (++i >= n) { i = 0; w++; } }
+  const p1 = at(sB); c.lineTo(p1[0], p1[1]);
+}
+const polyPath = (p, path = new Path2D()) => { path.moveTo(p[0][0], p[0][1]); for (let i = 1; i < p.length; i++) path.lineTo(p[i][0], p[i][1]); path.closePath(); return path; };
+const COAST = polyPath(P);
+const ISLANDS = DATA.rings.slice(1).map(r => pts(r));
+const LAND = new Path2D(); polyPath(P, LAND); ISLANDS.forEach(p => polyPath(p, LAND));
+
+const LM = DATA.landmarks;
+const iCabo = P.reduce((b, p, i) => Math.hypot(p[0] - LM.cabos[0], p[1] - LM.cabos[1]) < Math.hypot(P[b][0] - LM.cabos[0], P[b][1] - LM.cabos[1]) ? i : b, 0);
+const S_MEET = cum[iCabo], S0 = S_MEET - L / 2;           // start opposite Cabo: the tip of Yucatán
+const MEET = at(S_MEET), START = at(S0);
+const ISL = ISLANDS.map(p => {
+  const cx = p.reduce((a, q) => a + q[0], 0) / p.length, cy = p.reduce((a, q) => a + q[1], 0) / p.length;
+  const iv = P.reduce((b, q, i) => Math.hypot(q[0] - cx, q[1] - cy) < Math.hypot(P[b][0] - cx, P[b][1] - cy) ? i : b, 0);
+  const df = (((cum[iv] - S0) % L) + L) % L;
+  return { path: polyPath(p), reach: Math.min(df, L - df) };
+});
+
+// ---------- timeline
+const TR0 = 0.32, TR1 = 3.3;                               // coastline trace
+const FILL0 = TR1 + 0.05, FILLV = 560;                    // land fill wave from Cabo
+const T0 = 3.45, STEP = 0.85;                             // one place every STEP seconds
+const FIN0 = 11.25, FIN1 = 12.05;                         // light runs the whole route once
+const OUT0 = 12.55, END = 14;
+const traceD = t => (L / 2) * sine((t - TR0) / (TR1 - TR0));
+const WIPE0 = 12.85, WIPE1 = 13.75, Q0 = 230, Q1 = 1360, FEATHER = 170;   // closing wipe along the NW-SE axis
+const qOf = (x, y) => 0.85 * x + 0.5 * y;
+const tWipe = (x, y) => WIPE0 + (WIPE1 - WIPE0) * (qOf(x, y) - Q0) / (Q1 - Q0);
+
+// ---------- places: pin on the map, round window parked in open space around it
+const ORDER = ['cabos', 'cobre', 'guanajuato', 'monarca', 'cdmx', 'teotihuacan', 'palenque', 'chichen', 'tulum'];
+const SPOT = { cabos: [228, 702], cobre: [372, 232], guanajuato: [358, 828], monarca: [487, 905], cdmx: [624, 934],
+  teotihuacan: [750, 543], palenque: [774, 872], chichen: [856, 452], tulum: [950, 534] };
+const PIN = Object.fromEntries(ORDER.map(k => [k, LM[k].slice()]));
+PIN.teotihuacan[0] += 5; PIN.teotihuacan[1] -= 5;          // 40 km from the city centre: nudge so both pins read
+const RF = 62, RP = 44;                                    // focus and parked window radius
+const PL = ORDER.map((k, i) => ({ key: k, pin: PIN[k], spot: SPOT[k], T: T0 + i * STEP,
+  tp: FIN0 + (FIN1 - FIN0) * Math.acos(1 - 2 * i / 8) / Math.PI }));     // when the finale runner passes
+// flight arcs between consecutive places, bulging upward
+PL.forEach((p, i) => {
+  if (!i) return;
+  const a = PL[i - 1].pin, b = p.pin, dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy);
+  let nx = dy / len, ny = -dx / len; if (ny > 0) { nx = -nx; ny = -ny; }
+  const off = Math.max(16, 0.24 * len);
+  p.ctrl = [(a[0] + b[0]) / 2 + nx * off, (a[1] + b[1]) / 2 + ny * off];
+});
+const bez = (i, u) => { const a = PL[i - 1].pin, b = PL[i].pin, c = PL[i].ctrl, v = 1 - u; return [v * v * a[0] + 2 * v * u * c[0] + u * u * b[0], v * v * a[1] + 2 * v * u * c[1] + u * u * b[1]]; };
+
+// ---------- the field of points that fills the land
+const DOT = (() => {
+  const s = document.createElement('canvas'); s.width = s.height = 16; const g = s.getContext('2d');
+  const grd = g.createRadialGradient(8, 8, 0, 8, 8, 8);
+  grd.addColorStop(0, 'rgba(215,255,255,1)'); grd.addColorStop(0.35, rgba(TURQ, 0.9)); grd.addColorStop(1, rgba(TURQ, 0));
+  g.fillStyle = grd; g.fillRect(0, 0, 16, 16); return s;
+})();
+const DOTS = (() => {
+  const g = document.createElement('canvas').getContext('2d'); g.canvas.width = g.canvas.height = W; g.lineWidth = 12;
+  const R = HG.rng(42), sp = 13, rh = sp * Math.sqrt(3) / 2, out = [];
+  for (let row = 0, y = 120; y < 960; y += rh, row++)
+    for (let x = 60 + (row % 2) * sp / 2; x < 1020; x += sp)
+      if (g.isPointInPath(LAND, x, y) && !g.isPointInStroke(COAST, x, y))
+        out.push({ x, y, ta: FILL0 + Math.hypot(x - MEET[0], y - MEET[1]) / FILLV, ph: R() * 6.283 });
+  return out;
+})();
+
+// ---------- a faint graticule over the sea (every 5 degrees), fading toward the rim
+const geo = (lon, lat) => [DATA.proj.lon[0] * lon + DATA.proj.lon[1], DATA.proj.lat[0] * lat + DATA.proj.lat[1]];
+const GRAT = (() => {
+  const g = document.createElement('canvas').getContext('2d'); g.canvas.width = g.canvas.height = W; g.lineWidth = 16;
+  const out = [], push = (x, y) => {
+    const r = Math.hypot(x - C, y - C); if (r > 468) return;
+    if (g.isPointInPath(LAND, x, y) || g.isPointInStroke(COAST, x, y)) return;
+    out.push({ x, y, a: 1 - smooth(330, 468, r), ta: FILL0 + 0.25 + Math.hypot(x - MEET[0], y - MEET[1]) / (FILLV * 1.3) });
+  };
+  for (let lon = -125; lon <= -80; lon += 5) { const [x] = geo(lon, 0); for (let y = 60; y < 1020; y += 9) push(x, y); }
+  for (let lat = 5; lat <= 40; lat += 5) { const [, y] = geo(0, lat); for (let x = 60; x < 1020; x += 9) push(x, y); }
+  return out;
+})();
+// points along the coast that rise as light when the closing wipe passes
+const EVAP = (() => {
+  const R = HG.rng(77), N = 340, out = [];
+  for (let j = 0; j < N; j++) {
+    const p = at((j + R()) * L / N);
+    out.push({ x: p[0], y: p[1], tb: tWipe(p[0], p[1]) - 0.05, vx: (R() - 0.5) * 34, vy: 26 + R() * 44, s: 5 + R() * 6, life: 0.55 + R() * 0.4, gold: R() < 0.22 });
+  }
+  return out;
+})();
+
+// ---------- drawing helpers
+function glowStroke(build, color, core, { width = 7, blur = 7, coreW = 2.2, alpha = 1, glowA = 0.6 } = {}) {
+  if (alpha <= 0.003) return;
+  ctx.save(); add(ctx); ctx.lineJoin = ctx.lineCap = 'round';
+  ctx.filter = `blur(${blur}px)`; ctx.globalAlpha = alpha * glowA; ctx.strokeStyle = rgba(color, 1); ctx.lineWidth = width;
+  const draw = () => { if (build instanceof Path2D) ctx.stroke(build); else { ctx.beginPath(); build(ctx); ctx.stroke(); } };
+  draw();
+  ctx.filter = 'none'; ctx.globalAlpha = alpha; ctx.strokeStyle = rgba(core, 1); ctx.lineWidth = coreW;
+  draw();
+  ctx.restore();
+}
+const mix = (a, b, k) => { k = Math.round(clamp(k) * 6) / 6; return a.map((v, i) => Math.round(v + (b[i] - v) * k)); };
+function spark(x, y, color, size, alpha) { HG.dot(ctx, color, x, y, size, alpha); }
+
+// comet head running along the coast; dir = +1 forward / -1 backward
+function head(s, dir, color, speed, alpha) {
+  const tail = clamp(speed * 0.11, 18, 140), N = 18;
+  for (let j = N; j >= 1; j--) {
+    const f = j / N, p = at(s - dir * tail * f);
+    spark(p[0], p[1], mix(color, ICE, f), lerp(22, 5, f), alpha * (1 - f) * 0.8);
+  }
+  const p = at(s);
+  spark(p[0], p[1], color, 70, alpha * 0.75);
+  spark(p[0], p[1], WHITE, 16, alpha);
+}
+
+function ripple(x, y, k, color, { r0 = 4, r1 = 40, squash = 0.5, alpha = 0.8, width = 2 } = {}) {
+  if (k <= 0 || k >= 1) return;
+  const r = lerp(r0, r1, ease.out3(k)), a = alpha * (1 - k) * (1 - k);
+  ctx.save(); add(ctx); ctx.globalAlpha = a; ctx.strokeStyle = rgba(color, 1); ctx.lineWidth = width;
+  ctx.filter = 'blur(1.5px)'; ctx.beginPath(); ctx.ellipse(x, y, r, r * squash, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+}
+
+// partial arc of a circle centred on angle th, half-extent hk*PI
+function rimArc(x, y, r, th, hk, color, alpha, w = 2.4) {
+  if (alpha <= 0.003 || hk <= 0) return;
+  // a sweep of (th+PI)-(th-PI) can land a hair under 2PI and Chrome then draws nothing
+  const build = hk >= 0.999 ? c => c.arc(x, y, r, 0, Math.PI * 2) : c => c.arc(x, y, r, th - Math.PI * hk, th + Math.PI * hk);
+  glowStroke(build, color, mix(color, WHITE, 0.35), { width: w * 2.6, blur: 6, coreW: w, alpha, glowA: 0.75 });
+}
+
+function windowImg(img, x, y, R, iris, alpha) {
+  if (iris <= 0 || alpha <= 0.003) return;
+  const s = 2 * R * (1.1 - 0.1 * iris);
+  ctx.save();
+  add(ctx); ctx.globalAlpha = alpha * 0.28 * iris; ctx.filter = 'blur(10px)';
+  ctx.drawImage(img, x - s / 2, y - s / 2, s, s); ctx.filter = 'none';
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.beginPath(); ctx.arc(x, y, R * iris, 0, Math.PI * 2); ctx.clip();
+  ctx.globalAlpha = alpha * smooth(0, 0.5, iris);
+  ctx.drawImage(img, x - s / 2, y - s / 2, s, s);
+  ctx.restore();
+}
+
+HG.start({
+  duration: 14,
+  assets: Object.fromEntries(ORDER.map(k => [k, `../assets/02-mapa-${k}.png`])),
+  render(t, A) {
+    const z = 1 + 0.03 * sine(t / END);                 // slow push-in
+    ctx.setTransform(z, 0, 0, z, C - C * z, C - C * z - 10 * sine(t / END));
+    add(ctx);                                            // everything is light: additive by default
+    const outAll = 1 - smooth(13.3, 13.95, t);
+
+    // ---- graticule over the sea
+    const gratOut = 1 - smooth(OUT0 + 0.1, 13.3, t);
+    if (t > FILL0 && gratOut > 0) {
+      ctx.save(); add(ctx);
+      for (const q of GRAT) {
+        const on = smooth(q.ta, q.ta + 0.6, t); if (on <= 0) continue;
+        ctx.globalAlpha = 0.2 * q.a * on * gratOut; ctx.drawImage(DOT, q.x - 2.4, q.y - 2.4, 4.8, 4.8);
+      }
+      ctx.restore();
+    }
+
+    // ---- land: faint fill, lit inner edge, field of points
+    const fillOn = smooth(FILL0, FILL0 + 1.4, t) * (1 - smooth(13.0, 13.6, t));
+    if (fillOn > 0) {
+      ctx.save(); add(ctx);
+      ctx.globalAlpha = 0.055 * fillOn; ctx.fillStyle = rgba(TURQ, 1); ctx.fill(LAND);
+      ctx.clip(LAND); ctx.globalAlpha = 0.16 * fillOn; ctx.strokeStyle = rgba(TURQ, 1); ctx.lineWidth = 26; ctx.filter = 'blur(12px)'; ctx.stroke(COAST);
+      ctx.restore();
+    }
+    const dotsOut = 1 - smooth(13.0, 13.6, t);
+    if (t > FILL0 - 0.1 && dotsOut > 0) {
+      const lit = PL.map(p => ({ x: p.pin[0], y: p.pin[1], w: HG.window(t, p.T - 0.1, p.T + STEP + 0.7, 0.3, 0.8) })).filter(q => q.w > 0.01);
+      ctx.save(); add(ctx);
+      for (const d of DOTS) {
+        const on = smooth(d.ta - 0.05, d.ta + 0.45, t);
+        if (on <= 0) continue;
+        let a = on * (0.26 + 0.09 * Math.sin(d.x * 0.012 + d.y * 0.018 - t * 1.7 + d.ph * 0.3));
+        for (const q of lit) { const dd = (d.x - q.x) ** 2 + (d.y - q.y) ** 2; if (dd < 14400) a += 0.42 * q.w * Math.exp(-dd / 4200); }
+        ctx.globalAlpha = Math.min(1, a * dotsOut); ctx.drawImage(DOT, d.x - 3.6, d.y - 3.6, 7.2, 7.2);
+        const fl = Math.exp(-(((t - d.ta) / 0.12) ** 2));
+        if (fl > 0.03) spark(d.x, d.y, WARM, 13, fl * 0.55 * dotsOut);
+      }
+      ctx.restore();
+    }
+
+    // ---- coastline drawn in light
+    const d = traceD(t), closed = t >= TR1;
+    const meetK = smooth(TR1 - 0.15, TR1 + 0.25, t);
+    const coastA = (t < TR1 ? 1 : lerp(1, 0.78, smooth(TR1, TR1 + 1.2, t))) * (1 - smooth(13.3, 13.9, t));
+    if (d > 0.5 && coastA > 0) {
+      const build = closed ? c => { c.moveTo(P[0][0], P[0][1]); for (let i = 1; i < n; i++) c.lineTo(P[i][0], P[i][1]); c.closePath(); } : c => rangePath(c, S0 - d, S0 + d);
+      glowStroke(build, TURQ, ICE, { width: 8, blur: 8, coreW: 2.4, alpha: coastA, glowA: 0.6 });
+      for (const isl of ISL) {
+        const a = clamp((d - isl.reach) / 60) * coastA;
+        if (a > 0) glowStroke(isl.path, TURQ, ICE, { width: 6, blur: 5, coreW: 1.8, alpha: a * 0.9, glowA: 0.5 });
+      }
+    }
+    // the freshly drawn coast is hotter, cooling over ~0.4 s
+    if (t > TR0 && t < TR1 + 0.45) {
+      for (const [a, b, k] of [[0.42, 0.2, 0.22], [0.2, 0, 0.45]]) {
+        const da = traceD(t - a), db = traceD(t - b);
+        if (db - da < 0.5) continue;
+        glowStroke(c => { rangePath(c, S0 + da, S0 + db); rangePath(c, S0 - db, S0 - da); }, ICE, WHITE, { width: 10, blur: 9, coreW: 2.6, alpha: k, glowA: 0.7 });
+      }
+    }
+    // glitter shed by the heads (emitted on a fixed 60 Hz grid, so every frame is independent)
+    if (t > TR0 && t < TR1 + 0.7) {
+      const k0 = Math.floor(t * 60);
+      for (let k = k0; k > k0 - 42; k--) {
+        const tau = k / 60, age = t - tau; if (tau < TR0 || tau > TR1) continue;
+        const sp = (traceD(tau + 1 / 60) - traceD(tau - 1 / 60)) * 30, dd = traceD(tau);
+        for (const dir of [1, -1]) {
+          const R = HG.rng(k * 13 + (dir > 0 ? 3 : 7));
+          for (let m = 0; m < 2; m++) {
+            const a = R() * 6.283, v = 10 + R() * 34, life = 0.35 + R() * 0.35;
+            if (age > life) { R(); continue; }
+            const p = at(S0 + dir * dd), f = age / life;
+            const x = p[0] + Math.cos(a) * v * age, y = p[1] + Math.sin(a) * v * age + 14 * age * age;
+            spark(x, y, R() < 0.5 ? (dir > 0 ? GOLD : TURQ) : ICE, 7 - 3 * f, 0.7 * (1 - f) * (1 - f) * clamp(sp / 500));
+          }
+        }
+      }
+    }
+    // the two heads, and their meeting at Cabo San Lucas
+    if (t > TR0 - 0.05 && t < TR1 + 0.3) {
+      const sp = (traceD(t + 1 / 60) - traceD(t - 1 / 60)) * 30;
+      const ha = smooth(TR0 - 0.05, TR0 + 0.35, t) * (1 - smooth(TR1 - 0.05, TR1 + 0.3, t));
+      head(S0 + d, +1, GOLD, sp, ha);
+      head(S0 - d, -1, TURQ, sp, ha);
+    }
+    if (t > TR0 - 0.1 && t < TR0 + 0.9) spark(START[0], START[1], WARM, 90, 0.35 * HG.window(t, TR0 - 0.1, TR0 + 0.9, 0.3, 0.6));
+    if (t > TR1 - 0.2 && t < TR1 + 1.4) {
+      spark(MEET[0], MEET[1], WARM, 150, 0.45 * HG.window(t, TR1 - 0.2, TR1 + 1.2, 0.25, 0.9));
+      ripple(MEET[0], MEET[1], (t - TR1) / 1.1, GOLD, { r1: 70, squash: 1, alpha: 0.6, width: 2.5 });
+    }
+
+    // ---- route: flight arcs between consecutive places
+    const routeOut = 1 - smooth(OUT0 + 0.4, 13.6, t);
+    const fin = (t - FIN0) / (FIN1 - FIN0), g = 8 * sine(fin);      // finale runner position (arc index + u)
+    for (let i = 1; i < PL.length; i++) {
+      const t0 = PL[i - 1].T + 0.28, t1 = PL[i].T, u = ease.inOut3((t - t0) / (t1 - t0));
+      if (u <= 0) continue;
+      const build = c => { const N = 36; for (let j = 0; j <= N; j++) { const q = bez(i, u * j / N); j ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); } };
+      glowStroke(build, GOLD, mix(GOLD, WHITE, 0.3), { width: 5, blur: 5, coreW: 1.6, alpha: (u < 1 ? 0.9 : 0.55) * routeOut, glowA: 0.7 });
+      if (u < 1) {                                          // the traveller
+        for (let j = 10; j >= 1; j--) { const q = bez(i, Math.max(0, u - j * 0.022)); spark(q[0], q[1], GOLD, lerp(18, 5, j / 10), 0.6 * (1 - j / 10)); }
+        const q = bez(i, u); spark(q[0], q[1], GOLD, 54, 0.8); spark(q[0], q[1], WHITE, 13, 1);
+      }
+    }
+    if (fin > 0 && fin < 1) {
+      const i = Math.min(8, Math.max(1, Math.ceil(g))), q = bez(i, clamp(g - (i - 1)));
+      for (let j = 12; j >= 1; j--) { const gg = g - j * 0.04, ii = Math.min(8, Math.max(1, Math.ceil(gg))); if (gg <= 0) continue; const p = bez(ii, clamp(gg - (ii - 1))); spark(p[0], p[1], WARM, lerp(20, 5, j / 12), 0.55 * (1 - j / 12)); }
+      spark(q[0], q[1], WARM, 46, 0.65 * Math.sin(Math.PI * fin) ** 0.5); spark(q[0], q[1], WHITE, 10, 0.7 * Math.sin(Math.PI * fin) ** 0.5);
+    }
+
+    // ---- places
+    PL.forEach((p, i) => {
+      const T = p.T; if (t < T - 0.05) return;
+      const [px, py] = p.pin, [mx, my] = p.spot;
+      const pulse = Math.exp(-(((t - p.tp) / 0.12) ** 2));
+      const cl = OUT0 + (8 - i) * 0.05;                    // closing order: from the last place back to Cabo
+      const closeK = ease.inOut3((t - cl) / 0.45);
+      const settle = ease.inOut3((t - (i < 8 ? PL[i + 1].T + 0.3 : T + 1.25)) / 0.7);
+      const R = lerp(RF, RP, settle);
+      const focus = 1 - settle;
+
+      // leader: a dotted line of light from the pin to the window's rim
+      const dx = px - mx, dy = py - my, dl = Math.hypot(dx, dy), ux = dx / dl, uy = dy / dl;
+      const ax = mx + ux * R, ay = my + uy * R;
+      const lead = ease.out3((t - T - 0.12) / 0.32) * (1 - ease.inOut3((t - cl - 0.3) / 0.35));
+      if (lead > 0) {
+        const len = Math.hypot(ax - px, ay - py), m = Math.floor(len * lead / 7);
+        ctx.save(); add(ctx);
+        for (let j = 1; j <= m; j++) { const f = j * 7 / len; spark(px + (ax - px) * f, py + (ay - py) * f, WARM, 6.5, 0.55 * routeOut); }
+        ctx.restore();
+      }
+
+      // pin: a short beam rising from a bright point, with a ripple on the ground
+      const pop = ease.outBack((t - T) / 0.35), pinA = smooth(T - 0.05, T + 0.15, t) * routeOut;
+      if (pinA > 0) {
+        const bh = 34 * ease.out3((t - T) / 0.45);
+        ctx.save(); add(ctx);
+        const gr = ctx.createLinearGradient(px, py, px, py - bh - 1);
+        gr.addColorStop(0, rgba(WARM, 0.85)); gr.addColorStop(1, rgba(GOLD, 0));
+        ctx.globalAlpha = pinA * (0.75 + 0.25 * pulse); ctx.fillStyle = gr; ctx.fillRect(px - 1.2, py - bh, 2.4, bh);
+        ctx.restore();
+        ripple(px, py, (t - T) / 0.9, GOLD, { r1: 34, alpha: 0.85 * routeOut });
+        if (pulse > 0.05) ripple(px, py, (g - i + 0.3) / 1.2, WARM, { r1: 30, alpha: 0.7 * routeOut });
+        ctx.save(); add(ctx);
+        spark(px, py, GOLD, 22 * Math.max(0, pop) * (1 + 0.3 * pulse), pinA * 0.8);
+        spark(px, py, WHITE, 7 * Math.max(0, pop), pinA * 0.85);
+        ctx.restore();
+      }
+
+      // window: the rim sweeps around from the leader, then the image irises open
+      const th = Math.atan2(uy, ux);
+      const sweep = ease.inOut3((t - T - 0.38) / 0.34) * (1 - ease.inOut3((t - cl - 0.12) / 0.3));
+      const iris = ease.out3((t - T - 0.5) / 0.5) * (1 - ease.inOut3((t - cl) / 0.4));
+      windowImg(A[p.key], mx, my, R, iris, 1);
+      const rimA = (0.7 + 0.3 * focus + 0.5 * pulse);
+      rimArc(mx, my, R, th, sweep, GOLD, Math.min(1, rimA));
+      if (focus > 0 && iris > 0) rimArc(mx, my, R + 8, th + Math.PI, iris * 0.5 * focus, TURQ, 0.45 * focus, 1.4);
+      ctx.save(); add(ctx); spark(ax, ay, WARM, 12, lead * 0.9); ctx.restore();
+      const pk = (t - p.tp) / 0.75;
+      if (pk > 0 && pk < 1) {
+        ripple(mx, my, pk, GOLD, { r0: R, r1: R + 26, squash: 1, alpha: 0.75 * routeOut, width: 2.2 });
+        ripple(px, py, pk, WARM, { r1: 30, alpha: 0.7 * routeOut });
+      }
+    });
+
+    // a little ambient dust once the map is complete
+    HG.dust(t, { n: 46, colors: [TURQ, GOLD], seed: 5, alpha: 0.16 * smooth(4, 6, t) * (1 - smooth(OUT0, 13.5, t)), size: 5, r: 470 });
+
+    // ---- closing: a soft black wipe runs NW -> SE; the coast rises off as light where it passes
+    if (t > WIPE0 - 0.1) {
+      const front = lerp(Q0, Q1, clamp((t - WIPE0) / (WIPE1 - WIPE0)));
+      ctx.save(); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+      const nx = 0.85, ny = 0.5, n2 = nx * nx + ny * ny;           // gradient along the q axis
+      const gr = ctx.createLinearGradient(nx * (front - FEATHER) / n2, ny * (front - FEATHER) / n2, nx * front / n2, ny * front / n2);
+      gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gr; ctx.fillRect(-300, -300, W + 600, W + 600);
+      ctx.restore();
+      ctx.save(); add(ctx);
+      for (const e of EVAP) {
+        const age = t - e.tb; if (age <= 0 || age > e.life) continue;
+        const f = age / e.life;
+        const x = e.x + e.vx * age + 6 * Math.sin(age * 7 + e.x), y = e.y - e.vy * age - 18 * age * age;
+        spark(x, y, e.gold ? GOLD : mix(TURQ, ICE, 0.5), e.s * (1 - 0.4 * f), 0.85 * smooth(0, 0.12, age) * (1 - f) * (1 - f));
+      }
+      ctx.restore();
+    }
+    if (outAll < 1) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1 - outAll; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, W); }
+  },
+});
+</script></body></html>

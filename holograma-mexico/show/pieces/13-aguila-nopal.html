@@ -1,0 +1,549 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Águila y nopal: the founding legend of Tenochtitlan.
+// A calm lake glows awake and a seed of light ripples the water while a dawn ember kindles
+// high above; the nopal's line art sprouts upward from the rock in jade, a halo of light rises
+// around the ember, and the eagle is drawn in gold up from its talons. The full-colour artwork
+// ignites from the eagle's heart before a slowly turning sun-burst, a warm pulse runs across the
+// water, and golden feathers drift down. Finally a glowing gold seam descends: the eagle melts
+// into gold light and embers above it, returning to the sun, and the legend ends as a jade nopal
+// outline over the lake.
+// Assets: prepare.py on out/images/aguila-nopal-2.png, split by colour into -cactus (pads, tunas,
+// rock; jade lines) and -eagle (eagle + snake; gold lines). Derived from those (scratchpad
+// derive.py): -cactus_lit (rock lowered and split-toned with a teal water rim), -eagle_edge /
+// -cactus_edge (outline-only line art for the outro flare), -sil (solid silhouette).
+const { W, C, ctx, clamp, lerp, smooth, ease, COLORS, rgba } = HG;
+const JADE = [70, 235, 160], JADE_HI = [170, 255, 200], TEAL = [40, 190, 220], SUNGOLD = [255, 200, 110];
+
+// ---------- timeline
+const T_NOPAL = 0.55, D_NOPAL = 2.3;      // jade line art sprouts from the rock
+const T_EAGLE = 2.15, D_EAGLE = 2.35;     // gold line art drawn up from the talons (overlaps the nopal)
+const T_IGN = 3.55, D_IGN = 2.25;         // colour ignites from the heart (fully in by 5.8 s)
+const FRONT0 = 9.45, FRONTD = 1.8, FTOP = 125, FBOT = 955;   // outro seam: top of eagle -> rock
+
+// ---------- placement: the 1024 px assets are drawn S wide centred at (AX, AY)
+const S = 780, F = S / 1024, AX = 531, AY = 543;
+const ISLAND = { x: 507, y: 922 };                       // rock base on the water, anchor of the push-in
+const TALONS = { x: AX + (440 - 512) * F, y: AY + (570 - 512) * F };
+const SUN = { x: AX + (470 - 512) * F, y: AY + (285 - 512) * F };
+const PATHX = SUN.x;                                     // the sun's reflection column on the lake
+// the push-in happens while the colour ignites and the hold is perfectly still (a slow push over the
+// finely detailed feathers made their texture shimmer); a gentle push resumes under the outro dissolve
+const zoomAt = t => 1 + 0.025 * ease.inOut3((t - 3.4) / 3.0) + 0.02 * ease.in3((t - 9.4) / 2.5);
+const Z = (p, z) => ({ x: ISLAND.x + (p.x - ISLAND.x) * z, y: ISLAND.y + (p.y - ISLAND.y) * z });
+const assetToCanvas = (u, v, z) => Z({ x: AX + (u - 512) * F, y: AY + (v - 512) * F }, z);
+const zoomTo = (c, z) => c.setTransform(z, 0, 0, z, ISLAND.x * (1 - z), ISLAND.y * (1 - z));
+
+const L1 = HG.layer(), L2 = HG.layer(), LK = HG.layer(), LS = HG.layer(), LM = HG.layer(), LR = HG.layer();
+for (const l of [L1, L2, LK, LS, LM, LR]) l.ctx.imageSmoothingQuality = 'high';
+ctx.imageSmoothingQuality = 'high';
+const circleFade = (x, y, r0 = 430, r1 = 505) => 1 - smooth(r0, r1, Math.hypot(x - C, y - C));
+
+// ---------- sample points of the artwork (computed once from the images, independent of t)
+let PTS = null;
+function samplePoints(img, thr, maxN, seed) {
+  const n = 256, c = document.createElement('canvas'); c.width = c.height = n;
+  const g = c.getContext('2d'); g.drawImage(img, 0, 0, n, n);
+  const d = g.getImageData(0, 0, n, n).data, out = [];
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const i = (y * n + x) * 4;
+    if (d[i + 3] > thr) out.push({ u: (x + 0.5) * 1024 / n, v: (y + 0.5) * 1024 / n });
+  }
+  const R = HG.rng(seed);
+  for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
+  return out.slice(0, maxN);
+}
+// distance of a point from a reveal origin in the stretched (ellipse) metric
+const metric = (x, y, o) => Math.hypot(x - o.x, (y - o.y) / o.sy);
+function prepare(A) {
+  const cl = samplePoints(A.cactusLines, 150, 420, 5), el = samplePoints(A.eagleLines, 150, 520, 6);
+  const cc = samplePoints(A.cactus, 200, 330, 7), ec = samplePoints(A.eagle, 200, 1100, 8);
+  const maxR = (pts, o) => Math.max(...pts.map(p => { const q = assetToCanvas(p.u, p.v, 1); return metric(q.x, q.y, o); }));
+  const CO = { x: ISLAND.x, y: ISLAND.y - 8, sy: 1.5 }, EO = { x: TALONS.x, y: TALONS.y, sy: 1.15 };
+  CO.max = maxR(cl, CO); EO.max = maxR(el, EO);
+  return { cl, el, cc, ec, CO, EO };
+}
+
+// ---------- the outro seam: a gently undulating horizontal front
+const frontAt = t => (t < FRONT0 ? -1e4 : FTOP + (FBOT - FTOP) * smooth(0, 1, (t - FRONT0) / FRONTD));
+// inverse of smoothstep: when does the front reach a given fraction of its path
+function inv3(y) { y = clamp(y); return 0.5 - Math.sin(Math.asin(1 - 2 * y) / 3); }
+const wave = (x, t) => 9 * Math.sin(0.012 * x + 1.7 * t) + 5 * Math.sin(0.029 * x - 2.3 * t + 1.3);
+function wavePath(c, y0, t) {
+  c.beginPath(); c.moveTo(-40, y0 + wave(-40, t));
+  for (let x = -16; x <= W + 40; x += 24) c.lineTo(x, y0 + wave(x, t));
+}
+function abovePath(c, y0, t) {
+  c.beginPath(); c.moveTo(-60, -80);
+  for (let x = -40; x <= W + 40; x += 24) c.lineTo(x, y0 + wave(x, t));
+  c.lineTo(W + 60, -80); c.closePath();
+}
+
+// ---------- line art revealed from an origin by a growing ellipse with a glowing front
+function reveal(img, k, z, o, { color, alpha = 1, level = 1, frontY = -1e4, after = 0, feather = 100, fill = null, fillA = 0 } = {}) {
+  if (k <= 0 || alpha <= 0) return;
+  const c = L1.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+  zoomTo(c, z);
+  // a faint glassy ghost of the colour under the lines gives the drawing body before it ignites
+  if (fill && fillA > 0) { c.globalAlpha = fillA; c.drawImage(fill, AX - S / 2, AY - S / 2, S, S); }
+  c.globalAlpha = 0.85; c.filter = 'blur(6px)'; c.drawImage(img, AX - S / 2, AY - S / 2, S, S);
+  c.filter = 'none'; c.globalAlpha = 1; c.drawImage(img, AX - S / 2, AY - S / 2, S, S);
+  HG.reset(c);
+  const ox = ISLAND.x + (o.x - ISLAND.x) * z, oy = ISLAND.y + (o.y - ISLAND.y) * z;
+  if (k < 1) {
+    const rho = Math.max(1, k * (o.max * z + feather));
+    c.setTransform(1, 0, 0, o.sy, 0, oy * (1 - o.sy));
+    c.globalCompositeOperation = 'destination-in';
+    const g = c.createRadialGradient(ox, oy, 0, ox, oy, rho);
+    g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(Math.max(0, 1 - feather / rho), 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.fillRect(-W, -W * 4, W * 3, W * 10);
+    c.globalCompositeOperation = 'source-atop';
+    const rg = c.createRadialGradient(ox, oy, Math.max(0, rho - 70), ox, oy, rho);
+    rg.addColorStop(0, rgba(color, 0)); rg.addColorStop(0.7, rgba(color, 0.95)); rg.addColorStop(1, rgba(color, 0));
+    c.fillStyle = rg; c.fillRect(-W, -W * 4, W * 3, W * 10);
+    HG.reset(c);
+  }
+  // below the outro front the lines stay at `level`; above it they go to `after`
+  if (frontY > -500 || level < 0.999) {
+    c.globalCompositeOperation = 'destination-in';
+    if (frontY < -500) c.fillStyle = `rgba(0,0,0,${level})`;
+    else {
+      const g = c.createLinearGradient(0, frontY - 40, 0, frontY + 30);
+      g.addColorStop(0, `rgba(0,0,0,${after})`); g.addColorStop(1, `rgba(0,0,0,${level})`);
+      c.fillStyle = g;
+    }
+    c.fillRect(0, 0, W, W);
+    HG.reset(c);
+  }
+  HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.min(1, alpha); ctx.drawImage(L1.cv, 0, 0); HG.reset(ctx);
+}
+
+// outro: only the bright outline flares in a band just above the seam, then fades upward into light
+function flare(img, z, fy, color, a) {
+  if (fy < -500 || a <= 0) return;
+  const c = L1.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+  zoomTo(c, z);
+  c.globalAlpha = 0.9; c.filter = 'blur(5px)'; c.drawImage(img, AX - S / 2, AY - S / 2, S, S);
+  c.filter = 'none'; c.globalAlpha = 1; c.drawImage(img, AX - S / 2, AY - S / 2, S, S);
+  HG.reset(c);
+  c.globalCompositeOperation = 'source-atop'; c.fillStyle = rgba(color, 1); c.fillRect(0, 0, W, W);
+  c.globalCompositeOperation = 'destination-in';
+  const top = fy - 150, bot = fy + 40, at = y => clamp((y - top) / (bot - top));
+  const g = c.createLinearGradient(0, top, 0, bot);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(at(fy - 85), 'rgba(0,0,0,0.3)');
+  g.addColorStop(at(fy - 18), 'rgba(0,0,0,1)'); g.addColorStop(at(fy + 6), 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = g; c.fillRect(0, 0, W, W);
+  HG.reset(c);
+  HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.min(1, a); ctx.drawImage(L1.cv, 0, 0); HG.reset(ctx);
+}
+
+// sparkles riding on the reveal front, placed on real line pixels
+function frontSparks(pts, k, z, o, colors, alpha, seed, feather = 100) {
+  if (k <= 0 || k >= 1 || alpha <= 0) return;
+  const R = HG.rng(seed), rho = k * (o.max * z + feather), front = rho - feather * 0.35;
+  const ox = ISLAND.x + (o.x - ISLAND.x) * z, oy = ISLAND.y + (o.y - ISLAND.y) * z;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const p of pts) {
+    const s = 0.6 + R() * 0.9, col = colors[Math.floor(R() * colors.length)], tw = R() * 6.28;
+    const q = assetToCanvas(p.u, p.v, z);
+    const d = metric(q.x, q.y, { x: ox, y: oy, sy: o.sy }) - front;
+    const b = Math.exp(-(d * d) / (2 * 26 * 26));
+    if (b < 0.02) continue;
+    HG.dot(ctx, col, q.x, q.y, 13 * s, b * alpha * (0.6 + 0.4 * Math.sin(tw + k * 40)));
+  }
+  ctx.restore();
+}
+
+// ---------- the lake of Texcoco: rippling light lines and the sun's glittering path
+const RIPPLES = [
+  { t0: 0.35, col: [150, 225, 210], a: 0.8 }, { t0: 0.8, col: TEAL, a: 0.8 }, { t0: 1.25, col: TEAL, a: 0.8 },
+  { t0: 3.85, col: SUNGOLD, a: 0.95 },                     // warm pulse when the colour ignites
+];
+function lake(t, a, sunA, warm) {
+  if (a <= 0) return;
+  const c = LK.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+  c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
+  const N = 11, R = HG.rng(31), STEP = 9, gold0 = sunA + 0.9 * warm;
+  for (let i = 0; i < N; i++) {
+    const d = (i + 0.5) / N, y0 = 896 + 100 * Math.pow(d, 1.3);
+    const hw = Math.sqrt(Math.max(0, 462 * 462 - (y0 - C) ** 2));
+    const dir = R() < 0.5 ? -1 : 1, ph = R() * 6.28, ph2 = R() * 6.28, kx = 0.016 + 0.012 * R(), w = 0.6 + 0.5 * R();
+    const k1 = 0.035 + 0.03 * R() / (0.6 + d), s1 = (0.5 + 0.5 * R()) * dir, k2 = 0.011 + 0.008 * R();
+    const amp = 0.8 + 2.2 * d, lw = 1.5 + 2.0 * d, pw = 26 + 110 * d + 150 * warm;
+    const base = 0.34 + 0.3 * d, gold = (0.4 + 0.6 * gold0) * (0.5 + 0.5 * d);
+    if (hw < 60) continue;
+    c.lineWidth = lw;
+    let px = null, py = null;
+    for (let x = C - hw; x <= C + hw + 1; x += STEP) {
+      const y = y0 + amp * Math.sin(x * kx + t * w + ph) + 0.5 * amp * Math.sin(x * kx * 2.3 - t * w * 1.4 + ph * 2);
+      if (px !== null) {
+        const xm = (x + px) / 2;
+        const edge = smooth(0, 90, xm - (C - hw)) * smooth(0, 90, C + hw - xm) * circleFade(xm, y, 432, 468);
+        const sh = (0.12 + 0.88 * Math.pow(0.5 + 0.5 * Math.sin(xm * k1 - t * s1 * 2.2 + ph2), 1.6)) * (0.6 + 0.4 * Math.sin(xm * k2 + t * 0.7 * dir + ph));
+        const gp = Math.exp(-((xm - PATHX) ** 2) / (2 * pw * pw));
+        const al = edge * sh * (base * (1 - gp) + gold * gp * 1.6);
+        if (al > 0.01) {
+          const col = [lerp(TEAL[0], SUNGOLD[0], gp), lerp(TEAL[1], SUNGOLD[1], gp), lerp(TEAL[2], SUNGOLD[2], gp)];
+          c.strokeStyle = rgba(col.map(Math.round), Math.min(1, al));
+          c.beginPath(); c.moveTo(px, py); c.lineTo(x, y); c.stroke();
+        }
+      }
+      px = x; py = y;
+    }
+  }
+  // ripple rings from the island: brighter in front, faint behind, kept inside the fan
+  for (let j = 0; j < RIPPLES.length; j++) {
+    const rp = RIPPLES[j], u = (t - rp.t0) / 2.5;
+    if (u <= 0 || u >= 1) continue;
+    const rx = 14 + 236 * ease.out3(u), ra = Math.pow(1 - u, 1.5) * smooth(0, 0.08, u) * rp.a, M = 72;
+    c.lineWidth = 2.4 - 1.2 * u;
+    for (let m = 0; m < M; m++) {
+      const a0 = (m / M) * Math.PI * 2, a1 = ((m + 1) / M) * Math.PI * 2, am = (a0 + a1) / 2;
+      const front = 0.25 + 0.75 * Math.pow(0.5 + 0.5 * Math.sin(am), 1.5);
+      const sh = 0.6 + 0.4 * Math.sin(am * 7 + t * 2.1 + j * 2);
+      const pt = a => { const r = rx * (1 + 0.015 * Math.sin(a * 5 + t * 1.7 + j)); return [ISLAND.x + Math.cos(a) * r, ISLAND.y + 6 + Math.sin(a) * r * 0.11]; };
+      const [x0, y0] = pt(a0), [x1, y1] = pt(a1);
+      const al = ra * front * sh * circleFade((x0 + x1) / 2, (y0 + y1) / 2, 420, 462);
+      if (al < 0.005) continue;
+      c.strokeStyle = rgba(rp.col, al);
+      c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+    }
+  }
+  HG.reset(c);
+  // glow + crisp
+  HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = a * 0.9; ctx.filter = 'blur(5px)'; ctx.drawImage(LK.cv, 0, 0);
+  ctx.filter = 'none'; ctx.globalAlpha = a; ctx.drawImage(LK.cv, 0, 0);
+  // glitter on the sun's path (the eagle's sun reflected in the water)
+  const G = HG.rng(77);
+  for (let i = 0; i < 52; i++) {
+    const d = Math.pow(G(), 0.8), y = 897 + 98 * Math.pow(d, 1.35) + (G() - 0.5) * 4;
+    const x = PATHX + (G() - 0.5) * (40 + 170 * d + 160 * warm), f = 1.5 + 2.5 * G(), ph = G() * 6.28, s = 7 + 9 * G();
+    const tw = Math.pow(Math.max(0, Math.sin(t * f + ph)), 6);
+    HG.dot(ctx, G() < 0.7 ? SUNGOLD : COLORS.warm, x, y, s, a * tw * (0.25 + 0.75 * Math.min(1, gold0)) * circleFade(x, y, 430, 468));
+  }
+  HG.reset(ctx);
+}
+
+// ---------- dawn: an ember kindles at the sun point and a halo of light rises around it
+function dawn(t, z, a, p) {
+  if (a <= 0) return;
+  const s = Z(SUN, z), r = 255 * z;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, 300);
+  g.addColorStop(0, rgba(COLORS.warm, 0.24 * a)); g.addColorStop(0.3, rgba(COLORS.gold, 0.09 * a)); g.addColorStop(1, rgba(COLORS.gold, 0));
+  ctx.fillStyle = g; ctx.fillRect(s.x - 300, s.y - 300, 600, 600);
+  HG.dot(ctx, COLORS.warm, s.x, s.y, 44 + 8 * Math.sin(t * 1.9), a * 0.6);
+  HG.dot(ctx, COLORS.gold, s.x, s.y, 150, a * 0.18);
+  ctx.restore();
+  if (p <= 0) return;
+  // the halo: two arcs rise from below the talons and meet above the eagle's head
+  const c = LR.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+  c.lineCap = 'round'; c.strokeStyle = rgba(COLORS.gold, 1); c.lineWidth = 3.2;
+  const bot = Math.PI / 2, sw = Math.PI * p;
+  c.beginPath(); c.arc(s.x, s.y, r, bot - sw, bot); c.stroke();
+  c.beginPath(); c.arc(s.x, s.y, r, bot, bot + sw); c.stroke();
+  const fadeY = y => 1 - smooth(s.y + r * 0.3, s.y + r * 0.8, y);       // invisible behind nopal and talons
+  c.globalCompositeOperation = 'destination-in';
+  const vg = c.createLinearGradient(0, s.y + r * 0.3, 0, s.y + r * 0.8);
+  vg.addColorStop(0, 'rgba(0,0,0,1)'); vg.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = vg; c.fillRect(0, 0, W, W);
+  HG.reset(c);
+  HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = a * 0.75; ctx.filter = 'blur(8px)'; ctx.drawImage(LR.cv, 0, 0);
+  ctx.filter = 'none'; ctx.globalAlpha = a * 0.7; ctx.drawImage(LR.cv, 0, 0);
+  // bright heads on the rising arcs
+  if (p < 1) {
+    const hk = smooth(0, 0.08, p) * (1 - smooth(0.9, 1, p));
+    for (const sg of [-1, 1]) {
+      const an = bot + sg * sw, x = s.x + Math.cos(an) * r, y = s.y + Math.sin(an) * r;
+      HG.dot(ctx, COLORS.warm, x, y, 34, a * hk * fadeY(y) * 0.95);
+      HG.dot(ctx, COLORS.gold, x, y, 90, a * hk * fadeY(y) * 0.25);
+    }
+  }
+  HG.reset(ctx);
+}
+
+// ---------- the silhouette that the sun-burst frames; it opens again above the outro seam
+function silMask(A, z, fy, t) {
+  const c = LM.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+  zoomTo(c, z); c.drawImage(A.sil, AX - S / 2, AY - S / 2, S, S); HG.reset(c);
+  if (fy > -500) {
+    c.globalCompositeOperation = 'destination-out'; c.filter = 'blur(14px)'; c.fillStyle = '#000';
+    abovePath(c, fy - 14, t); c.fill(); HG.reset(c);
+  }
+  return LM.cv;
+}
+
+// ---------- radiant sun-burst behind the eagle
+function sunburst(A, t, a, grow, z, fy) {
+  if (a <= 0 || grow <= 0) return;
+  const c = L2.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+  const s = Z(SUN, z);
+  c.globalCompositeOperation = 'lighter';
+  const hg = c.createRadialGradient(s.x, s.y, 0, s.x, s.y, 340 * z);
+  hg.addColorStop(0, rgba(COLORS.warm, 0.45)); hg.addColorStop(0.3, rgba(COLORS.gold, 0.2)); hg.addColorStop(1, rgba(COLORS.gold, 0));
+  c.fillStyle = hg; c.fillRect(0, 0, W, W);
+  const sets = [
+    { n: 24, rot: 0.035 * t, len: 560, wid: 0.034, a: 0.85 },
+    { n: 24, rot: -0.022 * t + Math.PI / 24, len: 400, wid: 0.026, a: 0.55 },
+    { n: 48, rot: 0.012 * t + Math.PI / 48, len: 300, wid: 0.012, a: 0.4 },
+  ];
+  for (const st of sets) {
+    const g = c.createRadialGradient(s.x, s.y, 60, s.x, s.y, st.len * z);
+    g.addColorStop(0, rgba(SUNGOLD, 0)); g.addColorStop(0.22, rgba(SUNGOLD, st.a)); g.addColorStop(0.6, rgba(COLORS.gold, st.a * 0.45)); g.addColorStop(1, rgba(COLORS.gold, 0));
+    c.fillStyle = g; c.beginPath();
+    for (let i = 0; i < st.n; i++) {
+      const ang = st.rot + (i / st.n) * Math.PI * 2;
+      const L = st.len * z * grow * (0.82 + 0.18 * Math.sin(t * 0.8 + i * 2.3));
+      const ca = Math.cos(ang), sa = Math.sin(ang), wd = st.wid * L * 0.45;
+      const mx = s.x + ca * L * 0.42, my = s.y + sa * L * 0.42;
+      c.moveTo(s.x + ca * 40, s.y + sa * 40);
+      c.lineTo(mx - sa * wd, my + ca * wd);
+      c.lineTo(s.x + ca * L, s.y + sa * L);
+      c.lineTo(mx + sa * wd, my - ca * wd);
+      c.closePath();
+    }
+    c.fill();
+  }
+  // the burst frames the silhouette: nothing shines through the eagle or the nopal
+  c.globalCompositeOperation = 'destination-out';
+  c.drawImage(silMask(A, z, fy, t), 0, 0);
+  // keep the burst inside the fan and away from the lake
+  c.globalCompositeOperation = 'destination-in';
+  const cg = c.createRadialGradient(C, C, 380, C, C, 500);
+  cg.addColorStop(0, 'rgba(0,0,0,1)'); cg.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = cg; c.fillRect(0, 0, W, W);
+  const vg = c.createLinearGradient(0, 600, 0, 840);
+  vg.addColorStop(0, 'rgba(0,0,0,1)'); vg.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = vg; c.fillRect(0, 0, W, W);
+  HG.reset(c);
+  HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = a * 0.8; ctx.filter = 'blur(9px)'; ctx.drawImage(L2.cv, 0, 0);
+  ctx.filter = 'none'; ctx.globalAlpha = a * 0.6; ctx.drawImage(L2.cv, 0, 0);
+  HG.reset(ctx);
+}
+
+// ---------- full-colour artwork: cactus and eagle layers summed exactly, then bloomed
+const IGN_FEATHER = 260;
+function artwork(A, k, z, bloom, fy, t) {
+  if (k <= 0) return;
+  const c = L2.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+  zoomTo(c, z);
+  c.globalCompositeOperation = 'lighter';
+  c.drawImage(A.cactus, AX - S / 2, AY - S / 2, S, S);
+  c.drawImage(A.eagle, AX - S / 2, AY - S / 2, S, S);
+  HG.reset(c);
+  if (k < 1) {   // colour ignites outward from the eagle's heart
+    const s0 = Z(SUN, z), rho = Math.max(1, k * (640 * z + IGN_FEATHER));
+    c.globalCompositeOperation = 'destination-in';
+    const g = c.createRadialGradient(s0.x, s0.y, 0, s0.x, s0.y, rho);
+    g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(Math.max(0, 1 - IGN_FEATHER / rho), 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.fillRect(0, 0, W, W);
+    HG.reset(c);
+  }
+  if (fy > -500) {
+    // outro: the colour melts into molten gold just below the seam and is gone above it
+    c.globalCompositeOperation = 'destination-out'; c.filter = 'blur(12px)'; c.fillStyle = '#000';
+    abovePath(c, fy - 16, t); c.fill();
+    c.globalCompositeOperation = 'source-atop'; c.lineJoin = 'round';
+    const heat = 1 - 0.5 * smooth(640, 920, fy);
+    c.filter = 'blur(16px)'; wavePath(c, fy + 14, t); c.lineWidth = 56; c.strokeStyle = rgba(COLORS.gold, 0.45 * heat); c.stroke();
+    c.filter = 'blur(5px)'; wavePath(c, fy, t); c.lineWidth = 14; c.strokeStyle = rgba(COLORS.warm, 0.4 * heat); c.stroke();
+    HG.reset(c);
+  }
+  HG.reset(ctx);
+  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = bloom; ctx.filter = 'blur(16px)'; ctx.drawImage(L2.cv, 0, 0);
+  ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.drawImage(L2.cv, 0, 0);
+  HG.reset(ctx);
+}
+
+// the glowing gold seam itself, only where the eagle and nopal are
+function seam(A, z, fy, t, a) {
+  if (fy < -500 || a <= 0) return;
+  const c = LS.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+  c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; c.lineJoin = 'round';
+  c.filter = 'blur(10px)'; wavePath(c, fy, t); c.lineWidth = 30; c.strokeStyle = rgba(COLORS.gold, 0.3); c.stroke();
+  c.filter = 'blur(2px)'; wavePath(c, fy, t); c.lineWidth = 6; c.strokeStyle = rgba(COLORS.gold, 0.75); c.stroke();
+  c.filter = 'none'; wavePath(c, fy, t); c.lineWidth = 2.2; c.strokeStyle = rgba(COLORS.warm, 0.7); c.stroke();
+  c.globalCompositeOperation = 'destination-in';
+  zoomTo(c, z); c.drawImage(A.sil, AX - S / 2, AY - S / 2, S, S);
+  HG.reset(c);
+  HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = a * 0.7; ctx.filter = 'blur(9px)'; ctx.drawImage(LS.cv, 0, 0);
+  ctx.filter = 'none'; ctx.globalAlpha = a; ctx.drawImage(LS.cv, 0, 0);
+  HG.reset(ctx);
+}
+
+// ---------- drifting golden feathers
+let FEATHER = null;
+function featherSprite() {
+  if (FEATHER) return FEATHER;
+  const w = 76, h = 250, cx = w * 0.44, vEnd = h * 0.8, s = document.createElement('canvas');
+  s.width = w; s.height = h; const g = s.getContext('2d');
+  // asymmetric vane: narrow leading edge on the left, broad trailing edge on the right
+  const vane = () => {
+    g.beginPath(); g.moveTo(cx + 1, 10);
+    g.bezierCurveTo(w * 0.97, 46, w * 0.96, h * 0.56, cx + 3, vEnd);
+    g.lineTo(cx - 2, vEnd - 4);
+    g.bezierCurveTo(w * 0.12, h * 0.62, w * 0.16, 40, cx + 1, 10);
+    g.closePath();
+  };
+  g.filter = 'blur(6px)'; g.fillStyle = rgba(COLORS.gold, 0.5); vane(); g.fill(); g.filter = 'none';
+  const lg = g.createLinearGradient(0, 10, 0, vEnd);
+  lg.addColorStop(0, rgba(COLORS.warm, 0.95)); lg.addColorStop(0.55, rgba(COLORS.gold, 0.8)); lg.addColorStop(1, rgba(COLORS.marigold, 0.45));
+  g.fillStyle = lg; vane(); g.fill();
+  // barbs: fine gaps sweeping up and out from the shaft, and two splits in the trailing vane
+  g.globalCompositeOperation = 'destination-out'; g.strokeStyle = 'rgba(0,0,0,0.42)'; g.lineWidth = 1.1;
+  for (let y = 26; y < vEnd - 4; y += 5.5) {
+    g.beginPath(); g.moveTo(cx, y); g.quadraticCurveTo(cx - 10, y - 8, 2, y - 18);
+    g.moveTo(cx, y); g.quadraticCurveTo(cx + 16, y - 7, w - 2, y - 22); g.stroke();
+  }
+  g.fillStyle = 'rgba(0,0,0,1)';
+  for (const [y0, dp] of [[h * 0.36, 0.55], [h * 0.58, 0.45]]) {
+    g.beginPath(); g.moveTo(w, y0 - 16); g.lineTo(cx + (w - cx) * (1 - dp), y0 + 2); g.lineTo(w, y0 - 8); g.closePath(); g.fill();
+  }
+  // downy wisps at the base of the vane
+  g.globalCompositeOperation = 'lighter'; g.strokeStyle = rgba(COLORS.warm, 0.35); g.lineWidth = 1;
+  for (let i = 0; i < 7; i++) {
+    const y = vEnd - 22 + i * 3.5, sd = i % 2 ? 1 : -1;
+    g.beginPath(); g.moveTo(cx, y); g.quadraticCurveTo(cx + sd * 14, y - 2, cx + sd * (20 + i * 1.5), y + 10); g.stroke();
+  }
+  // quill: the rachis through the vane and the bare calamus below it
+  g.strokeStyle = rgba(COLORS.white, 0.85); g.lineCap = 'round';
+  g.lineWidth = 1.5; g.beginPath(); g.moveTo(cx + 1, 8); g.quadraticCurveTo(cx + 3, h * 0.45, cx, vEnd); g.stroke();
+  g.lineWidth = 2.8; g.beginPath(); g.moveTo(cx, vEnd - 6); g.quadraticCurveTo(cx - 1, h * 0.9, cx - 3, h - 6); g.stroke();
+  g.strokeStyle = rgba(COLORS.gold, 0.5); g.lineWidth = 6; g.filter = 'blur(3px)';
+  g.beginPath(); g.moveTo(cx, vEnd - 6); g.quadraticCurveTo(cx - 1, h * 0.9, cx - 3, h - 6); g.stroke();
+  FEATHER = s; return s;
+}
+// feathers loosen beside the wings and tumble down through the dark space around the eagle
+const FEATHER_SPOTS = [
+  { x: 215, y: 430 }, { x: 862, y: 400 }, { x: 300, y: 200 }, { x: 820, y: 545 },
+  { x: 182, y: 545 }, { x: 900, y: 475 }, { x: 262, y: 500 },
+];
+function feathers(t, a) {
+  if (a <= 0) return;
+  const R = HG.rng(404), spr = featherSprite(), N = FEATHER_SPOTS.length;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < N; i++) {
+    const sp = FEATHER_SPOTS[i], side = sp.x < C ? -1 : 1;
+    const ts = 5.2 + 3.1 * (i / N) + 0.3 * R(), life = 4.2 + 0.8 * R();
+    const vy = 17 + 10 * R(), A = 38 + 22 * R(), w = 0.95 + 0.35 * R(), ph = R() * 6.28;
+    const len = 85 + 25 * R(), base = side * (0.3 + 0.5 * R()), turn0 = 0.6 * R(), ph2 = R() * 6.28;
+    const tau = t - ts; if (tau < 0 || tau > life) continue;
+    const sw = w * tau + ph;
+    const x = sp.x + A * (Math.sin(sw) - Math.sin(ph)) + side * 5 * tau;
+    const y = sp.y + vy * tau - 7 * Math.cos(2 * sw);
+    const rot = base + 0.62 * Math.cos(sw);                        // tilts with its sideways glide
+    const turn = Math.cos(turn0 + 0.45 * Math.sin(0.55 * tau + ph2)); // slow 3D turn about the quill
+    const al = a * smooth(0, 1.1, tau) * (1 - smooth(life - 1.3, life, tau)) * circleFade(x, y, 410, 470);
+    if (al <= 0.003) continue;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(turn, 1); ctx.globalAlpha = al;
+    const fw = len * spr.width / spr.height;
+    ctx.drawImage(spr, -fw * 0.44, -len / 2, fw, len); ctx.restore();
+  }
+  // fine gold dust drifting down beside the wings
+  for (let i = 0; i < 44; i++) {
+    const side = R() < 0.5 ? -1 : 1;
+    const ts = 5.0 + 3.6 * R(), life = 2.5 + 2 * R(), x0 = C + side * (250 + 190 * R()), y0 = 140 + 480 * R(), vy = 10 + 16 * R(), ph = R() * 6.28, s = 4 + 4 * R();
+    const tau = t - ts; if (tau < 0 || tau > life) continue;
+    const x = x0 + 10 * Math.sin(tau * 1.3 + ph), y = y0 + vy * tau;
+    const al = a * Math.sin(Math.PI * tau / life) * (0.5 + 0.5 * Math.sin(t * 2.4 + ph)) * circleFade(x, y, 420, 490);
+    HG.dot(ctx, R() < 0.5 ? COLORS.gold : COLORS.warm, x, y, s, al * 0.7);
+  }
+  ctx.restore();
+}
+
+// ---------- outro: embers peel off the image where the seam passes and rise away
+function embers(t, pts, z, colors, a, seed) {
+  if (t < FRONT0 || a <= 0) return;
+  const R = HG.rng(seed);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const p of pts) {
+    const vy = 45 + 75 * R(), sway = 8 + 16 * R(), ph = R() * 6.28, s = 0.6 + 0.7 * R(), col = colors[Math.floor(R() * colors.length)];
+    const life = 0.65 + 0.55 * R(), lag = 0.1 * R();
+    const q = assetToCanvas(p.u, p.v, z);
+    const tr = FRONT0 + FRONTD * inv3((q.y - FTOP) / (FBOT - FTOP)) + lag;
+    const tau = t - tr; if (tau < 0 || tau > life) continue;
+    const al = a * smooth(0, 0.08, tau) * Math.pow(1 - tau / life, 1.3) * circleFade(q.x, q.y - 60, 420, 500);
+    const tw = 0.7 + 0.3 * Math.sin(t * 9 + ph * 3);
+    for (let j = 0; j < 2; j++) {
+      const tt = Math.max(0, tau - j * 0.03);
+      const x = q.x + Math.sin(tt * 2.4 + ph) * sway * tt, y = q.y - vy * tt - 40 * tt * tt;
+      HG.dot(ctx, col, x, y, 8.5 * s * (1 - j * 0.3), al * tw * (1 - j * 0.5));
+    }
+  }
+  ctx.restore();
+}
+
+HG.start({
+  duration: 12,
+  assets: {
+    cactus: '../assets/13-aguila-nopal-cactus_lit.png', eagle: '../assets/13-aguila-nopal-eagle.png',
+    cactusLines: '../assets/13-aguila-nopal-cactus_lines.png', eagleLines: '../assets/13-aguila-nopal-eagle_lines.png',
+    cactusEdge: '../assets/13-aguila-nopal-cactus_edge.png', eagleEdge: '../assets/13-aguila-nopal-eagle_edge.png',
+    sil: '../assets/13-aguila-nopal-sil.png',
+  },
+  render(t, A) {
+    if (!PTS) PTS = prepare(A);
+    const z = zoomAt(t), fy = frontAt(t);
+    const end = 1 - smooth(11.2, 11.9, t);
+    const sunGrow = ease.out3((t - 3.7) / 2.6) * (1 - 0.6 * ease.inOut3((t - 9.4) / 1.1));
+    const sunA = smooth(3.5, 5.0, t) * (1 - smooth(9.5, 10.4, t));
+    const pulse = 0.5 + 0.5 * Math.sin(t * 2.2);
+    const warm = Math.exp(-(((t - 4.3) / 0.65) ** 2));            // the water answers the ignition
+
+    lake(t, smooth(0.1, 1.3, t) * (1 - smooth(11.0, 11.9, t)), sunA * (0.85 + 0.15 * pulse), warm);
+
+    // seed of light on the water where the island will rise
+    const seedA = smooth(0.2, 0.75, t) * (1 - smooth(1.6, 2.7, t));
+    if (seedA > 0) {
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      HG.dot(ctx, SUNGOLD, ISLAND.x, ISLAND.y, 70 + 20 * Math.sin(t * 3), seedA * 0.9);
+      ctx.translate(ISLAND.x, ISLAND.y + 4); ctx.scale(4, 0.45); HG.dot(ctx, TEAL, 0, 0, 90, seedA * 0.5);
+      ctx.restore();
+    }
+
+    // dawn ember and rising halo; it settles into the sun-burst's ring
+    const dawnA = smooth(0.7, 1.9, t) * (1 - 0.35 * smooth(4.0, 5.5, t)) * (1 - smooth(9.5, 10.5, t));
+    dawn(t, z, dawnA, ease.inOut3((t - 1.0) / 2.4));
+
+    sunburst(A, t, sunA, sunGrow, z, fy);
+
+    // full colour
+    const ign = ease.inOut3((t - T_IGN) / D_IGN);
+    artwork(A, ign, z, 0.2 + 0.3 * (1 - smooth(5.6, 7.6, t)) + 0.04 * pulse, fy, t);
+    const seamA = smooth(FRONT0, FRONT0 + 0.2, t) * (1 - smooth(FRONT0 + FRONTD - 0.3, FRONT0 + FRONTD, t));
+    seam(A, z, fy, t, seamA * (1 - 0.45 * smooth(640, 920, fy)));
+    // the eagle returns to the sun: a soft warm swell as the seam passes its heart
+    const lift = Math.exp(-(((t - 10.0) / 0.4) ** 2));
+    if (lift > 0.01) {
+      const s = Z(SUN, z);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, 280);
+      g.addColorStop(0, rgba(COLORS.warm, 0.3 * lift)); g.addColorStop(0.4, rgba(COLORS.gold, 0.1 * lift)); g.addColorStop(1, rgba(COLORS.gold, 0));
+      ctx.fillStyle = g; ctx.fillRect(s.x - 280, s.y - 280, 560, 560); ctx.restore();
+    }
+
+    // line art: jade nopal sprouting from the rock, gold eagle drawn up from its talons
+    const kc = ease.out3((t - T_NOPAL) / D_NOPAL);
+    const xe = clamp((t - T_EAGLE) / D_EAGLE), ke = t < T_EAGLE ? 0 : 0.5 * xe + 0.5 * xe * xe * (3 - 2 * xe);
+    const lvlC = lerp(1, 0.16 + 0.05 * pulse, smooth(4.4, 6.2, t)), lvlE = lerp(1, 0.22 + 0.07 * pulse, smooth(4.6, 6.4, t));
+    const ghost = 1 - smooth(4.2, 5.8, t);
+    reveal(A.cactusLines, kc, z, PTS.CO, { color: JADE_HI, alpha: end, level: lvlC, frontY: fy, after: 0.9, fill: A.cactus, fillA: 0.15 * ghost });
+    reveal(A.eagleLines, ke, z, PTS.EO, { color: COLORS.warm, alpha: end, level: lvlE, frontY: fy, after: 0, fill: A.eagle, fillA: 0.13 * ghost });
+    flare(A.eagleEdge, z, fy, COLORS.warm, end * seamA);
+    flare(A.cactusEdge, z, fy, JADE_HI, 0.8 * end * seamA);
+    frontSparks(PTS.cl, kc, z, PTS.CO, [JADE, SUNGOLD], 0.8, 21);
+    frontSparks(PTS.el, ke, z, PTS.EO, [COLORS.gold, COLORS.warm], 0.85, 22);
+
+    feathers(t, smooth(5.1, 6.0, t) * (1 - smooth(9.3, 10.0, t)));
+    embers(t, PTS.ec, z, [COLORS.gold, COLORS.warm, COLORS.marigold], end, 31);
+    embers(t, PTS.cc, z, [JADE, SUNGOLD], end * 0.7, 32);
+  },
+});
+</script></body></html>

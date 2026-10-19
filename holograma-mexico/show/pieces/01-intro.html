@@ -80,16 +80,16 @@ function flagSprites(img) {
 // ---------- garlands: quadratic cords tied beyond the rim, flags hanging from them
 // cy: height of the cord at the centre, sag: how much it dips below its chord, tilt: right end lower (+) or higher (-)
 const ROWS = [
-  { cy: 300, sag: 120, tilt: -18, n: 4, spacing: 182, fw: 164, drop: 4.7, ph: 0.0, cols: [0, 2, 3, 5] },
-  { cy: 512, sag: 130, tilt: 16, n: 5, spacing: 180, fw: 166, drop: 5.05, ph: 1.3, cols: [3, 4, 5, 0, 1] },
-  { cy: 728, sag: 115, tilt: -14, n: 4, spacing: 182, fw: 164, drop: 5.4, ph: 2.6, cols: [1, 2, 4, 0] },
+  { cy: 300, sag: 120, tilt: -18, n: 4, spacing: 182, fw: 164, drop: 5.65, ph: 0.0, cols: [0, 2, 3, 5] },
+  { cy: 512, sag: 130, tilt: 16, n: 5, spacing: 180, fw: 166, drop: 5.3, ph: 1.3, cols: [3, 4, 5, 0, 1] },
+  { cy: 728, sag: 115, tilt: -14, n: 4, spacing: 182, fw: 164, drop: 4.95, ph: 2.6, cols: [1, 2, 4, 0] },
 ];
 const HW = 600;
 function rowState(R, ri, t) {
   const tau = t - R.drop;
   const p = clamp(tau / 1.1);
   const dy = -230 * (1 - outBackSoft(p, 0.9));
-  const sag = R.sag * (0.4 + 0.6 * outBackSoft(clamp(tau / 1.4), 1.7)) * (1 + 0.035 * Math.sin(0.9 * t + ri * 1.9));
+  const sag = R.sag * (0.4 + 0.6 * outBackSoft(clamp(tau / 1.4), 1.7)) * (1 + 0.05 * Math.sin(0.9 * t + ri * 1.9));
   return { tau, dy, sag, alpha: smooth(0, 0.6, tau) };
 }
 // y of the cord at x, and its slope
@@ -106,50 +106,88 @@ function flagPoses(t) {
       const x = C + (i - (R.n - 1) / 2) * R.spacing;
       const y = cordY(R, S, x);
       const kick = 0.16 * Math.exp(-1.9 * S.tau) * Math.sin(4.6 * S.tau + 0.6 + i * 0.8);
-      const sway = 0.035 * Math.sin(1.15 * t - 0.006 * x + R.ph) + 0.014 * Math.sin(2.0 * t + i * 1.7 + ri);
+      const breeze = 0.75 + 0.25 * Math.sin(0.55 * t + ri * 1.3);
+      const sway = breeze * 0.06 * Math.sin(1.15 * t - 0.006 * x + R.ph) + 0.016 * Math.sin(2.0 * t + i * 1.7 + ri);
       const rot = 0.8 * Math.atan(cordSlope(R, S, x)) + sway + kick;
-      const sx = 0.95 + 0.05 * Math.cos(1.45 * t + i * 0.9 + ri * 2.1);
+      const sx = 0.93 + 0.07 * Math.cos(1.45 * t - 0.006 * x + i * 0.9 + ri * 2.1);
       out.push({ ri, i, x, y, rot, sx, w: R.fw, h: R.fw * FH / FW, ci: R.cols[i], alpha: S.alpha, seed: ri * 31 + i * 7 + 1 });
     }
   });
   return out;
 }
 
-function drawCords(t, fade) {
+// the garlands are painted into their own layer so the closing dissolve can eat them away
+const GL = HG.layer();
+const SWEEP_T = 7.3;
+const sweepPos = t => lerp(-250, 1750, ease.inOut3((t - SWEEP_T) / 2.1));
+// closing dissolve: a front of light expanding from the centre
+const DIS_T = 9.95, DIS_D = 1.6, DIS_R = 640, FEATHER = 70;
+const DIS_P = 2.2;
+const rho = t => { const x = (t - DIS_T) / DIS_D; return x <= 0 ? 0 : DIS_R * (1 - Math.pow(1 - clamp(x), DIS_P)); };
+function rhoInv(d) { // time at which the front reaches distance d
+  return DIS_T + DIS_D * (1 - Math.pow(1 - clamp(d / DIS_R), 1 / DIS_P));
+}
+// the wave itself: a soft pulse at the heart, then a faint warm ring travelling outward
+function drawWave(t) {
+  const x = (t - DIS_T) / DIS_D;
+  if (x < -0.25 || x > 1) return;
+  softGlow(C, C, 160 + 140 * clamp(x * 3), WARM, 0.32 * Math.sin(Math.PI * clamp((x + 0.25) / 0.75)), 0.4);
+  const r = rho(t);
+  if (r > 20) HG.ring(ctx, C, C, r - FEATHER * 0.4, WARM, { width: 10, blur: 16, alpha: 0.22 * Math.sin(Math.PI * clamp(x)) });
+}
+
+function drawCords(g, t) {
   ROWS.forEach((R, ri) => {
     const S = rowState(R, ri, t);
     if (S.tau <= 0) return;
-    const a = S.alpha * fade;
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.beginPath();
-    for (let x = -20; x <= W + 20; x += 20) { const y = cordY(R, S, x); x < 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
-    for (const [lw, al] of [[10, 0.06], [4.5, 0.14], [1.8, 0.6]]) {
-      ctx.globalAlpha = a * al; ctx.lineWidth = lw; ctx.strokeStyle = rgba(WARM, 1); ctx.stroke();
+    g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath();
+    for (let x = -20; x <= W + 20; x += 20) { const y = cordY(R, S, x); x < 0 ? g.moveTo(x, y) : g.lineTo(x, y); }
+    for (const [lw, al] of [[10, 0.06], [4.5, 0.13], [1.8, 0.55]]) {
+      g.globalAlpha = S.alpha * al; g.lineWidth = lw; g.strokeStyle = rgba(WARM, 1); g.stroke();
     }
-    ctx.restore();
+    g.restore();
   });
 }
 
-function drawFlags(t, poses, A, fade) {
-  const F = flagSprites(A.flag);
-  // diagonal glint sweep across the garlands
-  const sweep = lerp(-250, 1750, ease.inOut3((t - 7.4) / 2.0));
+function drawFlags(g, t, poses, A) {
+  const F = flagSprites(A.flag), sweep = sweepPos(t);
   for (const P of poses) {
-    const S = F[P.ci];
-    const diss = 1 - smooth(10.0 + P.dissolveDelay, 11.0 + P.dissolveDelay, t);
-    const a = P.alpha * fade * diss;
+    const S = F[P.ci], a = P.alpha;
     if (a <= 0.003) continue;
-    const k = P.w / FW;
-    ctx.save(); ctx.translate(P.x, P.y); ctx.rotate(P.rot); ctx.scale(P.sx, 1);
-    const top = -P.h * 0.03;
-    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a * 0.85;
-    ctx.drawImage(S.h, -P.w / 2 - GPAD * k, top - GPAD * k, (FW + GPAD * 2) * k, (FH + GPAD * 2) * k);
-    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = a * 0.96;
-    ctx.drawImage(S.f, -P.w / 2, top, P.w, P.h);
-    const b = Math.exp(-Math.pow(((P.x + P.y) - sweep) / 120, 2));
-    if (b > 0.01) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a * 0.5 * b; ctx.drawImage(S.f, -P.w / 2, top, P.w, P.h); }
-    ctx.restore();
+    const k = P.w / FW, top = -P.h * 0.03;
+    g.save(); g.translate(P.x, P.y); g.rotate(P.rot); g.scale(P.sx, 1);
+    g.globalCompositeOperation = 'lighter'; g.globalAlpha = a * 0.85;
+    g.drawImage(S.h, -P.w / 2 - GPAD * k, top - GPAD * k, (FW + GPAD * 2) * k, (FH + GPAD * 2) * k);
+    g.globalCompositeOperation = 'source-over'; g.globalAlpha = a * 0.96;
+    g.drawImage(S.f, -P.w / 2, top, P.w, P.h);
+    const b = Math.exp(-Math.pow(((P.x + P.y + P.h * 0.5) - sweep) / 130, 2));
+    if (b > 0.01) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = a * 0.38 * b; g.drawImage(S.f, -P.w / 2, top, P.w, P.h); }
+    g.restore();
   }
+}
+
+function drawGarlands(t, poses, A) {
+  if (!poses.length) return;
+  const g = GL.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+  drawCords(g, t);
+  drawFlags(g, t, poses, A);
+  const r = rho(t);
+  if (r > 0) {
+    HG.reset(g);
+    // eat away everything inside the front, with a feathered edge
+    g.globalCompositeOperation = 'destination-out';
+    const m = g.createRadialGradient(C, C, 0, C, C, r);
+    m.addColorStop(0, 'rgba(0,0,0,1)'); m.addColorStop(Math.max(0, 1 - FEATHER / r), 'rgba(0,0,0,1)'); m.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = m; g.fillRect(0, 0, W, W);
+    // the paper glows warm as the front passes through it
+    g.globalCompositeOperation = 'source-atop';
+    const e = g.createRadialGradient(C, C, Math.max(0, r - FEATHER), C, C, r + 50);
+    e.addColorStop(0, rgba(WARM, 0.9)); e.addColorStop(0.45, rgba(WARM, 0.55)); e.addColorStop(1, rgba(WARM, 0));
+    g.fillStyle = e; g.fillRect(0, 0, W, W);
+    HG.reset(g);
+  }
+  ctx.save(); ctx.globalAlpha = 1 - smooth(10.9, 11.5, t); ctx.drawImage(GL.cv, 0, 0); ctx.restore();
 }
 
 // ---------- the vortex: three spiral arms of tricolour sparks, fed until the bloom
@@ -157,7 +195,7 @@ const ARM_N = 400, K = 1.05;
 const VORTEX = (() => {
   const R = rng(101), list = [];
   for (let a = 0; a < 3; a++) for (let i = 0; i < ARM_N; i++) {
-    list.push({ arm: a * TAU / 3, col: TRI[a], r0: 560 + R() * 170, rc: 8 + R() * 34, ts: 0.05 + 2.3 * Math.sqrt(R()), dur: 1.15 + R() * 0.45,
+    list.push({ arm: a * TAU / 3, col: TRI[a], r0: 560 + R() * 170, rc: 8 + R() * 34, ts: 0.05 + 2.3 * Math.pow(R(), 0.65), dur: 1.15 + R() * 0.45,
       j: (R() - 0.5) * 0.42, s: 0.55 + R() * 0.9, tw: R() * TAU });
   }
   return list;
@@ -237,7 +275,8 @@ function drawRays(t) {
   const bt = t - TB;
   if (bt <= 0) return;
   const grow = ease.out3(bt / 0.75);
-  const strength = lerp(1, 0.16, smooth(0.9, 2.6, bt)) * (1 - smooth(10.2, 11.6, t));
+  const strength = lerp(1, 0.13, smooth(1.2, 2.9, bt)) * (1 - smooth(9.9, 11.0, t));
+  const recede = lerp(1, 0.72, smooth(TB + 1.1, TB + 3.0, t));
   if (strength <= 0.003) return;
   const rot = spin(TB) + 0.9 * (1 - Math.exp(-1.6 * bt)) + 0.05 * bt;
   const g = RAYS.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
@@ -246,7 +285,7 @@ function drawRays(t) {
   for (let i = 0; i < N; i++) {
     const long = i % 2 === 0;
     const col = long ? TRI[(i / 2) % 3] : GOLD;
-    const L = (long ? 468 : 330) * grow * (0.93 + 0.07 * Math.sin(t * 1.3 + i * 2.1));
+    const L = (long ? 468 : 330) * grow * recede * (0.93 + 0.07 * Math.sin(t * 1.3 + i * 2.1));
     const w0 = long ? 10 : 6;
     g.save(); g.rotate(rot + i * TAU / N);
     const lg = g.createLinearGradient(0, 0, L, 0);
@@ -303,7 +342,7 @@ function drawBurst(t) {
 
 // warm backlight that stays behind the garlands
 function drawBacklight(t) {
-  const a = smooth(TB, TB + 1.2, t) * (0.2 + 0.04 * Math.sin(t * 1.1)) * (1 - smooth(10.4, 11.8, t));
+  const a = smooth(TB, TB + 1.2, t) * (0.2 + 0.04 * Math.sin(t * 1.1)) * (1 - smooth(10.0, 11.3, t));
   if (a <= 0.003) return;
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const g = ctx.createRadialGradient(C, C, 0, C, C, 430);
@@ -311,23 +350,26 @@ function drawBacklight(t) {
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, W); ctx.restore();
 }
 
-// glints: the sweep, and the closing shimmer where each flag dissolves into sparkles
+// glints: the light sweep, and the closing shimmer as the front turns the paper into sparkles
 function drawGlints(t, poses) {
-  const sweep = lerp(-250, 1750, ease.inOut3((t - 7.4) / 2.0));
+  const sweep = sweepPos(t), out = 1 - smooth(11.1, 11.92, t);
   for (const P of poses) {
     const R = rng(P.seed * 977 + 13), col = FLAGCOLS[P.ci];
     const cs = Math.cos(P.rot), sn = Math.sin(P.rot);
-    for (let k = 0; k < 16; k++) {
-      const lx = (R() - 0.5) * P.w * 0.9, ly = R() * P.h * 0.9, ph = R(), sz = 22 + R() * 30, white = R() < 0.4;
+    for (let k = 0; k < 18; k++) {
+      const lx = (R() - 0.5) * P.w * 0.92, ly = (0.04 + R() * 0.88) * P.h, sz = 20 + R() * 32, white = R() < 0.4, life = 0.75 + R() * 0.6, lag = R() * 0.12, rot = R() * 0.8;
       const x = P.x + lx * cs * P.sx - ly * sn, y = P.y + lx * sn * P.sx + ly * cs;
+      const c = white ? WHITE : col;
       // sweep glints
-      const b = Math.exp(-Math.pow(((x + y) - sweep) / 70, 2));
-      if (k < 5 && b > 0.02) glint(white ? WHITE : col, x, y, sz * (0.6 + 0.6 * b), b * 0.9 * P.alpha, 0.3);
-      // dissolve shimmer
-      const t0 = 9.7 + P.dissolveDelay + ph * 1.3, q = (t - t0) / 0.95;
+      if (k < 4) {
+        const b = Math.exp(-Math.pow(((x + y) - sweep) / 60, 2));
+        if (b > 0.02) glint(c, x, y, sz * (0.5 + 0.7 * b), b * 0.85 * P.alpha, rot);
+      }
+      // dissolve glints, born where the front passes
+      const t0 = rhoInv(Math.hypot(x - C, y - C)) - 0.05 + lag, q = (t - t0) / life;
       if (q > 0 && q < 1) {
-        const tw = Math.sin(Math.PI * q);
-        glint(white ? WHITE : col, x, y - 40 * q * q, sz * (0.5 + 0.7 * tw), tw * 0.95, 0.2 + q * 0.5);
+        const tw = Math.sin(Math.PI * Math.pow(q, 0.6));
+        glint(c, x, y - 36 * q, sz * (0.45 + 0.75 * tw), tw * out, rot + q * 0.6);
       }
     }
   }
@@ -338,17 +380,14 @@ HG.start({
   assets: { flag: '../assets/01-intro-flag.png' },
   render(t, A) {
     const poses = flagPoses(t);
-    for (const P of poses) P.dissolveDelay = 0.0014 * Math.hypot(P.x - C, P.y + P.h / 2 - C) + 0.0;
-    const fade = 1 - smooth(11.0, 11.9, t);
-
     drawBacklight(t);
     drawRays(t);
     drawVortex(t);
     drawCore(t);
     drawBurst(t);
-    HG.dust(t, { n: 70, colors: [WARM, COLORS.pink, COLORS.turquoise, COLORS.yellow], alpha: 0.32 * smooth(5.2, 7, t) * (1 - smooth(10.6, 11.8, t)), size: 7, r: 470 });
-    drawCords(t, (1 - smooth(10.3, 11.3, t)));
-    drawFlags(t, poses, A, fade);
+    HG.dust(t, { n: 70, colors: [WARM, COLORS.pink, COLORS.turquoise, COLORS.yellow], alpha: 0.38 * smooth(5.2, 7, t) * (1 - smooth(10.2, 11.4, t)), size: 7, r: 470 });
+    drawGarlands(t, poses, A);
+    drawWave(t);
     drawGlints(t, poses);
   },
 });

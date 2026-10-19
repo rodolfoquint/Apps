@@ -1,0 +1,461 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Lucha libre: the arena goes dark, spotlights sweep through haze and camera flashes pop in the
+// stands. The mask is drawn in neon (gold outline, red flames) rising from the bottom of every
+// contour like fire, the lines brace, and the real metallic mask slams in onto its outline with
+// an impact ring. Glints race across the gold, then a tricolour confetti burst. To close, the
+// mask fades back to its neon lines, which sink away to black.
+// Assets: prepare.py on out/images/mascara-lucha-1.png (cut-out) + 08-lucha.json (vector
+// contours traced from that cut-out) + 08-lucha_spec.png (metallic highlight map).
+const { W, C, ctx, clamp, lerp, smooth, ease, rgba, COLORS } = HG;
+const DATA = (() => { const x = new XMLHttpRequest(); x.open('GET', '../assets/08-lucha.json', false); x.send(); return JSON.parse(x.responseText); })();
+
+const N = 1024, MX = 540, MY = 546, S0 = 830;
+const T_SLAM = 4.5, T_LAND = 4.84, T_CONF = 8.7;
+const GOLD = [255, 186, 66], GOLDCORE = [255, 236, 190], RED = [255, 44, 56], REDCORE = [255, 176, 156];
+const WARM = [255, 228, 180], COOL = [215, 228, 255], PINK = [255, 56, 160];
+const TAU = Math.PI * 2;
+const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
+const canvas = (w, h = w) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+
+// ---------- smooth keyframe curves (Catmull-Rom on non-uniform times)
+function spline(K, t) {
+  if (t <= K[0][0]) return K[0][1];
+  const L = K.length - 1;
+  if (t >= K[L][0]) return K[L][1];
+  let i = 0; while (K[i + 1][0] < t) i++;
+  const [t0, v0] = K[i], [t1, v1] = K[i + 1], h = t1 - t0, s = (t - t0) / h;
+  const tan = j => (j <= 0 || j >= L) ? 0 : (K[j + 1][1] - K[j - 1][1]) / (K[j + 1][0] - K[j - 1][0]);
+  const m0 = tan(i) * h, m1 = tan(i + 1) * h;
+  return (2 * s ** 3 - 3 * s * s + 1) * v0 + (s ** 3 - 2 * s * s + s) * m0 + (-2 * s ** 3 + 3 * s * s) * v1 + (s ** 3 - s * s) * m1;
+}
+
+// ---------- mask / line-art transform
+function maskZ(t) {
+  if (t < T_LAND) { const k = clamp((t - T_SLAM) / (T_LAND - T_SLAM)); return lerp(1.34, 1.0, k * k); }   // accelerates into the hit
+  const d = t - T_LAND;
+  return 1 - 0.02 * Math.exp(-6.5 * d) * Math.sin(d * 18) + 0.035 * ease.inOut3((t - 5.3) / 5.4);
+}
+const rotAt = t => 0.011 * Math.sin((t - T_LAND) * 0.75) * smooth(T_LAND, 6.2, t);
+function lineZ(t) {
+  if (t < T_SLAM) return 1 - 0.022 * smooth(3.7, 4.5, t);                              // the outline braces
+  if (t < T_LAND) { const k = clamp((t - T_SLAM) / (T_LAND - T_SLAM)); return lerp(0.978, 1, k * k); }
+  return maskZ(t);
+}
+function xf(u, v, z, rot) {
+  const s = S0 * z / N, dx = (u - 512) * s, dy = (v - 512) * s, c = Math.cos(rot), n = Math.sin(rot);
+  return [MX + dx * c - dy * n, MY + dx * n + dy * c];
+}
+
+// ---------- vector line art: each closed contour draws from its lowest point up both sides
+const PATHS = DATA.paths.filter(q => q.p.length > 60).map((q, idx) => {
+  const p = q.p, n = p.length / 2, cum = new Float32Array(n + 1);
+  for (let i = 1; i <= n; i++) { const j = i % n; cum[i] = cum[i - 1] + Math.hypot(p[2 * j] - p[2 * i - 2], p[2 * j + 1] - p[2 * i - 1]); }
+  const L = cum[n];
+  const fwd = new Path2D(), rev = new Path2D();
+  fwd.moveTo(p[0], p[1]); for (let i = 1; i <= n; i++) fwd.lineTo(p[2 * (i % n)], p[2 * (i % n) + 1]);
+  rev.moveTo(p[0], p[1]); for (let i = n - 1; i >= 0; i--) rev.lineTo(p[2 * i], p[2 * i + 1]);
+  const yb = p[1], gold = q.c === 'gold';
+  const t0 = 0.95 + 1.5 * (1 - yb / 1019);
+  const dur = clamp(0.4 * Math.sqrt(L / 100) + 0.4, 1.0, 2.4);
+  return { idx, p, n, cum, L, fwd, rev, gold, outer: idx === 0, col: gold ? GOLD : RED, core: gold ? GOLDCORE : REDCORE,
+    t0, dur, u0: 10.5 + 0.35 * (1 - yb / 1019), udur: 0.95 };
+});
+const drawK = (P, t) => smooth(P.t0, P.t0 + P.dur, t);            // head: drawing on
+const eraseK = (P, t) => ease.inOut3((t - P.u0) / P.udur);       // tail: chasing the head up and away
+function pointAt(P, s) {
+  s = ((s % P.L) + P.L) % P.L;
+  let lo = 0, hi = P.n;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (P.cum[m] <= s) lo = m; else hi = m; }
+  const f = (s - P.cum[lo]) / Math.max(1e-6, P.cum[lo + 1] - P.cum[lo]), j = (lo + 1) % P.n;
+  return [lerp(P.p[2 * lo], P.p[2 * j], f), lerp(P.p[2 * lo + 1], P.p[2 * j + 1], f)];
+}
+// how strongly each contour glows over the piece
+function lineAlpha(P, t) {
+  const drawn = 1 + 0.3 * smooth(3.6, 4.5, t);                                          // brace before the hit
+  const hit = 0.7 * Math.exp(-Math.max(0, t - T_LAND) / 0.18) * smooth(T_LAND - 0.05, T_LAND, t);
+  const rest = P.outer ? 0.14 : 0.04;                                                    // a faint neon rim over the mask
+  const settle = lerp(1, rest, smooth(T_LAND + 0.1, T_LAND + 1.3, t));
+  const back = smooth(9.95, 10.6, t);                                                    // lines return as the mask fades
+  const rush = 1 - 0.3 * bump(t, T_SLAM, T_SLAM + 0.08, T_LAND - 0.06, T_LAND);              // calmer while the mask rushes in
+  return (drawn * rush * lerp(settle, 1, back) + hit) * (1 - smooth(11.5, 11.9, t));
+}
+
+// ---------- pre-rendered light sprites
+function makeBeam(col) {
+  const BW = 1700, BH = 900, c = canvas(BW, BH), g = c.getContext('2d'), im = g.createImageData(BW, BH), d = im.data;
+  for (let y = 0; y < BH; y++) for (let x = 0; x < BW; x++) {
+    const th = Math.atan2(y - BH / 2, x + 40);
+    const cone = 0.62 * Math.exp(-((th / 0.06) ** 2)) + 0.38 * Math.exp(-((th / 0.14) ** 2));
+    const rays = 0.8 + 0.2 * (0.5 + 0.5 * Math.sin(th * 97 + 1.3) * Math.sin(th * 41 + 0.4));
+    const along = Math.pow(1 - x / BW, 1.15) * (0.55 + 0.45 * smooth(0, 260, x));
+    const o = (y * BW + x) * 4;
+    d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = 255 * clamp(cone * rays * along);
+  }
+  g.putImageData(im, 0, 0);
+  return c;
+}
+function makeStar(col, size = 256) {
+  const c = canvas(size), g = c.getContext('2d'), im = g.createImageData(size, size), d = im.data, h = size / 2;
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const u = (x - h + 0.5) / h, v = (y - h + 0.5) / h, r = Math.hypot(u, v);
+    const arms = Math.exp(-Math.abs(u) * 5.5) * Math.exp(-((v / 0.022) ** 2)) + Math.exp(-Math.abs(v) * 5.5) * Math.exp(-((u / 0.022) ** 2));
+    const diag = 0.35 * (Math.exp(-Math.abs(u + v) * 9) * Math.exp(-(((u - v) / 0.03) ** 2)) + Math.exp(-Math.abs(u - v) * 9) * Math.exp(-(((u + v) / 0.03) ** 2)));
+    const core = Math.exp(-((r / 0.07) ** 2)) + 0.3 * Math.exp(-((r / 0.22) ** 2));
+    const I = clamp((arms + diag + core) * (1 - smooth(0.85, 1, r)));
+    const w = clamp(core * 1.4);                                                        // hot white centre
+    const o = (y * size + x) * 4;
+    d[o] = lerp(col[0], 255, w); d[o + 1] = lerp(col[1], 255, w); d[o + 2] = lerp(col[2], 255, w); d[o + 3] = 255 * I;
+  }
+  g.putImageData(im, 0, 0);
+  return c;
+}
+function makeHaze(n = 360) {
+  const R = HG.rng(5), c = canvas(n), g = c.getContext('2d'), im = g.createImageData(n, n), d = im.data;
+  const octave = cells => { const m = cells + 1, grid = new Float32Array(m * m); for (let i = 0; i < grid.length; i++) grid[i] = R(); return grid; };
+  const oct = [[4, 0.5], [9, 0.3], [21, 0.2]].map(([cells, w]) => ({ cells, w, grid: octave(cells) }));
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    let v = 0;
+    for (const { cells, w, grid } of oct) {
+      const fx = x / n * cells, fy = y / n * cells, ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy;
+      const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty), m = cells + 1;
+      v += w * lerp(lerp(grid[iy * m + ix], grid[iy * m + ix + 1], sx), lerp(grid[(iy + 1) * m + ix], grid[(iy + 1) * m + ix + 1], sx), sy);
+    }
+    const o = (y * n + x) * 4;
+    d[o] = d[o + 1] = d[o + 2] = 255; d[o + 3] = 255 * clamp(0.28 + 0.95 * (v - 0.3));
+  }
+  g.putImageData(im, 0, 0);
+  return c;
+}
+const BEAM_W = makeBeam(WARM), BEAM_P = makeBeam(PINK), STAR_W = makeStar([255, 214, 150]), STAR_C = makeStar(COOL), HAZE = makeHaze();
+const BL = HG.layer(), LN = HG.layer(), SP = HG.layer(), CB = HG.layer(), CF = HG.layer(), HL = HG.layer();
+
+// ---------- spotlights: sources sit off-circle; angles are smooth keyframed sweeps
+const kA = [[0, 1.5], [1.9, 0.52], [3.3, 1.08], [4.3, 0.86], [5.0, 0.84], [6.6, 0.42], [8.2, 1.12], [9.4, 0.78], [10.8, 0.5], [12, 0.42]];
+const kB = [[0, 1.45], [1.9, 1.12], [3.3, 0.48], [4.3, 0.86], [5.0, 0.84], [6.6, 1.15], [8.2, 0.46], [9.4, 0.9], [10.8, 1.12], [12, 1.2]];
+const kU = [[4.6, -0.55], [6.4, -1.05], [8.0, -0.6], [9.6, -1.0], [11, -0.7], [12, -0.6]];
+const kV = [[4.6, -0.95], [6.4, -0.5], [8.0, -0.98], [9.6, -0.55], [11, -0.85], [12, -0.9]];
+const keyEnv = t => {
+  const base = 0.85 * smooth(0.25, 1.4, t) + 0.15 * smooth(3.6, 4.5, t);
+  const hit = 0.35 * Math.exp(-Math.max(0, t - T_LAND) / 0.4) * smooth(T_LAND - 0.1, T_LAND, t);
+  const hero = lerp(1, 0.62, smooth(T_LAND, 6.0, t)) + 0.25 * bump(t, T_CONF - 0.1, T_CONF + 0.1, T_CONF + 0.3, T_CONF + 1.4);
+  return (base * hero + hit) * (1 - smooth(10.3, 11.5, t));
+};
+const BEAMS = [
+  { x: 40, y: -30, ang: t => spline(kA, t), env: keyEnv, img: BEAM_W, a: 0.9 },
+  { x: 1040, y: -30, ang: t => Math.PI - spline(kB, t), env: keyEnv, img: BEAM_W, a: 0.9 },
+  { x: -30, y: 1110, ang: t => spline(kU, t), env: t => 0.42 * smooth(T_LAND - 0.05, T_LAND + 0.7, t) * (1 - smooth(10.0, 11.0, t)), img: BEAM_P, a: 1.3 },
+  { x: 1110, y: 1110, ang: t => Math.PI - spline(kV, t), env: t => 0.42 * smooth(T_LAND - 0.05, T_LAND + 0.7, t) * (1 - smooth(10.0, 11.0, t)), img: BEAM_P, a: 1.3 },
+];
+function beamAt(b, t, x, y) {
+  let d = Math.atan2(y - b.y, x - b.x) - b.ang(t);
+  d = ((d + Math.PI) % TAU + TAU) % TAU - Math.PI;
+  return Math.exp(-((d / 0.1) ** 2));
+}
+function drawBeams(t) {
+  const g = BL.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+  g.globalCompositeOperation = 'lighter';
+  let any = false;
+  for (const b of BEAMS) {
+    const e = b.env(t) * b.a; if (e <= 0.003) continue;
+    any = true;
+    g.setTransform(1, 0, 0, 1, b.x, b.y); g.rotate(b.ang(t)); g.globalAlpha = Math.min(1, e);
+    g.drawImage(b.img, 0, -b.img.height / 2);
+  }
+  if (!any) return;
+  // the light only shows where there is haze: drifting smoke in world space
+  HG.reset(g); g.globalCompositeOperation = 'destination-in';
+  g.drawImage(HAZE, -280 + 16 * t, -300 + 9 * t, 1640, 1640);
+  HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(BL.cv, 0, 0);
+  // soft glare where each lamp's beam enters the circle
+  for (const b of BEAMS) {
+    const e = b.env(t) * b.a; if (e <= 0.003) continue;
+    const th = b.ang(t), dx = Math.cos(th), dy = Math.sin(th), fx = b.x - C, fy = b.y - C;
+    const bb = fx * dx + fy * dy, disc = bb * bb - (fx * fx + fy * fy - 530 * 530);
+    if (disc <= 0) continue;
+    const s = -bb - Math.sqrt(disc), x = b.x + dx * (s + 30), y = b.y + dy * (s + 30);
+    const col = b.img === BEAM_P ? PINK : WARM;
+    HG.dot(ctx, col, x, y, 340, 0.16 * Math.min(1, e));
+    HG.dot(ctx, col, x, y, 110, 0.2 * Math.min(1, e));
+  }
+  HG.reset(ctx);
+}
+// dust motes that only show inside the beams
+const MOTES = (() => { const R = HG.rng(41); return Array.from({ length: 170 }, () => ({ x: R() * W, y: R() * W, sp: 6 + R() * 16, ph: R() * TAU, s: 3 + R() * 5 })); })();
+function drawMotes(t) {
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const m of MOTES) {
+    const x = m.x + 14 * Math.sin(t * 0.45 + m.ph), y = ((m.y - m.sp * t) % W + W) % W;
+    if (Math.hypot(x - C, y - C) > 520) continue;
+    let I = 0; for (const b of BEAMS) { const e = b.env(t); if (e > 0.01) I += e * beamAt(b, t, x, y); }
+    HG.dot(ctx, WARM, x, y, m.s, 0.75 * I * (0.6 + 0.4 * Math.sin(t * 2.1 + m.ph)));
+  }
+  ctx.restore();
+}
+
+// ---------- camera flashes in the dark stands (never on the mask)
+const FLASHES = (() => {
+  const R = HG.rng(808), out = [];
+  const spot = () => { for (;;) { const a = R() * TAU, r = 200 + R() * 268, x = C + Math.cos(a) * r, y = C + Math.sin(a) * r;
+    if (((x - MX) / 300) ** 2 + ((y - MY) / 445) ** 2 > 1) return [x, y]; } };
+  const add = (t0, t1, n, a = 1) => { for (let i = 0; i < n; i++) { const [x, y] = spot(), t = lerp(t0, t1, R());
+    const f = { t, x, y, s: 16 + R() * 16, rot: (R() - 0.5) * 0.5, a: a * (0.6 + 0.4 * R()) }; out.push(f);
+    if (R() < 0.25) out.push({ ...f, t: t + 0.13, a: f.a * 0.7 }); } };
+  add(0.9, 4.3, 6, 0.8); add(T_LAND + 0.03, T_LAND + 0.8, 14); add(5.8, 8.5, 7, 0.8); add(T_CONF + 0.05, T_CONF + 0.9, 12); add(9.6, 10.5, 3, 0.7);
+  return out;
+})();
+function drawFlashes(t) {
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const f of FLASHES) {
+    const dt = t - f.t; if (dt < 0 || dt > 0.8) continue;
+    const e = f.a * (dt < 0.035 ? dt / 0.035 : Math.exp(-(dt - 0.035) / 0.12));
+    HG.dot(ctx, COOL, f.x, f.y, f.s * 3.4, e * 0.18);
+    HG.dot(ctx, COOL, f.x, f.y, f.s, e * 0.85);
+    const sz = f.s * (4.2 + 1.2 * e);
+    ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.rot); ctx.globalAlpha = Math.min(1, e * 0.9);
+    ctx.drawImage(STAR_C, -sz / 2, -sz / 2, sz, sz); ctx.restore();
+  }
+  ctx.restore();
+}
+
+// ---------- neon line art + the sparks shed by the drawing tips
+function drawLines(t) {
+  const z = lineZ(t), rot = rotAt(t), s = S0 * z / N;
+  const g = LN.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+  g.setTransform(s * Math.cos(rot), s * Math.sin(rot), -s * Math.sin(rot), s * Math.cos(rot), MX, MY); g.translate(-512, -512);
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  let any = false;
+  const tips = [];
+  for (const P of PATHS) {
+    const k = drawK(P, t), e = eraseK(P, t), a = lineAlpha(P, t);
+    if (k - e <= 0.0005 || a <= 0.003) continue;
+    any = true;
+    const d = k * P.L / 2, d0 = e * P.L / 2;
+    g.setLineDash([d - d0, 2 * P.L + 10]); g.lineDashOffset = -d0;
+    for (const path of [P.fwd, P.rev]) {
+      g.globalAlpha = Math.min(1, a); g.strokeStyle = rgba(P.col); g.lineWidth = 3.4 / s; g.stroke(path);
+      g.globalAlpha = Math.min(1, a * 0.85); g.strokeStyle = rgba(P.core); g.lineWidth = 1.2 / s; g.stroke(path);
+    }
+    const head = Math.min(1, a) * smooth(0, 0.03, k) * (1 - smooth(0.96, 0.999, k));
+    const tail = Math.min(1, a) * 0.7 * smooth(0, 0.04, e) * (1 - smooth(0.9, 0.995, e));
+    if (head > 0.01) tips.push([P, pointAt(P, d), head], [P, pointAt(P, P.L - d), head]);
+    if (tail > 0.01) tips.push([P, pointAt(P, d0), tail], [P, pointAt(P, P.L - d0), tail]);
+  }
+  if (!any) return;
+  HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.9; ctx.filter = 'blur(16px)'; ctx.drawImage(LN.cv, 0, 0);
+  ctx.globalAlpha = 0.85; ctx.filter = 'blur(4px)'; ctx.drawImage(LN.cv, 0, 0);
+  ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.drawImage(LN.cv, 0, 0);
+  for (const [P, [u, v], e] of tips) {
+    if (e <= 0.01) continue;
+    const [x, y] = xf(u, v, z, rot);
+    HG.dot(ctx, P.col, x, y, 46, 0.55 * e);
+    HG.dot(ctx, WARM, x, y, 14, 0.95 * e);
+  }
+  HG.reset(ctx);
+}
+function drawSparks(t) {
+  const DT = 0.035, LIFE = 0.6;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let n = Math.floor((t - LIFE) / DT) + 1; n * DT <= t; n++) {
+    const s0 = n * DT, age = t - s0; if (s0 < 0) continue;
+    for (const P of PATHS) {
+      const kh = drawK(P, s0), ke = eraseK(P, s0);
+      const erasing = ke > 0.002 && ke < 0.99, drawing = kh > 0.002 && kh < 0.995;
+      if (!drawing && !erasing) continue;
+      const k = erasing ? ke : kh;
+      const a0 = Math.min(1, lineAlpha(P, s0)) * (erasing ? 0.8 : 1); if (a0 < 0.05) continue;
+      const z = lineZ(s0), rot = rotAt(s0);
+      for (let dir = 0; dir < 2; dir++) {
+        const R = HG.rng(n * 7919 + P.idx * 131 + dir * 17 + 3);
+        if (R() > 0.75) continue;
+        const [u, v] = pointAt(P, dir ? P.L - k * P.L / 2 : k * P.L / 2);
+        const [x0, y0] = xf(u, v, z, rot);
+        const ang = R() * TAU, sp = 20 + R() * 70, life = LIFE * (0.5 + 0.5 * R());
+        if (age > life) continue;
+        const q = age / life;
+        const x = x0 + Math.cos(ang) * sp * age, y = y0 + Math.sin(ang) * sp * age + 60 * age * age;
+        HG.dot(ctx, R() < 0.5 ? P.col : P.core, x, y, (3 + R() * 5) * (1 - q * 0.6), a0 * Math.pow(1 - q, 1.5) * 0.9);
+      }
+    }
+  }
+  ctx.restore();
+}
+
+// ---------- the mask itself
+function drawMask(t, A) {
+  if (t < T_SLAM) return;
+  const fade = 1 - smooth(10.25, 11.05, t);
+  const appear = smooth(T_SLAM, T_SLAM + 0.2, t);
+  const a = appear * fade; if (a <= 0.003) return;
+  const z = maskZ(t), rot = rotAt(t), w = S0 * z;
+  ctx.save(); ctx.translate(MX, MY); ctx.rotate(rot);
+  // zoom-blur ghosts while it rushes in
+  if (t < T_LAND + 0.05) {
+    const sp = 1 - smooth(T_LAND - 0.02, T_LAND + 0.05, t);
+    ctx.globalCompositeOperation = 'lighter';
+    for (let j = 1; j <= 3; j++) {
+      const wj = w * (1 + 0.045 * j * (1 + (z - 1) * 3));
+      ctx.globalAlpha = a * sp * 0.16 / j; ctx.drawImage(A.mask, -wj / 2, -wj / 2, wj, wj);
+    }
+  }
+  // warm backlight halo, a little stronger at the hit and during the confetti pop
+  const halo = 0.22 + 0.4 * Math.exp(-Math.max(0, t - T_LAND) / 0.35) * smooth(T_LAND - 0.05, T_LAND, t) + 0.15 * bump(t, T_CONF - 0.05, T_CONF + 0.1, T_CONF + 0.2, T_CONF + 1.2);
+  ctx.restore();
+  // (only outside the silhouette, so the eye and mouth holes stay dark and see-through)
+  const g = HL.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+  g.translate(MX, MY); g.rotate(rot); g.filter = 'blur(26px)'; g.drawImage(A.mask, -w / 2, -w / 2, w, w); g.filter = 'none';
+  g.globalCompositeOperation = 'destination-out'; g.drawImage(A.solid, -w / 2, -w / 2, w, w);
+  HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a * halo; ctx.drawImage(HL.cv, 0, 0);
+  ctx.save(); ctx.translate(MX, MY); ctx.rotate(rot);
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = a * (t < T_LAND ? 0.75 + 0.25 * smooth(T_SLAM, T_LAND, t) : 1);
+  ctx.drawImage(A.mask, -w / 2, -w / 2, w, w);
+  const lift = 0.3 * Math.exp(-Math.max(0, t - T_LAND) / 0.25) * smooth(T_LAND - 0.04, T_LAND, t);
+  if (lift > 0.003) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a * lift; ctx.drawImage(A.mask, -w / 2, -w / 2, w, w); }
+  ctx.restore();
+}
+
+// ---------- glints racing across the metal (specular map x a moving band) + star flares
+const GLINTS = [
+  { t0: 5.35, t1: 6.45, ang: 0.62, width: 120, k: 0.95, stars: [[271, 172], [534, 269], [799, 431]] },
+  { t0: 7.55, t1: 8.35, ang: Math.PI - 0.5, width: 95, k: 0.85, stars: [[789, 284], [534, 470], [222, 362]] },
+  { t0: 9.3, t1: 10.1, ang: 1.25, width: 100, k: 0.7, stars: [[547, 189]] },
+];
+function drawGlints(t, A) {
+  const z = maskZ(t), rot = rotAt(t), w = S0 * z, fade = 1 - smooth(10.2, 10.9, t);
+  for (const G of GLINTS) {
+    const k = (t - G.t0) / (G.t1 - G.t0); if (k <= 0 || k >= 1) continue;
+    const env = Math.sin(Math.PI * k) ** 0.6 * G.k * fade;
+    const dx = Math.cos(G.ang), dy = Math.sin(G.ang), pos = lerp(-560, 560, ease.inOut3(k));
+    const cx = MX + dx * pos, cy = MY + dy * pos;
+    const g = SP.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+    g.translate(MX, MY); g.rotate(rot); g.drawImage(A.spec, -w / 2, -w / 2, w, w); HG.reset(g);
+    g.globalCompositeOperation = 'source-in';
+    const gr = g.createLinearGradient(cx - dx * G.width, cy - dy * G.width, cx + dx * G.width, cy + dy * G.width);
+    gr.addColorStop(0, 'rgba(255,214,150,0)'); gr.addColorStop(0.3, 'rgba(255,220,160,0.22)'); gr.addColorStop(0.46, 'rgba(255,236,200,0.8)');
+    gr.addColorStop(0.5, 'rgba(255,248,232,1)'); gr.addColorStop(0.54, 'rgba(255,236,200,0.8)'); gr.addColorStop(0.7, 'rgba(255,220,160,0.22)'); gr.addColorStop(1, 'rgba(255,214,150,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, W, W);
+    HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = env * 0.9; ctx.filter = 'blur(12px)'; ctx.drawImage(SP.cv, 0, 0);
+    ctx.filter = 'none'; ctx.globalAlpha = env * 0.9; ctx.drawImage(SP.cv, 0, 0);
+    for (const [u, v] of G.stars) {
+      const [x, y] = xf(u, v, z, rot);
+      const proj = (x - MX) * dx + (y - MY) * dy;
+      const e = Math.exp(-(((proj - pos) / 46) ** 2)) * env;
+      if (e < 0.01) continue;
+      const sz = 230 * (0.55 + 0.45 * e);
+      ctx.save(); ctx.translate(x, y); ctx.rotate(0.3 * t + u * 0.01); ctx.globalAlpha = Math.min(1, e);
+      ctx.drawImage(STAR_W, -sz / 2, -sz / 2, sz, sz); ctx.restore();
+    }
+    HG.reset(ctx);
+  }
+}
+
+// ---------- impact: glow, shock rings, light streaks (all behind the mask)
+const STREAKS = (() => { const R = HG.rng(97); return Array.from({ length: 64 }, () => ({ a: R() * TAU, r0: 240 + R() * 70, tr: 200 + R() * 210, len: 60 + R() * 140, d: R() * 0.07, w: 1.5 + R() * 2.5, col: R() < 0.3 ? RED : (R() < 0.6 ? GOLD : WARM) })); })();
+function drawImpact(t) {
+  const dt = t - T_LAND; if (dt < -0.05 || dt > 1.3) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const pulse = Math.exp(-Math.max(0, dt) / 0.32) * smooth(-0.05, 0, dt);
+  HG.dot(ctx, GOLD, MX, MY, 1040, 0.4 * pulse);
+  for (const [lag, col, w0] of [[0, GOLD, 16], [0.08, RED, 12]]) {
+    const k = ease.out3((dt - lag) / 1.0); if (k <= 0 || k >= 1) continue;
+    HG.ring(ctx, MX, MY, lerp(280, 620, k), col, { width: w0 * (1 - 0.7 * k), blur: 16, alpha: Math.pow(1 - k, 1.4) });
+  }
+  ctx.lineCap = 'round';
+  for (const s of STREAKS) {
+    const k = ease.out3((dt - s.d) / 0.6); if (k <= 0 || k >= 1) continue;
+    const r1 = s.r0 + s.tr * k, r0 = r1 - s.len * (1 - 0.5 * k), c = Math.cos(s.a), n = Math.sin(s.a);
+    const gr = ctx.createLinearGradient(MX + c * r0, MY + n * r0, MX + c * r1, MY + n * r1);
+    gr.addColorStop(0, rgba(s.col, 0)); gr.addColorStop(1, rgba(s.col, 1 - k));
+    ctx.strokeStyle = gr; ctx.lineWidth = s.w * 1.4;
+    ctx.beginPath(); ctx.moveTo(MX + c * r0, MY + n * r0); ctx.lineTo(MX + c * r1, MY + n * r1); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ---------- confetti: tumbling tricolour + gold paper with drag, flutter and depth.
+// The burst fans out from behind the mask; a few big, close pieces fly from its edges in front.
+const CONF_COLS = [[30, 200, 105], [30, 200, 105], [255, 250, 240], [240, 36, 54], [240, 36, 54], [255, 188, 60]];
+const CONF = (() => {
+  const R = HG.rng(77), out = [];
+  for (let i = 0; i < 230; i++) {                                    // behind the mask
+    const a = R() * TAU, sp = 600 + R() * 950, z = 0.7 + R() * 0.3;
+    out.push({ front: false, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.85 - 300, x0: MX + Math.cos(a) * 40 * R(), y0: MY - 60 + Math.sin(a) * 40 * R(), z,
+      k: 2.4 + R() * 1.3, vt: 70 + R() * 90, sw: 14 + R() * 40, swf: 1.6 + R() * 2.4, ph: R() * TAU, w: 17 + R() * 11, h: 9 + R() * 6,
+      col: CONF_COLS[Math.floor(R() * CONF_COLS.length)], r0: R() * TAU, wr: (R() - 0.5) * 8, f0: R() * TAU, wf: 4 + R() * 6.5, d: R() * 0.06 });
+  }
+  for (let i = 0; i < 46; i++) {                                     // in front, launched from the mask's rim outward
+    const a = R() * TAU, sp = 380 + R() * 520, z = 1.25 + R() * 0.35, ex = Math.cos(a), ey = Math.sin(a);
+    out.push({ front: true, vx: ex * sp, vy: ey * sp * 0.85 - 220, x0: MX + ex * 250, y0: MY - 20 + ey * 380, z,
+      k: 2.2 + R() * 1.0, vt: 90 + R() * 80, sw: 20 + R() * 40, swf: 1.4 + R() * 2.0, ph: R() * TAU, w: 17 + R() * 9, h: 9 + R() * 5,
+      col: CONF_COLS[Math.floor(R() * CONF_COLS.length)], r0: R() * TAU, wr: (R() - 0.5) * 7, f0: R() * TAU, wf: 3.5 + R() * 5.5, d: 0.02 + R() * 0.08 });
+  }
+  return out;
+})();
+function drawConfetti(t, front) {
+  const L = front ? CF : CB, g = L.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+  const fade = 1 - smooth(10.9, 11.75, t);
+  let any = false;
+  for (const p of CONF) {
+    if (p.front !== front) continue;
+    const dt = t - T_CONF - p.d; if (dt <= 0) continue;
+    const e = (1 - Math.exp(-p.k * dt)) / p.k, par = 0.55 + 0.45 * p.z;
+    const x = p.x0 + (p.vx * e + p.sw * Math.sin(p.swf * dt + p.ph) * smooth(0.25, 1.2, dt)) * par;
+    const y = p.y0 + ((p.vy - p.vt) * e + p.vt * dt) * par;
+    if (y > 1160 || Math.hypot(x - C, y - C) > 620) continue;
+    const ph = p.f0 + p.wf * dt, flip = Math.cos(ph);
+    const lit = 0.34 + 0.66 * Math.pow(Math.abs(Math.cos(ph + 0.6)), 0.8);    // catches the light as it tumbles
+    const b = lit * (front ? 1 : 0.8), grow = ease.out3(dt / 0.15);
+    any = true;
+    g.setTransform(1, 0, 0, 1, x, y); g.rotate(p.r0 + p.wr * dt); g.scale(p.z * grow, p.z * grow * flip);
+    g.fillStyle = `rgb(${Math.round(p.col[0] * b)},${Math.round(p.col[1] * b)},${Math.round(p.col[2] * b)})`;
+    g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+  }
+  if (!any || fade <= 0) return;
+  HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.6 * fade; ctx.filter = 'blur(7px)'; ctx.drawImage(L.cv, 0, 0);
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = fade; ctx.filter = front ? 'blur(1.6px)' : 'none'; ctx.drawImage(L.cv, 0, 0);
+  HG.reset(ctx);
+}
+// the pop: a warm glow and tricolour light streaks fanning out from behind the mask
+const POP = (() => { const R = HG.rng(131), cols = [[40, 220, 120], [255, 245, 230], [255, 50, 70], GOLD];
+  return Array.from({ length: 54 }, (_, i) => ({ a: R() * TAU, r0: 230 + R() * 60, tr: 180 + R() * 200, len: 70 + R() * 120, d: R() * 0.06, w: 2 + R() * 2.5, col: cols[i % 4] })); })();
+function drawPop(t) {
+  const dt = t - T_CONF; if (dt < -0.05 || dt > 1.2) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const e = Math.exp(-Math.max(0, dt) / 0.3) * smooth(-0.05, 0.02, dt);
+  HG.dot(ctx, WARM, MX, MY - 40, 1000, 0.32 * e);
+  ctx.lineCap = 'round';
+  for (const s of POP) {
+    const k = ease.out3((dt - s.d) / 0.65); if (k <= 0 || k >= 1) continue;
+    const r1 = s.r0 + s.tr * k, r0 = r1 - s.len * (1 - 0.5 * k), c = Math.cos(s.a), n = Math.sin(s.a);
+    const gr = ctx.createLinearGradient(MX + c * r0, MY + n * r0, MX + c * r1, MY + n * r1);
+    gr.addColorStop(0, rgba(s.col, 0)); gr.addColorStop(1, rgba(s.col, 0.95 * (1 - k)));
+    ctx.strokeStyle = gr; ctx.lineWidth = s.w;
+    ctx.beginPath(); ctx.moveTo(MX + c * r0, MY + n * r0); ctx.lineTo(MX + c * r1, MY + n * r1); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+HG.start({
+  duration: 12,
+  assets: { mask: '../assets/08-lucha_grade.png', spec: '../assets/08-lucha_sheen.png', solid: '../assets/08-lucha_solid.png' },
+  render(t, A) {
+    drawBeams(t);
+    drawMotes(t);
+    drawImpact(t);
+    drawPop(t);
+    drawConfetti(t, false);
+    drawMask(t, A);
+    drawGlints(t, A);
+    drawLines(t);
+    drawSparks(t);
+    drawConfetti(t, true);
+    drawFlashes(t);
+  },
+});
+</script></body></html>
