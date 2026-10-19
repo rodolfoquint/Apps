@@ -412,7 +412,8 @@ def cmd_motion(args):
         die(f"no reference clip at {ref}")
     if args.seconds:
         cut = ref.with_name(f"{ref.stem}-{args.seconds}s.mp4")
-        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(ref), "-t", str(args.seconds),
+        # A hair under N seconds: billing rounds the source duration up to whole seconds.
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(ref), "-t", f"{args.seconds - 0.08:.2f}",
                         "-an", "-c:v", "libx264", "-crf", "18", "-movflags", "+faststart", str(cut)], check=True)
         ref = cut
     seconds = math.ceil(duration_of(ref))
