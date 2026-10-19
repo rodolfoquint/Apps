@@ -1,0 +1,81 @@
+{
+  "title": "Artesanías y Tesoros",
+  "slug": "artesanias-y-tesoros",
+  "out": "out-artesanias-y-tesoros",
+  "size": 1080,
+  "fan": "standard",
+  "transition": {
+    "page": "show/transitions/portal.html",
+    "seconds": 1.8
+  },
+  "titles": {
+    "page": "shows/titles/title.html"
+  },
+  "pieces": [
+    {
+      "src": "show/pieces/01-intro.html",
+      "name": "Papel Picado",
+      "place": "San Salvador Huixcolotla, Puebla"
+    },
+    {
+      "src": "show/pieces/15-cabeza-olmeca.html",
+      "name": "Cabeza Olmeca",
+      "place": "La Venta, Tabasco"
+    },
+    {
+      "src": "show2/pieces/02-quetzalcoatl.html",
+      "name": "Serpiente Emplumada",
+      "place": "Teotihuacan"
+    },
+    {
+      "src": "show/pieces/03-piedra-del-sol.html",
+      "name": "Piedra del Sol",
+      "place": "Museo Nacional de Antropología"
+    },
+    {
+      "src": "show/pieces/14-talavera.html",
+      "name": "Talavera",
+      "place": "Puebla"
+    },
+    {
+      "src": "show2/pieces/06-sarape.html",
+      "name": "Sarape de Saltillo",
+      "place": "Coahuila"
+    },
+    {
+      "src": "show2/pieces/05-huichol.html",
+      "name": "Arte Huichol",
+      "place": "Wixárika · Jalisco y Nayarit"
+    },
+    {
+      "src": "show/pieces/07-alebrije.html",
+      "name": "Alebrijes",
+      "place": "Oaxaca"
+    },
+    {
+      "src": "show2/pieces/07-arbol-de-la-vida.html",
+      "name": "Árbol de la Vida",
+      "place": "Metepec, Estado de México"
+    },
+    {
+      "src": "show/pieces/08-lucha.html",
+      "name": "Máscara de Lucha Libre",
+      "place": "Ciudad de México"
+    },
+    {
+      "src": "show/pieces/10-pinata.html",
+      "name": "Piñata",
+      "place": "Acolman, Estado de México"
+    },
+    {
+      "src": "show/pieces/11-dia-de-muertos.html",
+      "name": "La Catrina",
+      "place": "Día de Muertos"
+    },
+    {
+      "src": "show2/pieces/15-castillo.html",
+      "name": "Castillo de Pirotecnia",
+      "place": "Tultepec, Estado de México"
+    }
+  ]
+}

@@ -1,53 +1,78 @@
-# Show 2: "Un día en México" (A day in Mexico)
+# The two fan videos
 
-The second hologram fan (the larger one) plays this loop beside show 1. It covers the
-parts of Mexican culture show 1 does not (show 1: papel picado, map, Olmec head,
-Chichén Itzá, Sun Stone, monarchs, eagle on the nopal, axolotl, alebrije, Talavera,
-lucha libre, native foods, piñata, Día de Muertos, fireworks).
+The fair has two hologram fans, each playing its own looping video. Together they cover
+Mexico's culture in two themes. Each piece shows its **name and place** as a title,
+added at assembly time in one shared design (see "Names" below).
 
-**The story.** One day in Mexico, from dawn to the night fiesta. It begins at
-Teotihuacan, where in Aztec legend the sun was born. The feathered serpent
-Quetzalcóatl carries us through the morning (the sacred cenote, the jaguar's
-jungle). At midday we see the crafts, in the afternoon the street food, at sunset
-the ritual and the music, and at night the city, the posadas and the fiesta. The
-finale's castillo fireworks tower launches its spinning crown into the sky, where it
-becomes the sun rising over Teotihuacan again. That is the loop.
+Pieces live in two toolkit folders. `show/` holds the first 15 pieces (fixed 1080 px
+engine). `show2/` holds the newer pieces (resolution-independent engine, renders at any
+size with `?size=N`). Each video is a playlist in `shows/` that mixes pieces from both
+folders.
 
-**Palette follows the time of day.** Each piece leans on the light of its hour so the
-loop reads as a day passing:
+## Gente y Lugares (People & Places): the LARGE fan
 
-| Time | Pieces | Light |
+A journey across Mexico. It begins with the map drawing itself, travels through its
+places and the people who keep its traditions alive, and ends with a fiesta of
+fireworks that leads back to the map. Transition: the "horizonte"
+(`show2/transitions/horizonte.html`), a rising horizon of light with the sun on it. As
+the journey goes on, the sun moves across the sky and the moon takes over for the
+night pieces.
+
+| # | Piece | Name / place |
 |---|---|---|
-| Dawn | 01, 02 | indigo night turning rose, peach and gold |
-| Morning | 03, 04 | turquoise, emerald, shafts of gold sunlight |
-| Midday | 05, 06, 07 | full fiesta brights |
-| Afternoon | 08 | warm orange, red, gold |
-| Sunset | 09, 10, 11 | magenta, orange, purple, gold |
-| Dusk | 12 | violet and deep blue with bright feathers |
-| Night | 13, 14 | deep blue and purple with warm gold lights |
-| Fiesta night, then dawn | 15 | every colour, ending in sunrise gold |
+| 1 | show/02-mapa | MÉXICO |
+| 2 | show2/01-amanecer-teotihuacan | TEOTIHUACAN / Estado de México |
+| 3 | show/13-aguila-nopal | TENOCHTITLAN / Ciudad de México |
+| 4 | show2/13-cdmx-noche | CIUDAD DE MÉXICO / Ángel de la Independencia · Bellas Artes |
+| 5 | show/06-ajolote | AJOLOTE / Xochimilco, Ciudad de México |
+| 6 | show/05-mariposas | MARIPOSA MONARCA / Michoacán |
+| 7 | show2/10-mariachi | MARIACHI / Jalisco |
+| 8 | show2/11-jarabe-tapatio | JARABE TAPATÍO / Jalisco |
+| 9 | show2/12-danza-de-la-pluma | DANZA DE LA PLUMA / Guelaguetza, Oaxaca |
+| 10 | show2/09-voladores | VOLADORES DE PAPANTLA / Veracruz |
+| 11 | show/04-chichen-itza | CHICHÉN ITZÁ / Yucatán |
+| 12 | show2/03-cenote | CENOTE / Yucatán |
+| 13 | show2/04-jaguar | JAGUAR / Selva Lacandona, Chiapas |
+| 14 | show2/08-taqueria | TACOS AL PASTOR / Ciudad de México |
+| 15 | show2/14-posadas | LAS POSADAS / Navidad mexicana |
+| 16 | show/12-finale | ¡VIVA MÉXICO! |
 
-**The transition tells the time too.** Show 2's pieces are joined by the "horizonte"
-(`transitions/horizonte.html`): a soft horizon of light rises through the circle and
-reveals the next piece below it, with the sun riding the line. Across the show the sun
-moves from the east (left) at dawn to the west (right) at sunset, and the line's colour
-follows the hour; at night the moon takes its place. Settings per boundary are in
-`show.json` (`transition_params`, keyed by the incoming piece).
+## Artesanías y Tesoros (Crafts & Artifacts): the other fan
 
-| # | Piece | Time | What it shows |
-|---|---|---|---|
-| 01 | amanecer-teotihuacan | dawn | The sun rises over the Pyramid of the Sun at Teotihuacan, where the legend says the sun was born |
-| 02 | quetzalcoatl | dawn | A feathered serpent of light (Quetzalcóatl, the god who gave people corn and the arts) coils around its carved stone head |
-| 03 | cenote | morning | Light shafts and shimmering water in a sacred Maya cenote of Yucatán |
-| 04 | jaguar | morning | The jaguar, sacred to the Olmec and Maya, emerges from the jungle; its rosettes glow like constellations |
-| 05 | huichol | midday | Wixárika (Huichol) yarn art: the deer Kauyumari, the peyote flower and the sun, laid thread by thread |
-| 06 | sarape | midday | The Saltillo sarape woven in threads of light, then rippling like cloth |
-| 07 | arbol-de-la-vida | midday | The Metepec tree of life grows and blossoms with painted clay flowers and doves |
-| 08 | taqueria | afternoon | The trompo al pastor turning, tacos and salsa: the street food |
-| 09 | voladores | sunset | The Voladores de Papantla spiral down from the pole (4 flyers × 13 turns = 52, the Mesoamerican century) |
-| 10 | mariachi | sunset | Mariachi: violin, trumpet, vihuela and guitar play in rhythm amid silver charro filigree |
-| 11 | jarabe-tapatio | sunset | The Jarabe Tapatío: the Jalisco skirt swirls like a flower around the charro sombrero |
-| 12 | danza-de-la-pluma | dusk | The Guelaguetza's Danza de la Pluma: the great feather crown blooms and turns |
-| 13 | cdmx-noche | night | Mexico City at night: the golden Ángel de la Independencia and Bellas Artes |
-| 14 | posadas | night | Las Posadas: a candle procession and the poinsettia (nochebuena), native to Mexico |
-| 15 | castillo | fiesta → dawn | The castillo fireworks tower, tier by tier; its crown flies up and becomes the sunrise |
+From ancient treasures to living crafts. It opens with papel picado. Next come the
+great artifacts of the ancient civilisations (Olmec, Teotihuacan, Mexica), then the
+crafts made today across the country. It ends with the castillo fireworks tower of
+Tultepec, itself a craft, which leads back to the papel picado. Transition: the gold
+"portal de luz" (`show/transitions/portal.html`).
+
+| # | Piece | Name / place |
+|---|---|---|
+| 1 | show/01-intro | PAPEL PICADO / San Salvador Huixcolotla, Puebla |
+| 2 | show/15-cabeza-olmeca | CABEZA OLMECA / La Venta, Tabasco |
+| 3 | show2/02-quetzalcoatl | SERPIENTE EMPLUMADA / Teotihuacan |
+| 4 | show/03-piedra-del-sol | PIEDRA DEL SOL / Museo Nacional de Antropología |
+| 5 | show/14-talavera | TALAVERA / Puebla |
+| 6 | show2/06-sarape | SARAPE DE SALTILLO / Coahuila |
+| 7 | show2/05-huichol | ARTE HUICHOL / Wixárika · Jalisco y Nayarit |
+| 8 | show/07-alebrije | ALEBRIJES / Oaxaca |
+| 9 | show2/07-arbol-de-la-vida | ÁRBOL DE LA VIDA / Metepec, Estado de México |
+| 10 | show/08-lucha | MÁSCARA DE LUCHA LIBRE / Ciudad de México |
+| 11 | show/10-pinata | PIÑATA / Acolman, Estado de México |
+| 12 | show/11-dia-de-muertos | LA CATRINA / Día de Muertos |
+| 13 | show2/15-castillo | CASTILLO DE PIROTECNIA / Tultepec, Estado de México |
+
+## Names
+
+The title is drawn by a shared overlay at assembly, not by the pieces. It sits in the
+**lower part of the circle (below y ≈ 780 in the 1080 frame)** from about 2.2 s after a
+piece starts until about 2.2 s before it ends. Pieces should keep that lower band
+calm: no key subject detail, no bright busy effects there in the middle of the piece.
+
+## Rules for every piece
+
+- Glowing on pure black, which is transparent on the fan. Only the inscribed circle
+  is visible.
+- No text inside the pieces themselves; the titles come from the overlay.
+- `render(t)` is a pure function of time.
+- Start from black and end dissolved to black. The first and last 1.8 s play inside
+  the transition.

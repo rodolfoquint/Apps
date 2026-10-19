@@ -1,0 +1,113 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: 'Montserrat'; src: url('../fonts/Montserrat-VF.ttf') format('truetype'); font-weight: 100 900; }
+html,body{margin:0;background:transparent}canvas{display:block}
+</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../../show2/engine.js"></script>
+<script>
+// The shared title overlay: the name of what a piece shows and where it is from,
+// drawn on TRANSPARENT (it is laid over the piece at assembly).
+//   ?name=TALAVERA&place=Puebla&D=8.4   D = how long the piece's body plays (seconds)
+//   &style=line (straight lower third, default) | arc (curved along the bottom of the circle)
+//   &size=N (render size, from the engine)
+const { C, W, ctx, smooth, ease, rgba, clamp, lerp } = HG;
+const q = new URLSearchParams(location.search);
+const NAME = (q.get('name') || '').toUpperCase(), PLACE = q.get('place') || '';
+const D = Number(q.get('D') || 8.4), STYLE = q.get('style') || 'line';
+const IN = 0.4, OUT = 0.4;                 // title is fully gone this long before/after the body edges
+const GOLD = [255, 196, 90], WARM = [255, 246, 230];
+
+// letters placed one by one along a circle (reading left to right across the bottom)
+function arcText(text, r, font, track, color, k, glow, a) {
+  ctx.font = font;
+  const widths = [...text].map(ch => ctx.measureText(ch).width + track);
+  const total = widths.reduce((s, w) => s + w, 0) - track;
+  let ang = Math.PI / 2 + total / r / 2;
+  [...text].forEach((ch, i) => {
+    const w = widths[i] - track, mid = ang - w / 2 / r;
+    // per-letter reveal from the left, with a small inward rise
+    const li = (i + 0.5) / text.length;
+    const show = smooth(li * 0.65, li * 0.65 + 0.35, k);
+    if (show > 0.01) {
+      const rr = r + (1 - ease.out3(show)) * 14;
+      ctx.save();
+      ctx.translate(C + Math.cos(mid) * rr, C + Math.sin(mid) * rr);
+      ctx.rotate(mid - Math.PI / 2);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      ctx.globalAlpha = a * show;
+      ctx.shadowColor = rgba(GOLD, 0.9); ctx.shadowBlur = HG.px(glow);
+      ctx.fillStyle = rgba(color, 1); ctx.fillText(ch, 0, 0);
+      ctx.shadowBlur = 0; ctx.fillText(ch, 0, 0);
+      ctx.restore();
+    }
+    ang -= widths[i] / r;
+  });
+  return total / r;   // angle the text spans
+}
+
+function fitFont(text, weight, size, maxW, track) {
+  for (let s = size; s > 18; s -= 1) {
+    ctx.font = `${weight} ${s}px Montserrat`;
+    const w = [...text].reduce((t, ch) => t + ctx.measureText(ch).width + track, 0) - track;
+    if (w <= maxW) return s;
+  }
+  return 18;
+}
+
+window.ready = (async () => {
+  await document.fonts.load('800 60px Montserrat'); await document.fonts.load('500 30px Montserrat');
+  return true;
+})();
+window.render = t => {
+  HG.reset(); ctx.clearRect(0, 0, W, W);
+  const kin = smooth(IN, IN + 1.1, t), kout = 1 - smooth(D - OUT - 0.9, D - OUT, t);
+  const a = kout; if (kin <= 0 || a <= 0) return;
+  if (STYLE === 'arc') {
+    const R1 = 452, R2 = 400;
+    // shade: darken the band under the letters so they read over busy pieces
+    const g = ctx.createRadialGradient(C, C, 330, C, C, 540);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.3, `rgba(0,0,0,${0.62 * a * kin})`); g.addColorStop(1, `rgba(0,0,0,${0.62 * a * kin})`);
+    const nameSize = fitFont(NAME, 800, 56, Math.PI * 0.75 * R1, 10);
+    ctx.font = `800 ${nameSize}px Montserrat`;
+    const span = ([...NAME].reduce((s, ch) => s + ctx.measureText(ch).width + 10, 0)) / R1 + 0.5;
+    ctx.save(); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(C, C);
+    ctx.arc(C, C, 540, Math.PI / 2 - span / 2 - 0.25, Math.PI / 2 + span / 2 + 0.25); ctx.closePath();
+    ctx.filter = HG.blur(30); ctx.fill(); ctx.restore();
+    arcText(NAME, R1, `800 ${nameSize}px Montserrat`, 10, WARM, kin, 16, a);
+    if (PLACE) {
+      const ps = fitFont(PLACE, 500, 30, Math.PI * 0.6 * R2, 4);
+      arcText(PLACE, R2 + 4, `500 ${ps}px Montserrat`, 4, GOLD, smooth(0.25, 1, kin), 8, a);
+    }
+    // a hairline arc between name and place, growing from the centre bottom
+    const hw = 0.42 * ease.inOut3(kin);
+    ctx.save(); ctx.strokeStyle = rgba(GOLD, 0.75 * a); ctx.lineWidth = 2; ctx.shadowColor = rgba(GOLD, 1); ctx.shadowBlur = HG.px(8);
+    ctx.beginPath(); ctx.arc(C, C, R1 - nameSize - 6, Math.PI / 2 - hw, Math.PI / 2 + hw); ctx.stroke(); ctx.restore();
+  } else {
+    const yN = 872, yP = 926;
+    const half = Math.sqrt(540 * 540 - (yN - C) ** 2);
+    const nameSize = fitFont(NAME, 800, 64, half * 1.6, 8);
+    const g = ctx.createRadialGradient(C, 890, 0, C, 890, 380);
+    g.addColorStop(0, `rgba(0,0,0,${0.62 * a * kin})`); g.addColorStop(0.7, `rgba(0,0,0,${0.45 * a * kin})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.save(); ctx.translate(C, 890); ctx.scale(1.25, 0.42); ctx.translate(-C, -890); ctx.fillStyle = g; ctx.fillRect(0, 500, W, 780); ctx.restore();
+    ctx.font = `800 ${nameSize}px Montserrat`; ctx.textAlign = 'center';
+    const reveal = ease.inOut3(kin);
+    ctx.save();
+    const tw = [...NAME].reduce((s, ch) => s + ctx.measureText(ch).width + 8, 0);
+    ctx.beginPath(); ctx.rect(C - tw / 2 - 20, 700, (tw + 40) * reveal, 300); ctx.clip();
+    ctx.globalAlpha = a; ctx.shadowColor = rgba(GOLD, 0.9); ctx.shadowBlur = HG.px(16); ctx.fillStyle = rgba(WARM, 1);
+    ctx.letterSpacing = '8px'; ctx.fillText(NAME, C + 4, yN + (1 - reveal) * 8); ctx.shadowBlur = 0; ctx.fillText(NAME, C + 4, yN + (1 - reveal) * 8);
+    ctx.restore();
+    if (PLACE) {
+      const ps = fitFont(PLACE, 500, 32, half * 1.3, 4);
+      ctx.save(); ctx.font = `500 ${ps}px Montserrat`; ctx.textAlign = 'center'; ctx.letterSpacing = '4px';
+      ctx.globalAlpha = a * smooth(0.4, 1, kin); ctx.fillStyle = rgba(GOLD, 1); ctx.shadowColor = rgba(GOLD, 0.8); ctx.shadowBlur = HG.px(8);
+      ctx.fillText(PLACE, C + 2, yP); ctx.restore();
+    }
+    ctx.save(); ctx.strokeStyle = rgba(GOLD, 0.75 * a); ctx.lineWidth = 2; ctx.shadowColor = rgba(GOLD, 1); ctx.shadowBlur = HG.px(8);
+    const lw = 150 * ease.inOut3(kin); ctx.beginPath(); ctx.moveTo(C - lw, yN - nameSize - 12); ctx.lineTo(C + lw, yN - nameSize - 12); ctx.stroke(); ctx.restore();
+  }
+  HG.reset();
+};
+</script></body></html>
