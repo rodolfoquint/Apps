@@ -1,0 +1,22 @@
+{
+  "title": "Un dia en Mexico",
+  "transition_seconds": 1.8,
+  "transition": "rueda.html",
+  "order": [
+    "01-amanecer-teotihuacan",
+    "02-quetzalcoatl",
+    "03-cenote",
+    "04-jaguar",
+    "05-huichol",
+    "06-sarape",
+    "07-arbol-de-la-vida",
+    "08-taqueria",
+    "09-voladores",
+    "10-mariachi",
+    "11-jarabe-tapatio",
+    "12-danza-de-la-pluma",
+    "13-cdmx-noche",
+    "14-posadas",
+    "15-castillo"
+  ]
+}

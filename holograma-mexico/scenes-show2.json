@@ -1,0 +1,92 @@
+{
+  "image_style": "Isolated on a pure solid black background (#000000) with nothing else in frame: no ground, no surface, no shadow, no text, no border. A single subject centered, filling about 70% of a square frame with black space on every side. Vivid saturated natural colors, soft studio rim light, crisp detail, photorealistic product shot.",
+  "image_negative": "background, scenery, table, surface, floor, ground, base, plinth, shadow, gradient background, grey background, white background, vignette, text, letters, numbers, watermark, logo, frame, border, multiple objects, cropped, blurry, dull colors",
+  "video_style": "",
+  "scenes": [
+    {
+      "id": "piramide-sol",
+      "title": "Pyramid of the Sun, Teotihuacan",
+      "subject": "The Pyramid of the Sun at Teotihuacan, Mexico, seen from the front at eye level: a very broad, low, massive pyramid about twice as wide as it is tall, built of rough grey-brown volcanic stones, made of four huge stacked sloping terraces (talud) of decreasing size with a FLAT TOP and NO temple or building on top, a steep central stairway in several flights climbing the front face, weathered and ancient, with a few tufts of dry grass on the terraces. Not Chichen Itza, not a Maya temple"
+    },
+    {
+      "id": "serpiente-emplumada",
+      "title": "Feathered serpent head, Temple of Quetzalcoatl",
+      "subject": "A carved stone feathered-serpent head sculpture from the Temple of the Feathered Serpent (Quetzalcoatl) at Teotihuacan, seen from the front at a slight angle: a fierce serpent head with a long snout, open jaws and curved fangs, framed by a large round collar of stylised carved feathers, ancient weathered stone with faint traces of red, green and blue paint"
+    },
+    {
+      "id": "jaguar",
+      "title": "Jaguar",
+      "subject": "A jaguar (Panthera onca) walking toward the viewer at a three-quarter angle, powerful stocky build, golden-orange coat covered in black rosettes with small dark spots inside each rosette, pale cream chest, intense green-gold eyes"
+    },
+    {
+      "id": "huichol-venado",
+      "title": "Huichol yarn painting",
+      "subject": "A Huichol (Wixarika) yarn painting (nierika) seen straight on: a stylised blue deer with branching antlers in profile at the centre, a round multicoloured peyote flower and a radiant sun beside it, every shape filled with brightly coloured yarn laid in tight parallel lines that follow the outlines, outlined in contrasting yarn, in magenta, turquoise, yellow, orange, green, red and white, on a black yarn background"
+    },
+    {
+      "id": "arbol-vida",
+      "title": "Tree of life, Metepec",
+      "subject": "A Mexican Arbol de la Vida (tree of life) clay sculpture from Metepec: a tall symmetrical candelabra-shaped tree with a thick trunk and arching branches densely covered in hand-painted clay flowers, leaves, doves and little birds, glossy painted clay in vivid pink, yellow, turquoise, green, orange, red and white"
+    },
+    {
+      "id": "trompo-pastor",
+      "title": "Trompo al pastor",
+      "subject": "A trompo al pastor: a tall vertical metal spit stacked with thin layers of red-orange adobo-marinated pork forming a spinning-top shape, glistening and slightly charred on the edges, crowned with a whole peeled golden pineapple on top"
+    },
+    {
+      "id": "tacos",
+      "title": "Tacos al pastor",
+      "subject": "Three Mexican street tacos al pastor side by side on small soft corn tortillas, filled with red-orange pork, topped with chopped white onion, fresh green cilantro and small golden pineapple pieces, a green lime wedge beside them, seen from slightly above"
+    },
+    {
+      "id": "molcajete",
+      "title": "Molcajete with salsa",
+      "subject": "A Mexican molcajete: a round three-legged mortar carved from dark grey porous volcanic stone, filled with bright red chunky salsa, its stone pestle (tejolote) resting on the rim, seen from slightly above"
+    },
+    {
+      "id": "trompeta",
+      "title": "Trumpet",
+      "subject": "A single shiny brass trumpet seen from the side, polished bright gold-coloured brass with three valves, bell facing right"
+    },
+    {
+      "id": "violin",
+      "title": "Violin",
+      "subject": "A single violin seen straight on with its bow resting diagonally across it, warm reddish-brown varnished wood, black fingerboard, upright"
+    },
+    {
+      "id": "guitarron",
+      "title": "Guitarron",
+      "subject": "A Mexican guitarron, the huge acoustic bass of the mariachi, standing upright and seen straight on: an oversized, very wide and deep body that takes up most of the instrument (the body is about two thirds of the total height and almost as wide as it is tall), a SHORT thick neck with only a few frets, a small headstock with six wooden tuning pegs, a pale natural wood top with a dark inlaid border, a round sound hole with a decorative rosette, and a dark wooden bridge low on the body"
+    },
+    {
+      "id": "vihuela",
+      "title": "Vihuela",
+      "subject": "A Mexican mariachi vihuela seen straight on and upright: a small five-string guitar with a deep convex rounded back, natural light wood top with a dark inlaid border and a round sound hole with a decorative rosette"
+    },
+    {
+      "id": "sombrero-charro",
+      "title": "Charro sombrero",
+      "subject": "A traditional Mexican charro (mariachi) sombrero seen from the front and slightly above: black felt with a tall peaked crown and a very wide, upturned brim, richly embroidered with silver thread scrolls and flowers around the brim and the crown"
+    },
+    {
+      "id": "penacho-pluma",
+      "title": "Danza de la Pluma headdress",
+      "subject": "The great feather headdress (penacho) of the Danza de la Pluma from Oaxaca, seen straight on: a huge round, fan-shaped crown made of concentric rings of dyed feathers in red, yellow, green, blue, pink and white radiating from a central embroidered cloth medallion decorated with flowers, sequins and small round mirrors"
+    },
+    {
+      "id": "volador",
+      "title": "Volador de Papantla",
+      "subject": "A single volador de Papantla (Totonac ritual flyer) seen from the side, hanging upside down in mid-air from a rope tied around his waist, arms spread wide like wings, wearing the traditional costume: red trousers with gold fringe and tassels at the knees, a white long-sleeved shirt, a small embroidered red apron with beads, and a conical cap decorated with flowers and small mirrors with long multicoloured ribbons streaming from it"
+    },
+    {
+      "id": "nochebuena",
+      "title": "Poinsettia",
+      "subject": "A single red poinsettia (nochebuena) flower head seen from the front, a star of vivid red pointed bracts around a small cluster of yellow-green buds at the centre, with a few dark green leaves behind"
+    },
+    {
+      "id": "vela",
+      "title": "Posada candle",
+      "subject": "A single lit white candle with a warm golden flame inside a small paper lantern cone in bright pink"
+    }
+  ]
+}
