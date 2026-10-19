@@ -1,0 +1,281 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Finale: a choreographed fireworks show in green, white and red inside the circle.
+// Act I  — three single shells, left to right: a green peony, a silver chrysanthemum with long
+//          brocade tails, a red peony; then one small low brocade anchors the bottom of the frame.
+// Act II — mirrored pairs on a 0.7 s beat, alternating high and low: peonies, crossettes (silver
+//          comets that split into green / red crosses), swapped peonies, staggered glitter shells.
+// Act III — crescendo: a fan salvo sweeping over the top, then a wreath of shells that starts at
+//           the bottom and chases round the circle ever faster, closes, and holds while one great
+//           tricolour shell (green left, white centre, red right) opens through it.
+// Finale — a single heavy comet climbs and opens into a gold-white willow whose glittering
+//          sparks droop, drift down and fade to black; a few white strobes wink in its wake.
+// Every star is analytic: position = start + drag-limited motion + gravity, so render(t) is pure.
+const { W, C, ctx, clamp, lerp, smooth, rng, COLORS, rgba } = HG;
+const TAU = Math.PI * 2;
+
+// ---------- palette
+const GRN = [40, 225, 120], RED = [255, 48, 66], SIL = [226, 236, 255];
+const GOLD = [255, 182, 62], EMBER = [255, 120, 30], WARM = [255, 230, 186], BROCADE = [255, 206, 140];
+
+// integer hash -> [0,1) for stateless per-spark randomness
+function hash(a, b) {
+  let h = (Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+
+// ---------- shells
+const P = [];
+function shell(o) {
+  const sh = Object.assign({
+    kind: 'peony', n: 140, R: 180, k: 4.6, g: 300, tau: 0.2, life: 1.8, size: 15, width: 3.4, trailA: 0.7,
+    rise: 0.75, flick: 0, flickW: 22, glitter: 0, haze: 0.06, flash: 1, comet: 1, fan: 1.25, cometSize: 1, gain: 1, fo: 0.42,
+  }, o);
+  sh.seed = sh.seed ?? (P.length * 37 + 11);
+  const R = rng(sh.seed * 7919 + 3);
+  sh.tl = sh.tb - sh.rise;
+  if (!sh.from) {
+    const r = 585, dx = clamp((sh.x - C) * sh.fan, -r * 0.62, r * 0.62);
+    sh.from = [C + dx, C + Math.sqrt(r * r - dx * dx)];
+  }
+  sh.hazeColor = sh.hazeColor || sh.color;
+  sh.stars = [];
+  // t0: birth (s after burst); life: own life; fo: fade-out start (fraction of life); fin: fade-in
+  const add = (dx, dy, dz, col, sp, sz, extra) => {
+    const st = { dx, dy, col, sp: sp * (0.92 + 0.08 * R()), die: 0.78 + 0.32 * R(), ph: R() * TAU,
+      sz: sz * (0.85 + 0.3 * R()) * (1 + 0.12 * dz), t0: 0, life: sh.life, fo: sh.fo, fin: 0.07 };
+    sh.stars.push(Object.assign(st, extra)); return st;
+  };
+  const sphere = (n, cb) => {
+    const ga = Math.PI * (3 - Math.sqrt(5)), a = R() * TAU, b = R() * TAU, c = R() * TAU;
+    const ca = Math.cos(a), sa = Math.sin(a), cb_ = Math.cos(b), sb = Math.sin(b), cc = Math.cos(c), sc = Math.sin(c);
+    for (let i = 0; i < n; i++) {
+      const y = 1 - 2 * (i + 0.5) / n, r = Math.sqrt(1 - y * y), th = ga * i;
+      const x = Math.cos(th) * r, z = Math.sin(th) * r;
+      const y1 = y * cb_ - z * sb, z1 = y * sb + z * cb_;
+      const x2 = x * cc + z1 * sc, z2 = -x * sc + z1 * cc;
+      cb(x2 * ca - y1 * sa, x2 * sa + y1 * ca, z2);
+    }
+  };
+  if (sh.kind === 'crossette') {
+    // silver comets fly out, then each splits into a cross of four coloured stars
+    const k = sh.k, ts = sh.split, e = Math.exp(-k * ts), E = (1 - e) / k;
+    const prim = [];
+    sphere(sh.n, (x, y, z) => prim.push(add(x, y, z, sh.color, 1, sh.size, { life: ts, die: 1, fo: 0.86 })));
+    sh.pops = [];
+    for (const p of prim) {
+      const V = sh.R * k * p.sp;
+      const bx = sh.x + p.dx * V * E, by = sh.y + p.dy * V * E + (sh.g / k) * (ts - E);
+      const vx = p.dx * V * e, vy = p.dy * V * e + (sh.g / k) * (1 - e);
+      const th = Math.atan2(p.dy, p.dx) + Math.PI / 4 + (R() - 0.5) * 0.5, V2 = sh.R2 * k;
+      for (let j = 0; j < 4; j++) {
+        const a = th + j * Math.PI / 2, v2 = V2 * (0.8 + 0.4 * R());
+        add(0, 0, 0, sh.color2, 1, sh.size2, { child: 1, t0: ts, life: sh.life2, fin: 0.1, bx, by,
+          vx: vx + Math.cos(a) * v2, vy: vy + Math.sin(a) * v2 });
+      }
+      sh.pops.push([bx, by]);
+    }
+  } else if (sh.kind === 'tricolor') {
+    sphere(sh.n, (x, y, z) => add(x, y, z, x < -0.34 ? GRN : x > 0.34 ? RED : SIL, 1, sh.size));
+  } else {
+    sphere(sh.n, (x, y, z) => add(x, y, z, sh.color, 1, sh.size));
+  }
+  if (sh.pistil) sphere(sh.pistilN || 36, (x, y, z) => add(x, y, z, sh.pistil, sh.pistilR || 0.42, sh.size * 0.8));
+  sh.densN = sh.kind === 'crossette' ? sh.n : sh.stars.length;
+  sh.span = 0;
+  for (const st of sh.stars) {
+    st.css = st.col.join(','); st.tcss = (sh.tailColor || st.col).join(',');
+    st.gain = st.col === SIL || st.col === WARM ? 0.85 : 1.15;
+    sh.span = Math.max(sh.span, st.t0 + st.life * st.die);
+  }
+  sh.span += (sh.glitter ? (sh.glitterLife || 0.55) : 0) + 0.1;
+  // sparks shed by the rising comet
+  sh.sparks = [];
+  for (let i = 0; i < 26; i++) sh.sparks.push({ u: (i + R()) / 26, vx: (R() - 0.5) * 50, life: 0.3 + 0.35 * R(), s: 0.6 + 0.6 * R() });
+  P.push(sh); return sh;
+}
+
+// linear drag k and gravity g: p = p0 + v0 * E + (g/k)(u - E), E = (1 - e^{-ku}) / k
+function starPos(sh, st, s) {
+  const k = sh.k, u = s - st.t0, E = (1 - Math.exp(-k * u)) / k, G = (sh.g / k) * (u - E);
+  if (st.child) return [st.bx + st.vx * E, st.by + st.vy * E + G];
+  const V = sh.R * k * st.sp;
+  return [sh.x + st.dx * V * E, sh.y + st.dy * V * E + G];
+}
+function starBright(sh, st, s) {
+  const u = s - st.t0, life = st.life * st.die;
+  if (u < 0 || u > life) return 0;
+  let b = smooth(0, st.fin, u) * (1 - smooth(life * st.fo, life, u)) * st.gain * sh.gain;
+  if (sh.flick) b *= 1 - sh.flick * smooth(life * 0.3, life * 0.65, u) * (0.5 + 0.5 * Math.sin(st.ph + u * sh.flickW));
+  if (sh.kind === 'strobe') b *= smooth(0.15, 0.85, 0.5 + 0.5 * Math.sin(st.ph * 3 + u * sh.flickW)) * smooth(0.25, 0.5, u);
+  return b;
+}
+
+// ---------- drawing (into the star layer, additive)
+function drawComet(c, sh, t, A) {
+  if (!sh.comet || t < sh.tl || t > sh.tb + 0.7) return;
+  const pos = tt => { const u = clamp((tt - sh.tl) / sh.rise), e = 1 - (1 - u) * (1 - u); return [lerp(sh.from[0], sh.x, e), lerp(sh.from[1], sh.y, e)]; };
+  const cs = sh.cometSize, a0 = A * smooth(sh.tl, sh.tl + 0.1, t);
+  if (t < sh.tb) {
+    const head = pos(t), tail = pos(Math.max(sh.tl, t - 0.2));
+    c.beginPath(); c.moveTo(head[0], head[1]);
+    for (let j = 1; j <= 6; j++) { const q = pos(Math.max(sh.tl, t - 0.2 * j / 6)); c.lineTo(q[0], q[1]); }
+    const g = c.createLinearGradient(head[0], head[1], tail[0], tail[1] + 0.01);
+    g.addColorStop(0, `rgba(${WARM},${0.85 * a0})`); g.addColorStop(0.35, `rgba(${GOLD},${0.45 * a0})`); g.addColorStop(1, `rgba(${EMBER},0)`);
+    c.strokeStyle = g; c.lineWidth = 4.2 * cs; c.lineCap = 'round'; c.lineJoin = 'round'; c.stroke();
+    HG.dot(c, WARM, head[0], head[1], 14 * cs, 0.75 * a0);
+  }
+  for (const sp of sh.sparks) {
+    const tb = sh.tl + sp.u * sh.rise, age = t - tb;
+    if (age < 0 || age > sp.life) continue;
+    const p = pos(tb), f = 1 - age / sp.life;
+    HG.dot(c, GOLD, p[0] + sp.vx * age, p[1] + 25 * age + 110 * age * age, 5.5 * sp.s * cs, 0.75 * f * f * a0);
+  }
+}
+
+function drawShell(c, sh, t, A) {
+  const s = t - sh.tb;
+  if (s < 0 || s > sh.span) return;
+  // burst flash: small and soft, never full-frame
+  if (s < 0.45 && sh.flash) {
+    HG.dot(c, WARM, sh.x, sh.y, sh.R * 0.32 * (1 + 2 * s), 0.35 * sh.flash * (1 - smooth(0, 0.14, s)) * A);
+    HG.dot(c, sh.hazeColor, sh.x, sh.y, sh.R * 1.1, 0.1 * sh.flash * (1 - smooth(0, 0.4, s)) * A);
+  }
+  // crossette split: a tiny soft pop where each comet breaks
+  if (sh.pops) {
+    const u = s - sh.split;
+    if (u > -0.02 && u < 0.16) for (const [x, y] of sh.pops)
+      HG.dot(c, WARM, x, y, 22 + 40 * u, 0.32 * smooth(-0.02, 0.01, u) * (1 - smooth(0.01, 0.16, u)) * A);
+  }
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  const NS = 7;
+  // while the shell is still small its stars overlap; normalise by coverage so a burst opens as
+  // a crisp expanding sphere instead of a saturated white disc
+  const rr = sh.R * (1 - Math.exp(-sh.k * s));
+  const dens = clamp(0.55 * Math.PI * rr * rr / (sh.densN * sh.size * sh.size));
+  for (let i = 0; i < sh.stars.length; i++) {
+    const st = sh.stars[i];
+    const b = starBright(sh, st, s) * A * (st.child ? 1 : dens);
+    if (b > 0.006) {
+      const head = starPos(sh, st, s), u = s - st.t0, life = st.life * st.die;
+      if (sh.tau > 0 && sh.kind !== 'strobe') {
+        c.beginPath(); c.moveTo(head[0], head[1]);
+        let q = head;
+        // streak back over the last tau seconds, but never into the inner half of the burst
+        const tl = Math.min(sh.tau, u * (st.child ? 0.9 : 0.5));
+        for (let j = 1; j <= NS; j++) { q = starPos(sh, st, s - tl * j / NS); c.lineTo(q[0], q[1]); }
+        const g = c.createLinearGradient(head[0], head[1], q[0] + 0.01, q[1]);
+        const ta = b * sh.trailA;
+        g.addColorStop(0, `rgba(${st.tcss},${ta})`); g.addColorStop(0.45, `rgba(${st.tcss},${ta * 0.4})`); g.addColorStop(1, `rgba(${st.tcss},0)`);
+        c.strokeStyle = g; c.lineWidth = sh.width * st.sz / 11; c.stroke();
+      }
+      const sz = st.sz * (1 - 0.35 * smooth(0, life, u));
+      HG.dot(c, st.col, head[0], head[1], sz, b);
+    }
+    // glitter shed along the path: twinkling points that hang and fall
+    if (sh.glitter) {
+      const dk = 0.05, gl = sh.glitterLife || 0.55, life = st.t0 + st.life * st.die;
+      const k0 = Math.max(3, Math.ceil((s - gl) / dk)), k1 = Math.floor(Math.min(s, life) / dk);
+      for (let k = k0; k <= k1; k++) {
+        const h = hash(i * 131 + sh.seed * 977, k);
+        if (h > sh.glitter) continue;
+        const sk = k * dk, age = s - sk, bb = starBright(sh, st, sk);
+        if (bb < 0.02) continue;
+        const p = starPos(sh, st, sk), f = 1 - age / gl;
+        const tw = 0.55 + 0.45 * Math.sin(h * 97 + age * 26);
+        HG.dot(c, sh.glitterColor || WARM, p[0] + (hash(k, i) - 0.5) * 12, p[1] + 14 * age + 45 * age * age, 4.5 + 3 * h, f * f * tw * bb * A * 0.9);
+      }
+    }
+  }
+}
+
+function drawHaze(sh, t, A) {
+  const s = t - sh.tb, L = sh.life * 1.3;
+  if (s < 0 || s > L || !sh.haze) return;
+  const a = sh.haze * smooth(0, 0.15, s) * (1 - smooth(0.15, L, s)) * A;
+  if (a < 0.003) return;
+  const r = sh.R * 1.45, y = sh.y + 25 * s;
+  const g = ctx.createRadialGradient(sh.x, y, 0, sh.x, y, r);
+  g.addColorStop(0, rgba(sh.hazeColor, a)); g.addColorStop(0.45, rgba(sh.hazeColor, a * 0.45)); g.addColorStop(1, rgba(sh.hazeColor, 0));
+  ctx.fillStyle = g; ctx.fillRect(sh.x - r, y - r, 2 * r, 2 * r);
+}
+
+// ---------- choreography (tb = burst time; comets rise for `rise` seconds before)
+// Act I: singles, left -> right, green / white / red, then a small low brocade
+shell({ tb: 0.82, rise: 0.7, x: 350, y: 440, R: 232, color: GRN, n: 170, pistil: SIL, pistilN: 48, life: 1.95, cometSize: 1.3 });
+shell({ tb: 1.78, rise: 0.8, x: 540, y: 372, R: 262, color: SIL, n: 150, tau: 0.6, k: 3.6, g: 260, flick: 0.5, life: 2.15,
+        trailA: 0.62, width: 2.8, size: 13, tailColor: BROCADE, hazeColor: BROCADE, fan: 0 });
+shell({ tb: 2.74, rise: 0.75, x: 730, y: 440, R: 232, color: RED, n: 170, pistil: SIL, pistilN: 48, life: 1.95 });
+shell({ tb: 3.34, rise: 0.52, x: 540, y: 702, R: 128, n: 88, color: SIL, life: 1.45, size: 13, tau: 0.22, glitter: 0.24,
+        glitterColor: GOLD, glitterLife: 0.6, haze: 0.05, flash: 0.8, fan: 0 });
+// Act II: mirrored pairs on a 0.7 s beat, alternating high and low
+const pair = (tb, xo, y, a, b) => { shell(Object.assign({ tb, x: C - xo, y }, a)); shell(Object.assign({ tb, x: C + xo, y }, b)); };
+pair(3.85, 200, 352, { color: GRN, R: 182, n: 120, pistil: SIL, pistilN: 34, life: 1.65, rise: 0.68 },
+                     { color: RED, R: 182, n: 120, pistil: SIL, pistilN: 34, life: 1.65, rise: 0.68 });
+const X = { kind: 'crossette', color: SIL, n: 16, R: 126, R2: 80, k: 3.4, g: 220, split: 0.44, life2: 1.05, size: 14, size2: 13,
+            tau: 0.24, trailA: 0.72, width: 3.0, rise: 0.64, haze: 0.04, flash: 0.7 };
+pair(4.55, 250, 655, Object.assign({ color2: GRN, hazeColor: GRN }, X), Object.assign({ color2: RED, hazeColor: RED }, X));
+// (their comets climb diagonally from near the centre, so they never line up under the crossettes as 'stems')
+pair(5.25, 175, 300, { color: RED, R: 162, n: 115, pistil: SIL, pistilN: 32, life: 1.6, rise: 0.72, fan: 0.45 },
+                     { color: GRN, R: 162, n: 115, pistil: SIL, pistilN: 32, life: 1.6, rise: 0.72, fan: 0.45 });
+const GL = { color: SIL, R: 165, n: 110, tau: 0.3, k: 4.0, flick: 0.7, life: 1.75, rise: 0.6, glitter: 0.22, glitterColor: SIL };
+shell(Object.assign({ tb: 5.92, x: C - 238, y: 592 }, GL));
+shell(Object.assign({ tb: 6.04, x: C + 238, y: 552 }, GL));
+// Act III: crescendo. Fan salvo sweeping over the top, left -> right (short-lived, so the wreath can take over)
+[[160, GRN], [125, SIL], [90, RED], [55, SIL], [20, GRN]].forEach(([deg, col], i) => {
+  const a = deg * Math.PI / 180;
+  shell({ tb: 6.55 + i * 0.12, x: C + 272 * Math.cos(a), y: 575 - 272 * Math.sin(a), R: 138, n: 96, color: col, life: 1.0,
+          rise: 0.62, from: [C + Math.cos(a) * 40, 1120], haze: 0.05, flash: 0.8, size: 14 });
+});
+// a wreath of shells starting at the bottom (where the frame is empty) and chasing clockwise round
+// the circle, gaps shrinking 0.14 s -> 0.06 s; earlier shells live longer so the ring closes and holds
+for (let i = 0, tb = 7.3; i < 8; i++) {
+  const a = Math.PI / 2 + i * TAU / 8;
+  shell({ tb, x: C + 285 * Math.cos(a), y: 522 + 285 * Math.sin(a), R: 122, n: 80, color: [GRN, SIL, RED][i % 3],
+          life: 1.3 + 0.1 * (7 - i), rise: 0.55, from: [C + Math.cos(a) * 60, 1120], haze: 0.045, flash: 0.7, size: 13 });
+  tb += 0.14 - 0.08 * i / 6;
+}
+// the great tricolour shell: it holds longer (later fade-out) so the flag is still clear when the gold opens
+shell({ tb: 8.3, rise: 0.78, kind: 'tricolor', x: 540, y: 490, R: 345, n: 300, k: 4.2, g: 260, tau: 0.24, life: 2.3, size: 16,
+        fo: 0.52, from: [540, 1120], hazeColor: SIL, haze: 0.06, cometSize: 1.2 });
+// Finale: one heavy comet and a gold-white willow with glitter
+shell({ tb: 9.3, rise: 0.85, kind: 'willow', x: 540, y: 455, R: 385, n: 240, k: 2.9, g: 400, tau: 0.8, life: 2.45, size: 15, width: 3.2,
+        trailA: 0.62, color: GOLD, pistil: WARM, pistilN: 70, pistilR: 0.55, glitter: 0.3, glitterLife: 0.75, flick: 0.35, flickW: 18,
+        from: [540, 1120], hazeColor: GOLD, haze: 0.1, cometSize: 1.6, flash: 1.0 });
+// white strobes winking in the opened, dimming heart of the willow
+shell({ tb: 10.15, kind: 'strobe', x: 540, y: 420, R: 250, n: 64, k: 4.2, g: 80, tau: 0, life: 1.6, size: 17, color: SIL,
+        comet: 0, flash: 0, haze: 0, flickW: 21 });
+
+// ---------- bloom compositing
+const L = HG.layer();
+const mk = s => { const c = document.createElement('canvas'); c.width = c.height = s; return { cv: c, ctx: c.getContext('2d') }; };
+const B1 = mk(270), B2 = mk(540);
+function compose() {
+  B1.ctx.clearRect(0, 0, 270, 270); B1.ctx.filter = 'blur(6px)'; B1.ctx.drawImage(L.cv, 0, 0, 270, 270); B1.ctx.filter = 'none';
+  B2.ctx.clearRect(0, 0, 540, 540); B2.ctx.filter = 'blur(3px)'; B2.ctx.drawImage(L.cv, 0, 0, 540, 540); B2.ctx.filter = 'none';
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 1; ctx.drawImage(B1.cv, 0, 0, W, W); ctx.globalAlpha = 0.5; ctx.drawImage(B1.cv, 0, 0, W, W);
+  ctx.globalAlpha = 0.8; ctx.drawImage(B2.cv, 0, 0, W, W);
+  ctx.globalAlpha = 1; ctx.drawImage(L.cv, 0, 0);
+  ctx.restore();
+}
+
+HG.start({
+  duration: 12,
+  assets: {},
+  render(t) {
+    const A = 1 - smooth(10.9, 11.9, t);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (const sh of P) drawHaze(sh, t, A);
+    ctx.restore();
+    const c = L.ctx; HG.reset(c); c.clearRect(0, 0, W, W); c.globalCompositeOperation = 'lighter';
+    for (const sh of P) { drawComet(c, sh, t, A); drawShell(c, sh, t, A); }
+    HG.reset(c);
+    compose();
+  },
+});
+</script></body></html>

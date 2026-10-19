@@ -1,0 +1,689 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Piñata: the star is lowered in from above on a hairline gold thread, drawn first as gold line art
+// that lights up from its heart; its crepe-paper rings then fill with colour from the heart outward
+// as it swings to rest. A sheen of light runs across it, then three swipes of light strike it, each
+// harder than the last. Warm seams open along its cones, it swells and bursts: a gold bloom, the
+// cones tumble away, and confetti, candies, fruit and serpentinas arc up into the top of the circle
+// and rain down through it, dissolving at the rim.
+const { W, C, ctx, clamp, lerp, smooth, ease, rgba, COLORS } = HG;
+const TAU = Math.PI * 2;
+const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
+const pick = (R, a) => a[Math.floor(R() * a.length)];
+const gauss = R => (R() + R() + R() - 1.5) * 2;           // roughly N(0, 1)
+const GOLD = COLORS.gold, WARM = COLORS.warm, EMBER = [255, 170, 60];
+
+// ---------- geometry of the 1024px asset
+const K = 0.73;                         // asset px -> screen px
+const AC = [521, 486];                  // body centre (the pink heart)
+const KNOT = [521, 12];                 // rope knot at the top tip
+const TIPS = [5, 52, 90, 128, 177, 220, 270, 318].map(d => d * Math.PI / 180);
+const TIPR = [410, 439, 457, 436, 412, 440, 476, 437];
+const VALLEYS = [30, 72, 113, 152, 197, 244, 296, 344].map(d => d * Math.PI / 180);
+const LR = 380;                         // pivot -> knot (screen px)
+const LB = LR + (AC[1] - KNOT[1]) * K;  // pivot -> body centre
+const PIV = [540, 186 - LR];            // pivot at rest; the knot hangs at (540, 186), body centre at (540, 532)
+
+// ---------- timeline
+const TB = 5.6;                         // burst
+// hits escalate: a nudge, a visible swing, then the strongest (which checks the swing so the
+// star bursts near the centre). from: direction the swipe comes from, seen from the contact point.
+const HITS = [
+  { t: 3.2, j: 0.10, pow: 0.45, ca: 188, cr: 168, from: 200, L: 400, bend: 0.22, b: 0.05, q: 0.016, y: 0.10, punch: 0.03, nsp: 18, ncf: 4, seed: 101 },
+  { t: 4.1, j: -0.34, pow: 0.72, ca: -10, cr: 170, from: -24, L: 420, bend: -0.24, b: -0.08, q: 0.026, y: -0.16, punch: 0.04, nsp: 28, ncf: 7, seed: 202 },
+  { t: 4.9, j: -0.12, pow: 1.0, ca: 38, cr: 176, from: 28, L: 440, bend: -0.3, b: -0.13, q: 0.045, y: 0.2, punch: 0.05, nsp: 44, ncf: 11, seed: 303 },
+];
+HITS.forEach(h => { const a = h.ca * Math.PI / 180; h.c = [AC[0] + Math.cos(a) * h.cr, AC[1] + Math.sin(a) * h.cr]; });
+
+// ---------- the swing: a damped pendulum whose pivot lowers it in from the upper left and brakes;
+// the hits are short force pulses. Integrated once into a table, so pose(t) stays a pure function.
+const SW = (() => {
+  const T0 = -0.25, T = 1.9, D = [260, 520], PER = 2.5, c1 = 0.9, c2 = 0.8;
+  const G = (TAU / PER) ** 2;
+  const I = u => u - u * u * u + u * u * u * u / 2;       // integral of (1 - smoothstep)
+  const frac = t => { const u = (t - T0) / T; return u < 0 ? 2 * u : u > 1 ? 1 : I(u) / 0.5; };
+  const acc = t => { const u = (t - T0) / T; return u <= 0 || u >= 1 ? 0 : -12 * u * (1 - u) / (T * T); };
+  const pivot = t => { const f = frac(t); return [PIV[0] - D[0] * (1 - f), PIV[1] - D[1] * (1 - f)]; };
+  const R = 600, t0 = -0.5, n = Math.ceil((12.5 - t0) * R), th = new Float32Array(n + 1);
+  let a = 0, w = 0;
+  for (let i = 0; i <= n; i++) {
+    const t = t0 + i / R; th[i] = a;
+    const ac = acc(t), ax = D[0] * ac, ay = D[1] * ac;
+    let F = 0; for (const h of HITS) { const d = (t - h.t) / 0.03; F += h.j * Math.exp(-0.5 * d * d) / (0.03 * Math.sqrt(TAU)); }
+    const al = -(G - ay / LB) * Math.sin(a) - (ax / LB) * Math.cos(a) - c1 * w - c2 * w * Math.abs(w) + F;
+    w += al / R; a += w / R;
+  }
+  const angle = t => { const x = clamp((t - t0) * R, 0, n - 1), i = Math.floor(x), f = x - i; return th[i] + (th[i + 1] - th[i]) * f; };
+  return { pivot, angle };
+})();
+
+function pose(t) {
+  const th = SW.angle(t), pv = SW.pivot(t);
+  let beta = 0, q = 0, yawH = 0, punch = 0;
+  for (const h of HITS) {
+    const d = t - h.t; if (d <= 0) continue;
+    beta += h.b * Math.exp(-4.5 * d) * Math.sin(TAU * 2.0 * d);
+    q += h.q * Math.exp(-7 * d) * Math.sin(TAU * 3.2 * d);
+    yawH += h.y * Math.exp(-1.1 * d) * Math.sin(TAU * d / 1.8);
+    punch += h.punch * (d < 0.05 ? smooth(0, 0.05, d) : Math.exp(-(d - 0.05) * 11));
+  }
+  // a gentle turn; the flat card is capped at a small yaw and the side shading carries the rest
+  const yawE = 0.3 * Math.exp(-1.0 * Math.max(0, t - 0.2)) * Math.sin(TAU * (t - 0.2) / 2.2);
+  const yawRaw = 0.16 * Math.sin(TAU * (t - 1.0) / 5.5) * smooth(0.6, 2.2, t) + yawE + yawH;
+  const yaw = 0.25 * Math.tanh(yawRaw / 0.25);
+  const sw = (1 + punch) * (1 + 0.06 * ease.in3((t - 5.0) / (TB - 5.0)));
+  // a fine tremble of pressure just before the burst
+  const tr = 3.2 * smooth(5.05, TB, t);
+  const knot = [pv[0] + LR * Math.sin(th) + tr * Math.sin(TAU * 7.1 * t), pv[1] + LR * Math.cos(th) + tr * 0.6 * Math.cos(TAU * 5.3 * t)];
+  return { knot, th, rot: -(th + beta) + 0.005 * tr * Math.sin(TAU * 6.2 * t + 1), sx: K * Math.cos(yaw) * (1 + q), sy: K * (1 - q), sw, yaw };
+}
+function setPose(g, P) {
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.translate(P.knot[0], P.knot[1]); g.rotate(P.rot); g.scale(P.sx, P.sy); g.translate(-KNOT[0], -KNOT[1]);
+  if (P.sw !== 1) { g.translate(AC[0], AC[1]); g.scale(P.sw, P.sw); g.translate(-AC[0], -AC[1]); }
+}
+function map(P, ax, ay) {
+  const x = (AC[0] + (ax - AC[0]) * P.sw - KNOT[0]) * P.sx, y = (AC[1] + (ay - AC[1]) * P.sw - KNOT[1]) * P.sy;
+  const c = Math.cos(P.rot), s = Math.sin(P.rot);
+  return [P.knot[0] + x * c - y * s, P.knot[1] + x * s + y * c];
+}
+const PB = pose(TB), OB = map(PB, AC[0], AC[1]);    // pose and centre at the burst
+HITS.forEach(h => { h.pc = map(pose(h.t), h.c[0], h.c[1]); });
+
+// ---------- seams: gently wavering lines from the heart out to each valley between two cones
+const RJ = 10;                                           // seam point index at the edge of the round body (r = 200)
+const CRACKS = VALLEYS.map((a, i) => {
+  const R = HG.rng(500 + i * 17), pts = [], ux = Math.cos(a), uy = Math.sin(a), ph = R() * TAU;
+  for (let k = 0; k <= 12; k++) {
+    const r = k * 20, o = k === 0 ? 0 : (5 * Math.sin(r * 0.03 + ph) + (R() - 0.5) * 4) * smooth(0, 50, r);
+    pts.push([AC[0] + ux * r - uy * o, AC[1] + uy * r + ux * o]);
+  }
+  return { pts, delay: [0, 0.16, 0.05, 0.22, 0.1, 0.19, 0.03, 0.13][i] };
+});
+const RING = VALLEYS.map((a0, i) => {                    // the seam where the cones meet the round body
+  const R = HG.rng(700 + i * 13), a1 = VALLEYS[(i + 1) % 8] + (i === 7 ? TAU : 0), out = [];
+  for (let k = 1; k < 7; k++) { const a = lerp(a0, a1, k / 7), r = 203 + (R() - 0.5) * 8; out.push([AC[0] + Math.cos(a) * r, AC[1] + Math.sin(a) * r]); }
+  return out;
+});
+// shards: the seams split the star into eight body wedges (lost in the bloom) and the eight cones
+const SHARDS = [];
+TIPS.forEach((ta, i) => {
+  const v0 = (i + 7) % 8, v1 = i;
+  const A0 = VALLEYS[v0], A1 = VALLEYS[v1] + (VALLEYS[v1] < A0 ? TAU : 0);
+  const c0 = CRACKS[v0].pts, c1 = CRACKS[v1].pts, arc = RING[v0];
+  const big = []; for (let k = 0; k <= 8; k++) { const a = lerp(A0, A1, k / 8); big.push([AC[0] + Math.cos(a) * 760, AC[1] + Math.sin(a) * 760]); }
+  const R = HG.rng(900 + i * 31), am = (A0 + A1) / 2;
+  SHARDS.push({ body: true, poly: [...c0.slice(0, RJ + 1), ...arc, ...c1.slice(0, RJ + 1).reverse()],
+    cen: [AC[0] + Math.cos(am) * 120, AC[1] + Math.sin(am) * 120], v: 900 + 300 * R(), k: 4, spin: (R() - 0.5) * 4 });
+  SHARDS.push({ body: false, poly: [...c0.slice(RJ), ...big, ...c1.slice(RJ).reverse(), ...[...arc].reverse()],
+    cen: [AC[0] + Math.cos(ta) * TIPR[i] * 0.62, AC[1] + Math.sin(ta) * TIPR[i] * 0.62], v: 330 + 150 * R(), k: 1.5, g: 700,
+    spin: (R() < 0.5 ? -1 : 1) * (0.7 + 1.0 * R()), z: 0.1 + 0.25 * R() });
+});
+SHARDS.forEach(s => {
+  s.s0 = map(PB, s.cen[0], s.cen[1]);
+  const dx = s.s0[0] - OB[0], dy = s.s0[1] - OB[1], dl = Math.hypot(dx, dy) || 1; s.dir = [dx / dl, dy / dl];
+});
+
+// ---------- sprites: soft light without a pure-white core, and flat bokeh discs
+const spCache = new Map();
+function soft(col, hot = 0.45) {
+  const key = col.join(',') + '/' + hot; if (spCache.has(key)) return spCache.get(key);
+  const s = document.createElement('canvas'); s.width = s.height = 64; const g = s.getContext('2d');
+  const core = col.map(v => Math.round(v + (255 - v) * hot)), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, rgba(core, 1)); gr.addColorStop(0.2, rgba(col, 0.85)); gr.addColorStop(0.5, rgba(col, 0.28)); gr.addColorStop(1, rgba(col, 0));
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64); spCache.set(key, s); return s;
+}
+function disc(col) {
+  const key = 'disc' + col.join(','); if (spCache.has(key)) return spCache.get(key);
+  const s = document.createElement('canvas'); s.width = s.height = 64; const g = s.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, rgba(col, 0.9)); gr.addColorStop(0.62, rgba(col, 0.75)); gr.addColorStop(0.85, rgba(col, 0.3)); gr.addColorStop(1, rgba(col, 0));
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64); spCache.set(key, s); return s;
+}
+function sdot(g, col, x, y, s, a, hot = 0.45) {
+  if (a <= 0.003 || s <= 0) return;
+  g.globalAlpha = Math.min(1, a); g.drawImage(soft(col, hot), x - s / 2, y - s / 2, s, s);
+}
+// big soft light (flashes, heads of the swipes)
+function glow(g, x, y, r, col, a) {
+  if (a <= 0.003 || r <= 0) return;
+  const gr = g.createRadialGradient(x, y, 0, x, y, r);
+  gr.addColorStop(0, rgba(col, a)); gr.addColorStop(0.3, rgba(col, a * 0.5)); gr.addColorStop(0.65, rgba(col, a * 0.14)); gr.addColorStop(1, rgba(col, 0));
+  g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r); g.restore();
+}
+function star(g, x, y, s, a, rot = 0, col = WARM) {
+  if (a <= 0.003 || s <= 0) return;
+  const sp = soft(col, 0.6);
+  g.save(); g.globalCompositeOperation = 'lighter'; g.translate(x, y); g.rotate(rot);
+  g.globalAlpha = Math.min(1, a);
+  g.drawImage(sp, -s / 2, -s * 0.045, s, s * 0.09);
+  g.drawImage(sp, -s * 0.045, -s / 2, s * 0.09, s);
+  g.globalAlpha = Math.min(1, a * 0.7);
+  g.drawImage(sp, -s * 0.16, -s * 0.16, s * 0.32, s * 0.32);
+  g.restore();
+}
+// everything dissolves before the round mask can cut it
+const rim = (x, y, a = 395, b = 466) => 1 - smooth(a, b, Math.hypot(x - C, y - C));
+
+// ---------- particles: closed-form flight with linear drag towards a terminal fall speed
+function fly(p, d) {
+  const e = (1 - Math.exp(-p.k * d)) / p.k;
+  let x = p.vx * e, y = p.vt * d + (p.vy - p.vt) * e;
+  if (p.sw) x += p.sw * Math.sin(p.ws * d + p.sph) * smooth(0.3, 1.5, d);
+  return [x, y];
+}
+const CONF_COLS = [COLORS.pink, COLORS.orange, COLORS.yellow, COLORS.turquoise, COLORS.green, COLORS.purple, GOLD, COLORS.magenta];
+// three depth layers: far (small, dim, slow), mid, near (large, out of focus); each with its own full launch
+const LAYER = [{ sc: 0.62, vt: [145, 180], spd: 0.85, lit: 0.55 }, { sc: 1, vt: [195, 245], spd: 1, lit: 1 }, { sc: 1.75, vt: [285, 330], spd: 1.1, lit: 0.9 }];
+function makeConfetti(n, seed, { sp = [560, 1500], spread = 0.75, up = 0.78, high = 0.12, near = 0.14, far = 0.3, vx = 0.8 } = {}) {
+  const R = HG.rng(seed), out = [];
+  for (let i = 0; i < n; i++) {
+    const lr = R(), L = lr < far ? 0 : lr < 1 - near ? 1 : 2, Ly = LAYER[L];
+    let a, s;
+    if (L < 2 && R() < high) { a = -Math.PI / 2 + gauss(R) * 0.2; s = 1900 + 1300 * R(); }       // thrown high: rains back in later
+    else { a = R() < up ? -Math.PI / 2 + clamp(gauss(R) * spread, -2.4, 2.4) : R() * TAU; s = lerp(sp[0], sp[1], Math.pow(R(), 0.85)); }
+    s *= Ly.spd;
+    const shape = R(), w = shape < 0.65 ? 22 + 6 * R() : shape < 0.8 ? 14 + 3 * R() : 34 + 8 * R();
+    out.push({ L, vx: Math.cos(a) * s * vx, vy: Math.sin(a) * s, k: 2.0 + 0.6 * R(), vt: lerp(Ly.vt[0], Ly.vt[1], R()),
+      w: w * Ly.sc, h: (shape < 0.65 ? 12 + 3 * R() : shape < 0.8 ? w : 6 + 1.2 * R()) * Ly.sc, round: shape >= 0.65 && shape < 0.8,
+      col: pick(R, CONF_COLS), ph0: R() * TAU, sp0: (R() - 0.5) * 24, spE: (R() - 0.5) * 7, fl0: R() * TAU, fr0: 8 + 10 * R(), frE: 2.5 + 3.5 * R(),
+      sw: (16 + 26 * R()) * (L === 2 ? 1.4 : 1), ws: 2.0 + 2.4 * R(), sph: R() * TAU, del: 0.04 * R() });
+  }
+  return out;
+}
+const CONF = makeConfetti(175, 77, { high: 0.32 });
+const SPARKS = (() => {
+  const R = HG.rng(8080), out = [], cols = [GOLD, GOLD, GOLD, GOLD, WARM, WARM, EMBER, EMBER, COLORS.pink, COLORS.turquoise, COLORS.yellow];
+  for (let i = 0; i < 110; i++) {
+    const a = R() * TAU, sp = 520 + 820 * R();
+    out.push({ vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 180, k: 2.6 + 1.0 * R(), vt: 150, col: pick(R, cols), s: 8 + 6 * R(), life: 0.7 + 0.9 * R(), tw: R() * TAU });
+  }
+  return out;
+})();
+// wrapped candies (dulces) that tumble, and a few glowing sparkle-candies
+const CANDY_COLS = [COLORS.pink, COLORS.turquoise, COLORS.yellow, COLORS.orange, COLORS.purple, COLORS.green, COLORS.red, COLORS.magenta, GOLD];
+const CANDIES = (() => {
+  const R = HG.rng(4242), out = [];
+  for (let i = 0; i < 34; i++) {
+    const a = -Math.PI / 2 + clamp(gauss(R) * 0.95, -2.6, 2.6), sp = 560 + 900 * Math.pow(R(), 0.8);
+    out.push({ vx: Math.cos(a) * sp * 0.8, vy: Math.sin(a) * sp, k: 1.7 + 0.4 * R(), vt: 320 + 60 * R(), sw: 10 + 14 * R(), ws: 2 + 2 * R(), sph: R() * TAU,
+      col: pick(R, CANDY_COLS), s: 1.0 + 0.45 * R(), wrap: R() < 0.62, rot0: R() * TAU, spin: (R() - 0.5) * 9, tw: R() * TAU, del: 0.05 * R() });
+  }
+  return out;
+})();
+// fruit that real piñatas drop: mandarinas, tejocotes and pieces of caña
+const FRUIT = (() => {
+  const R = HG.rng(5151), out = [];
+  for (let i = 0; i < 11; i++) {
+    const kind = i < 5 ? 'mandarina' : i < 9 ? 'tejocote' : 'cana';
+    const a = -Math.PI / 2 + clamp(gauss(R) * 1.0, -2.4, 2.4), sp = 520 + 520 * R();
+    out.push({ kind, vx: Math.cos(a) * sp * 0.75, vy: Math.sin(a) * sp, k: 1.5 + 0.3 * R(), vt: 380 + 50 * R(), r: kind === 'mandarina' ? 17 + 3 * R() : 12 + 2 * R(),
+      rot0: R() * TAU, spin: (R() - 0.5) * 6, del: 0.04 * R() });
+  }
+  return out;
+})();
+const RIBBONS = (() => {
+  const R = HG.rng(3131), out = [];
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i / 9 - 0.5) * 2.4 + (R() - 0.5) * 0.25, sp = 900 + 450 * R();
+    out.push({ vx: Math.cos(a) * sp * 0.8, vy: Math.sin(a) * sp, k: 2.3 + 0.5 * R(), vt: 150 + 40 * R(), sw: 26 + 26 * R(), ws: 2.0 + 1.4 * R(), sph: R() * TAU,
+      len: 150 + 80 * R(), wd: 11 + 4 * R(), col: CONF_COLS[(i * 3) % CONF_COLS.length], tw: R() * TAU });
+  }
+  return out;
+})();
+// right after the burst everything sits at the centre: glows only reach full strength as the cloud spreads
+const dens = (x, y, d) => lerp(lerp(0.03, 1, smooth(30, 240, Math.hypot(x - OB[0], y - OB[1]))) * lerp(0.03, 1, smooth(0.0, 0.16, d)), 1, smooth(0.45, 0.85, d));
+
+// sparks and a few confetti knocked loose by each hit, thrown away from the swipe
+const HITBITS = HITS.map(h => {
+  const R = HG.rng(h.seed), fa = h.from * Math.PI / 180 + Math.PI, sparks = [];
+  for (let i = 0; i < h.nsp; i++) {
+    const a = fa + (R() - 0.5) * 1.9, sp = 320 + 700 * R() * (0.7 + 0.3 * h.pow);
+    sparks.push({ vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 260, k: 3.0, vt: 200, col: pick(R, [GOLD, GOLD, GOLD, WARM, EMBER, COLORS.pink, COLORS.turquoise]), s: 9 + 7 * R(), life: 0.5 + 0.7 * R(), tw: R() * TAU });
+  }
+  const conf = makeConfetti(h.ncf, h.seed + 1, { sp: [260, 560], spread: 0.9, high: 0, near: 0, far: 0.2 });
+  return { sparks, conf };
+});
+
+// ---------- layers
+const PL = HG.layer(), FX = HG.layer(), LL = HG.layer(), CN = HG.layer(), PF = HG.layer(), PM = HG.layer(), PN = HG.layer();
+
+// line art drawn in light on the swinging star, revealed from the heart outward behind a ring of light
+function poseLines(img, P, k, alpha, o) {
+  if (k <= 0 || alpha <= 0.003) return;
+  const g = LL.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+  setPose(g, P); g.globalAlpha = 0.8; g.filter = 'blur(5px)'; g.drawImage(img, 0, 0, 1024, 1024);
+  g.filter = 'none'; g.globalAlpha = 1; g.drawImage(img, 0, 0, 1024, 1024);
+  HG.reset(g);
+  if (k < 1) {
+    const feather = 80, rho = Math.max(1, k * (430 + feather));
+    g.globalCompositeOperation = 'destination-in';
+    const gr = g.createRadialGradient(o[0], o[1], 0, o[0], o[1], rho);
+    gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(Math.max(0, 1 - feather / rho), 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, W, W);
+    g.globalCompositeOperation = 'source-atop';
+    const rg = g.createRadialGradient(o[0], o[1], Math.max(0, rho - 40), o[0], o[1], rho);
+    rg.addColorStop(0, rgba(WARM, 0)); rg.addColorStop(0.8, rgba(WARM, 0.9)); rg.addColorStop(1, rgba(WARM, 0));
+    g.fillStyle = rg; g.fillRect(0, 0, W, W);
+    HG.reset(g);
+  }
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha; ctx.drawImage(LL.cv, 0, 0); ctx.restore();
+}
+
+// the piñata (with a little motion blur from sub-frame samples), its colour filling from the heart out
+function drawBody(A, t, P, alpha, kF) {
+  const g = PL.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+  if (kF <= 0) return false;
+  const Pm = pose(t - 1 / 60), a = map(P, AC[0], AC[1]), b = map(Pm, AC[0], AC[1]);
+  const move = Math.hypot(a[0] - b[0], a[1] - b[1]) + Math.abs(P.rot - Pm.rot) * 330;
+  const N = Math.max(1, Math.min(9, Math.ceil(move / 4)));
+  g.imageSmoothingQuality = 'high';
+  for (let i = 0; i < N; i++) {
+    const Q = N === 1 ? P : pose(t - (i / (N - 1)) / 60);
+    setPose(g, Q); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 1 / N;
+    g.drawImage(A.pin, 0, 0, 1024, 1024);
+  }
+  // turning light: the side turning away darkens
+  setPose(g, P); g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 1;
+  const s = Math.sin(P.yaw) / 0.25, lg = g.createLinearGradient(48, 0, 975, 0);
+  lg.addColorStop(0, `rgba(0,0,0,${Math.max(0, -s) * 0.5})`); lg.addColorStop(0.5, 'rgba(0,0,0,0)'); lg.addColorStop(1, `rgba(0,0,0,${Math.max(0, s) * 0.5})`);
+  g.fillStyle = lg; g.fillRect(0, 0, 1024, 1024);
+  HG.reset(g);
+  if (kF < 1) {
+    const feather = 120, rho = Math.max(1, kF * (420 + feather));
+    g.globalCompositeOperation = 'destination-in';
+    const gr = g.createRadialGradient(a[0], a[1], 0, a[0], a[1], rho);
+    gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(Math.max(0, 1 - feather / rho), 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, W, W); HG.reset(g);
+  }
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha * 0.4; ctx.filter = 'blur(20px)'; ctx.drawImage(PL.cv, 0, 0);
+  ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = alpha; ctx.drawImage(PL.cv, 0, 0);
+  ctx.restore();
+  return true;
+}
+// part of the body (masked by a gradient in screen space) added again as light
+function lightPass(maskStyle, alpha, tint = null, tintA = 0.35, blur = 0) {
+  if (alpha <= 0.003) return;
+  const f = FX.ctx; HG.reset(f); f.clearRect(0, 0, W, W);
+  f.drawImage(PL.cv, 0, 0);
+  f.globalCompositeOperation = 'destination-in'; f.fillStyle = maskStyle; f.fillRect(0, 0, W, W);
+  if (tint) { f.globalCompositeOperation = 'source-atop'; f.globalAlpha = tintA; f.fillStyle = rgba(tint, 1); f.fillRect(0, 0, W, W); }
+  HG.reset(f);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha;
+  if (blur) ctx.filter = `blur(${blur}px)`;
+  ctx.drawImage(FX.cv, 0, 0); ctx.restore();
+}
+function ringMask(x, y, r, w) {
+  r = Math.max(0, r); const g = ctx.createRadialGradient(x, y, Math.max(0, r - w), x, y, r + w * 0.35);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.72, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  return g;
+}
+
+// ---------- hits
+const bez = (S, Q, E, u) => { const v = 1 - u; return [v * v * S[0] + 2 * v * u * Q[0] + u * u * E[0], v * v * S[1] + 2 * v * u * Q[1] + u * u * E[1]]; };
+// a broad arc of warm light: the tip of an invisible stick swinging in to the contact point
+function swipe(t, h) {
+  const lead = 0.24, d = t - (h.t - lead);
+  if (d < 0 || d > lead + 0.22) return;
+  const E = h.pc, fa = h.from * Math.PI / 180, S = [E[0] + Math.cos(fa) * h.L, E[1] + Math.sin(fa) * h.L];
+  const dx = E[0] - S[0], dy = E[1] - S[1], l = Math.hypot(dx, dy);
+  const Q = [(S[0] + E[0]) / 2 - dy / l * h.bend * h.L, (S[1] + E[1]) / 2 + dx / l * h.bend * h.L];
+  const prog = x => Math.pow(clamp(x / lead), 1.7);
+  const uh = prog(d), ut = prog(d - 0.13);
+  const fade = (1 - smooth(lead, lead + 0.2, d)) * smooth(0, 0.07, d), sz = 0.8 + 0.45 * h.pow;
+  if (uh - ut > 0.002) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const M = 46, lt = clamp((uh - ut) * h.L / 170), sp = Math.max(0.5, (uh - ut) * h.L * 1.15 / M);      // as the trail collapses into the contact it fades, so it never piles up
+    for (let i = 0; i <= M; i++) {
+      const f = i / M, p = bez(S, Q, E, lerp(ut, uh, f)), fr = rim(p[0], p[1], 390, 462);
+      const gs = lerp(40, 125, Math.pow(f, 1.1)) * sz, ws = lerp(8, 34, f) * sz;   // alpha per dot scaled by spacing: constant brightness, no pile-up
+      sdot(ctx, GOLD, p[0], p[1], gs, 0.55 * Math.min(1, sp / (gs * 0.5)) * fade * lt * Math.pow(f, 0.9) * fr, 0);
+      sdot(ctx, WARM, p[0], p[1], ws, 0.75 * Math.min(1, sp / (ws * 0.5)) * fade * lt * f * fr, 0.2);
+    }
+    ctx.restore();
+  }
+  const H = bez(S, Q, E, uh), hk = smooth(0.15, 0.9, uh) * fade * rim(H[0], H[1], 390, 462);
+  glow(ctx, H[0], H[1], 95 * sz, EMBER, 0.3 * hk);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; sdot(ctx, WARM, H[0], H[1], 70 * sz, 0.42 * hk, 0); ctx.restore();
+}
+// contact: a flash of warm light, an impact ring and a light ripple through the paper rings
+function impact(t, h, P, alpha) {
+  const d = t - h.t; if (d < 0 || d > 1.0) return;
+  const pc = map(P, h.c[0], h.c[1]);
+  glow(ctx, pc[0], pc[1], 130 + 130 * h.pow, EMBER, 0.3 * Math.exp(-d * 7) * smooth(0, 0.02, d));
+  const rings = h.pow > 0.9 ? [0, 0.08] : h.pow > 0.6 ? [0, 0.1] : [0];
+  rings.forEach((dl, i) => {
+    const dd = d - dl; if (dd <= 0) return;
+    const k = ease.out3(dd / 0.55), r = 22 + (110 + 120 * h.pow) * k * (i ? 0.62 : 1);
+    const a = (1 - smooth(0.06, 0.55, dd)) * smooth(0, 0.025, dd) * (i ? 0.6 : 0.9) * alpha;
+    HG.ring(ctx, h.pc[0], h.pc[1], r, i ? WARM : GOLD, { width: lerp(12, 4, k) * (0.7 + 0.3 * h.pow), blur: 9, alpha: a });
+  });
+}
+
+// seams of warm light along the cone boundaries: the ring where the cones meet the body tears open
+// from each valley, short seams run in from the valleys, and light leaks out between the cones
+function polyPart(pts, P, f) {
+  const m = f * (pts.length - 1); if (m <= 0) return;
+  let p = map(P, pts[0][0], pts[0][1]); ctx.moveTo(p[0], p[1]);
+  for (let i = 1; i <= Math.ceil(m); i++) {
+    const g = Math.min(1, m - (i - 1)), a = pts[i - 1], b = pts[i];
+    p = map(P, lerp(a[0], b[0], g), lerp(a[1], b[1], g)); ctx.lineTo(p[0], p[1]);
+  }
+}
+const ARCS = VALLEYS.map((_, i) => [CRACKS[i].pts[RJ], ...RING[i], CRACKS[(i + 1) % 8].pts[RJ]]);
+function seams(t, P, alpha) {
+  const hot = (0.6 + 0.4 * smooth(5.25, TB, t)) * alpha;
+  const kv = i => ease.out3((t - 4.97 - CRACKS[i].delay) / 0.45);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const stroke = (lw, col, a, blur) => { if (a <= 0.003) return; ctx.strokeStyle = rgba(col, 1); ctx.lineWidth = lw; ctx.globalAlpha = a; ctx.filter = blur ? `blur(${blur}px)` : 'none'; ctx.stroke(); ctx.filter = 'none'; };
+  ctx.beginPath();
+  ARCS.forEach((arc, i) => {
+    const h = Math.floor(arc.length / 2);
+    polyPart(arc.slice(0, h + 1), P, kv(i));
+    polyPart(arc.slice(h).reverse(), P, kv((i + 1) % 8));
+  });
+  stroke(18, COLORS.orange, 0.5 * hot, 8); stroke(5, [255, 158, 58], 0.8 * hot, 0);
+  ctx.beginPath();
+  CRACKS.forEach((ck, i) => { const k = ease.out3((t - 5.12 - ck.delay) / 0.4); if (k > 0) polyPart(ck.pts.slice(RJ - 5, RJ + 1).reverse(), P, k); });
+  stroke(14, COLORS.orange, 0.42 * hot, 7); stroke(3.6, [255, 158, 58], 0.7 * hot, 0);
+  VALLEYS.forEach((va, i) => {
+    const kl = smooth(5.12 + CRACKS[i].delay * 0.6, TB, t) * alpha; if (kl <= 0.003) return;
+    const q = CRACKS[i].pts[RJ], p = map(P, q[0], q[1]), len = 40 + 120 * kl, h = 22 + 18 * kl;
+    ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(va + P.rot); ctx.globalAlpha = 0.6 * kl;
+    ctx.drawImage(soft(EMBER, 0.15), -14, -h / 2, len, h); ctx.restore();
+  });
+  ctx.restore();
+}
+
+function sparkSet(list, ox, oy, d, master, trail = 3, dc = false) {
+  for (const p of list) {
+    if (d > p.life) continue;
+    const fade = smooth(0, 0.04, d) * (1 - smooth(p.life * 0.4, p.life, d)) * master, tw = 0.72 + 0.28 * Math.sin(d * 34 + p.tw);
+    for (let j = 0; j < trail; j++) {
+      const dd = d - j * 0.022; if (dd < 0) break;
+      const [x, y] = fly(p, dd), px = ox + x, py = oy + y, c = (dc ? dens(px, py, d) : lerp(0.08, 1, smooth(12, 110, Math.hypot(x, y)))) * rim(px, py);
+      sdot(ctx, p.col, px, py, p.s * (1 - j / trail) * (j ? 0.85 : 1.25), fade * tw * c * (1 - j / trail));
+    }
+  }
+}
+// confetti: additive glow, opaque paper (so overlaps hide each other instead of adding to white), glints
+function confettiItems(list, ox, oy, d0, master, burst) {
+  const items = [];
+  for (const p of list) {
+    const d = d0 - p.del; if (d <= 0) continue;
+    let [x, y] = fly(p, d); x += ox; y += oy;
+    const fade = smooth(0.0, 0.08, d) * rim(x, y, p.L === 2 ? 370 : 395, p.L === 2 ? 450 : 466) * master;
+    if (fade <= 0.004) continue;
+    const phi = p.ph0 + p.spE * d + (p.sp0 - p.spE) * (1 - Math.exp(-1.6 * d)) / 1.6;
+    const psi = p.fl0 + p.frE * d + (p.fr0 - p.frE) * (1 - Math.exp(-1.6 * d)) / 1.6;
+    const face = Math.abs(Math.cos(psi));
+    items.push({ p, x, y, phi, face, lit: (0.42 + 0.58 * face) * LAYER[p.L].lit, fade, glow: fade * (burst ? dens(x, y, d) : 1) });
+  }
+  return items;
+}
+function paintConfetti(g, items) {
+  g.save(); g.globalCompositeOperation = 'lighter';
+  for (const o of items) sdot(g, o.p.col, o.x, o.y, o.p.w * 2.4, 0.18 * o.glow * o.lit, 0);
+  g.globalCompositeOperation = 'source-over';
+  for (const o of items) {
+    const { p } = o;
+    g.save(); g.translate(o.x, o.y); g.rotate(o.phi); g.scale(1, Math.max(0.08, o.face));
+    g.globalAlpha = Math.min(1, o.fade); g.fillStyle = rgba(p.col.map(v => Math.round(v * o.lit)), 1);
+    if (p.round) { g.beginPath(); g.arc(0, 0, p.w / 2, 0, TAU); g.fill(); }
+    else g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    g.restore();
+  }
+  g.globalCompositeOperation = 'lighter';
+  for (const o of items) if (o.face > 0.93) sdot(g, WARM, o.x, o.y, o.p.w * 1.1, (o.face - 0.93) * 9 * o.glow * LAYER[o.p.L].lit, 0.5);
+  g.restore();
+}
+function ribbon(g, p, d, master) {
+  if (d <= 0) return;
+  const pts = []; let len = 0, prev = null;
+  for (let j = 0; j < 220; j++) {
+    const dd = Math.max(0, d - j * 0.008), q = fly(p, dd);
+    if (prev) len += Math.hypot(q[0] - prev[0], q[1] - prev[1]);
+    pts.push([OB[0] + q[0], OB[1] + q[1], len]); prev = q;
+    if (len >= p.len || dd === 0) break;
+  }
+  if (pts.length < 2) return;
+  g.save(); g.globalCompositeOperation = 'source-over';
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+    const nx = -dy / l, ny = dx / l, fr = rim(a[0], a[1], 380, 455);
+    if (fr <= 0.004) continue;
+    const tw0 = Math.cos(a[2] * 0.05 - d * 6 + p.tw), tw1 = Math.cos(b[2] * 0.05 - d * 6 + p.tw);
+    const w0 = p.wd / 2 * (0.15 + 0.85 * Math.abs(tw0)), w1 = p.wd / 2 * (0.15 + 0.85 * Math.abs(tw1));
+    const lit = 0.45 + 0.55 * Math.abs(tw0), taper = 1 - 0.75 * (a[2] / p.len);
+    g.globalAlpha = 0.9 * master * taper * fr * smooth(0, 0.08, d); g.fillStyle = rgba(p.col.map(v => Math.round(v * lit)), 1);
+    g.beginPath(); g.moveTo(a[0] + nx * w0, a[1] + ny * w0); g.lineTo(b[0] + nx * w1, b[1] + ny * w1);
+    g.lineTo(b[0] - nx * w1, b[1] - ny * w1); g.lineTo(a[0] - nx * w0, a[1] - ny * w0); g.closePath(); g.fill();
+  }
+  g.restore();
+}
+function candy(g, c, x, y, d, fade, t) {
+  const s = c.s, rot = c.rot0 + c.spin * d;
+  g.save(); g.globalCompositeOperation = 'lighter';
+  sdot(g, c.col, x, y, 54 * s, 0.32 * fade, 0);
+  g.restore();
+  g.save(); g.translate(x, y); g.rotate(rot); g.globalAlpha = Math.min(1, fade);
+  if (c.wrap) {
+    const tw = 0.55 + 0.45 * Math.abs(Math.cos(d * 5 + c.tw));     // twisting wrapper ends
+    g.fillStyle = rgba(c.col.map(v => Math.round(v * 0.8)), 1);
+    g.beginPath(); g.moveTo(-7 * s, 0); g.lineTo(-17 * s, -7 * s * tw); g.lineTo(-17 * s, 7 * s * tw); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(7 * s, 0); g.lineTo(17 * s, -7 * s * tw); g.lineTo(17 * s, 7 * s * tw); g.closePath(); g.fill();
+  }
+  const gr = g.createRadialGradient(-3 * s, -3 * s, 0, 0, 0, 10 * s);
+  gr.addColorStop(0, rgba(c.col.map(v => Math.round(v + (255 - v) * 0.55)), 1)); gr.addColorStop(0.55, rgba(c.col, 1)); gr.addColorStop(1, rgba(c.col.map(v => Math.round(v * 0.6)), 1));
+  g.fillStyle = gr; g.beginPath(); g.ellipse(0, 0, (c.wrap ? 10 : 9) * s, (c.wrap ? 7.5 : 9) * s, 0, 0, TAU); g.fill();
+  g.restore();
+  if (!c.wrap) star(g, x, y, 46 * s, fade * (0.3 + 0.3 * Math.sin(t * 7 + c.tw)), 0.4 + 0.3 * t, WARM);
+}
+function fruit(g, f, x, y, d, fade) {
+  const rot = f.rot0 + f.spin * d;
+  g.save(); g.globalCompositeOperation = 'lighter';
+  sdot(g, f.kind === 'cana' ? [170, 210, 80] : f.kind === 'mandarina' ? COLORS.orange : [255, 170, 40], x, y, f.kind === 'cana' ? 70 : f.r * 4.2, 0.3 * fade, 0);
+  g.restore();
+  g.save(); g.translate(x, y); g.rotate(rot); g.globalAlpha = Math.min(1, fade);
+  if (f.kind === 'cana') {
+    g.fillStyle = 'rgb(150,190,70)'; g.fillRect(-26, -4.5, 52, 9);
+    g.fillStyle = 'rgb(205,225,120)'; g.fillRect(-26, -4.5, 52, 3);
+    g.fillStyle = 'rgb(95,130,45)'; g.fillRect(-9, -4.5, 3, 9); g.fillRect(12, -4.5, 3, 9);
+  } else {
+    const col = f.kind === 'mandarina' ? [255, 128, 20] : [255, 172, 45], r = f.r;
+    const gr = g.createRadialGradient(-r * 0.35, -r * 0.35, 0, 0, 0, r);
+    gr.addColorStop(0, rgba(col.map(v => Math.round(v + (255 - v) * 0.5)), 1)); gr.addColorStop(0.6, rgba(col, 1)); gr.addColorStop(1, rgba(col.map(v => Math.round(v * 0.55)), 1));
+    g.fillStyle = gr; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill();
+    g.fillStyle = 'rgb(50,190,90)'; g.beginPath(); g.ellipse(r * 0.3, -r * 0.95, r * 0.42, r * 0.2, -0.5, 0, TAU); g.fill();
+  }
+  g.restore();
+}
+
+// ---------- backdrop: flat party bokeh and a halo behind the piñata
+const BOKEH = (() => { const R = HG.rng(6060), out = [];
+  for (let i = 0; i < 18; i++) { const a = R() * TAU, r = 150 + 230 * Math.sqrt(R());
+    out.push({ a, r, s: 50 + 80 * R(), col: pick(R, [COLORS.pink, COLORS.purple, COLORS.turquoise, COLORS.orange, COLORS.magenta, GOLD]), ph: R() * TAU, w: (R() < 0.5 ? -1 : 1) * (0.03 + 0.04 * R()), al: 0.1 + 0.1 * R() }); }
+  return out; })();
+
+HG.start({
+  duration: 12,
+  assets: { pin: '../assets/10-pinata.png', lines: '../assets/10-pinata-fine_lines.png' },
+  render(t, A) {
+    const end = 1 - smooth(10.9, 11.9, t);
+    const P = pose(t), body = map(P, AC[0], AC[1]);
+    const pre = t < TB, db = t - TB;
+    const crackT = smooth(4.95, TB, t);
+
+    // backdrop
+    const bk = smooth(1.0, 2.6, t) * end * (1 + 0.5 * bump(t, TB - 0.1, TB + 0.15, TB + 0.4, TB + 2.5)) * (1 - 0.35 * smooth(8.5, 10.5, t));
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (const b of BOKEH) {
+      const a = b.a + b.w * t, r = b.r + 12 * Math.sin(t * 0.5 + b.ph);
+      const x = C + Math.cos(a) * r, y = C + Math.sin(a) * r;
+      ctx.globalAlpha = b.al * bk * (0.7 + 0.3 * Math.sin(t * 0.9 + b.ph));
+      ctx.drawImage(disc(b.col), x - b.s / 2, y - b.s / 2, b.s, b.s);
+    }
+    ctx.restore();
+    if (t < TB + 0.7) {
+      const hA = smooth(0.9, 2.3, t) * (0.85 + 0.15 * Math.sin(t * 1.7)) * (1 - smooth(TB, TB + 0.7, t)), hc0 = pre ? body : OB;
+      const hg = ctx.createRadialGradient(hc0[0], hc0[1], 0, hc0[0], hc0[1], 470);
+      const hc = [lerp(240, 255, crackT), lerp(50, 160, crackT), lerp(190, 60, crackT)];
+      hg.addColorStop(0, rgba(hc, 0.3)); hg.addColorStop(0.45, rgba(COLORS.purple, 0.15 + 0.05 * crackT)); hg.addColorStop(0.8, rgba(COLORS.purple, 0.04)); hg.addColorStop(1, rgba(COLORS.purple, 0));
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = hA; ctx.fillStyle = hg; ctx.fillRect(0, 0, W, W); ctx.restore();
+    }
+
+    // the thread: a hairline of gold rising from the knot into the dark (it recoils when the star bursts)
+    {
+      const ta = smooth(0.35, 1.1, t) * (1 - smooth(TB, TB + 0.25, t)) * end, kn = pre ? P.knot : PB.knot;
+      if (ta > 0.003) {
+        const th = pre ? P.th : PB.th, ux = -Math.sin(th), uy = -Math.cos(th), lift = pre ? 0 : 900 * ease.out3(db / 0.3);
+        const x0 = kn[0] + ux * (6 + lift), y0 = kn[1] + uy * (6 + lift), len = 170;
+        const lg = ctx.createLinearGradient(x0, y0, x0 + ux * len, y0 + uy * len);
+        lg.addColorStop(0, rgba(GOLD, 0.75)); lg.addColorStop(0.5, rgba(GOLD, 0.3)); lg.addColorStop(1, rgba(GOLD, 0));
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = lg; ctx.lineCap = 'round';
+        ctx.globalAlpha = ta * 0.45; ctx.lineWidth = 6; ctx.filter = 'blur(3px)'; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 + ux * len, y0 + uy * len); ctx.stroke();
+        ctx.filter = 'none'; ctx.globalAlpha = ta; ctx.lineWidth = 1.6; ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // ---------- the piñata, intact
+    if (pre) {
+      const kL = ease.out3((t - 0.3) / 1.4), kF = ease.inOut3((t - 0.85) / 1.25);
+      // a seed of light at the heart, from which the line art and then the colour unfold
+      glow(ctx, body[0], body[1], 90, GOLD, 0.5 * bump(t, 0.2, 0.45, 0.5, 1.0));
+      const drawn = drawBody(A, t, P, 1, kF);
+      if (drawn && kF < 1) lightPass(ringMask(body[0], body[1], kF * 540 - 70, 120), 0.7 * Math.sin(Math.PI * kF), WARM, 0.35);
+      // gold line art: full while it draws itself, then a rim light that warms with the pressure
+      const lA = lerp(1, 0.2, smooth(1.5, 2.4, t)) + 0.25 * crackT;
+      poseLines(A.lines, P, kL, lA, body);
+      if (drawn) {
+        // a sheen of light runs across the star once it has settled
+        const sk = (t - 2.0) / 0.95;
+        if (sk > 0 && sk < 1) {
+          const s = lerp(-430, 430, ease.inOut3(sk)), ux = 0.83, uy = 0.56, cx = body[0] + ux * s, cy = body[1] + uy * s;
+          const lg = ctx.createLinearGradient(cx - ux * 70, cy - uy * 70, cx + ux * 70, cy + uy * 70);
+          lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(0.38, 'rgba(0,0,0,0.22)'); lg.addColorStop(0.5, 'rgba(0,0,0,1)'); lg.addColorStop(0.62, 'rgba(0,0,0,0.22)'); lg.addColorStop(1, 'rgba(0,0,0,0)');
+          lightPass(lg, 0.72 * Math.sin(Math.PI * clamp(sk * 1.15)), WARM, 1);
+        }
+        // light ripples through the paper rings from each hit's contact point
+        for (const h of HITS) {
+          const k = (t - h.t) / 0.8; if (k <= 0 || k >= 1) continue;
+          const so = map(P, h.c[0], h.c[1]), r = ease.out3(k) * 430 + 10;
+          lightPass(ringMask(so[0], so[1], r, 120), (0.5 + 0.4 * h.pow) * Math.sin(Math.PI * k), WARM, 0.35);
+        }
+        // the tassel tips twinkle in a chase around the star
+        const tw = bump(t, 1.7, 2.3, 5.0, 5.4);
+        if (tw > 0) for (let i = 0; i < 8; i++) {
+          const order = [6, 7, 0, 1, 2, 3, 4, 5].indexOf(i), ph = ((t * 0.7 - order / 8) % 1 + 1) % 1;
+          const a = bump(ph, 0, 0.05, 0.08, 0.22), r = TIPR[i] - 6, p = map(P, AC[0] + Math.cos(TIPS[i]) * r, AC[1] + Math.sin(TIPS[i]) * r);
+          star(ctx, p[0], p[1], 84, a * tw, 0.3, WARM);
+          ctx.save(); ctx.globalCompositeOperation = 'lighter'; sdot(ctx, GOLD, p[0], p[1], 56, 0.5 * a * tw, 0); ctx.restore();
+        }
+        // pressure: glow from within, and seams of light opening from the heart
+        if (crackT > 0) {
+          const gl = ctx.createRadialGradient(body[0], body[1], 0, body[0], body[1], 250 * K * P.sw);
+          gl.addColorStop(0, 'rgba(0,0,0,1)'); gl.addColorStop(1, 'rgba(0,0,0,0)');
+          lightPass(gl, 0.26 * ease.in3(crackT) + 0.06 * crackT, GOLD, 0.45);
+          seams(t, P, 1);
+        }
+      }
+    }
+
+    // ---------- hits: swipes, impact, sparks and a few loose confetti
+    HITS.forEach((h, hi) => {
+      swipe(t, h);
+      if (pre) impact(t, h, P, 1);
+      const d = t - h.t; if (d <= 0 || d > 2.6) return;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      sparkSet(HITBITS[hi].sparks, h.pc[0], h.pc[1], d, end);
+      ctx.restore();
+      paintConfetti(ctx, confettiItems(HITBITS[hi].conf, h.pc[0], h.pc[1], d, end, false));
+    });
+
+    // ---------- the burst
+    if (!pre) {
+      // a warm gold bloom (never white) and a ring of light rolling outwards
+      const fl = Math.exp(-db * 5) * smooth(0, 0.03, db);
+      glow(ctx, OB[0], OB[1], 230 + 280 * ease.out3(db / 0.5), EMBER, 0.3 * fl);
+      glow(ctx, OB[0], OB[1], 470, COLORS.pink, 0.08 * Math.exp(-db * 2.5) * smooth(0, 0.05, db));
+      const wk = ease.out3(db / 0.9), wr = 60 + 360 * wk, wa = 0.6 * smooth(0, 0.04, db) * (1 - smooth(0.08, 0.85, db));
+      HG.ring(ctx, OB[0], OB[1], wr, GOLD, { width: lerp(14, 4, wk), blur: 12, alpha: wa });
+
+      // the star flies apart: body wedges rush at the lens inside the bloom, the cones tumble away
+      if (db < 1.3) {
+        const g = PL.ctx, gc = CN.ctx; HG.reset(g); g.clearRect(0, 0, W, W); HG.reset(gc); gc.clearRect(0, 0, W, W);
+        g.imageSmoothingQuality = gc.imageSmoothingQuality = 'high';
+        for (const s of SHARDS) {
+          let x, y, z, rot, sa, tg;
+          if (s.body) {
+            sa = 1 - smooth(0, 0.11, db); if (sa <= 0.003) continue;
+            const e = (1 - Math.exp(-s.k * db)) / s.k; x = s.s0[0] + s.dir[0] * s.v * e; y = s.s0[1] + s.dir[1] * s.v * e;
+            z = 1 + 7 * db; rot = PB.rot + s.spin * db; tg = g;
+          } else {
+            sa = 1 - smooth(0.4, 1.25, db); if (sa <= 0.003) continue;
+            const e = (1 - Math.exp(-s.k * db)) / s.k; x = s.s0[0] + s.dir[0] * s.v * e; y = s.s0[1] + s.dir[1] * s.v * e + 0.5 * s.g * db * db;
+            z = 1 + s.z * db; rot = PB.rot + s.spin * db; tg = gc;
+          }
+          tg.save(); tg.setTransform(1, 0, 0, 1, 0, 0);
+          tg.translate(x, y); tg.rotate(rot); tg.scale(PB.sx * PB.sw * z, PB.sy * PB.sw * z); tg.translate(-s.cen[0], -s.cen[1]);
+          tg.beginPath(); s.poly.forEach((p, k) => k ? tg.lineTo(p[0], p[1]) : tg.moveTo(p[0], p[1])); tg.closePath(); tg.clip();
+          tg.globalAlpha = sa; tg.drawImage(A.pin, 0, 0, 1024, 1024);
+          tg.restore();
+        }
+        // the cones dissolve before they reach the rim
+        gc.globalCompositeOperation = 'destination-in';
+        const rm = gc.createRadialGradient(C, C, 380, C, C, 468); rm.addColorStop(0, 'rgba(0,0,0,1)'); rm.addColorStop(1, 'rgba(0,0,0,0)');
+        gc.fillStyle = rm; gc.fillRect(0, 0, W, W); HG.reset(gc);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.4; ctx.filter = 'blur(18px)'; ctx.drawImage(CN.cv, 0, 0);
+        ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.drawImage(CN.cv, 0, 0);
+        if (db < 0.11) {
+          ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.4; ctx.filter = 'blur(24px)'; ctx.drawImage(PL.cv, 0, 0);
+          ctx.filter = `blur(${(2 + 90 * db).toFixed(1)}px)`; ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.drawImage(PL.cv, 0, 0);
+        }
+        ctx.restore();
+        if (db < 0.1) seams(TB, PB, 1 - smooth(0, 0.1, db));
+      }
+
+      // sparks, mostly gold
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      sparkSet(SPARKS, OB[0], OB[1], db, end, 3, true);
+      ctx.restore();
+
+      // the shower: three depth layers of confetti, serpentinas, candies and fruit
+      const items = confettiItems(CONF, OB[0], OB[1], db, end, true);
+      const gF = PF.ctx, gM = PM.ctx, gN = PN.ctx;
+      for (const g of [gF, gM, gN]) { HG.reset(g); g.clearRect(0, 0, W, W); }
+      paintConfetti(gF, items.filter(o => o.p.L === 0));
+      paintConfetti(gM, items.filter(o => o.p.L === 1));
+      paintConfetti(gN, items.filter(o => o.p.L === 2));
+      for (const r of RIBBONS) ribbon(gM, r, db, end);
+      for (const c of CANDIES) {
+        const d = db - c.del; if (d <= 0) continue;
+        const [x, y] = fly(c, d), px = OB[0] + x, py = OB[1] + y, fade = smooth(0, 0.08, d) * rim(px, py) * end;
+        if (fade > 0.004) candy(gM, c, px, py, d, fade * lerp(0.15, 1, dens(px, py, d)), t);
+      }
+      for (const f of FRUIT) {
+        const d = db - f.del; if (d <= 0) continue;
+        const [x, y] = fly(f, d), px = OB[0] + x, py = OB[1] + y, fade = smooth(0, 0.08, d) * rim(px, py) * end;
+        if (fade > 0.004) fruit(gM, f, px, py, d, fade * lerp(0.15, 1, dens(px, py, d)));
+      }
+      HG.reset(gF); HG.reset(gM); HG.reset(gN);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.75; ctx.filter = 'blur(1.2px)'; ctx.drawImage(PF.cv, 0, 0);
+      ctx.globalAlpha = 0.35; ctx.filter = 'blur(8px)'; ctx.drawImage(PM.cv, 0, 0);
+      ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.drawImage(PM.cv, 0, 0);
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.3; ctx.filter = 'blur(14px)'; ctx.drawImage(PN.cv, 0, 0);
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 0.8; ctx.filter = 'blur(4px)'; ctx.drawImage(PN.cv, 0, 0);
+      ctx.restore();
+    }
+
+    // final fade to black
+    if (end < 1) { HG.reset(); ctx.fillStyle = `rgba(0,0,0,${1 - end})`; ctx.fillRect(0, 0, W, W); }
+  },
+});
+</script></body></html>

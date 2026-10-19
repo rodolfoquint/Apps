@@ -4,28 +4,41 @@
 <script src="../engine.js"></script>
 <script>
 // Chichén Itzá, El Castillo, under a night sky.
-// A seed of light at the foot of the floating ground opens into a horizontal plane of light
-// that rises and draws the pyramid's architecture tier by tier; at the summit it spreads into a
-// thin streak. The stone glows in from the base in golden-hour colour, a slow sunbeam crosses
-// the facade, and the light serpent Kukulcán descends the staircase balustrade. Fireflies drift
-// under the Milky Way. To close, a front of light sweeps back down and lifts the pyramid away as embers.
+// A seed of light at the foot of the floating ground opens into a horizontal plane of light that
+// rises and draws the pyramid as clean architectural line art: silhouette, terraces, balustrades,
+// temple. The stone glows in from the base in golden-hour colour and a slow sunbeam crosses the
+// facade, glinting along the balustrades. The stone dims and Kukulcán descends: seven triangles of
+// light along the west balustrade down to the serpent head, which swells once and sends a wave back
+// up the body. Then, from the summit down, the stone burns away into embers, leaving a ghost of the
+// line art that breaks into slowly rising sparks until all is dark.
 const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
-const GOLD = [255, 196, 96], WARM = [255, 222, 168], HOT = [255, 240, 214], AMBER = [255, 160, 70];
+const GOLD = [255, 196, 96], WARM = [255, 222, 168], HOT = [250, 232, 196], AMBER = [255, 160, 70];
 const STAR = [222, 232, 255], BLUE = [165, 195, 255], LAV = [200, 180, 255];
 
-// ---------- placement: 1024 px assets drawn S wide, slow push-in about K
-const S = 915, F = S / 1024, AX = 540, AY = 555, K = { x: 540, y: 470 };
-const zoomAt = t => 1 + 0.045 * smooth(0, 12, t);
+// ---------- placement: 1024 px assets drawn S wide, a slow 3% push-in about the island's centre
+const S = 860, F = S / 1024, AX = 540, AY = 550, K = { x: 540, y: 555 };
+const zoomAt = t => 1 + 0.03 * smooth(0, 12, t);
 const toC = (u, v, z) => ({ x: K.x + (AX + (u - 512) * F - K.x) * z, y: K.y + (AY + (v - 512) * F - K.y) * z });
 const setAsset = (c, z) => c.setTransform(F * z, 0, 0, F * z, K.x + (AX - 512 * F - K.x) * z, K.y + (AY - 512 * F - K.y) * z);
 
+// ---------- measured architecture (asset px)
+const RAILS = [[[392.6, 230.6], [139.0, 638.7]], [[476.0, 223.1], [212.4, 659.8]],   // west stair: outer edges of both balustrades
+               [[555.4, 222.8], [787.1, 656.3]], [[637.3, 226.7], [874.0, 637.5]]];  // south stair
+const LD = RAILS[1];                                     // Kukulcán's balustrade
+const JL = [[411.7, 371.9], [289.7, 601.4]];             // foot of its side wall (where the light triangles fall)
+const KHEAD = { u: 201, v: 646 };                        // the stone serpent head at the foot of the stair
+
 // ---------- timeline
 const BT0 = 0.5, BT1 = 4.45;           // build front rises
-const V0 = 904, V1 = 96;               // asset rows: foot of the island -> above the temple
-const CT0 = 3.35, CT1 = 5.9;            // colour glows in from the base
-const ST0 = 5.3, ST1 = 7.9;            // sunbeam sweep
-const KT0 = 7.05, KT1 = 9.0;            // Kukulcán descends
-const OT0 = 9.55, OT1 = 11.6;          // closing front sweeps down
+const V0 = 908, V1 = 100;              // asset rows: foot of the island -> above the temple
+const CT0 = 3.35, CT1 = 5.9;           // colour glows in from the base
+const ST0 = 5.2, ST1 = 7.4;            // sunbeam sweep
+const DM0 = 6.55, DM1 = 7.25;          // the stone dims for Kukulcán
+const KT0 = 6.85, KT1 = 8.55;          // Kukulcán descends
+const PT0 = 8.55;                      // head swells, a wave runs back up the body
+const OT0 = 8.95, OT1 = 11.0;           // closing: colour front from the summit to the tip of the rock
+const LAG = 0.5;                       // the ghost line art follows the colour front by this much
+const END0 = 11.2, END1 = 11.6;        // everything gone
 
 // monotone progress curve from a velocity profile (table built once, so frames stay pure)
 function profile(vel, N = 2000) {
@@ -42,30 +55,83 @@ function profile(vel, N = 2000) {
 }
 // rises briskly through the rocky underside, steady up the tiers, settles gently onto the temple
 const BUILD = profile(u => smooth(0, 0.1, u) * (1 - 0.975 * smooth(0.5, 1, u)) * (1 + 0.8 * (1 - smooth(0.06, 0.3, u))));
-const OUTRO = profile(u => Math.pow(Math.sin(Math.PI * u), 0.9) * (1 + 1.4 * smooth(0.55, 0.85, u)));  // lingers on the stone, quicker through the underside
 const buildV = t => lerp(V0, V1, BUILD((t - BT0) / (BT1 - BT0)));
 const buildT = v => BT0 + BUILD.inv((V0 - v) / (V0 - V1)) * (BT1 - BT0);
-const OV0 = 80, OV1 = 920;
-const outroV = t => lerp(OV0, OV1, OUTRO((t - OT0) / (OT1 - OT0)));
-const outroT = v => OT0 + OUTRO.inv((v - OV0) / (OV1 - OV0)) * (OT1 - OT0);
+
+// closing front, defined by its speed per asset row: eases out of the summit, steady down the stone,
+// then about half speed through the grass and the rock so the ground takes ~0.8 s to burn away
+const OV0 = 45, OV1 = 978;
+const OUT = (() => {
+  const n = OV1 - OV0, T = new Float64Array(n + 1); let acc = 0;
+  const sp = v => (0.55 + 0.45 * smooth(OV0, 200, v)) * (1 - 0.45 * smooth(260, 460, v)) * (1 - 0.3 * smooth(620, 760, v));
+  for (let i = 1; i <= n; i++) { acc += 1 / sp(OV0 + i - 0.5); T[i] = acc; }
+  for (let i = 0; i <= n; i++) T[i] /= acc;
+  return T;
+})();
+function frontV(t) {                     // asset row the colour front has reached at time t
+  const p = (t - OT0) / (OT1 - OT0);
+  if (p <= 0) return -400; if (p >= 1) return 1400;
+  let lo = 0, hi = OUT.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (OUT[m] < p) lo = m; else hi = m; }
+  return OV0 + lo + (p - OUT[lo]) / Math.max(1e-12, OUT[hi] - OUT[lo]);
+}
+function frontT(v) {                     // time the colour front reaches row v
+  const x = clamp(v - OV0, 0, OUT.length - 1), i = Math.min(OUT.length - 2, Math.floor(x));
+  return OT0 + lerp(OUT[i], OUT[i + 1], x - i) * (OT1 - OT0);
+}
+const sstep = (a, b, x) => { const k = clamp((x - a) / (b - a)); return k * k * (3 - 2 * k); };
+const hump = (t, t0, d) => { const k = (t - t0) / d; return k <= 0 || k >= 1 ? 0 : Math.pow(Math.sin(Math.PI * k), 2); };
 
 // ---------- layers and textures (built once in prepare)
 const L1 = HG.layer(), L2 = HG.layer(), SKY = HG.layer();
 let T = null;
 function tex(draw, n = 1024) { const c = document.createElement('canvas'); c.width = c.height = n; const g = c.getContext('2d'); draw(g, c); return c; }
+const pix = img => tex(g => g.drawImage(img, 0, 0)).getContext('2d').getImageData(0, 0, 1024, 1024).data;
+
+// dissolve noise (smooth value noise, asset space at 1/4 resolution) and the three per-frame masks
+const MS = 256, AMP = 100, MW = 17;
+function valueNoise() {
+  const R = HG.rng(23), out = new Float32Array(MS * MS);
+  for (const [cells, w] of [[6, 0.42], [13, 0.3], [29, 0.18], [61, 0.1]]) {
+    const g = new Float32Array((cells + 1) * (cells + 1)).map(() => R());
+    for (let j = 0; j < MS; j++) for (let i = 0; i < MS; i++) {
+      const x = i / MS * cells, y = j / MS * cells, xi = Math.floor(x), yi = Math.floor(y);
+      const fx = x - xi, fy = y - yi, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+      const a = g[yi * (cells + 1) + xi], b = g[yi * (cells + 1) + xi + 1], c = g[(yi + 1) * (cells + 1) + xi], d = g[(yi + 1) * (cells + 1) + xi + 1];
+      out[j * MS + i] += w * lerp(lerp(a, b, sx), lerp(c, d, sx), sy);
+    }
+  }
+  let lo = 1e9, hi = -1e9; for (const v of out) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  return out.map(v => (v - lo) / (hi - lo));
+}
+const MK = [0, 1, 2].map(() => { const c = document.createElement('canvas'); c.width = c.height = MS; const g = c.getContext('2d'); return { c, g, img: g.createImageData(MS, MS) }; });
+// MK[0]: colour still standing; MK[1]: ghost line art (colour gone, lines not yet); MK[2]: the burning seam
+function masks(f1, f2) {
+  const d0 = MK[0].img.data, d1 = MK[1].img.data, d2 = MK[2].img.data;
+  for (let j = 0; j < MS; j++) {
+    const v = (j + 0.5) * 1024 / MS;
+    for (let i = 0; i < MS; i++) {
+      const k = j * MS + i, vv = v + AMP * (T.nz[k] - 0.5);
+      const a1 = sstep(f1 - MW, f1 + MW, vv), a2 = Math.max(a1, sstep(f2 - MW, f2 + MW, vv));
+      d0[k * 4 + 3] = a1 * 255; d1[k * 4 + 3] = (a2 - a1) * 255; d2[k * 4 + 3] = 4 * a1 * (1 - a1) * 255;
+    }
+  }
+  for (const m of MK) m.g.putImageData(m.img, 0, 0);
+}
+const nzAt = (u, v) => T.nz[clamp(Math.floor(v / 4), 0, MS - 1) * MS + clamp(Math.floor(u / 4), 0, MS - 1)];
 
 function prepare(A) {
-  const lines = tex(g => { g.globalAlpha = 0.9; g.filter = 'blur(4px)'; g.drawImage(A.arch, 0, 0); g.filter = 'none'; g.globalAlpha = 1; g.drawImage(A.arch, 0, 0); });
+  const lines = tex(g => { g.globalAlpha = 0.7; g.filter = 'blur(4px)'; g.drawImage(A.arch, 0, 0); g.filter = 'none'; g.globalAlpha = 1; g.drawImage(A.arch, 0, 0); });
   const hot = tex(g => { g.drawImage(lines, 0, 0); g.globalCompositeOperation = 'source-atop'; g.fillStyle = rgba(HOT); g.fillRect(0, 0, 1024, 1024); });
   const bloom = tex(g => { g.filter = 'blur(18px)'; g.drawImage(A.grade, 0, 0); });
   const sil = tex(g => { g.drawImage(A.grade, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#000'; g.fillRect(0, 0, 1024, 1024); });
+  const ember = tex(g => { g.drawImage(A.grade, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = rgba(AMBER); g.fillRect(0, 0, 1024, 1024); });
+  const gd = pix(A.grade), ld = pix(A.arch);
 
   // silhouette extent of every asset row (for the plane of light)
-  const ad = tex((g) => g.drawImage(A.grade, 0, 0)).getContext('2d').getImageData(0, 0, 1024, 1024).data;
   const ext = [];
   for (let v = 0; v < 1024; v++) {
     let a = -1, b = -1;
-    for (let u = 0; u < 1024; u++) if (ad[(v * 1024 + u) * 4 + 3] > 14) { if (a < 0) a = u; b = u; }
+    for (let u = 0; u < 1024; u++) if (gd[(v * 1024 + u) * 4 + 3] > 14) { if (a < 0) a = u; b = u; }
     ext.push(a < 0 ? null : [a, b]);
   }
   const extent = v => {
@@ -73,20 +139,36 @@ function prepare(A) {
     for (let k = -4; k <= 4; k++) { const e = ext[Math.round(clamp(v + k, 0, 1023))]; if (e) { a = Math.min(a, e[0]); b = Math.max(b, e[1]); } }
     return b < a ? null : [a, b];
   };
+  T = { lines, hot, bloom, sil, ember, extent, nz: valueNoise(), mw: milkyWay(), flare: flareSprite() };
 
-  // points on the line art: where sparks lift off as a front passes
-  const n = 320, sd = tex(g => g.drawImage(A.arch, 0, 0, n, n), n).getContext('2d').getImageData(0, 0, n, n).data;
-  let pts = [];
-  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (sd[(y * n + x) * 4 + 3] > 120) pts.push({ u: (x + 0.5) * 1024 / n, v: (y + 0.5) * 1024 / n });
   const R = HG.rng(41);
-  for (let i = pts.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [pts[i], pts[j]] = [pts[j], pts[i]]; }
-  pts = pts.slice(0, 900).map(p => ({ ...p, tb: buildT(p.v), to: outroT(p.v), s: 0.6 + R() * 0.9, rise: 30 + R() * 70, sway: (R() - 0.5) * 30,
-    life: 0.9 + R() * 0.9, ph: R() * 6.28, col: R() < 0.55 ? GOLD : R() < 0.7 ? WARM : AMBER }));
-
-  T = { lines, hot, bloom, sil, extent, pts, mw: milkyWay(), flare: flareSprite() };
+  // build sparks: points on the line art
+  const pts = [];
+  while (pts.length < 520) {
+    const u = Math.floor(R() * 1024), v = Math.floor(R() * 1024), a = ld[(v * 1024 + u) * 4 + 3] / 255;
+    if (R() < a * a) pts.push({ u, v, tb: buildT(v), s: 0.6 + R() * 0.9, rise: 25 + R() * 55, sway: (R() - 0.5) * 26,
+      life: 0.8 + R() * 0.8, ph: R() * 6.28, col: R() < 0.55 ? GOLD : R() < 0.7 ? WARM : AMBER });
+  }
+  // ghost embers: weighted to the strongest lines (silhouette, terraces, balustrades), so El Castillo's
+  // outline hangs in the air as sparks; they lift off when the ghost line art dissolves under them
+  const ghost = [];
+  while (ghost.length < 1300) {
+    const u = Math.floor(R() * 1024), v = Math.floor(R() * 1024), a = ld[(v * 1024 + u) * 4 + 3] / 255;
+    if (R() < a * a * a) ghost.push({ u, v, ts: frontT(v + AMP * (nzAt(u, v) - 0.5)) + LAG, s: 0.65 + R() * 0.55,
+      rise: 6 + R() * 22, sway: (R() - 0.5) * 16, life: 1.0 + R() * 0.7, ph: R() * 6.28, col: R() < 0.6 ? GOLD : WARM });
+  }
+  // stone embers: the colour breaking up at the burning seam (brighter stone sheds more)
+  const stone = [];
+  while (stone.length < 900) {
+    const u = Math.floor(R() * 1024), v = Math.floor(R() * 1024), o = (v * 1024 + u) * 4;
+    const a = gd[o + 3] / 255, l = (gd[o] + gd[o + 1]) / 510;
+    if (R() < a * l * 1.3) stone.push({ u, v, ts: frontT(v + AMP * (nzAt(u, v) - 0.5)), s: 0.5 + R() * 0.5,
+      rise: 18 + R() * 45, sway: (R() - 0.5) * 30, life: 0.6 + R() * 0.6, ph: R() * 6.28, col: R() < 0.6 ? AMBER : GOLD });
+  }
+  T.pts = pts; T.ghost = ghost; T.stone = stone;
 }
 
-// ---------- the sky: Milky Way band (static texture) + twinkling stars, all slowly wheeling
+// ---------- the sky: Milky Way (static texture) + twinkling stars, all slowly wheeling
 const POLE = { x: 540, y: 1650 }, SPIN = -0.0032;
 const bandY = x => 300 - 0.25 * (x - 540) + 0.0003 * (x - 540) ** 2;
 function gauss(R) { return Math.sqrt(-2 * Math.log(Math.max(1e-9, R()))) * Math.cos(6.2832 * R()); }
@@ -94,17 +176,19 @@ function milkyWay() {
   return tex(g => {
     const R = HG.rng(77);
     g.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < 70; i++) {      // faint nebulous glow
-      const x = -120 + R() * 1320, off = gauss(R) * 40, y = bandY(x) + off, r = 70 + R() * 120;
-      const col = R() < 0.5 ? [130, 150, 255] : [170, 160, 255];
-      const gr = g.createRadialGradient(x, y, 0, x, y, r);
-      gr.addColorStop(0, rgba(col, 0.008 + R() * 0.012)); gr.addColorStop(1, rgba(col, 0));
-      g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r);
+    // a few large, soft cloud forms (bright enough to register on the fan's LEDs)
+    for (const [x, r, a, col] of [[120, 190, 0.07, [140, 150, 255]], [330, 230, 0.085, [170, 160, 255]], [560, 210, 0.075, [150, 165, 255]],
+                                  [780, 240, 0.085, [175, 160, 255]], [990, 200, 0.07, [140, 155, 255]]]) {
+      const y = bandY(x) + (R() - 0.5) * 30;
+      g.save(); g.translate(x, y); g.rotate(-0.25); g.scale(1, 0.42);
+      const gr = g.createRadialGradient(0, 0, 0, 0, 0, r);
+      gr.addColorStop(0, rgba(col, a)); gr.addColorStop(0.45, rgba(col, a * 0.5)); gr.addColorStop(1, rgba(col, 0));
+      g.fillStyle = gr; g.fillRect(-r, -r, 2 * r, 2 * r); g.restore();
     }
-    for (let i = 0; i < 1800; i++) {    // star dust
-      const x = -120 + R() * 1320, off = gauss(R) * 58, y = bandY(x) + off, core = Math.exp(-(off * off) / (2 * 40 * 40));
-      const col = R() < 0.6 ? STAR : R() < 0.6 ? BLUE : LAV, s = 2 + R() * 2.6 * (0.5 + core);
-      HG.dot(g, col, x, y, s, (0.08 + 0.32 * R()) * (0.35 + 0.65 * core));
+    for (let i = 0; i < 950; i++) {     // star dust, never smaller than ~2 px on the fan
+      const x = -120 + R() * 1320, off = gauss(R) * 56, y = bandY(x) + off, core = Math.exp(-(off * off) / (2 * 40 * 40));
+      const col = R() < 0.6 ? STAR : R() < 0.6 ? BLUE : LAV, s = 6 + R() * 3.5 * (0.5 + core);
+      HG.dot(g, col, x, y, s, (0.12 + 0.3 * R()) * (0.35 + 0.65 * core));
     }
   }, W);
 }
@@ -113,17 +197,17 @@ function flareSprite() {
     g.globalCompositeOperation = 'lighter';
     for (const [w, h] of [[96, 2], [2, 96]]) {
       const gr = w > h ? g.createLinearGradient(0, 0, 96, 0) : g.createLinearGradient(0, 0, 0, 96);
-      gr.addColorStop(0, 'rgba(220,230,255,0)'); gr.addColorStop(0.5, 'rgba(235,240,255,0.9)'); gr.addColorStop(1, 'rgba(220,230,255,0)');
+      gr.addColorStop(0, 'rgba(220,230,255,0)'); gr.addColorStop(0.5, 'rgba(235,240,255,0.85)'); gr.addColorStop(1, 'rgba(220,230,255,0)');
       g.fillStyle = gr; g.fillRect(48 - w / 2, 48 - h / 2, w, h);
     }
   }, 96);
 }
 const STARS = (() => {
   const R = HG.rng(19), out = [];
-  for (let i = 0; i < 190; i++) {
+  for (let i = 0; i < 170; i++) {
     const r = 530 * Math.sqrt(R()), a = R() * 6.2832, big = R();
-    out.push({ x: C + Math.cos(a) * r, y: C + Math.sin(a) * r, s: 4 + 9 * big * big * big, a: 0.4 + 0.6 * R(),
-      w: 0.5 + 1.6 * R(), ph: R() * 6.28, col: R() < 0.62 ? STAR : R() < 0.7 ? BLUE : WARM, flare: big > 0.93 });
+    out.push({ x: C + Math.cos(a) * r, y: C + Math.sin(a) * r, s: 7 + 10 * big * big * big, a: 0.4 + 0.6 * R(),
+      w: 0.5 + 1.4 * R(), ph: R() * 6.28, col: R() < 0.62 ? STAR : R() < 0.7 ? BLUE : WARM, flare: big > 0.93 });
   }
   return out;
 })();
@@ -135,20 +219,20 @@ function sky(t, a) {
   c.globalAlpha = 0.9; c.drawImage(T.mw, 0, 0);
   c.globalAlpha = 1; c.globalCompositeOperation = 'lighter';
   for (const s of STARS) {
-    const tw = 0.62 + 0.38 * Math.sin(t * s.w + s.ph);
+    const tw = 0.7 + 0.3 * Math.sin(t * s.w + s.ph);
     HG.dot(c, s.col, s.x, s.y, s.s, s.a * tw);
-    if (s.flare) { c.globalAlpha = 0.35 * s.a * tw; c.drawImage(T.flare, s.x - 24, s.y - 24, 48, 48); }
+    if (s.flare) { c.globalAlpha = 0.3 * s.a * tw; c.drawImage(T.flare, s.x - 24, s.y - 24, 48, 48); }
   }
   HG.reset(c);
   // fade towards the rim of the fan
   c.globalCompositeOperation = 'destination-in';
-  const g = c.createRadialGradient(C, C, 0, C, C, 536);
-  g.addColorStop(0, '#000'); g.addColorStop(0.86, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  const g = c.createRadialGradient(C, C, 0, C, C, 530);
+  g.addColorStop(0, '#000'); g.addColorStop(0.84, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
   c.fillStyle = g; c.fillRect(0, 0, W, W); HG.reset(c);
   ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a; ctx.drawImage(SKY.cv, 0, 0); HG.reset(ctx);
 }
 
-// ---------- masks
+// ---------- masks and compositing helpers
 // keep what lies below y (canvas), soft over `f` px
 function keepBelow(c, y, f) {
   c.globalCompositeOperation = 'destination-in';
@@ -156,145 +240,198 @@ function keepBelow(c, y, f) {
   g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)');
   c.fillStyle = g; c.fillRect(0, 0, W, W); HG.reset(c);
 }
-// a band hugging a front at y: sharp above, long glow trailing below (or above when dir = -1)
-function band(c, y, below, dir = 1) {
+// a band hugging a front at y: sharp above, long glow trailing below
+function band(c, y, below) {
   c.globalCompositeOperation = 'destination-in';
-  const g = c.createLinearGradient(0, y - 8 * dir, 0, y + below * dir);
+  const g = c.createLinearGradient(0, y - 8, 0, y + below);
   g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.12, 'rgba(0,0,0,1)');
   g.addColorStop(0.35, 'rgba(0,0,0,0.45)'); g.addColorStop(1, 'rgba(0,0,0,0)');
   c.fillStyle = g; c.fillRect(0, 0, W, W); HG.reset(c);
 }
+// apply one of the dissolve masks (asset space) to a staged layer
+function maskWith(c, m, z) { c.globalCompositeOperation = 'destination-in'; setAsset(c, z); c.imageSmoothingQuality = 'high'; c.drawImage(m.c, 0, 0, 1024, 1024); HG.reset(c); return c; }
 // draw a 1024 asset texture into a work layer, in place
-function stage(L, img, z) { const c = L.ctx; HG.reset(c); c.clearRect(0, 0, W, W); setAsset(c, z); c.drawImage(img, 0, 0); HG.reset(c); return c; }
-function put(L, op, a) { if (a <= 0.002) return; ctx.globalCompositeOperation = op; ctx.globalAlpha = Math.min(1, a); ctx.drawImage(L.cv, 0, 0); HG.reset(ctx); }
+function stage(L, img, z) { const c = L.ctx; HG.reset(c); c.imageSmoothingQuality = 'high'; c.clearRect(0, 0, W, W); setAsset(c, z); c.drawImage(img, 0, 0); HG.reset(c); return c; }
+function put(L, op, a, filter = 'none') { if (a <= 0.002) return; ctx.globalCompositeOperation = op; ctx.globalAlpha = Math.min(1, a); ctx.filter = filter; ctx.drawImage(L.cv, 0, 0); HG.reset(ctx); }
 
 // warm glow without a white core
 function glow(x, y, r, col, a, mid = 0.35) {
   if (a <= 0.003 || r <= 0) return;
   const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-  g.addColorStop(0, rgba(col, a)); g.addColorStop(mid, rgba(col, a * 0.35)); g.addColorStop(1, rgba(col, 0));
+  g.addColorStop(0, rgba(col, Math.min(1, a))); g.addColorStop(mid, rgba(col, Math.min(1, a) * 0.35)); g.addColorStop(1, rgba(col, 0));
   ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(x - r, y - r, 2 * r, 2 * r); HG.reset(ctx);
 }
 
 // ---------- the horizontal plane of light at the building front
-function plane(t, v, z, a) {
+function plane(v, z, a) {
   if (a <= 0.003) return;
   const e = T.extent(v); if (!e) return;
-  const p0 = toC(e[0], v, z), p1 = toC(e[1], v, z), y = p0.y, pad = 80;
-  const x0 = p0.x - pad, x1 = p1.x + pad, len = x1 - x0, k = pad / len;
-  ctx.globalCompositeOperation = 'lighter';
-  // soft glow sheet
-  ctx.save(); ctx.translate((x0 + x1) / 2, y); ctx.scale(len / 2, 34);
+  const p0 = toC(e[0], v, z), p1 = toC(e[1], v, z), y = p0.y, pad = 70;
+  const hc = Math.sqrt(Math.max(0, 452 * 452 - (y - C) * (y - C)));          // stay inside the fan's safe circle
+  const x0 = Math.max(p0.x - pad, C - hc), x1 = Math.min(p1.x + pad, C + hc), len = x1 - x0;
+  if (len < 20) return;
+  const k = Math.min(0.45, pad / len);
+  ctx.globalCompositeOperation = 'screen';     // a plane of light that never clips the lines it crosses to white
+  ctx.save(); ctx.translate((x0 + x1) / 2, y); ctx.scale(len / 2, 32);
   const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-  g.addColorStop(0, rgba(GOLD, 0.30 * a)); g.addColorStop(0.55, rgba(GOLD, 0.13 * a)); g.addColorStop(1, rgba(GOLD, 0));
+  g.addColorStop(0, rgba(GOLD, 0.26 * a)); g.addColorStop(0.55, rgba(GOLD, 0.11 * a)); g.addColorStop(1, rgba(GOLD, 0));
   ctx.fillStyle = g; ctx.fillRect(-1, -1, 2, 2); ctx.restore();
-  // crisp core line
   const lg = ctx.createLinearGradient(x0, 0, x1, 0);
-  lg.addColorStop(0, rgba(HOT, 0)); lg.addColorStop(k, rgba(HOT, 0.8 * a)); lg.addColorStop(1 - k, rgba(HOT, 0.8 * a)); lg.addColorStop(1, rgba(HOT, 0));
-  ctx.fillStyle = lg; ctx.fillRect(x0, y - 1.3, len, 2.6);
+  lg.addColorStop(0, rgba(HOT, 0)); lg.addColorStop(k, rgba(HOT, 0.55 * a)); lg.addColorStop(1 - k, rgba(HOT, 0.55 * a)); lg.addColorStop(1, rgba(HOT, 0));
+  ctx.fillStyle = lg; ctx.fillRect(x0, y - 1.2, len, 2.4);
   const lg2 = ctx.createLinearGradient(x0, 0, x1, 0);
-  lg2.addColorStop(0, rgba(GOLD, 0)); lg2.addColorStop(0.5, rgba(GOLD, 0.35 * a)); lg2.addColorStop(1, rgba(GOLD, 0));
+  lg2.addColorStop(0, rgba(GOLD, 0)); lg2.addColorStop(0.5, rgba(GOLD, 0.26 * a)); lg2.addColorStop(1, rgba(GOLD, 0));
   ctx.fillStyle = lg2; ctx.fillRect(x0, y - 5, len, 10);
   HG.reset(ctx);
 }
-// thin anamorphic streak
+// thin anamorphic streak (tips fade out well inside the fan's rim)
 function streak(x, y, half, a) {
   if (a <= 0.003) return;
-  ctx.globalCompositeOperation = 'lighter';
-  for (const [h, col, k] of [[2.2, HOT, 0.85], [9, GOLD, 0.28], [26, AMBER, 0.08]]) {
+  ctx.globalCompositeOperation = 'screen';
+  for (const [h, col, k] of [[2.2, HOT, 0.6], [9, GOLD, 0.24], [26, AMBER, 0.07]]) {
     const g = ctx.createLinearGradient(x - half, 0, x + half, 0);
-    g.addColorStop(0, rgba(col, 0)); g.addColorStop(0.5, rgba(col, k * a)); g.addColorStop(1, rgba(col, 0));
+    g.addColorStop(0, rgba(col, 0)); g.addColorStop(0.25, rgba(col, 0.3 * k * a)); g.addColorStop(0.5, rgba(col, k * a));
+    g.addColorStop(0.75, rgba(col, 0.3 * k * a)); g.addColorStop(1, rgba(col, 0));
     ctx.fillStyle = g; ctx.fillRect(x - half, y - h / 2, 2 * half, h);
   }
   HG.reset(ctx);
 }
 
-// ---------- sparks lifting off the line art where a front passes
-function sparks(t, z, which, amp) {
+// ---------- sparks lifting off the line art as the build front passes
+function buildSparks(t, z) {
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of T.pts) {
+    const dt = t - p.tb; if (dt <= 0 || dt >= p.life) continue;
+    const k = dt / p.life, q = toC(p.u, p.v, z);
+    const x = q.x + p.sway * ease.out3(k) + Math.sin(p.ph + dt * 3) * 3 * k, y = q.y - p.rise * ease.out3(k);
+    const a = smooth(0, 0.06, dt) * Math.pow(1 - k, 1.6) * (0.7 + 0.3 * Math.sin(p.ph + t * 7));
+    HG.dot(ctx, p.col, x, y, 13 * p.s * (1 - 0.4 * k), 0.75 * a);
+  }
+  HG.reset(ctx);
+}
+// embers of the closing: slow, gently flickering, rising a little and fading
+function embers(t, z, list, size, amp) {
   if (amp <= 0) return;
   ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < T.pts.length; i++) {
-    const p = T.pts[i];
-    if (which === 'outro' && i % 2) continue;
-    const t0 = which === 'build' ? p.tb : p.to, dt = t - t0, life = p.life * (which === 'build' ? 1 : 1.35);
-    if (dt <= 0 || dt >= life) continue;
-    const k = dt / life, q = toC(p.u, p.v, z);
-    const rise = p.rise * (which === 'build' ? 0.7 : 1.4);
-    const x = q.x + p.sway * ease.out3(k) + Math.sin(p.ph + dt * 3) * 4 * k, y = q.y - rise * ease.out3(k);
-    const a = smooth(0, 0.06, dt) * Math.pow(1 - k, 1.6) * (0.65 + 0.35 * Math.sin(p.ph + t * 9)) * amp;
-    HG.dot(ctx, p.col, x, y, 14 * p.s * (1 - 0.4 * k), a * (which === 'build' ? 0.8 : 1));
+  for (const p of list) {
+    const dt = t - p.ts; if (dt <= 0 || dt >= p.life) continue;
+    const k = dt / p.life, q = toC(p.u, p.v, z), e = ease.out3(k);
+    const x = q.x + p.sway * e + Math.sin(p.ph + dt * 2.2) * 3 * k, y = q.y - p.rise * e;
+    const a = smooth(0, 0.1, dt) * Math.pow(1 - k, 1.25) * (0.8 + 0.2 * Math.sin(p.ph + t * 6));
+    HG.dot(ctx, p.col, x, y, size * p.s * (1 - 0.3 * k), a * amp);
   }
   HG.reset(ctx);
 }
 
-// ---------- Kukulcán: triangles of light descend the balustrade of the west staircase
-const KP0 = { u: 486, v: 228 }, KP1 = { u: 226, v: 644 }, KHEAD = { u: 206, v: 650 };
-function serpent(t, z, fade) {
-  const s = ease.inOut3((t - KT0) / (KT1 - KT0));
-  if (t < KT0 || fade <= 0) return;
-  const a0 = toC(KP0.u, KP0.v, z), a1 = toC(KP1.u, KP1.v, z);
-  const dx = a1.x - a0.x, dy = a1.y - a0.y, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, nx = -uy, ny = ux; // n points to +x (towards the face)
-  const nX = nx > 0 ? nx : -nx, nY = nx > 0 ? ny : -ny;
-  const at = (k, off) => ({ x: a0.x + dx * k + nX * off, y: a0.y + dy * k + nY * off });
-  const N = 7, k0 = 0.06, k1 = 0.97, seg = (k1 - k0) / N, H = 15 * z;
+// ---------- sunbeam: a soft diagonal band of light crossing the facade, glinting along the balustrades
+const BANG = -0.42, BN = { x: Math.cos(BANG), y: Math.sin(BANG) };
+function beamMask(c, d, wd, peak = 1) {
+  const cx = C + BN.x * d, cy = 470 + BN.y * d;
+  c.globalCompositeOperation = 'destination-in';
+  const g = c.createLinearGradient(cx - BN.x * wd, cy - BN.y * wd, cx + BN.x * wd, cy + BN.y * wd);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.3, `rgba(0,0,0,${0.16 * peak})`); g.addColorStop(0.5, `rgba(0,0,0,${peak})`);
+  g.addColorStop(0.7, `rgba(0,0,0,${0.16 * peak})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = g; c.fillRect(0, 0, W, W); HG.reset(c);
+}
+function sunbeam(t, z, A, level) {
+  const sw = (t - ST0) / (ST1 - ST0);
+  if (sw <= 0 || sw >= 1 || level <= 0) return;
+  const d = lerp(-500, 500, smooth(0, 1, sw)), amp = smooth(0, 0.14, sw) * (1 - smooth(0.86, 1, sw)) * level;
+  // 'screen' brightens without clipping the already sunlit stone to white
+  beamMask(stage(L1, A.grade, z), d, 150); put(L1, 'screen', 0.75 * amp);
+  beamMask(stage(L1, T.hot, z), d, 150); put(L1, 'screen', 0.3 * amp);
+  // specular glint running along the balustrade edges
+  const c = L2.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+  c.strokeStyle = 'rgb(255,206,130)'; c.lineWidth = 2.2 * z; c.lineCap = 'round';
+  for (const [a, b] of RAILS) { const p = toC(a[0], a[1], z), q = toC(b[0], b[1], z); c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(q.x, q.y); c.stroke(); }
+  beamMask(c, d, 70);
+  put(L2, 'screen', 0.6 * amp, 'blur(5px)');
+  put(L2, 'screen', 0.42 * amp);
+}
+
+// ---------- Kukulcán: seven triangles of light fall on the balustrade's side wall as the light descends
+function lineDist(p, a, b) {   // perpendicular distance from p to the infinite line ab
+  const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy);
+  return Math.abs((p[0] - a[0]) * dy - (p[1] - a[1]) * dx) / L;
+}
+function serpent(t, z, f1, dim) {
+  if (t < KT0) return;
+  const u = clamp((t - KT0) / (KT1 - KT0)), s = lerp(u, smooth(0, 1, u), 0.7);   // keeps moving right up to the head
+  const [A0, A1] = LD, dx = A1[0] - A0[0], dy = A1[1] - A0[1], Lr = Math.hypot(dx, dy);
+  let nx = -dy / Lr, ny = dx / Lr; if (nx < 0) { nx = -nx; ny = -ny; }          // towards the side wall
+  const P = (k, off) => [A0[0] + dx * k + nx * off, A0[1] + dy * k + ny * off];  // asset space
+  const cP = (k, off) => { const q = P(k, off); return toC(q[0], q[1], z); };
+  const gone = v => 1 - smooth(v - 26, v + 12, f1);                             // the closing front has passed row v
+  const N = 7, k0 = 0.05, k1 = 0.97, seg = (k1 - k0) / N;
   const c = L2.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
   for (let i = 0; i < N; i++) {
-    const ka = k0 + i * seg, kb = ka + seg * 0.92;
-    const on = smooth(ka, ka + seg * 1.2, s);      // lit as the head passes
+    const ka = k0 + i * seg, kb = ka + seg * 0.9, km = (ka + kb) / 2;
+    const on = smooth(ka, ka + seg * 1.1, s);
     if (on <= 0) continue;
-    const settle = 0.75 + 0.25 * smooth(ka + seg * 1.2, ka + seg * 3, s);
-    const p1 = at(ka, 2), p2 = at(kb, 2), apex = at(kb - seg * 0.12, H + 2);
-    const g = c.createLinearGradient(p1.x, p1.y, apex.x, apex.y);
-    g.addColorStop(0, rgba(WARM, 0.95 * on * settle)); g.addColorStop(1, rgba(GOLD, 0.55 * on * settle));
-    c.fillStyle = g; c.beginPath(); c.moveTo(p1.x, p1.y); c.lineTo(p2.x, p2.y); c.lineTo(apex.x, apex.y); c.closePath(); c.fill();
+    const wall = lineDist(P(km, 0), JL[0], JL[1]);
+    const H = clamp(wall * 0.62, 11, 46);
+    const settle = 0.8 + 0.2 * smooth(ka + seg * 1.1, ka + seg * 3, s);
+    const wave = hump(t, PT0 + (N - 1 - i) / (N - 1) * 0.36, 0.3);              // from the head back up the body
+    const ignite = 4 * on * (1 - on);                                            // each triangle flares as it lights
+    const a = on * settle * (1 + 0.45 * ignite + 0.55 * wave) * gone(P(km, 0)[1]);
+    if (a <= 0.003) continue;
+    const p1 = cP(ka, 1.5), p2 = cP(kb, 1.5), ap = cP(kb - seg * 0.1, H * (1 + 0.12 * wave));
+    const g = c.createLinearGradient(p1.x, p1.y, ap.x, ap.y);
+    g.addColorStop(0, rgba(WARM, Math.min(1, 0.92 * a))); g.addColorStop(1, rgba(GOLD, Math.min(1, 0.5 * a)));
+    c.fillStyle = g; c.beginPath(); c.moveTo(p1.x, p1.y); c.lineTo(p2.x, p2.y); c.lineTo(ap.x, ap.y); c.closePath(); c.fill();
   }
-  // glow pass and crisp pass
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = 0.9 * fade; ctx.filter = 'blur(9px)'; ctx.drawImage(L2.cv, 0, 0); ctx.filter = 'none';
-  ctx.globalAlpha = 0.85 * fade; ctx.drawImage(L2.cv, 0, 0);
-  HG.reset(ctx);
-  // the travelling light of the head, with a short comet trail
-  const travel = smooth(KT0, KT0 + 0.3, t) * (1 - smooth(KT1 - 0.25, KT1 + 0.35, t));
-  if (travel > 0) {
+  put(L2, 'lighter', 0.85, 'blur(10px)');
+  put(L2, 'lighter', 0.68);
+  // the lit balustrade behind the travelling light
+  const travel = smooth(KT0, KT0 + 0.3, t) * (1 - smooth(KT1 - 0.2, KT1 + 0.4, t));
+  const railA = smooth(KT0, KT0 + 0.4, t) * (1 - smooth(KT1, PT0 + 0.7, t)) * gone(A0[1] + 60);
+  if (railA > 0.003) {
+    const p = cP(k0, 0), q = cP(Math.max(k0, s), 0);
+    const rg = ctx.createLinearGradient(p.x, p.y, q.x, q.y);
+    rg.addColorStop(0, rgba(GOLD, 0)); rg.addColorStop(1, rgba(WARM, 0.5 * railA));
+    ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rg; ctx.lineWidth = 2.4 * z; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); HG.reset(ctx);
+  }
+  if (travel > 0.003) {
     ctx.globalCompositeOperation = 'lighter';
     for (let j = 0; j < 10; j++) {
       const kj = s - j * 0.012; if (kj < 0) break;
-      const p = at(kj, 6);
-      HG.dot(ctx, j ? GOLD : WARM, p.x, p.y, (26 - j * 2) * z, travel * fade * (1 - j / 10) * (j ? 0.45 : 0.85));
+      const p = cP(kj, 5);
+      HG.dot(ctx, j ? GOLD : WARM, p.x, p.y, (28 - j * 2) * z, travel * (1 - j / 10) * (j ? 0.4 : 0.6));
     }
     HG.reset(ctx);
-    const p = at(s, 6); glow(p.x, p.y, 70 * z, AMBER, 0.22 * travel * fade);
+    const p = cP(s, 5); glow(p.x, p.y, 80 * z, AMBER, 0.24 * travel);
   }
-  // the stone serpent head at the foot of the stairs awakens
-  const h = smooth(KT1 - 0.35, KT1 + 0.5, t) * fade;
-  if (h > 0) {
-    const q = toC(KHEAD.u, KHEAD.v, z), pulse = 0.85 + 0.15 * Math.sin((t - KT1) * 3.2);
-    glow(q.x, q.y, 120 * z, AMBER, 0.32 * h * pulse, 0.25);
-    glow(q.x, q.y, 34 * z, WARM, 0.5 * h * pulse, 0.4);
+  // the stone serpent head at the foot of the stairs awakens, swells once, and fades with the closing
+  const h = smooth(KT1 - 0.4, KT1 + 0.3, t) * gone(KHEAD.v);
+  if (h > 0.003) {
+    const q = toC(KHEAD.u, KHEAD.v, z), sw = hump(t, PT0 - 0.1, 0.55), br = 0.9 + 0.1 * Math.sin((t - KT1) * 3);
+    glow(q.x, q.y, (120 + 70 * sw) * z, AMBER, (0.3 + 0.2 * sw) * h * br, 0.25);
+    glow(q.x, q.y, (34 + 16 * sw) * z, WARM, (0.5 + 0.3 * sw) * h * br, 0.4);
   }
 }
 
 // ---------- fireflies drifting around the base
 const FLIES = (() => {
   const R = HG.rng(5), out = [];
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 28; i++) {
     const side = R();
-    const hx = side < 0.5 ? 130 + R() * 300 : 650 + R() * 300, hy = 470 + R() * 330;
+    const hx = side < 0.5 ? 140 + R() * 290 : 650 + R() * 290, hy = 470 + R() * 320;
     out.push({ hx, hy, ax: 25 + R() * 45, ay: 15 + R() * 30, w1: 0.18 + R() * 0.25, w2: 0.35 + R() * 0.4, p1: R() * 6.28, p2: R() * 6.28,
       bw: 0.7 + R() * 0.9, bp: R() * 6.28, s: 0.7 + R() * 0.6, up: 4 + R() * 8, col: R() < 0.75 ? [255, 215, 110] : [215, 255, 140] });
   }
   return out;
 })();
 function fireflies(t, a) {
-  if (a <= 0) return;
+  if (a <= 0.003) return;
   ctx.globalCompositeOperation = 'lighter';
   for (const f of FLIES) {
     const x = f.hx + f.ax * Math.sin(t * f.w1 + f.p1) + 8 * Math.sin(t * f.w2 * 2.1 + f.p2);
     const y = f.hy + f.ay * Math.sin(t * f.w2 + f.p2) - f.up * t * 0.6;
-    if (Math.hypot(x - C, y - C) > 480) continue;
+    if (Math.hypot(x - C, y - C) > 455) continue;
     const blink = Math.pow(0.5 + 0.5 * Math.sin(t * f.bw + f.bp), 3);
     HG.dot(ctx, f.col, x, y, 34 * f.s, 0.18 * blink * a);
-    HG.dot(ctx, f.col, x, y, 11 * f.s, 0.85 * blink * a);
+    HG.dot(ctx, f.col, x, y, 11 * f.s, 0.8 * blink * a);
   }
   HG.reset(ctx);
 }
@@ -306,81 +443,75 @@ HG.start({
     if (!T) prepare(A);
     const z = zoomAt(t);
     const yOf = v => toC(0, v, z).y;
+    const closing = t >= OT0;
+    const f1 = frontV(t), f2 = frontV(t - LAG);
+    if (closing) masks(f1, f2);
 
-    // fronts (asset rows -> canvas y)
     const bv = buildV(t), by = yOf(bv);
-    const outro = t >= OT0, ov = outro ? outroV(t) : -1e4, oy = outro ? yOf(ov) : -1e4;
-    const edge = Math.max(by, oy);                         // what exists lies below both fronts
     const colK = ease.inOut3((t - CT0) / (CT1 - CT0));
     const cy = yOf(lerp(800, V1 - 170, colK));
-    const end = 1 - smooth(11.3, 11.95, t);
+    const dim = 1 - 0.18 * smooth(DM0, DM1, t);                       // the stone steps back for Kukulcán
+    const beamAmp = (() => { const sw = (t - ST0) / (ST1 - ST0); return sw <= 0 || sw >= 1 ? 0 : smooth(0, 0.14, sw) * (1 - smooth(0.86, 1, sw)); })();
+    const end = 1 - smooth(END0, END1, t);
 
     // 1. sky
-    sky(t, smooth(0.15, 2.6, t) * (1 - smooth(10.5, 11.8, t)));
+    sky(t, smooth(0.15, 2.6, t) * (1 - smooth(10.2, 11.4, t)));
 
     // 2. golden-hour haze behind the pyramid
-    const haze = smooth(3.8, 6.5, t) * (1 - smooth(OT0, OT0 + 1.4, t));
+    const haze = smooth(3.8, 6.5, t) * (1 - smooth(OT0, OT0 + 1.2, t)) * dim;
     if (haze > 0) { const q = toC(512, 330, z); glow(q.x, q.y, 400 * z, AMBER, 0.07 * haze, 0.4); }
 
     // 3. the built pyramid occludes the sky
-    keepBelow(stage(L1, T.sil, z), edge, 30); put(L1, 'source-over', 1);
+    { const c = stage(L1, T.sil, z); if (closing) maskWith(c, MK[0], z); else keepBelow(c, by, 30); put(L1, 'source-over', 1); }
 
-    // 4. colour, glowing in from the base
-    const colA = smooth(CT0, CT0 + 1.2, t);
+    // 4. colour, glowing in from the base (a touch darker outside the passing sunbeam)
+    const colA = smooth(CT0, CT0 + 1.2, t) * dim * (1 - 0.1 * beamAmp);
     if (colA > 0) {
-      const ce = Math.max(cy, by, oy + 70), cf = outro ? 140 : 260;
-      keepBelow(stage(L1, A.grade, z), ce, cf); put(L1, 'source-over', colA);
-      keepBelow(stage(L1, T.bloom, z), ce, cf); put(L1, 'lighter', 0.13 * colA);
-    }
-
-    // 5. a slow sunbeam crosses the facade
-    const sw = (t - ST0) / (ST1 - ST0);
-    if (sw > 0 && sw < 1) {
-      const k = smooth(0, 1, sw), ang = -0.42, nx = Math.cos(ang), ny = Math.sin(ang);
-      const d = lerp(-600, 600, k), wd = 170, cx = C + nx * d, cyy = 470 + ny * d;
-      const amp = smooth(0, 0.15, sw) * (1 - smooth(0.85, 1, sw));
-      for (const [img, op, a] of [[A.grade, 'lighter', 0.72], [T.hot, 'lighter', 0.5]]) {
+      const ce = Math.max(cy, by);
+      for (const [img, op, a] of [[A.grade, 'source-over', colA], [T.bloom, 'lighter', 0.13 * colA]]) {
         const c = stage(L1, img, z);
-        c.globalCompositeOperation = 'destination-in';
-        const g = c.createLinearGradient(cx - nx * wd, cyy - ny * wd, cx + nx * wd, cyy + ny * wd);
-        g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.35, 'rgba(0,0,0,0.35)'); g.addColorStop(0.5, 'rgba(0,0,0,1)');
-        g.addColorStop(0.65, 'rgba(0,0,0,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)');
-        c.fillStyle = g; c.fillRect(0, 0, W, W); HG.reset(c);
-        put(L1, op, a * amp);
+        if (closing) maskWith(c, MK[0], z); else keepBelow(c, ce, 260);
+        put(L1, op, a);
       }
     }
 
-    // 6. line art drawn in light
-    const lineLevel = lerp(1, 0.2, smooth(CT0 + 0.4, CT1 + 0.4, t));
-    keepBelow(stage(L1, T.lines, z), edge, 26); put(L1, 'lighter', lineLevel);
-    const buildOn = smooth(BT0 - 0.05, BT0 + 0.3, t) * (1 - smooth(BT1 - 0.9, BT1 - 0.05, t));
-    if (buildOn > 0) { band(stage(L1, T.hot, z), by, 120); put(L1, 'lighter', 0.8 * buildOn); }
-    const outOn = smooth(OT0, OT0 + 0.25, t) * (1 - smooth(OT1 - 0.3, OT1, t));
-    if (outOn > 0) {
-      band(stage(L1, T.lines, z), oy, 150); put(L1, 'lighter', 0.9 * outOn);
-      band(stage(L1, T.hot, z), oy, 60); put(L1, 'lighter', 0.6 * outOn);
+    // 5. the sunbeam
+    sunbeam(t, z, A, 1);
+
+    // 6. line art drawn in light; in the closing a brighter ghost of it lingers where the stone has burnt away
+    const lineLevel = lerp(1, 0.22, smooth(CT0 + 0.4, CT1 + 0.4, t)) * lerp(1, 0.75, smooth(DM0, DM1, t));
+    { const c = stage(L1, T.lines, z); if (closing) maskWith(c, MK[0], z); else keepBelow(c, by, 26); put(L1, 'lighter', lineLevel); }
+    if (closing) {
+      maskWith(stage(L1, T.lines, z), MK[1], z); put(L1, 'lighter', 0.78);
+      // the burning seam: stone and lines glow amber where they break up
+      const seam = smooth(OT0, OT0 + 0.2, t);
+      maskWith(stage(L1, A.grade, z), MK[2], z); put(L1, 'screen', 0.5 * seam);
+      maskWith(stage(L1, T.ember, z), MK[2], z); put(L1, 'screen', 0.25 * seam);
+      maskWith(stage(L1, T.hot, z), MK[2], z); put(L1, 'screen', 0.35 * seam);
     }
+    const buildOn = smooth(BT0 - 0.05, BT0 + 0.3, t) * (1 - smooth(BT1 - 0.9, BT1 - 0.05, t));
+    if (buildOn > 0) { band(stage(L1, T.hot, z), by, 120); put(L1, 'screen', 0.42 * buildOn); }
 
     // 7. the plane of light, the seed it grows from, and the summit streak
     const seed = smooth(0.15, 0.55, t) * (1 - smooth(0.7, 1.3, t));
-    if (seed > 0) { const q = toC(512, 896, z); glow(q.x, q.y, 90, AMBER, 0.35 * seed); HG.dot(ctx, WARM, q.x, q.y, 26, 0.8 * seed); }
-    plane(t, bv, z, buildOn);
-    sparks(t, z, 'build', 1);
+    if (seed > 0) { const q = toC(512, 896, z); glow(q.x, q.y, 90, AMBER, 0.35 * seed); HG.dot(ctx, WARM, q.x, q.y, 26, 0.7 * seed); }
+    plane(bv, z, buildOn);
+    buildSparks(t, z);
     const sum = smooth(BT1 - 0.75, BT1 - 0.15, t) * (1 - smooth(BT1 - 0.1, BT1 + 1.1, t));
     if (sum > 0) {
       const q = toC(521, 118, z), grow = ease.out3((t - BT1 + 0.75) / 1.8);
-      streak(q.x, q.y, 140 + 300 * grow, sum);
-      glow(q.x, q.y, 150 * z, AMBER, 0.18 * sum);
+      streak(q.x, q.y, Math.min(110 + 200 * grow, Math.sqrt(Math.max(0, 455 * 455 - (q.y - C) ** 2)) - 10), sum);
+      glow(q.x, q.y, 150 * z, AMBER, 0.16 * sum);
     }
 
     // 8. Kukulcán
-    serpent(t, z, 1 - smooth(OT0 - 0.1, OT0 + 0.5, t));
+    serpent(t, z, f1, dim);
 
-    // 9. fireflies and the closing embers
-    fireflies(t, smooth(4.4, 6.4, t) * (1 - smooth(OT0 + 0.2, OT0 + 1.4, t)));
-    if (outro) {
-      sparks(t, z, 'outro', 1);
-      plane(t, ov, z, 0.55 * outOn);
+    // 9. fireflies (softened while the serpent descends), and the closing embers
+    fireflies(t, smooth(4.4, 6.4, t) * (1 - 0.55 * smooth(DM0, DM1, t)) * (1 - smooth(OT0, OT0 + 0.9, t)));
+    if (closing) {
+      embers(t, z, T.stone, 12, 0.7);
+      embers(t, z, T.ghost, 12, 0.72);
     }
 
     if (end < 1) { ctx.globalAlpha = 1 - end; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, W); HG.reset(ctx); }

@@ -4,20 +4,25 @@
 <script src="../engine.js"></script>
 <script>
 // Intro / welcome. Green, white and red sparks stream in from the rim along three
-// spiral arms into a vortex, which implodes and blooms into a tricolour sunburst.
-// The light settles into a warm backlight; three garlands of papel picado drop in
-// and sway, a glint sweeps across them, and they dissolve into sparkles.
+// spiral arms; the vortex tightens, its heart heats to gold, thin rings of light
+// pinch inward and it blooms into a gold sun medallion with 24 rays (the sun cut
+// into the papel picado). The rays fold away into a warm backlight while three
+// garlands of papel picado drop in from above and sway in a breeze that travels
+// along each cord; a sheen of light sweeps across them. At the end each flag burns
+// into its glowing lace and breaks into coloured sparkles that drift up and warm to gold.
 const { W, C, ctx, clamp, lerp, smooth, ease, rng, COLORS, rgba } = HG;
 const TAU = Math.PI * 2;
 
-const GREEN = [20, 215, 105], WHITE = [255, 246, 232], RED = [255, 45, 70], GOLD = COLORS.gold, WARM = COLORS.warm;
+const GREEN = [25, 215, 110], WHITE = [250, 244, 230], RED = [255, 48, 72];
+const GOLD = COLORS.gold, WARM = COLORS.warm, AMBER = [255, 158, 48];
 const TRI = [GREEN, WHITE, RED];
-const FLAGCOLS = [[255, 55, 165], [255, 135, 25], [35, 215, 235], [255, 212, 45], [60, 225, 110], [170, 95, 255]];
-const TB = 3.6;            // moment of the bloom
-const END = 12;
+const FC = { pink: [255, 55, 165], orange: [255, 135, 25], turq: [35, 212, 235], yellow: [255, 208, 40], green: [55, 222, 105], purple: [165, 92, 255] };
+const TB = 3.6;            // the bloom
 
 // ---------- small helpers (kept local to this piece)
 const canvas = (w, h) => { const c = document.createElement('canvas'); c.width = Math.ceil(w); c.height = Math.ceil(h); return c; };
+const mix = (a, b, k) => [0, 1, 2].map(i => Math.round(a[i] + (b[i] - a[i]) * k));
+const q8 = k => Math.round(clamp(k) * 8) / 8;   // quantised mix amount, keeps the sprite caches small
 // integral of smooth(a, b, x) dx from 0 to t
 function intSmooth(a, b, t) {
   if (t <= a) return 0;
@@ -27,365 +32,517 @@ function intSmooth(a, b, t) {
   return d * (x * x * x - x * x * x * x / 2);
 }
 const outBackSoft = (x, c1 = 1.1) => { x = clamp(x); const c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const sineInOut = x => 0.5 - 0.5 * Math.cos(Math.PI * clamp(x));
 
-// four-point star glint, cached per colour
+// soft spark with a tinted (not white) hot core, so overlaps never burn to white blobs
+const glowCache = new Map();
+function glowSprite(col) {
+  const key = col.join(',');
+  let s = glowCache.get(key); if (s) return s;
+  s = canvas(64, 64); const g = s.getContext('2d'), hot = mix(col, [255, 255, 255], 0.45);
+  const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grd.addColorStop(0, rgba(hot, 1)); grd.addColorStop(0.16, rgba(col, 0.9)); grd.addColorStop(0.42, rgba(col, 0.28)); grd.addColorStop(1, rgba(col, 0));
+  g.fillStyle = grd; g.fillRect(0, 0, 64, 64); glowCache.set(key, s); return s;
+}
+function spark(col, x, y, size, a) {
+  if (a <= 0.004 || size <= 0.3) return;
+  ctx.globalAlpha = Math.min(1, a); ctx.drawImage(glowSprite(col), x - size / 2, y - size / 2, size, size);
+}
+// four-point star glint with a tinted core
 const starCache = new Map();
 function star(col) {
   const key = col.join(',');
-  if (starCache.has(key)) return starCache.get(key);
-  const s = canvas(128, 128), g = s.getContext('2d'), h = 64;
-  const rg = g.createRadialGradient(h, h, 0, h, h, h * 0.5);
-  rg.addColorStop(0, 'rgba(255,255,255,1)'); rg.addColorStop(0.15, rgba(col, 0.9)); rg.addColorStop(0.45, rgba(col, 0.25)); rg.addColorStop(1, rgba(col, 0));
-  g.fillStyle = rg; g.fillRect(0, 0, 128, 128);
+  let s = starCache.get(key); if (s) return s;
+  s = canvas(96, 96); const g = s.getContext('2d'), h = 48, hot = mix(col, [255, 255, 255], 0.5);
+  const rg = g.createRadialGradient(h, h, 0, h, h, h * 0.42);
+  rg.addColorStop(0, rgba(hot, 1)); rg.addColorStop(0.2, rgba(col, 0.8)); rg.addColorStop(0.55, rgba(col, 0.2)); rg.addColorStop(1, rgba(col, 0));
+  g.fillStyle = rg; g.fillRect(0, 0, 96, 96);
   g.globalCompositeOperation = 'lighter';
   for (const a of [0, Math.PI / 2]) {
     g.save(); g.translate(h, h); g.rotate(a);
     const lg = g.createLinearGradient(-h, 0, h, 0);
-    lg.addColorStop(0, rgba(col, 0)); lg.addColorStop(0.35, rgba(col, 0.5)); lg.addColorStop(0.5, 'rgba(255,255,255,0.95)'); lg.addColorStop(0.65, rgba(col, 0.5)); lg.addColorStop(1, rgba(col, 0));
-    g.fillStyle = lg; g.beginPath(); g.moveTo(-h, 0); g.lineTo(0, -2.4); g.lineTo(h, 0); g.lineTo(0, 2.4); g.closePath(); g.fill();
+    lg.addColorStop(0, rgba(col, 0)); lg.addColorStop(0.38, rgba(col, 0.45)); lg.addColorStop(0.5, rgba(hot, 0.9)); lg.addColorStop(0.62, rgba(col, 0.45)); lg.addColorStop(1, rgba(col, 0));
+    g.fillStyle = lg; g.beginPath(); g.moveTo(-h, 0); g.lineTo(0, -1.8); g.lineTo(h, 0); g.lineTo(0, 1.8); g.closePath(); g.fill();
     g.restore();
   }
   starCache.set(key, s); return s;
 }
-function glint(col, x, y, size, alpha, rot = 0) {
-  if (alpha <= 0.003 || size <= 0.5) return;
-  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.min(1, alpha);
+function glint(col, x, y, size, a, rot = 0) {
+  if (a <= 0.004 || size <= 0.5) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.min(1, a);
   ctx.translate(x, y); ctx.rotate(rot); ctx.drawImage(star(col), -size / 2, -size / 2, size, size); ctx.restore();
 }
-
-// ---------- papel picado flags: tint the neutral cut-out into each fiesta colour, once
-const FW = 340, FCROP = { x: 0, y: 96, w: 1024, h: 832 };
-const FH = FW * FCROP.h / FCROP.w, GPAD = 40;
-let FLAGS = null;
-function flagSprites(img) {
-  if (FLAGS) return FLAGS;
-  FLAGS = FLAGCOLS.map(col => {
-    const f = canvas(FW, FH), g = f.getContext('2d');
-    g.drawImage(img, FCROP.x, FCROP.y, FCROP.w, FCROP.h, 0, 0, FW, FH);
-    g.globalCompositeOperation = 'multiply'; g.fillStyle = rgba(col, 1); g.fillRect(0, 0, FW, FH);
-    g.globalCompositeOperation = 'destination-in'; g.drawImage(img, FCROP.x, FCROP.y, FCROP.w, FCROP.h, 0, 0, FW, FH);
-    // light shining through the paper: a little brighter in the middle
-    g.globalCompositeOperation = 'source-atop';
-    const rg = g.createRadialGradient(FW / 2, FH * 0.45, 0, FW / 2, FH * 0.45, FW * 0.6);
-    rg.addColorStop(0, 'rgba(255,255,255,0.22)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = rg; g.fillRect(0, 0, FW, FH);
-    // halo (the backlight bleeding through the cuts and around the edges)
-    const h = canvas(FW + GPAD * 2, FH + GPAD * 2), hg = h.getContext('2d');
-    hg.filter = 'blur(14px)'; hg.drawImage(f, GPAD, GPAD); hg.filter = 'none';
-    return { col, f, h };
-  });
-  return FLAGS;
-}
-
-// ---------- garlands: quadratic cords tied beyond the rim, flags hanging from them
-// cy: height of the cord at the centre, sag: how much it dips below its chord, tilt: right end lower (+) or higher (-)
-const ROWS = [
-  { cy: 300, sag: 120, tilt: -18, n: 4, spacing: 182, fw: 164, drop: 5.65, ph: 0.0, cols: [0, 2, 3, 5] },
-  { cy: 512, sag: 130, tilt: 16, n: 5, spacing: 180, fw: 166, drop: 5.3, ph: 1.3, cols: [3, 4, 5, 0, 1] },
-  { cy: 728, sag: 115, tilt: -14, n: 4, spacing: 182, fw: 164, drop: 4.95, ph: 2.6, cols: [1, 2, 4, 0] },
-];
-const HW = 600;
-function rowState(R, ri, t) {
-  const tau = t - R.drop;
-  const p = clamp(tau / 1.1);
-  const dy = -230 * (1 - outBackSoft(p, 0.9));
-  const sag = R.sag * (0.4 + 0.6 * outBackSoft(clamp(tau / 1.4), 1.7)) * (1 + 0.05 * Math.sin(0.9 * t + ri * 1.9));
-  return { tau, dy, sag, alpha: smooth(0, 0.6, tau) };
-}
-// y of the cord at x, and its slope
-const cordY = (R, S, x) => { const u = (x - C) / HW; return R.cy - R.sag + S.dy + S.sag * (1 - u * u) + R.tilt * u; };
-const cordSlope = (R, S, x) => (-2 * S.sag * (x - C) / HW + R.tilt) / HW;
-
-// every flag's pose at time t (pure function of t)
-function flagPoses(t) {
-  const out = [];
-  ROWS.forEach((R, ri) => {
-    const S = rowState(R, ri, t);
-    if (S.tau <= 0) return;
-    for (let i = 0; i < R.n; i++) {
-      const x = C + (i - (R.n - 1) / 2) * R.spacing;
-      const y = cordY(R, S, x);
-      const kick = 0.16 * Math.exp(-1.9 * S.tau) * Math.sin(4.6 * S.tau + 0.6 + i * 0.8);
-      const breeze = 0.75 + 0.25 * Math.sin(0.55 * t + ri * 1.3);
-      const sway = breeze * 0.06 * Math.sin(1.15 * t - 0.006 * x + R.ph) + 0.016 * Math.sin(2.0 * t + i * 1.7 + ri);
-      const rot = 0.8 * Math.atan(cordSlope(R, S, x)) + sway + kick;
-      const sx = 0.93 + 0.07 * Math.cos(1.45 * t - 0.006 * x + i * 0.9 + ri * 2.1);
-      out.push({ ri, i, x, y, rot, sx, w: R.fw, h: R.fw * FH / FW, ci: R.cols[i], alpha: S.alpha, seed: ri * 31 + i * 7 + 1 });
-    }
-  });
-  return out;
-}
-
-// the garlands are painted into their own layer so the closing dissolve can eat them away
-const GL = HG.layer();
-const SWEEP_T = 7.3;
-const sweepPos = t => lerp(-250, 1750, ease.inOut3((t - SWEEP_T) / 2.1));
-// closing dissolve: a front of light expanding from the centre
-const DIS_T = 9.95, DIS_D = 1.6, DIS_R = 640, FEATHER = 70;
-const DIS_P = 2.2;
-const rho = t => { const x = (t - DIS_T) / DIS_D; return x <= 0 ? 0 : DIS_R * (1 - Math.pow(1 - clamp(x), DIS_P)); };
-function rhoInv(d) { // time at which the front reaches distance d
-  return DIS_T + DIS_D * (1 - Math.pow(1 - clamp(d / DIS_R), 1 / DIS_P));
-}
-// the wave itself: a soft pulse at the heart, then a faint warm ring travelling outward
-function drawWave(t) {
-  const x = (t - DIS_T) / DIS_D;
-  if (x < -0.25 || x > 1) return;
-  softGlow(C, C, 160 + 140 * clamp(x * 3), WARM, 0.32 * Math.sin(Math.PI * clamp((x + 0.25) / 0.75)), 0.4);
-  const r = rho(t);
-  if (r > 20) HG.ring(ctx, C, C, r - FEATHER * 0.4, WARM, { width: 10, blur: 16, alpha: 0.22 * Math.sin(Math.PI * clamp(x)) });
-}
-
-function drawCords(g, t) {
-  ROWS.forEach((R, ri) => {
-    const S = rowState(R, ri, t);
-    if (S.tau <= 0) return;
-    g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round'; g.lineJoin = 'round';
-    g.beginPath();
-    for (let x = -20; x <= W + 20; x += 20) { const y = cordY(R, S, x); x < 0 ? g.moveTo(x, y) : g.lineTo(x, y); }
-    for (const [lw, al] of [[10, 0.06], [4.5, 0.13], [1.8, 0.55]]) {
-      g.globalAlpha = S.alpha * al; g.lineWidth = lw; g.strokeStyle = rgba(WARM, 1); g.stroke();
-    }
-    g.restore();
-  });
-}
-
-function drawFlags(g, t, poses, A) {
-  const F = flagSprites(A.flag), sweep = sweepPos(t);
-  for (const P of poses) {
-    const S = F[P.ci], a = P.alpha;
-    if (a <= 0.003) continue;
-    const k = P.w / FW, top = -P.h * 0.03;
-    g.save(); g.translate(P.x, P.y); g.rotate(P.rot); g.scale(P.sx, 1);
-    g.globalCompositeOperation = 'lighter'; g.globalAlpha = a * 0.85;
-    g.drawImage(S.h, -P.w / 2 - GPAD * k, top - GPAD * k, (FW + GPAD * 2) * k, (FH + GPAD * 2) * k);
-    g.globalCompositeOperation = 'source-over'; g.globalAlpha = a * 0.96;
-    g.drawImage(S.f, -P.w / 2, top, P.w, P.h);
-    const b = Math.exp(-Math.pow(((P.x + P.y + P.h * 0.5) - sweep) / 130, 2));
-    if (b > 0.01) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = a * 0.38 * b; g.drawImage(S.f, -P.w / 2, top, P.w, P.h); }
-    g.restore();
-  }
-}
-
-function drawGarlands(t, poses, A) {
-  if (!poses.length) return;
-  const g = GL.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
-  drawCords(g, t);
-  drawFlags(g, t, poses, A);
-  const r = rho(t);
-  if (r > 0) {
-    HG.reset(g);
-    // eat away everything inside the front, with a feathered edge
-    g.globalCompositeOperation = 'destination-out';
-    const m = g.createRadialGradient(C, C, 0, C, C, r);
-    m.addColorStop(0, 'rgba(0,0,0,1)'); m.addColorStop(Math.max(0, 1 - FEATHER / r), 'rgba(0,0,0,1)'); m.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = m; g.fillRect(0, 0, W, W);
-    // the paper glows warm as the front passes through it
-    g.globalCompositeOperation = 'source-atop';
-    const e = g.createRadialGradient(C, C, Math.max(0, r - FEATHER), C, C, r + 50);
-    e.addColorStop(0, rgba(WARM, 0.9)); e.addColorStop(0.45, rgba(WARM, 0.55)); e.addColorStop(1, rgba(WARM, 0));
-    g.fillStyle = e; g.fillRect(0, 0, W, W);
-    HG.reset(g);
-  }
-  ctx.save(); ctx.globalAlpha = 1 - smooth(10.9, 11.5, t); ctx.drawImage(GL.cv, 0, 0); ctx.restore();
-}
-
-// ---------- the vortex: three spiral arms of tricolour sparks, fed until the bloom
-const ARM_N = 400, K = 1.05;
-const VORTEX = (() => {
-  const R = rng(101), list = [];
-  for (let a = 0; a < 3; a++) for (let i = 0; i < ARM_N; i++) {
-    list.push({ arm: a * TAU / 3, col: TRI[a], r0: 560 + R() * 170, rc: 8 + R() * 34, ts: 0.05 + 2.3 * Math.pow(R(), 0.65), dur: 1.15 + R() * 0.45,
-      j: (R() - 0.5) * 0.42, s: 0.55 + R() * 0.9, tw: R() * TAU });
-  }
-  return list;
-})();
-const spin = t => 0.45 * t + 3.2 * intSmooth(1.2, TB, t);
-const implode = t => 1 - 0.4 * ease.in3((t - 3.1) / (TB - 3.1));
-function vortexAt(P, t) {
-  const p = (t - P.ts) / P.dur;
-  if (p <= 0) return null;
-  const q = Math.min(1, p);
-  const e = 0.5 - 0.5 * Math.cos(Math.PI * q);
-  const r = (P.rc + (P.r0 - P.rc) * (1 - e)) * implode(t);
-  const th = P.arm + P.j + K * Math.log(P.r0 / Math.max(r, 4)) + spin(t);
-  return [C + Math.cos(th) * r, C + Math.sin(th) * r, r, q];
-}
-function drawVortex(t) {
-  if (t > TB + 0.1) return;
-  const gone = 1 - smooth(TB - 0.1, TB + 0.06, t);
-  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
-  for (const P of VORTEX) {
-    const h = vortexAt(P, t);
-    if (!h || h[2] > 560) continue;
-    const arr = P.ts + P.dur, post = t > arr ? Math.exp(-2.6 * (t - arr)) : 1;
-    const a = gone * post * (0.7 + 0.3 * Math.sin(t * 6 + P.tw)) * smooth(0, 0.08, h[3]) * (0.35 + 0.65 * smooth(0, 140, h[2]));
-    if (a <= 0.01) continue;
-    const size = 13 * P.s * (0.4 + 0.6 * Math.min(1, h[2] / 420));
-    // tail: a few earlier positions joined by thinning strokes
-    let prev = h;
-    ctx.strokeStyle = rgba(P.col, 1);
-    for (let j = 1; j <= 6; j++) {
-      const b = vortexAt(P, t - j * 0.026);
-      if (!b) break;
-      ctx.globalAlpha = a * 0.55 * (1 - j / 7); ctx.lineWidth = Math.max(0.6, size * 0.22 * (1 - j / 8));
-      ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
-      prev = b;
-    }
-    HG.dot(ctx, P.col, h[0], h[1], size, a);
-  }
-  ctx.restore();
-}
-
 // soft radial glow without a white-hot centre
 function softGlow(x, y, r, col, a, core = 0.5) {
   if (a <= 0.003 || r <= 0) return;
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-  g.addColorStop(0, rgba(col, a)); g.addColorStop(0.25, rgba(col, a * core)); g.addColorStop(0.6, rgba(col, a * core * 0.25)); g.addColorStop(1, rgba(col, 0));
+  g.addColorStop(0, rgba(col, a)); g.addColorStop(0.3, rgba(col, a * core)); g.addColorStop(0.65, rgba(col, a * core * 0.25)); g.addColorStop(1, rgba(col, 0));
   ctx.fillStyle = g; ctx.fillRect(x - r, y - r, 2 * r, 2 * r); ctx.restore();
 }
-
-// the gathering core and the bloom
-function drawCore(t) {
-  const grow = smooth(1.6, TB, t), after = 1 - smooth(TB, TB + 1.0, t);
-  if (grow > 0 && t < TB + 1.1) {
-    const pinch = implode(t);
-    softGlow(C, C, (90 + 190 * grow) * pinch, WARM, 0.5 * grow * after, 0.45);
-    softGlow(C, C, (24 + 26 * grow) * pinch, WHITE, 0.55 * grow * after, 0.6);
+// crisp thin ring of light: a hairline with two soft sheaths (no blur filter)
+function thinRing(r, col, a, w = 1.6) {
+  if (a <= 0.004 || r <= 1) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(col, 1);
+  for (const [lw, al] of [[w * 7, 0.06], [w * 3, 0.17], [w, 0.85]]) {
+    ctx.globalAlpha = Math.min(1, a * al); ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(C, C, r, 0, TAU); ctx.stroke();
   }
-  // bloom: a soft, bounded swell of light (no full-frame flash)
-  const bt = t - TB;
-  if (bt > 0 && bt < 1.8) {
-    const k = ease.out3(bt / 0.55);
-    softGlow(C, C, 120 + 330 * k, WARM, 0.42 * (1 - smooth(0.05, 1.6, bt)), 0.35);
-    // three echoing shock rings
-    for (let i = 0; i < 3; i++) {
-      const tt = bt - i * 0.09;
-      if (tt <= 0) continue;
-      const p = ease.out3(tt / 1.3);
-      HG.ring(ctx, C, C, 30 + 440 * p, TRI[i], { width: 5, blur: 8, alpha: 0.7 * Math.pow(1 - clamp(tt / 1.3), 1.6) });
+  ctx.restore();
+}
+
+// =====================================================================
+// 1. The vortex: three tricolour spiral arms streaming in from the rim
+// =====================================================================
+const K = 1.0, RREF = 600;
+// emission time from a uniform u: the rate switches on fast (arms drawn by ~1 s), then keeps rising into the climax
+const emitAt = (() => {
+  const N = 400, T0 = 0.06, T1 = 3.32, cdf = [0];
+  const rate = s => smooth(0.06, 0.3, s) * (1.4 + 0.8 * smooth(1.0, 3.3, s));
+  for (let k = 1; k <= N; k++) cdf.push(cdf[k - 1] + rate(T0 + (T1 - T0) * (k - 0.5) / N));
+  return u => {
+    const v = u * cdf[N]; let k = 1;
+    while (k < N && cdf[k] < v) k++;
+    return T0 + (T1 - T0) * (k - 1 + (v - cdf[k - 1]) / Math.max(1e-9, cdf[k] - cdf[k - 1])) / N;
+  };
+})();
+const VORTEX = (() => {
+  const R = rng(101), list = [];
+  for (let a = 0; a < 3; a++) for (let i = 0; i < 600; i++) {
+    const spine = R() < 0.6, ts = emitAt(R());
+    // the white arm is drawn a little softer: it is the brightest colour and would burn out where sparks overlap
+    const lum = a === 1 ? 0.68 : 1;
+    list.push({ arm: a * TAU / 3, col: TRI[a], r0: 585 + R() * 80, rc: 36 + R() * 26, ts, dur: 1.0 + R() * 0.3 + 0.18 * ts / 3.3,
+      j: spine ? (R() + R() + R() - 1.5) * 0.075 : (R() - 0.5) * 0.62, s: spine ? 0.8 + R() * 0.6 : 0.45 + R() * 0.45, b: (spine ? 1 : 0.5) * lum, tw: R() * TAU });
+  }
+  return list;
+})();
+const spin = t => 0.5 * t + 3.0 * intSmooth(1.3, TB, t);
+const implode = t => 1 - 0.58 * ease.in3((t - 3.1) / (TB - 3.1));
+const vortexOff = t => 1 - smooth(TB - 0.02, TB + 0.09, t);
+function vortexAt(P, t) {
+  const q = (t - P.ts) / P.dur;
+  if (q <= 0) return null;
+  const k = Math.min(1, q);
+  const r = (P.rc + (P.r0 - P.rc) * Math.pow(1 - k, 1.5)) * implode(t);
+  const th = P.arm + P.j + K * Math.log(RREF / Math.max(r, 6)) + spin(t);
+  return [C + Math.cos(th) * r, C + Math.sin(th) * r, r, k];
+}
+// a soft luminous body under each arm, so the galaxy reads from the first second
+const RIB = HG.layer();
+function drawArmBodies(t) {
+  const ramp = smooth(0.15, 1.0, t) * vortexOff(t) * (0.8 + 0.4 * smooth(2.0, 3.3, t));
+  if (ramp <= 0.003) return;
+  const qf = clamp((t - 0.1) / 1.0), front = 45 + 570 * Math.pow(1 - qf, 1.5);
+  const g = RIB.ctx; HG.reset(g); g.clearRect(0, 0, W, W); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
+  const imp = implode(t), sp = spin(t);
+  for (let a = 0; a < 3; a++) {
+    g.strokeStyle = rgba(TRI[a], 1);
+    let prev = null;
+    for (let s = 0; s <= 48; s++) {
+      const r = lerp(620, 40, s / 48);
+      if (r < front) break;
+      const rr = r * imp, th = a * TAU / 3 + K * Math.log(RREF / Math.max(rr, 6)) + sp;
+      const pt = [C + Math.cos(th) * rr, C + Math.sin(th) * rr];
+      if (prev) {
+        g.globalAlpha = smooth(front, front + 150, r) * (1 - smooth(500, 620, r)) * (0.35 + 0.65 * smooth(50, 260, r));
+        g.lineWidth = (8 + 26 * r / 600) * (0.6 + 0.4 * imp);
+        g.beginPath(); g.moveTo(prev[0], prev[1]); g.lineTo(pt[0], pt[1]); g.stroke();
+      }
+      prev = pt;
     }
+  }
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.16 * ramp; ctx.filter = 'blur(16px)'; ctx.drawImage(RIB.cv, 0, 0); ctx.restore();
+}
+function drawVortex(t) {
+  if (t > TB + 0.05) return;
+  const ramp = smooth(0.1, 0.8, t), off = vortexOff(t), climb = 0.9 + 0.3 * smooth(1.8, 3.4, t);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+  for (const P of VORTEX) {
+    const h = vortexAt(P, t);
+    if (!h || h[2] > 575) continue;
+    const arr = P.ts + P.dur, post = t > arr ? Math.exp(-3 * (t - arr)) : 1;
+    const core = 0.5 + 0.5 * smooth(20, 100, h[2]);   // partly swallowed into the heart
+    const a = ramp * off * climb * post * P.b * core * (0.75 + 0.25 * Math.sin(t * 7 + P.tw)) * smooth(0, 0.06, h[3]);
+    if (a <= 0.01) continue;
+    const size = 12 * P.s * (0.45 + 0.55 * Math.min(1, h[2] / 380));
+    let prev = h; ctx.strokeStyle = rgba(P.col, 1);
+    for (let j = 1; j <= 6; j++) {
+      const b = vortexAt(P, t - j * 0.024);
+      if (!b) break;
+      ctx.globalAlpha = a * 0.5 * (1 - j / 7); ctx.lineWidth = Math.max(0.7, size * 0.2 * (1 - j / 8));
+      ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); prev = b;
+    }
+    spark(P.col, h[0], h[1], size, a);
+  }
+  ctx.restore();
+}
+// the heart: grows and heats toward gold as the vortex pinches; thin rings of light are drawn in
+function drawHeart(t) {
+  if (t < TB + 0.6) {
+    const g = smooth(0.8, TB, t), k = Math.pow(clamp((t - 2.8) / (TB - 2.8)), 2.2), off = 1 - smooth(TB + 0.04, TB + 0.5, t);
+    softGlow(C, C, 90 + 60 * g + 180 * k, AMBER, (0.08 + 0.2 * g + 0.34 * k) * off, 0.5);
+    softGlow(C, C, 50 + 26 * k, mix(GOLD, WARM, q8(k)), (0.1 * g + 0.36 * k) * off, 0.7);
+    // the last breath before the bloom: a wide gold swell gathers round the heart
+    const s2 = ease.in3((t - 3.3) / (TB - 3.3)) * (1 - smooth(TB + 0.02, TB + 0.3, t));
+    softGlow(C, C, 220 + 140 * s2, GOLD, 0.24 * s2, 0.45);
+  }
+  // thin rings of light drawn inward: the vortex inhales before the bloom
+  for (let i = 0; i < 4; i++) {
+    const t0 = 2.7 + i * 0.15, p = clamp((t - t0) / (TB - 0.02 - t0));
+    if (p <= 0 || p >= 1) continue;
+    thinRing(lerp(470, 56, Math.pow(p, 1.7)), i % 2 ? WARM : GOLD, 0.75 * smooth(0, 0.2, p) * (0.45 + 0.55 * p), 1.4);
   }
 }
 
-// radiant star-burst rays, drawn to a layer then bloomed
-const RAYS = HG.layer();
-function drawRays(t) {
+// =====================================================================
+// 2. The bloom: a bounded warm swell, tricolour shock rings, and a gold sun medallion
+// =====================================================================
+function drawBloom(t) {
   const bt = t - TB;
-  if (bt <= 0) return;
-  const grow = ease.out3(bt / 0.75);
-  const strength = lerp(1, 0.13, smooth(1.2, 2.9, bt)) * (1 - smooth(9.9, 11.0, t));
-  const recede = lerp(1, 0.72, smooth(TB + 1.1, TB + 3.0, t));
+  if (bt <= -0.04 || bt > 2.2) return;
+  const k = ease.out3(bt / 0.6), a = 0.28 * smooth(-0.04, 0.05, bt) * (1 - smooth(0.05, 1.5, bt));
+  if (a > 0.003) {
+    const r = 130 + 320 * k;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(C, C, 0, C, C, r);
+    g.addColorStop(0, rgba(GOLD, a)); g.addColorStop(0.3, rgba(GOLD, a * 0.55)); g.addColorStop(0.65, rgba(AMBER, a * 0.15)); g.addColorStop(1, rgba(AMBER, 0));
+    ctx.fillStyle = g; ctx.fillRect(C - r, C - r, 2 * r, 2 * r); ctx.restore();
+  }
+  for (let i = 0; i < 3; i++) {
+    const tt = bt - 0.04 - i * 0.1;
+    if (tt <= 0 || tt > 1.3) continue;
+    thinRing(110 + 355 * ease.out3(tt / 1.3), TRI[i], 0.75 * Math.pow(1 - tt / 1.3, 1.4) * smooth(0, 0.06, tt), 2);
+  }
+}
+const RAYS = HG.layer();
+const sunFold = t => smooth(TB + 0.8, 5.3, t);         // the rays fold away into the backlight
+function drawSun(t) {
+  const bt = t - TB;
+  if (bt <= 0 || t > 6) return;
+  const fold = sunFold(t);
+  const ringR = 104 * outBackSoft(clamp(bt / 0.5), 1.4) + 46 * fold;
+  const ringA = smooth(0, 0.08, bt) * (1 - smooth(TB + 0.9, 5.3, t));
+  if (ringA > 0.003) {
+    softGlow(C, C, ringR * 1.1, GOLD, 0.2 * ringA, 0.5);
+    thinRing(ringR, GOLD, 0.95 * ringA, 2.2);
+    thinRing(ringR * 0.84, AMBER, 0.4 * ringA, 1.1);
+  }
+  const strength = 1 - fold;
   if (strength <= 0.003) return;
-  const rot = spin(TB) + 0.9 * (1 - Math.exp(-1.6 * bt)) + 0.05 * bt;
+  const grow = ease.out3(bt / 0.7);
+  const rot = spin(TB) + 0.55 * (1 - Math.exp(-1.8 * bt)) + 0.035 * bt;
+  const r0 = ringR + 12, len = 285 * grow * (1 - 0.45 * fold);
+  if (len < 3) return;
   const g = RAYS.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
   g.globalCompositeOperation = 'lighter'; g.translate(C, C);
-  const N = 24;
+  const N = 24, w0 = 5.2;
   for (let i = 0; i < N; i++) {
-    const long = i % 2 === 0;
-    const col = long ? TRI[(i / 2) % 3] : GOLD;
-    const L = (long ? 468 : 330) * grow * recede * (0.93 + 0.07 * Math.sin(t * 1.3 + i * 2.1));
-    const w0 = long ? 10 : 6;
+    const tip = TRI[i % 3];
     g.save(); g.rotate(rot + i * TAU / N);
-    const lg = g.createLinearGradient(0, 0, L, 0);
-    lg.addColorStop(0, rgba(WARM, 0)); lg.addColorStop(0.1, rgba(WARM, 0.03)); lg.addColorStop(0.2, rgba(WARM, 0.3)); lg.addColorStop(0.36, rgba(col, 0.72)); lg.addColorStop(1, rgba(col, 0));
-    g.fillStyle = lg; g.beginPath(); g.moveTo(0, -w0 * 0.4); g.lineTo(L * 0.12, -w0); g.lineTo(L, 0); g.lineTo(L * 0.12, w0); g.lineTo(0, w0 * 0.4); g.closePath(); g.fill();
+    const lg = g.createLinearGradient(r0, 0, r0 + len, 0);
+    lg.addColorStop(0, rgba(GOLD, 0.35)); lg.addColorStop(0.04, rgba(GOLD, 0.95)); lg.addColorStop(0.45, rgba(GOLD, 0.62));
+    lg.addColorStop(0.8, rgba(mix(GOLD, tip, 0.6), 0.25)); lg.addColorStop(1, rgba(tip, 0));
+    g.fillStyle = lg; g.beginPath(); g.moveTo(r0, -w0); g.lineTo(r0 + len, 0); g.lineTo(r0, w0); g.closePath(); g.fill();
     g.restore();
   }
   HG.reset(g);
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = strength * 0.9; ctx.filter = 'blur(10px)'; ctx.drawImage(RAYS.cv, 0, 0);
-  ctx.filter = 'none'; ctx.globalAlpha = strength; ctx.drawImage(RAYS.cv, 0, 0);
+  ctx.globalAlpha = 0.5 * strength; ctx.filter = 'blur(4px)'; ctx.drawImage(RAYS.cv, 0, 0);
+  ctx.filter = 'none'; ctx.globalAlpha = 0.9 * strength; ctx.drawImage(RAYS.cv, 0, 0);
   ctx.restore();
-  // the sun's heart
-  softGlow(C, C, 170 * grow, GOLD, 0.5 * strength, 0.4);
-  softGlow(C, C, 46 * grow, WARM, 0.5 * strength, 0.6);
 }
-
-// burst sparks: thrown outward, still carrying the vortex's spin
+// burst sparks: thrown outward from just outside the heart, still carrying the vortex's spin
 const BURST = (() => {
   const R = rng(202), list = [];
-  for (let i = 0; i < 340; i++) {
+  for (let i = 0; i < 300; i++) {
     const c = R();
-    list.push({ a: R() * TAU, v: 650 + 520 * Math.sqrt(R()), col: c < 0.3 ? GREEN : c < 0.6 ? WHITE : c < 0.88 ? RED : GOLD,
-      s: 0.5 + R() * 0.9, life: 1.3 + R() * 1.0, tw: R() * TAU, curl: 0.35 + R() * 0.5 });
+    list.push({ a: R() * TAU, r0: 50 + R() * 28, v: 620 + 520 * Math.sqrt(R()), col: c < 0.3 ? GREEN : c < 0.55 ? WHITE : c < 0.85 ? RED : GOLD,
+      s: 0.5 + R() * 0.8, life: 1.2 + R() * 1.0, tw: R() * TAU, curl: 0.3 + R() * 0.45 });
   }
   return list;
 })();
 function burstAt(P, bt) {
-  const d = (1 - Math.exp(-2.4 * bt)) / 2.4;
-  const r = 20 + P.v * d;
-  const a = P.a + P.curl * (1 - Math.exp(-2 * bt));
+  const d = (1 - Math.exp(-2.5 * bt)) / 2.5, r = P.r0 + P.v * d, a = P.a + P.curl * (1 - Math.exp(-2 * bt));
   return [C + Math.cos(a) * r, C + Math.sin(a) * r];
 }
 function drawBurst(t) {
   const bt = t - TB;
-  if (bt <= 0 || bt > 2.5) return;
+  if (bt <= 0 || bt > 2.3) return;
+  const ramp = smooth(0, 0.12, bt);
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
   for (const P of BURST) {
     const fade = 1 - smooth(P.life * 0.45, P.life, bt);
     if (fade <= 0) continue;
-    const a = fade * (0.7 + 0.3 * Math.sin(t * 9 + P.tw));
-    const h = burstAt(P, bt);
+    const a = ramp * fade * (0.7 + 0.3 * Math.sin(t * 9 + P.tw)), h = burstAt(P, bt);
     let prev = h; ctx.strokeStyle = rgba(P.col, 1);
     for (let j = 1; j <= 5; j++) {
       const tt = bt - j * 0.03; if (tt < 0) break;
       const b = burstAt(P, tt);
-      ctx.globalAlpha = a * 0.5 * (1 - j / 6); ctx.lineWidth = 2.2 * P.s * (1 - j / 7);
+      ctx.globalAlpha = a * 0.5 * (1 - j / 6); ctx.lineWidth = 2.1 * P.s * (1 - j / 7);
       ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); prev = b;
     }
-    HG.dot(ctx, P.col, h[0], h[1], 12 * P.s, a);
+    spark(P.col, h[0], h[1], 12 * P.s, a);
+  }
+  ctx.restore();
+}
+// warm backlight behind the garlands: a smooth radial glow, no spikes
+function drawBacklight(t) {
+  const a = smooth(TB + 0.3, TB + 1.8, t) * (0.18 + 0.03 * Math.sin(t * 1.2)) * (1 - smooth(10.0, 11.2, t));
+  if (a <= 0.003) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(C, C, 0, C, C, 470);
+  g.addColorStop(0, rgba(WARM, a)); g.addColorStop(0.3, rgba(GOLD, a * 0.6)); g.addColorStop(0.7, rgba(AMBER, a * 0.16)); g.addColorStop(1, rgba(AMBER, 0));
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, W); ctx.restore();
+}
+
+// =====================================================================
+// 3. Papel picado garlands
+// =====================================================================
+// four cut designs (crop rectangles in the 1024px assets, and the drawn width/height ratio)
+const DESIGNS = {
+  A: { img: 'fa', lines: 'la', crop: [0, 96, 1024, 832], aspect: 1.23 },
+  B: { img: 'fb', lines: 'lb', crop: [13, 188, 1000, 647], aspect: 1.38 },
+  C: { img: 'fc', lines: 'lc', crop: [14, 155, 998, 710], aspect: 1.33 },
+  D: { img: 'fd', lines: 'ld', crop: [14, 112, 998, 802], aspect: 1.25 },
+};
+// cy: lowest point of the cord at rest, sag: dip below its chord, tilt: right end lower (+) or higher (-)
+// drop: when the row starts falling from above the circle, T: fall time, D: fall distance
+const ROWS = [
+  { cy: 296, sag: 116, tilt: -16, n: 4, spacing: 180, drop: 4.95, T: 1.05, D: 446, ph: 0.0, designs: 'ACBD', cols: ['pink', 'turq', 'orange', 'purple'] },
+  { cy: 508, sag: 126, tilt: 14, n: 5, spacing: 172, drop: 4.62, T: 1.25, D: 658, ph: 1.9, designs: 'BADCA', cols: ['yellow', 'green', 'pink', 'turq', 'orange'] },
+  { cy: 714, sag: 110, tilt: -12, n: 4, spacing: 176, drop: 4.3, T: 1.45, D: 864, ph: 3.7, designs: 'DBAC', cols: ['purple', 'orange', 'yellow', 'green'] },
+];
+const HW = 600, BASEW = 158, SS = 1.4;
+// per-flag character: width, resting hang angle, mirror, phases
+const SPEC = ROWS.map((R, ri) => R.designs.split('').map((d, i) => {
+  const r = rng(ri * 97 + i * 13 + 5);
+  return { d, col: FC[R.cols[i]], w: BASEW * (1 + 0.15 * (r() - 0.5)), hang: (r() - 0.5) * 0.09, mir: (i + ri) % 2 ? -1 : 1,
+    ph: r() * TAU, ph2: r() * TAU, tint: [r() - 0.5, r() - 0.5, r() - 0.5], lx: r(), ly: r(), seed: ri * 31 + i * 7 + 1 };
+}));
+
+// build each flag once: tinted paper (light shining through it), its halo, and its lace outline
+let SPR = null;
+function sprites(A) {
+  if (SPR) return SPR;
+  SPR = SPEC.map(row => row.map(F => {
+    const D = DESIGNS[F.d], [cx, cy, cw, chh] = D.crop;
+    const sw = Math.round(F.w * SS), sh = Math.round(sw / D.aspect);
+    const col = F.col.map((v, k) => clamp(Math.round(v + F.tint[k] * 22), 0, 255));
+    const paper = canvas(sw, sh), g = paper.getContext('2d');
+    g.drawImage(A[D.img], cx, cy, cw, chh, 0, 0, sw, sh);
+    g.globalCompositeOperation = 'multiply'; g.fillStyle = rgba(col, 1); g.fillRect(0, 0, sw, sh);
+    g.globalCompositeOperation = 'destination-in'; g.drawImage(A[D.img], cx, cy, cw, chh, 0, 0, sw, sh);
+    g.globalCompositeOperation = 'source-atop';
+    const lx = sw * (0.35 + 0.3 * F.lx), ly = sh * (0.35 + 0.15 * F.ly);
+    const rg = g.createRadialGradient(lx, ly, 0, lx, ly, sw * 0.65);
+    rg.addColorStop(0, 'rgba(255,246,232,0.2)'); rg.addColorStop(1, 'rgba(255,246,232,0)');
+    g.fillStyle = rg; g.fillRect(0, 0, sw, sh);
+    const pad = Math.round(32 * SS);
+    const halo = canvas(sw + pad * 2, sh + pad * 2), hg = halo.getContext('2d');
+    hg.filter = `blur(${Math.round(11 * SS)}px)`; hg.drawImage(paper, pad, pad); hg.filter = 'none';
+    const lace = canvas(sw, sh), lg = lace.getContext('2d');
+    lg.drawImage(A[D.lines], cx, cy, cw, chh, 0, 0, sw, sh);
+    lg.globalCompositeOperation = 'source-in'; lg.fillStyle = rgba(mix(col, WARM, 0.35), 1); lg.fillRect(0, 0, sw, sh);
+    const laceHalo = canvas(sw + pad * 2, sh + pad * 2), lh = laceHalo.getContext('2d');
+    lh.filter = `blur(${Math.round(6 * SS)}px)`; lh.drawImage(lace, pad, pad); lh.drawImage(lace, pad, pad); lh.filter = 'none';
+    return { paper, halo, lace, laceHalo, pad, col, w: F.w, h: F.w / D.aspect };
+  }));
+  return SPR;
+}
+
+// each row falls from above the circle with a soft overshoot; the cord stretches as it lands
+function rowState(R, t) {
+  const tau = t - R.drop;
+  const p = clamp(tau / R.T);
+  const dy = -R.D * (1 - outBackSoft(Math.pow(p, 1.6), 1.0));
+  const land = tau - R.T * 0.78;
+  const sag = R.sag * (0.6 + 0.4 * outBackSoft(clamp(land / 0.9 + 0.35), 1.8));
+  return { tau, dy, sag, land, live: smooth(-0.3, 1.3, land) };
+}
+// the cord, with a gentle wave travelling along it (the breeze), pinned at both ends
+function cordY(R, S, x, t) {
+  const u = (x - C) / HW;
+  const wave = 9 * S.live * (1 - u * u) * Math.sin(1.85 * t - 0.0057 * x + R.ph);
+  return R.cy - S.sag + S.dy + S.sag * (1 - u * u) + R.tilt * u + wave;
+}
+
+// closing dissolve: a soft front of light expands from the centre; each flag burns into lace when it arrives
+const DIS_T = 9.9, DIS_D = 1.5, DIS_R = 620, DIS_P = 1.8, BURN = 0.8;
+const rho = t => { const x = (t - DIS_T) / DIS_D; return x <= 0 ? 0 : DIS_R * (1 - Math.pow(1 - clamp(x), DIS_P)); };
+const rhoInv = d => DIS_T + DIS_D * (1 - Math.pow(1 - clamp(d / DIS_R), 1 / DIS_P));
+
+// every flag's pose at time t (pure function of t)
+function flagPoses(t) {
+  const out = [];
+  ROWS.forEach((R, ri) => {
+    const S = rowState(R, t);
+    if (S.tau <= 0) return;
+    for (let i = 0; i < R.n; i++) {
+      const F = SPEC[ri][i];
+      const x = C + (i - (R.n - 1) / 2) * R.spacing, y = cordY(R, S, x, t);
+      const slope = (cordY(R, S, x + 3, t) - cordY(R, S, x - 3, t)) / 6;
+      // landing kick, then a slow pendulum whose phase travels along the cord
+      const kick = 0.16 * smooth(-0.1, 0.12, S.land) * Math.exp(-2.0 * Math.max(0, S.land)) * Math.sin(5.2 * S.land + i * 0.9);
+      const pend = 0.108 * (0.85 + 0.15 * Math.sin(0.5 * t + ri)) * Math.sin(2.1 * t - 0.0066 * x + R.ph + 0.6);
+      const rot = 0.75 * Math.atan(slope) + F.hang + pend * S.live + kick;
+      // 3D flutter: the paper turns about its hanging axis and tips on the cord
+      const psi = (0.6 + 0.3 * (1 - S.live)) * Math.sin(2.6 * t - 0.0078 * x + F.ph);
+      const sx = Math.cos(psi), sy = 1 - 0.07 * (0.5 + 0.5 * Math.sin(1.9 * t - 0.006 * x + F.ph2));
+      const b = 0.8 + 0.28 * clamp((sx - 0.8) / 0.2);
+      const caught = 0.3 * Math.exp(-Math.pow((psi + 0.3) / 0.12, 2));      // light catching the turning paper
+      const w = F.w, h = F.w / DESIGNS[F.d].aspect;
+      const mx = x - Math.sin(rot) * h * 0.5, my = y + Math.cos(rot) * h * 0.5;   // flag centre
+      const td = rhoInv(Math.hypot(mx - C, my - C)), u = (t - td) / BURN;
+      out.push({ ri, i, x, y, rot, sx, sy, b, caught, w, h, mx, my, td, mir: F.mir, col: F.col, seed: F.seed,
+        paper: 1 - smooth(0.1, 0.42, u), lift: 0.85 * Math.sin(Math.PI * clamp(u / 0.4)), lace: smooth(0.02, 0.2, u) * (1 - smooth(0.38, 0.8, u)),
+        grow: 1 + 0.07 * smooth(0.1, 0.9, u), rise: -12 * smooth(0.15, 0.9, u) });
+    }
+  });
+  return out;
+}
+
+function place(g, P, scale = 1) {
+  g.save(); g.translate(P.x, P.y + P.rise); g.rotate(P.rot); g.scale(P.sx * P.mir * P.grow * scale, P.sy * P.grow * scale);
+}
+const TOP = -0.035;   // the cord runs through the hem near the top edge
+
+function drawCords(g, t, poses) {
+  ROWS.forEach((R, ri) => {
+    const S = rowState(R, t);
+    if (S.tau <= 0) return;
+    const mine = poses.filter(P => P.ri === ri);
+    const t0 = Math.min(...mine.map(P => P.td)), t1 = Math.max(...mine.map(P => P.td));
+    const a = 1 - smooth(t0 + 0.15, t1 + 0.55, t);           // fades with its own flags
+    const burn = Math.sin(Math.PI * clamp((t - t0) / (t1 - t0 + 0.7)));
+    if (a <= 0.003) return;
+    g.save(); g.globalCompositeOperation = 'source-over'; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath();
+    for (let x = -30; x <= W + 30; x += 15) { const y = cordY(R, S, x, t); x < 0 ? g.moveTo(x, y) : g.lineTo(x, y); }
+    g.globalAlpha = a * (0.1 + 0.15 * burn); g.lineWidth = 8; g.strokeStyle = rgba(WARM, 1); g.stroke();
+    g.globalAlpha = a * 0.8; g.lineWidth = 2.3; g.strokeStyle = rgba(mix([205, 160, 110], WARM, burn), 1); g.stroke();
+    // twisted string: a fine broken highlight along the cord
+    g.globalAlpha = a * (0.65 + 0.3 * burn); g.lineWidth = 1.1; g.strokeStyle = 'rgb(255,238,205)'; g.setLineDash([4, 5]); g.stroke();
+    g.restore();
+  });
+}
+
+// the sheen: a broad band of warm light that sweeps across the garlands during the hold
+const SHEEN_T = 6.8, SHEEN_D = 2.8, SHEEN_ANG = 0.38;
+const sheenPos = t => lerp(-420, 1560, sineInOut((t - SHEEN_T) / SHEEN_D));
+const sheenAt = (x, y, t) => {
+  if (t < SHEEN_T || t > SHEEN_T + SHEEN_D) return 0;
+  const s = x * Math.cos(SHEEN_ANG) + y * Math.sin(SHEEN_ANG);
+  return Math.exp(-Math.pow((s - sheenPos(t)) / 120, 2));
+};
+const SH = HG.layer();
+function drawSheen(t) {
+  if (t <= SHEEN_T || t >= SHEEN_T + SHEEN_D) return;
+  const pos = sheenPos(t), dx = Math.cos(SHEEN_ANG), dy = Math.sin(SHEEN_ANG), hw = 320;
+  const g = SH.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+  const gr = g.createLinearGradient(dx * (pos - hw), dy * (pos - hw), dx * (pos + hw), dy * (pos + hw));
+  gr.addColorStop(0, 'rgba(255,228,170,0)'); gr.addColorStop(0.28, 'rgba(255,228,170,0.11)'); gr.addColorStop(0.5, 'rgba(255,232,180,0.46)');
+  gr.addColorStop(0.72, 'rgba(255,228,170,0.11)'); gr.addColorStop(1, 'rgba(255,228,170,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, W, W);
+  g.globalCompositeOperation = 'destination-in'; g.drawImage(GP.cv, 0, 0);     // only where there is paper or cord
+  HG.reset(g);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(SH.cv, 0, 0); ctx.restore();
+}
+
+const GH = HG.layer(), GP = HG.layer();
+function drawGarlands(t, poses, A) {
+  if (!poses.length) return;
+  const S = sprites(A), h = GH.ctx, p = GP.ctx;
+  HG.reset(h); HG.reset(p); h.clearRect(0, 0, W, W); p.clearRect(0, 0, W, W);
+  // halos: backlight bleeding round the paper and through the cuts
+  h.globalCompositeOperation = 'lighter';
+  for (const P of poses) {
+    const s = S[P.ri][P.i], a = (0.8 + 0.2 * P.lift) * Math.max(P.paper, P.lift) * P.b;
+    if (a <= 0.003) continue;
+    place(h, P, 1 / SS); h.globalAlpha = Math.min(1, a);
+    h.drawImage(s.halo, -s.paper.width / 2 - s.pad, TOP * s.paper.height - s.pad); h.restore();
+  }
+  // paper: opaque from the first frame it appears; brightness follows the turn
+  for (const P of poses) {
+    const s = S[P.ri][P.i];
+    if (P.paper <= 0.003) continue;
+    place(p, P, 1 / SS);
+    p.globalAlpha = P.paper; p.filter = `brightness(${P.b.toFixed(3)})`;
+    p.drawImage(s.paper, -s.paper.width / 2, TOP * s.paper.height); p.filter = 'none';
+    const lift = P.caught + P.lift;
+    if (lift > 0.01) { p.globalCompositeOperation = 'lighter'; p.globalAlpha = Math.min(1, lift) * P.paper; p.drawImage(s.paper, -s.paper.width / 2, TOP * s.paper.height); }
+    p.restore();
+  }
+  drawCords(p, t, poses);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(GH.cv, 0, 0);
+  ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(GP.cv, 0, 0);
+  ctx.restore();
+  drawSheen(t);
+  // the lace burning bright as each flag dissolves
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const P of poses) {
+    if (P.lace <= 0.003) continue;
+    const s = S[P.ri][P.i];
+    place(ctx, P, 1 / SS);
+    ctx.globalAlpha = P.lace; ctx.drawImage(s.laceHalo, -s.paper.width / 2 - s.pad, TOP * s.paper.height - s.pad);
+    ctx.drawImage(s.lace, -s.paper.width / 2, TOP * s.paper.height);
+    ctx.globalAlpha = 0.7 * P.lace; ctx.drawImage(s.lace, -s.paper.width / 2, TOP * s.paper.height);
+    ctx.restore();
   }
   ctx.restore();
 }
 
-// warm backlight that stays behind the garlands
-function drawBacklight(t) {
-  const a = smooth(TB, TB + 1.2, t) * (0.2 + 0.04 * Math.sin(t * 1.1)) * (1 - smooth(10.0, 11.3, t));
-  if (a <= 0.003) return;
-  ctx.save(); ctx.globalCompositeOperation = 'lighter';
-  const g = ctx.createRadialGradient(C, C, 0, C, C, 430);
-  g.addColorStop(0, rgba(WARM, a)); g.addColorStop(0.35, rgba(GOLD, a * 0.45)); g.addColorStop(1, rgba(GOLD, 0));
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, W); ctx.restore();
+// the dissolve front: a broad, very soft swell of warm light (no hard ring)
+function drawWave(t) {
+  const x = (t - DIS_T) / DIS_D;
+  if (x <= 0 || x >= 1) return;
+  softGlow(C, C, 260, WARM, 0.1 * Math.sin(Math.PI * clamp(x * 1.8)), 0.4);
 }
 
-// glints: the light sweep, and the closing shimmer as the front turns the paper into sparkles
+// glints: on the lace as the sheen passes; then the closing sparkles each flag breaks into
 function drawGlints(t, poses) {
-  const sweep = sweepPos(t), out = 1 - smooth(11.1, 11.92, t);
+  const out = 1 - smooth(11.2, 11.95, t);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (const P of poses) {
-    const R = rng(P.seed * 977 + 13), col = FLAGCOLS[P.ci];
-    const cs = Math.cos(P.rot), sn = Math.sin(P.rot);
+    const R = rng(P.seed * 977 + 13), cs = Math.cos(P.rot), sn = Math.sin(P.rot);
     for (let k = 0; k < 18; k++) {
-      const lx = (R() - 0.5) * P.w * 0.92, ly = (0.04 + R() * 0.88) * P.h, sz = 20 + R() * 32, white = R() < 0.4, life = 0.75 + R() * 0.6, lag = R() * 0.12, rot = R() * 0.8;
-      const x = P.x + lx * cs * P.sx - ly * sn, y = P.y + lx * sn * P.sx + ly * cs;
-      const c = white ? WHITE : col;
-      // sweep glints
-      if (k < 4) {
-        const b = Math.exp(-Math.pow(((x + y) - sweep) / 60, 2));
-        if (b > 0.02) glint(c, x, y, sz * (0.5 + 0.7 * b), b * 0.85 * P.alpha, rot);
+      const lx = (R() - 0.5) * P.w * 0.9, ly = (0.06 + R() * 0.86) * P.h, sz = 12 + R() * 20, own = R() < 0.8, life = 0.9 + R() * 0.7,
+        lag = 0.08 + R() * 0.45, drift = 75 + R() * 75, sway = (R() - 0.5) * 50, tw = R() * TAU, isStar = R() < 0.3, rot = R() * 0.8;
+      const ex = lx * P.sx * P.mir, x = P.x + ex * cs - ly * sn, y = P.y + ex * sn + ly * cs;
+      if (k < 5) {   // sheen glints
+        const b = sheenAt(x, y, t);
+        if (b > 0.05) glint(mix(P.col, WARM, 0.6), x, y, (18 + sz) * (0.5 + 0.6 * b), b * 0.8 * P.paper, rot);
       }
-      // dissolve glints, born where the front passes
-      const t0 = rhoInv(Math.hypot(x - C, y - C)) - 0.05 + lag, q = (t - t0) / life;
-      if (q > 0 && q < 1) {
-        const tw = Math.sin(Math.PI * Math.pow(q, 0.6));
-        glint(c, x, y - 36 * q, sz * (0.45 + 0.75 * tw), tw * out, rot + q * 0.6);
-      }
+      const q = (t - P.td - lag) / life;
+      if (q <= 0 || q >= 1) continue;
+      const col = mix(own ? P.col : WARM, GOLD, q8(smooth(0.35, 1, q)));
+      const env = Math.sin(Math.PI * Math.pow(q, 0.55)) * (0.72 + 0.28 * Math.sin(t * 8 + tw)) * out;
+      const gx = x + sway * q, gy = y - drift * ease.out3(q);
+      if (isStar) glint(col, gx, gy, sz * 1.7 * (0.6 + 0.4 * env), env * 0.9, rot + q * 0.5);
+      else spark(col, gx, gy, sz * (0.75 + 0.25 * env), env * 0.85);
     }
   }
+  ctx.restore();
 }
 
 HG.start({
   duration: 12,
-  assets: { flag: '../assets/01-intro-flag.png' },
+  assets: {
+    fa: '../assets/01-intro-flag.png', la: '../assets/01-intro-flag_lines.png',
+    fb: '../assets/01-intro-flagB.png', lb: '../assets/01-intro-flagB_lines.png',
+    fc: '../assets/01-intro-flagC.png', lc: '../assets/01-intro-flagC_lines.png',
+    fd: '../assets/01-intro-flagD.png', ld: '../assets/01-intro-flagD_lines.png',
+  },
   render(t, A) {
     const poses = flagPoses(t);
     drawBacklight(t);
-    drawRays(t);
+    drawArmBodies(t);
     drawVortex(t);
-    drawCore(t);
+    drawHeart(t);
+    drawBloom(t);
+    drawSun(t);
     drawBurst(t);
-    HG.dust(t, { n: 70, colors: [WARM, COLORS.pink, COLORS.turquoise, COLORS.yellow], alpha: 0.38 * smooth(5.2, 7, t) * (1 - smooth(10.2, 11.4, t)), size: 7, r: 470 });
+    HG.dust(t, { n: 60, colors: [WARM, FC.pink, FC.turq, FC.yellow], alpha: 0.3 * smooth(5.6, 7, t) * (1 - smooth(10.0, 11.0, t)), size: 7, r: 470 });
     drawGarlands(t, poses, A);
     drawWave(t);
     drawGlints(t, poses);

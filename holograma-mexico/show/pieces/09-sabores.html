@@ -3,137 +3,225 @@
 <body><canvas id="c" width="1080" height="1080"></canvas>
 <script src="../engine.js"></script>
 <script>
-// Sabores: Mexico's gifts to the world. A golden sunburst (straight and flame rays, like a
-// resplandor) ignites at the centre. One by one corn, cacao, chile, avocado and vanilla are
-// born from the sun with a sparkle pop, are presented for a beat against its rays, then
-// glide out along a spiral into a slow carousel orbit. With all five in place the orbit
-// flares once; they circle together trailing stardust, then spiral outward and dissolve
-// into sparkles while the sun folds back into a last glint.
+// Sabores: Mexico's gifts to the world. A golden sun (a resplandor with a small Piedra del
+// Sol medallion) ignites and holds alone for a beat. One by one corn, cacao, chile, avocado
+// and vanilla are born from it with a sparkle pop, presented against its rays, then glide
+// out and settle along the orbit like jewels on a chain, all lit gold by the sun on the
+// side that faces it. With the five in place a light runs round the chain and fills it with
+// their colours, the sun's kernel ring answers in the same colours, then the carousel
+// speeds up and each gift burns away into embers (counter-clockwise from the top) while the
+// sun folds its rays back the same way into a final glint.
 // Assets: prepare.py on out-show/images/{maiz,cacao,chile,aguacate,vainilla}-1.png
 //         -> assets/09-sabores-NAME.png and _lines.png.
-const { W, C, ctx, clamp, lerp, smooth, ease, COLORS, rgba } = HG;
+const { W, C, ctx, clamp, lerp, smooth, ease } = HG;
+const rgba = (c, a = 1) => `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${Math.max(0, Math.min(1, a)).toFixed(4)})`;
 const TAU = Math.PI * 2;
 
+// len: on-screen length of each food along its long axis while in orbit
 const FOODS = [
-  { name: 'maiz', fit: 1.0, tint: [255, 196, 60] },
-  { name: 'cacao', fit: 0.94, tint: [255, 128, 40] },
-  { name: 'chile', fit: 1.02, tint: [255, 70, 40] },
-  { name: 'aguacate', fit: 0.9, tint: [170, 225, 70] },
-  { name: 'vainilla', fit: 1.0, tint: [240, 228, 140], lift: 0.8 },
+  { name: 'maiz', len: 300, tint: [255, 204, 72] },
+  { name: 'cacao', len: 262, tint: [255, 136, 52] },
+  { name: 'chile', len: 300, tint: [255, 74, 46] },
+  { name: 'aguacate', len: 262, tint: [184, 228, 84] },
+  { name: 'vainilla', len: 300, tint: [255, 228, 156], lift: true },
 ];
-const GOLD = [255, 192, 84], AMBER = [255, 150, 40], CREAM = [255, 226, 168];
+const GOLD = [255, 192, 84], AMBER = [255, 150, 40], CREAM = [255, 226, 168], RIMC = [255, 188, 92], WARM = [255, 204, 124];
 
 // ---------- timeline
-const T0 = 1.05, GAP = 1.2, HOLD = 0.6, GLIDE = 1.2;
-const tE = i => T0 + GAP * i;                          // item i is born from the sun
-const tArrive = i => tE(i) + HOLD + 0.5 * GLIDE;        // ...and settles into its orbit
-const T_FULL = tArrive(4) + 0.1;                       // the ring is complete
-const R_ORB = 332, HERO_W = 372, ORB_W = 266, SWEEP = 1.15;
-const theta = t => -2.3 + 0.1 * t + 0.6 * ease.in3((t - 9.8) / 2.2);   // carousel angle
+const T0 = 1.65, GAP = 1.1, HOLD = 0.5, GLIDE = 1.15;
+const tE = i => T0 + GAP * i;                    // item i is born from the sun
+const tArr = i => tE(i) + HOLD + GLIDE;          // ...and has settled on the orbit
+const T_FULL = tArr(4);                          // the chain is complete (7.7 s)
+const R_ORB = 340, HERO = 1.24, SW = 0.3;
+const theta = t => -2.443 + 0.17 * t + 0.55 * ease.in3((t - 9.2) / 2.3);   // carousel angle
 const slotAng = (i, t) => theta(t) + i * TAU / 5;
-const OUT_A = 9.7, OUT_B = 11.3;                       // drift outward
-const DS = i => 9.85 + 0.12 * i, DD = 0.85;            // each item dissolves from its outer side inward
-const outK = t => ease.inOut3((t - OUT_A) / (OUT_B - OUT_A));
+const DS = i => 9.5 + 0.15 * (4 - i), DD = 0.95;   // burn: last born burns first (counter-clockwise from the top)
+const endK = t => ease.inOut3((t - 9.2) / 1.8);
+const SWEEP_T = T_FULL + 0.05, SWEEP_D = 1.3;      // the light that runs round the finished chain
 
-const outBackSoft = (x, s = 1.1) => { x = clamp(x); return 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2); };
-const glideE = x => ease.out3(x) * smooth(0, 0.3, x);  // eases out of the hold, long settle into the slot
+const outBackSoft = (x, s = 1.0) => { x = clamp(x); return 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2); };
+const glideE = x => ease.out3(x) * smooth(0, 0.35, x);   // leaves the hold gently, long settle into the slot
 const bump = (t, a, d) => { const x = clamp((t - a) / d); return Math.pow(Math.sin(Math.PI * x), 2); };
 const frac = x => x - Math.floor(x);
+const wrapPi = a => a - TAU * Math.round(a / TAU);
+const sm = x => { x = clamp(x); return x * x * (3 - 2 * x); };
+const mix = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)];
+const qc = c => c.map(v => Math.min(255, Math.round(v / 12) * 12));   // quantised colours keep the sprite cache small
+const cwTop = a => frac((a + Math.PI / 2) / TAU);                     // 0 at the top, growing clockwise
 
 function itemState(i, t) {
   const dt = t - tE(i);
   if (dt < 0) return null;
-  const F = FOODS[i];
-  const pop = clamp(dt / 0.6);
-  const sPop = lerp(0.5, 1, outBackSoft(pop));
-  const g = glideE((dt - HOLD) / GLIDE);
-  const end = outK(t);
-  const ang = slotAng(i, t) - SWEEP * (1 - g);
-  const bob = 7 * Math.sin(TAU * t / 3.1 + i * 1.9);
-  const r = (R_ORB + bob) * g * (1 + 0.16 * end);
-  const push = 1 + 0.04 * smooth(0, HOLD + 0.4, dt);
-  const w = lerp(HERO_W * push, ORB_W, g) * sPop * F.fit * (1 - 0.1 * end);
-  const rot = -0.2 * (1 - ease.out3(pop)) + 0.05 * Math.sin(TAU * t / 4.3 + i * 2.3) * g;
-  const dis = clamp((t - DS(i)) / DD);
-  const alpha = smooth(0, 0.3, dt) * (1 - smooth(DS(i) + DD - 0.05, DS(i) + DD + 0.1, t));
-  const flash = smooth(0, 0.1, dt) * (1 - smooth(0.1, 0.65, dt));
-  return { x: C + Math.cos(ang) * r, y: C + Math.sin(ang) * r, w, rot, alpha, g, end, dis,
-    bloom: 0.26 + 0.16 * flash, rim: 0.16 + 0.3 * flash, halo: 0.42 + 0.22 * flash };
+  const G = GEO[i];
+  const pop = clamp(dt / 0.55);
+  const sPop = lerp(0.55, 1, outBackSoft(pop));
+  const gx = clamp((dt - HOLD) / GLIDE), g = glideE(gx), rg = ease.inOut3(clamp(gx * 1.12));
+  const end = endK(t), slot = slotAng(i, t);
+  const ang = slot + SW * (1 - g);                 // swings out from the empty (clockwise) side
+  const bob = 3 * Math.sin(TAU * t / 3.1 + i * 1.9);
+  const r = (R_ORB + bob) * g + 10 * end;
+  const scale = lerp(HERO, 1, g) * sPop * (1 - 0.08 * end);
+  // presented near its natural pose, then turns to lie along the orbit and rides with it
+  const rot = lerp(G.rHero - 0.16 * (1 - ease.out3(pop)), G.rho + slot - G.phi, rg) + 0.025 * Math.sin(TAU * t / 4.3 + i * 2.3) * g;
+  const flash = smooth(0, 0.08, dt) * (1 - smooth(0.08, 0.6, dt));
+  return { x: C + Math.cos(ang) * r, y: C + Math.sin(ang) * r, ang, r, k: G.k * scale, rot, g, end, flash,
+    alpha: smooth(0, 0.22, dt), dis: clamp((t - DS(i)) / DD) };
 }
 
 // ---------- baked assets (built once from the images: a pure function of the assets)
-const N = 640, PAD = 128, NB = N + 2 * PAD;
-let PRE = null, STAR = null, STAR_W = null, SUN = null, DL = null, DLc = null, NOISE = null;
-const sm = x => { x = clamp(x); return x * x * (3 - 2 * x); };
-function canvas(n) { const c = document.createElement('canvas'); c.width = c.height = n; return c; }
-function bake(A) {
-  PRE = FOODS.map(F => {
-    const pc = canvas(N), px = pc.getContext('2d', { willReadFrequently: true });
-    px.imageSmoothingQuality = 'high'; px.drawImage(A[F.name], 0, 0, N, N);
-    const id = px.getImageData(0, 0, N, N), d = id.data;
-    let sx = 0, sy = 0, sw = 0;
-    for (let p = 0, k = 0; k < N * N; k++, p += 4) {
-      if (F.lift) { for (let c = 0; c < 3; c++) d[p + c] = 255 * Math.pow(d[p + c] / 255, F.lift); d[p] *= 1.06; d[p + 2] *= 0.88; }
-      d[p + 3] = Math.min(255, d[p + 3] * 1.6);   // solid inside the silhouette
-      const m = Math.max(d[p], d[p + 1], d[p + 2]);
-      if (m > 200) { const f = (200 + (m - 200) * 0.45) / m; d[p] *= f; d[p + 1] *= f; d[p + 2] *= f; }
-      const a = d[p + 3] / 255; sx += (k % N) * a; sy += Math.floor(k / N) * a; sw += a;
-    }
-    px.putImageData(id, 0, 0);
-    const photo = canvas(NB), ph = photo.getContext('2d'); ph.drawImage(pc, PAD, PAD);
-    const bloom = canvas(NB), bl = bloom.getContext('2d'); bl.filter = 'blur(16px)'; bl.drawImage(pc, PAD, PAD);
-    // tinted silhouette halo
-    const sil = canvas(NB), sl = sil.getContext('2d');
-    sl.drawImage(pc, PAD, PAD); sl.globalCompositeOperation = 'source-in'; sl.fillStyle = rgba(F.tint, 1); sl.fillRect(0, 0, NB, NB);
-    const shade = canvas(NB), sh = shade.getContext('2d'); sh.filter = 'blur(12px)'; sh.drawImage(sil, 0, 0);
-    sh.filter = 'none'; sh.globalCompositeOperation = 'source-in'; sh.fillStyle = '#000'; sh.fillRect(0, 0, NB, NB);
-    const halo = canvas(NB), hl = halo.getContext('2d'); hl.filter = 'blur(34px)'; hl.drawImage(sil, 0, 0);
-    hl.filter = 'blur(10px)'; hl.globalAlpha = 0.6; hl.drawImage(sil, 0, 0);
-    const lines = canvas(NB), ll = lines.getContext('2d');
-    ll.filter = 'blur(3px)'; ll.globalAlpha = 0.9; ll.drawImage(A[F.name + '_lines'], PAD, PAD, N, N);
-    ll.filter = 'none'; ll.globalAlpha = 1; ll.globalCompositeOperation = 'lighter'; ll.drawImage(A[F.name + '_lines'], PAD, PAD, N, N);
-    const ox = sx / sw - N / 2, oy = sy / sw - N / 2, R = HG.rng(41 + FOODS.indexOf(F) * 13), pts = [];
-    for (let tries = 0; pts.length < 700 && tries < 200000; tries++) {
-      const x = Math.floor(R() * N), y = Math.floor(R() * N), q = (y * N + x) * 4;
-      if (d[q + 3] < 160) continue;
-      const m = Math.max(d[q], d[q + 1], d[q + 2], 1), qn = v => Math.min(255, Math.round((0.7 * v * 255 / m + 0.3 * 235) / 24) * 24);
-      pts.push({ x: x - N / 2 - ox, y: y - N / 2 - oy, col: [qn(d[q]), qn(d[q + 1]), qn(d[q + 2])] });
-    }
-    const sa = new Uint8Array(N * N); for (let k = 0; k < N * N; k++) sa[k] = d[k * 4 + 3];
-    return { photo, bloom, halo, shade, lines, ox, oy, pts, sa };
-  });
-  STAR = makeStar(CREAM); STAR_W = makeStar(GOLD);
-  SUN = HG.layer();
-  DLc = canvas(W); DL = DLc.getContext('2d', { willReadFrequently: true });
-  // two-octave value noise over item space: gives the dissolving front an organic edge
-  const R = HG.rng(77), grid = n => { const g = new Float32Array((n + 1) * (n + 1)); for (let k = 0; k < g.length; k++) g[k] = R(); return g; };
-  const g1 = grid(7), g2 = grid(19);
-  const vn = (g, n, x, y) => { const X = x * n, Y = y * n, i = Math.min(n - 1, Math.floor(X)), j = Math.min(n - 1, Math.floor(Y));
-    const fx = sm(X - i), fy = sm(Y - j), a = g[j * (n + 1) + i], b = g[j * (n + 1) + i + 1], c = g[(j + 1) * (n + 1) + i], d = g[(j + 1) * (n + 1) + i + 1];
-    return lerp(lerp(a, b, fx), lerp(c, d, fx), fy); };
-  NOISE = new Float32Array(NZ * NZ);
-  for (let y = 0; y < NZ; y++) for (let x = 0; x < NZ; x++) NOISE[y * NZ + x] = 0.62 * vn(g1, 7, x / NZ, y / NZ) + 0.38 * vn(g2, 19, x / NZ, y / NZ);
+const N = 512, PAD = 96, NB = N + 2 * PAD;
+let GEO = null, STAR = null, STAR_W = null, SUN = null, RIM = null, WASH = null, DISF = null, DISE = null;
+function mk(n) { const c = document.createElement('canvas'); c.width = c.height = n; return { cv: c, ctx: c.getContext('2d') }; }
+
+// one warm grade for all five photos: greens lean to gold, shadows stay amber, no white blowouts
+function grade(F, d) {
+  for (let p = 0; p < d.length; p += 4) {
+    let r = d[p], g = d[p + 1], b = d[p + 2], a = d[p + 3] / 255;
+    if (a === 0) continue;
+    if (F.lift) {             // vanilla: the brown pods would vanish on the fan, so lift and warm them
+      const L = 0.3 * r + 0.59 * g + 0.11 * b, L2 = 255 * Math.pow(L / 255, 0.6);
+      const s = lerp(L2 / Math.max(L, 1), 1, smooth(110, 210, L));
+      r *= s * 1.14; g *= s * 1.0; b *= s * 0.74;
+      a = Math.min(1, a * 2.3);
+    } else a = Math.min(1, a * 1.6);
+    const gg = Math.max(0, g - r);
+    r += 0.38 * gg; g -= 0.05 * gg; b *= 0.88;
+    const L = 0.3 * r + 0.59 * g + 0.11 * b, sh = Math.pow(1 - clamp(L / 110), 2);
+    r += 24 * sh; g += 10 * sh; b += 2 * sh; r *= 1.03;
+    const m = Math.max(r, g, b);
+    if (m > 205) { const f = (205 + (m - 205) * 0.4) / m; r *= f; g *= f; b *= f; }
+    d[p] = r; d[p + 1] = g; d[p + 2] = b; d[p + 3] = a * 255;
+  }
 }
-const NZ = 200;
-// noise at item-space coordinates (pixels of the 640 bake, relative to the item's centroid)
-function noiseAt(u, v) {
-  const x = clamp((u / NB + 0.5) * (NZ - 1), 0, NZ - 1.001), y = clamp((v / NB + 0.5) * (NZ - 1), 0, NZ - 1.001);
-  const i = x | 0, j = y | 0, fx = x - i, fy = y - j, q = j * NZ + i;
-  return lerp(lerp(NOISE[q], NOISE[q + 1], fx), lerp(NOISE[q + NZ], NOISE[q + NZ + 1], fx), fy);
+
+function valueNoise(R, cells) {
+  const w = cells + 1, g = new Float32Array(w * w);
+  for (let k = 0; k < g.length; k++) g[k] = R();
+  return (x, y) => {
+    const X = x * cells, Y = y * cells, i = Math.min(cells - 1, X | 0), j = Math.min(cells - 1, Y | 0), fx = sm(X - i), fy = sm(Y - j);
+    return lerp(lerp(g[j * w + i], g[j * w + i + 1], fx), lerp(g[(j + 1) * w + i], g[(j + 1) * w + i + 1], fx), fy);
+  };
+}
+
+// chamfer distance from each inside pixel to the silhouette edge
+function edgeDistance(inside) {
+  const D = new Float32Array(N * N), INF = 1e6, s2 = 1.4142;
+  for (let k = 0; k < N * N; k++) D[k] = inside[k] ? INF : 0;
+  const at = (x, y) => (x < 0 || y < 0 || x >= N || y >= N) ? 0 : D[y * N + x];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const k = y * N + x; if (!D[k]) continue;
+    D[k] = Math.min(D[k], at(x - 1, y) + 1, at(x, y - 1) + 1, at(x - 1, y - 1) + s2, at(x + 1, y - 1) + s2);
+  }
+  for (let y = N - 1; y >= 0; y--) for (let x = N - 1; x >= 0; x--) {
+    const k = y * N + x; if (!D[k]) continue;
+    D[k] = Math.min(D[k], at(x + 1, y) + 1, at(x, y + 1) + 1, at(x + 1, y + 1) + s2, at(x - 1, y + 1) + s2);
+  }
+  return D;
+}
+
+function bakeFood(F, i, A) {
+  const pc = document.createElement('canvas'); pc.width = pc.height = N;
+  const px = pc.getContext('2d', { willReadFrequently: true });
+  px.imageSmoothingQuality = 'high'; px.drawImage(A[F.name], 0, 0, N, N);
+  const img = px.getImageData(0, 0, N, N), d = img.data;
+  grade(F, d);
+
+  // centroid and principal axis of the silhouette
+  let sw = 0, sx = 0, sy = 0;
+  for (let k = 0; k < N * N; k++) { const a = d[k * 4 + 3] / 255; if (a < 0.4) continue; sw += a; sx += a * (k % N); sy += a * ((k / N) | 0); }
+  const cx = sx / sw, cy = sy / sw;
+  let sxx = 0, syy = 0, sxy = 0;
+  for (let k = 0; k < N * N; k++) {
+    const a = d[k * 4 + 3] / 255; if (a < 0.4) continue;
+    const x = k % N - cx, y = ((k / N) | 0) - cy; sxx += a * x * x; syy += a * y * y; sxy += a * x * y;
+  }
+  const al = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+  // lie along the orbit at the arrival slot, turning as little as possible from the natural pose
+  const phi = slotAng(i, tArr(i));
+  const rho = (a => a - Math.PI * Math.round(a / Math.PI))(phi + Math.PI / 2 - al);
+  const mu = phi + Math.PI / 2 - rho, mx = Math.cos(mu), my = Math.sin(mu);   // item-space direction of travel
+
+  const inside = new Uint8Array(N * N), list = [];
+  let umin = 1e9, umax = -1e9, fmin = 1e9, fmax = -1e9, rmax = 0;
+  const ext = new Float32Array(64);                // silhouette extent in 64 directions (for the light wash)
+  for (let k = 0; k < N * N; k++) {
+    const a = d[k * 4 + 3]; if (a <= 8) continue;
+    list.push(k);
+    if (a < 100) continue;
+    inside[k] = 1;
+    const x = k % N - cx, y = ((k / N) | 0) - cy, u = x * Math.cos(al) + y * Math.sin(al), f = x * mx + y * my;
+    umin = Math.min(umin, u); umax = Math.max(umax, u); fmin = Math.min(fmin, f); fmax = Math.max(fmax, f);
+    rmax = Math.max(rmax, Math.hypot(x, y));
+    if ((k & 3) === 0) for (let q = 0; q < 64; q++) { const pr = x * Math.cos(q / 64 * TAU) + y * Math.sin(q / 64 * TAU); if (pr > ext[q]) ext[q] = pr; }
+  }
+  const k = F.len / (umax - umin);
+
+  // burn order: from the trailing end forward, edges and far protrusions slightly ahead of the
+  // body, broken up by four octaves of noise, then rank-normalised so area burns at an even rate
+  const D = edgeDistance(inside);
+  let dmax = 0; for (let q = 0; q < N * N; q++) if (D[q] > dmax) dmax = D[q];
+  const R = HG.rng(77 + i * 19), n1 = valueNoise(R, 6), n2 = valueNoise(R, 15), n3 = valueNoise(R, 46), n4 = valueNoise(R, 112);
+  const L = list.length, raw = new Float32Array(L);
+  for (let j = 0; j < L; j++) {
+    const q = list[j], x = q % N, y = (q / N) | 0, ux = x / N, uy = y / N;
+    const s = ((x - cx) * mx + (y - cy) * my - fmin) / (fmax - fmin);
+    const e = Math.min(1, D[q] / (0.55 * dmax)), c = Math.min(1, Math.hypot(x - cx, y - cy) / rmax);
+    const nz = 0.4 * n1(ux, uy) + 0.27 * n2(ux, uy) + 0.21 * n3(ux, uy) + 0.12 * n4(ux, uy);
+    raw[j] = 0.7 * s + 0.13 * e - 0.07 * c + 0.36 * (nz - 0.5);
+  }
+  const ord = Array.from({ length: L }, (_, j) => j).sort((a, b) => raw[a] - raw[b]);
+  const tau = new Float32Array(L);
+  for (let r = 0; r < L; r++) tau[ord[r]] = r / (L - 1);
+
+  // ember sparks sampled over the body, each released when the front reaches it
+  const RS = HG.rng(500 + i * 23), sparks = [];
+  for (let tries = 0; sparks.length < 700 && tries < 100000; tries++) {
+    const j = Math.floor(RS() * L), q = list[j] * 4;
+    if (d[q + 3] < 140) continue;
+    const m = Math.max(d[q], d[q + 1], d[q + 2], 1), lift = v => 0.65 * v * 250 / m + 0.35 * 235;
+    const hot = RS() < 0.55;
+    sparks.push({ x: list[j] % N - cx, y: ((list[j] / N) | 0) - cy, tau: tau[j], hot,
+      col: hot ? (RS() < 0.5 ? [255, 214, 130] : [255, 150, 54]) : qc([lift(d[q]), lift(d[q + 1]), lift(d[q + 2])]),
+      life: 0.45 + 0.5 * RS(), vo: 40 + 80 * RS(), vb: 20 + 70 * RS(), sw: (RS() - 0.5) * 50, sz: 4 + 9 * RS(), tw: RS() * TAU, glint: RS() < 0.1 });
+  }
+
+  const photo = mk(NB); photo.ctx.putImageData(img, PAD, PAD);
+  const sil = mk(NB); sil.ctx.drawImage(photo.cv, 0, 0); sil.ctx.globalCompositeOperation = 'source-in';
+  sil.ctx.fillStyle = rgba(mix(F.tint, GOLD, 0.45).map(Math.round), 1); sil.ctx.fillRect(0, 0, NB, NB);
+  const halo = mk(NB); halo.ctx.filter = 'blur(30px)'; halo.ctx.drawImage(sil.cv, 0, 0);
+  halo.ctx.filter = 'blur(9px)'; halo.ctx.globalAlpha = 0.6; halo.ctx.drawImage(sil.cv, 0, 0);
+  const shade = mk(NB); shade.ctx.filter = 'blur(12px)'; shade.ctx.drawImage(sil.cv, 0, 0);
+  shade.ctx.filter = 'none'; shade.ctx.globalCompositeOperation = 'source-in'; shade.ctx.fillStyle = '#000'; shade.ctx.fillRect(0, 0, NB, NB);
+  const bloom = mk(NB); bloom.ctx.filter = 'blur(14px)'; bloom.ctx.drawImage(photo.cv, 0, 0);
+  const lines = mk(NB), ll = lines.ctx;
+  ll.filter = 'blur(3px)'; ll.globalAlpha = 0.9; ll.drawImage(A[F.name + '_lines'], PAD, PAD, N, N);
+  ll.filter = 'none'; ll.globalAlpha = 1; ll.globalCompositeOperation = 'lighter'; ll.drawImage(A[F.name + '_lines'], PAD, PAD, N, N);
+
+  return { k, rho, rHero: 0.35 * rho, phi, ox: cx - N / 2, oy: cy - N / 2, ext, emax: Math.max(...ext),
+    halfBack: (-fmin * k + 8) / R_ORB, halfFront: (fmax * k + 8) / R_ORB,
+    photo: photo.cv, halo: halo.cv, shade: shade.cv, bloom: bloom.cv, lines: lines.cv,
+    pix: d, list: Int32Array.from(list), tau, outF: new ImageData(N, N), outE: new ImageData(N, N), sparks };
+}
+
+function bake(A) {
+  GEO = [];
+  FOODS.forEach((F, i) => { GEO[i] = bakeFood(F, i, A); });
+  STAR = makeStar(CREAM); STAR_W = makeStar(GOLD);
+  SUN = HG.layer(); RIM = mk(NB); WASH = mk(NB); DISF = mk(NB); DISE = mk(NB);
 }
 
 // a four-point glint: soft core plus thin cross flares
 function makeStar(col, S = 160) {
-  const c = canvas(S), g = c.getContext('2d'), h = S / 2;
+  const { cv: c, ctx: g } = mk(S), h = S / 2;
   g.globalCompositeOperation = 'lighter';
   const core = g.createRadialGradient(h, h, 0, h, h, h * 0.42);
-  core.addColorStop(0, 'rgba(255,248,230,1)'); core.addColorStop(0.18, rgba(col, 0.85));
+  core.addColorStop(0, 'rgba(255,246,226,1)'); core.addColorStop(0.18, rgba(col, 0.85));
   core.addColorStop(0.5, rgba(col, 0.22)); core.addColorStop(1, rgba(col, 0));
   g.fillStyle = core; g.fillRect(0, 0, S, S);
   for (const rot of [0, Math.PI / 2]) {
     g.save(); g.translate(h, h); g.rotate(rot); g.scale(1, 0.045);
     const s = g.createRadialGradient(0, 0, 0, 0, 0, h);
-    s.addColorStop(0, 'rgba(255,246,225,0.95)'); s.addColorStop(0.25, rgba(col, 0.55)); s.addColorStop(1, rgba(col, 0));
+    s.addColorStop(0, 'rgba(255,244,222,0.95)'); s.addColorStop(0.25, rgba(col, 0.55)); s.addColorStop(1, rgba(col, 0));
     g.fillStyle = s; g.beginPath(); g.arc(0, 0, h, 0, TAU); g.fill(); g.restore();
   }
   return c;
@@ -143,54 +231,61 @@ function star(x, y, size, alpha, img = STAR) {
   ctx.globalAlpha = Math.min(1, alpha); ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
 }
 
-// ---------- the sunburst
+// the colour of the gift lying in direction a (blended between neighbours)
+function chainColor(a, t) {
+  const q = (((a - theta(t)) / (TAU / 5)) % 5 + 5) % 5, i0 = Math.floor(q), f = sm(q - i0);
+  return mix(GOLD, mix(FOODS[i0].tint, FOODS[(i0 + 1) % 5].tint, f), 0.8);
+}
+
+// ---------- the sun
 function drawSun(t) {
   const g = SUN.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
-  const retract = ease.inOut3((t - 10.0) / 1.3);
-  let pulse = 0; for (let i = 0; i < 5; i++) pulse += bump(t, tE(i) - 0.05, 0.9);
-  pulse += 1.3 * bump(t, T_FULL - 0.1, 1.3);
-  const heroDim = FOODS.reduce((m, _, i) => Math.max(m, HG.window(t, tE(i), tE(i) + HOLD + 0.55, 0.25, 0.45)), 0);
-  const breath = 1 + 0.04 * Math.sin(TAU * t / 3.6);
-  const glowA = smooth(0.3, 1.3, t) * (1 - smooth(10.3, 11.5, t));
-  if (glowA <= 0) return 0;
+  const glowA = smooth(0.15, 0.9, t) * (1 - smooth(10.6, 11.15, t));
+  if (glowA <= 0) return;
+  let pulse = 0; for (let i = 0; i < 5; i++) pulse += bump(t, tE(i) - 0.05, 0.85);
+  pulse += 0.55 * bump(t, 1.12, 0.6) + 1.2 * bump(t, T_FULL - 0.05, 1.3) + 0.5 * bump(t, 8.75, 0.9);
+  const heroDim = FOODS.reduce((m, _, i) => Math.max(m, HG.window(t, tE(i), tE(i) + HOLD + 0.5, 0.2, 0.45)), 0);
+  const breath = 1 + 0.035 * Math.sin(TAU * t / 3.6);
   g.translate(C, C); g.globalCompositeOperation = 'lighter';
-  const rot0 = 0.075 * 0.8;
-  const ext = (1 + 0.1 * pulse) * breath * (1 - retract);
-  const rayK = (i, n, d0) => ease.out3((t - d0 - 0.55 * frac(i / n + 0.25 + rot0 / TAU)) / 0.95);   // sweeps clockwise from the top
+  const ext = (1 + 0.08 * pulse) * breath;
+  // rays open clockwise from the top and fold back counter-clockwise from the top
+  const open = (a, d0, dur) => ease.out3((t - d0 - 0.45 * cwTop(a)) / dur);
+  const fold = a => ease.inOut3((t - 9.75 - 0.6 * frac(1 - cwTop(a))) / 0.5);
 
   // hairline halo: fine engraved rays, slowly counter-rotating
   { const R = HG.rng(91), rot = -0.045 * t, n = 120;
-    const grd = g.createRadialGradient(0, 0, 78, 0, 0, 228);
+    const grd = g.createRadialGradient(0, 0, 80, 0, 0, 232);
     grd.addColorStop(0, rgba(CREAM, 0.42)); grd.addColorStop(0.5, rgba(GOLD, 0.18)); grd.addColorStop(1, rgba(AMBER, 0));
     g.strokeStyle = grd; g.lineWidth = 1.1; g.beginPath();
     for (let i = 0; i < n; i++) {
-      const len = (34 + 112 * Math.pow(R(), 1.6)) * rayK(i, n, 0.75) * ext, a = rot + i / n * TAU;
+      const a0 = i / n * TAU, a = rot + a0;
+      const len = (32 + 112 * Math.pow(R(), 1.6)) * open(a0 - 0.036, 0.5, 0.5) * (1 - fold(a0 - 0.46)) * ext;
       if (len < 1) continue;
       const ca = Math.cos(a), sa = Math.sin(a);
-      g.moveTo(ca * 82, sa * 82); g.lineTo(ca * (82 + len), sa * (82 + len));
+      g.moveTo(ca * 84, sa * 84); g.lineTo(ca * (84 + len), sa * (84 + len));
     }
     g.stroke(); }
 
-  // twelve straight pointed rays alternating with twelve flame rays
+  // eight great pointed rays (like the stone's), eight lesser ones, sixteen flames between
   const rot = 0.075 * t, r0 = 70;
-  for (let i = 0; i < 24; i++) {
-    const a = rot + i / 24 * TAU, k = rayK(i, 24, 0.5);
-    if (k <= 0.002) continue;
-    const straight = i % 2 === 0, long = i % 4 === 0;
-    const L = (straight ? (long ? 132 : 100) : 84) * k * ext;
+  for (let i = 0; i < 32; i++) {
+    const a0 = i / 32 * TAU, a = rot + a0;
+    const kk = open(a0 + 0.06, 0.45, 0.45) * (1 - fold(a0 + 0.76));
+    if (kk <= 0.002) continue;
+    const kind = i % 4 === 0 ? 0 : i % 4 === 2 ? 1 : 2;
+    const L = [138, 100, 86][kind] * kk * ext;
     if (L < 1) continue;
     g.save(); g.rotate(a);
     const lg = g.createLinearGradient(r0, 0, r0 + L, 0);
     lg.addColorStop(0, rgba(CREAM, 0.8)); lg.addColorStop(0.4, rgba(GOLD, 0.6)); lg.addColorStop(1, rgba(AMBER, 0));
     g.fillStyle = lg; g.beginPath();
-    if (straight) {
-      const hw = long ? 7 : 5.5;
+    if (kind < 2) {
+      const hw = kind === 0 ? 8 : 5.2;
       g.moveTo(r0, -hw); g.lineTo(r0 + L, 0); g.lineTo(r0, hw);
     } else {
-      const steps = 22, ph = t * 2.1 + i, left = [], right = [];
+      const steps = 20, ph = t * 2.1 + i, left = [], right = [];
       for (let s = 0; s <= steps; s++) {
-        const u = s / steps, x = r0 + u * L, off = 6.5 * Math.sin(u * 3.2 * Math.PI - ph) * Math.pow(u, 0.8);
-        const hw = 4.8 * (1 - u) + 0.3;
+        const u = s / steps, x = r0 + u * L, off = 6 * Math.sin(u * 3.2 * Math.PI - ph) * Math.pow(u, 0.8), hw = 4.4 * (1 - u) + 0.3;
         left.push([x, off - hw]); right.push([x, off + hw]);
       }
       g.moveTo(left[0][0], left[0][1]);
@@ -200,34 +295,56 @@ function drawSun(t) {
     g.closePath(); g.fill(); g.restore();
   }
 
-  // inner rings, engraved ticks and a ring of kernels
-  const ringK = smooth(0.5, 1.4, t) * (1 - smooth(9.95, 10.8, t));
-  if (ringK > 0) {
-    const sc = (0.6 + 0.4 * smooth(0.5, 1.4, t)) * (1 - 0.55 * retract);
-    g.lineWidth = 1.4; g.strokeStyle = rgba(CREAM, 0.7 * ringK);
-    g.beginPath(); g.arc(0, 0, 40 * sc, 0, TAU); g.stroke();
-    g.lineWidth = 1; g.strokeStyle = rgba(GOLD, 0.5 * ringK);
-    g.beginPath(); g.arc(0, 0, 64 * sc, 0, TAU); g.stroke();
-    const tr = 0.05 * t; g.lineWidth = 1.2; g.strokeStyle = rgba(GOLD, 0.55 * ringK); g.beginPath();
-    for (let i = 0; i < 48; i++) {
-      const a = tr + i / 48 * TAU, r1 = 44 * sc, r2 = (i % 4 ? 49 : 53) * sc;
-      g.moveTo(Math.cos(a) * r1, Math.sin(a) * r1); g.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
+  // the medallion: rings drawn on from the top, a ring of twenty day-sign cells, the four
+  // Ollin cartouches with cardinal points, and a ring of twenty kernels
+  const mk_ = smooth(0.45, 0.9, t) * (1 - smooth(10.25, 10.85, t));
+  if (mk_ > 0) {
+    const sc = (0.8 + 0.2 * ease.out3((t - 0.45) / 0.8)) * (1 - 0.55 * ease.inOut3((t - 10.2) / 0.65));
+    const draw = ease.inOut3((t - 0.5) / 0.7), a0 = -Math.PI / 2;
+    const arc = (r, w, col, al) => { g.lineWidth = w; g.strokeStyle = rgba(col, al * mk_); g.beginPath(); g.arc(0, 0, r * sc, a0, a0 + TAU * draw); g.stroke(); };
+    arc(66, 1.1, GOLD, 0.5); arc(54, 1.1, GOLD, 0.55); arc(43, 1.3, CREAM, 0.65); arc(38, 0.9, GOLD, 0.45);
+    const tr = 0.05 * t;
+    g.lineWidth = 1.1;
+    for (let j = 0; j < 20; j++) {                   // day-sign cells
+      const a = tr + j / 20 * TAU, on = smooth(0.62 + 0.4 * j / 20, 0.8 + 0.4 * j / 20, t);
+      if (on <= 0) continue;
+      g.save(); g.rotate(a); g.translate(48.5 * sc, 0);
+      g.strokeStyle = rgba(GOLD, 0.6 * on * mk_); g.strokeRect(-3.4 * sc, -3.4 * sc, 6.8 * sc, 6.8 * sc);
+      g.fillStyle = rgba(CREAM, 0.55 * on * mk_); g.fillRect(-1 * sc, -1 * sc, 2 * sc, 2 * sc);
+      g.restore();
     }
-    g.stroke();
-    const kr = -0.12 * t;
-    for (let i = 0; i < 24; i++) {
-      const a = kr + i / 24 * TAU, kk = smooth(0.8 + i / 24 * 0.5, 1.2 + i / 24 * 0.5, t) * (1 - retract);
-      HG.dot(g, GOLD, Math.cos(a) * 58 * sc, Math.sin(a) * 58 * sc, 7, 0.8 * kk);  // kernels
+    const ro = -0.03 * t, on4 = smooth(0.75, 1.15, t);
+    for (let j = 0; j < 4; j++) {                    // Ollin: four cartouches and four cardinal points
+      g.save(); g.rotate(ro + j * Math.PI / 2);
+      g.save(); g.rotate(Math.PI / 4); g.translate(23 * sc, 0); g.rotate(Math.PI / 4);
+      g.strokeStyle = rgba(CREAM, 0.7 * on4 * mk_); g.lineWidth = 1.3; g.strokeRect(-5 * sc, -5 * sc, 10 * sc, 10 * sc);
+      g.fillStyle = rgba(GOLD, 0.6 * on4 * mk_); g.beginPath(); g.arc(0, 0, 1.6 * sc, 0, TAU); g.fill();
+      g.restore();
+      g.fillStyle = rgba(GOLD, 0.62 * on4 * mk_); g.beginPath();
+      g.moveTo(26 * sc, -3.6 * sc); g.lineTo(35.5 * sc, 0); g.lineTo(26 * sc, 3.6 * sc); g.closePath(); g.fill();
+      g.restore();
+    }
+    g.strokeStyle = rgba(CREAM, 0.6 * on4 * mk_); g.lineWidth = 1.2; g.beginPath(); g.arc(0, 0, 9 * sc, 0, TAU); g.stroke();
+    // kernels: lit one by one at the start; later they answer the chain in the gifts' colours
+    const kr = -0.12 * t, chase = clamp((t - 8.75) / 0.8), back = 1 - smooth(9.6, 10.2, t);
+    for (let j = 0; j < 20; j++) {
+      const a = kr + j / 20 * TAU, kk = smooth(0.7 + j / 20 * 0.45, 0.95 + j / 20 * 0.45, t);
+      const lit = sm((chase - cwTop(a)) * 12) * back;
+      const col = qc(mix(GOLD, chainColor(a, t), lit)), x = Math.cos(a) * 60 * sc, y = Math.sin(a) * 60 * sc;
+      if (lit > 0.01) HG.dot(g, qc(chainColor(a, t)), x, y, 26, 0.5 * lit * mk_);   // a coloured glow round each lit kernel
+      HG.dot(g, col, x, y, 7 + 6 * lit, (0.8 + 0.2 * lit) * kk * mk_);
     }
   }
 
   // the core glow: a small hot centre with a long soft falloff, never a flat disc
-  const coreR = (190 + 30 * pulse) * (1 - 0.55 * retract) * breath;
+  g.globalAlpha = 1;                                 // HG.dot leaves globalAlpha at the last bead's value
+  const collapse = ease.inOut3((t - 10.1) / 0.8);
+  const coreR = (185 + 26 * pulse) * breath * (0.3 + 0.7 * ease.out3((t - 0.1) / 0.9)) * (1 - 0.8 * collapse);
+  const hot = (0.66 + 0.16 * Math.min(1, pulse)) * (1 - 0.5 * heroDim) * smooth(0.1, 0.75, t);
   const cg = g.createRadialGradient(0, 0, 0, 0, 0, coreR);
-  const hot = (0.8 + 0.2 * Math.min(1, pulse)) * (1 - 0.6 * heroDim) * (1 + 0.6 * bump(t, 10.2, 1.2));
-  cg.addColorStop(0, rgba([255, 238, 200], 0.95 * hot)); cg.addColorStop(0.05, rgba(CREAM, 0.75 * hot));
-  cg.addColorStop(0.13, rgba(GOLD, 0.36 * hot)); cg.addColorStop(0.3, rgba(AMBER, 0.13 * hot));
-  cg.addColorStop(0.6, rgba(AMBER, 0.04 * hot)); cg.addColorStop(1, rgba(AMBER, 0));
+  cg.addColorStop(0, rgba([255, 232, 188], 0.72 * hot)); cg.addColorStop(0.05, rgba(CREAM, 0.56 * hot));
+  cg.addColorStop(0.14, rgba(GOLD, 0.32 * hot)); cg.addColorStop(0.32, rgba(AMBER, 0.11 * hot));
+  cg.addColorStop(0.62, rgba(AMBER, 0.035 * hot)); cg.addColorStop(1, rgba(AMBER, 0));
   g.fillStyle = cg; g.beginPath(); g.arc(0, 0, coreR, 0, TAU); g.fill();
 
   HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
@@ -235,39 +352,56 @@ function drawSun(t) {
   ctx.globalAlpha = 0.7 * glowA; ctx.filter = 'blur(6px)'; ctx.drawImage(SUN.cv, 0, 0);
   ctx.filter = 'none'; ctx.globalAlpha = glowA; ctx.drawImage(SUN.cv, 0, 0);
   HG.reset(ctx);
-  return glowA;
 }
 
-// ---------- the orbit: a fine ring drawn on by a travelling glint
-function drawOrbit(t) {
-  const k = ease.inOut3((t - 0.7) / 1.7), fade = 1 - smooth(9.9, 10.9, t);
+// ---------- the orbit: a fine chain drawn on by a travelling glint, parted under each gift
+function drawOrbit(t, S) {
+  const k = ease.inOut3((t - 0.55) / 0.9), fade = 1 - smooth(9.7, 10.6, t);
   if (k <= 0 || fade <= 0) return;
-  const a0 = -Math.PI / 2, a1 = a0 + TAU * k;
-  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
-  ctx.strokeStyle = rgba(GOLD, 1);
-  ctx.globalAlpha = 0.28 * fade; ctx.lineWidth = 6; ctx.filter = 'blur(7px)';
-  ctx.beginPath(); ctx.arc(C, C, R_ORB, a0, a1); ctx.stroke();
-  ctx.filter = 'none'; ctx.globalAlpha = 0.34 * fade; ctx.lineWidth = 1.3;
-  ctx.beginPath(); ctx.arc(C, C, R_ORB, a0, a1); ctx.stroke();
-  // fine beads riding the carousel
+  const a0 = -Math.PI / 2;
+  const sw = clamp((t - SWEEP_T) / SWEEP_D), head = ease.inOut3(sw);
+  const shimmer = smooth(T_FULL + 0.6, T_FULL + 1.6, t);
+  const gaps = S.map((s, i) => s ? { a: s.ang, w: smooth(0.7, 1, s.g) * s.alpha * (1 - s.dis), b: GEO[i].halfBack, f: GEO[i].halfFront } : null).filter(Boolean);
+  const info = a => {
+    const cw = frac((a - a0) / TAU);
+    let al = k >= 1 ? 1 : sm((k - cw) * 30);
+    for (const G of gaps) {
+      const d = wrapPi(a - G.a), hw = (d < 0 ? G.b : G.f) + 0.06;
+      al *= 1 - 0.92 * G.w * (1 - sm((Math.abs(d) - hw * 0.8) / (hw * 0.45)));
+    }
+    const filled = t >= SWEEP_T + SWEEP_D ? 1 : sw > 0 ? sm((head - cw) * 25) : 0;
+    return [al, mix(GOLD, chainColor(a, t), filled)];
+  };
+  const grad = ctx.createConicGradient(a0, C, C);
+  for (let s = 0; s <= 120; s++) { const [al, col] = info(a0 + s / 120 * TAU); grad.addColorStop(s / 120, rgba(col.map(Math.round), al)); }
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = grad;
+  ctx.globalAlpha = 0.3 * fade; ctx.lineWidth = 6; ctx.filter = 'blur(7px)';
+  ctx.beginPath(); ctx.arc(C, C, R_ORB, 0, TAU); ctx.stroke();
+  ctx.filter = 'none'; ctx.globalAlpha = (0.42 + 0.2 * shimmer) * fade; ctx.lineWidth = 1.4 + 0.4 * shimmer;
+  ctx.beginPath(); ctx.arc(C, C, R_ORB, 0, TAU); ctx.stroke();
+  // beads riding the carousel
   for (let j = 0; j < 60; j++) {
-    const a = theta(t) + j / 60 * TAU + 0.05;
-    if (((a - a0) % TAU + TAU) % TAU > TAU * k) continue;
-    HG.dot(ctx, GOLD, C + Math.cos(a) * R_ORB, C + Math.sin(a) * R_ORB, 6, 0.4 * fade);
+    const a = theta(t) + j / 60 * TAU + 0.05, [al, col] = info(a);
+    const tw = 0.42 + 0.45 * shimmer * (0.5 + 0.5 * Math.sin(t * 6.5 + j * 2.1));
+    HG.dot(ctx, qc(col), C + Math.cos(a) * R_ORB, C + Math.sin(a) * R_ORB, 6 + 2.5 * shimmer, tw * al * fade);
   }
   // the drawing head
-  if (k < 1) star(C + Math.cos(a1) * R_ORB, C + Math.sin(a1) * R_ORB, 90, 0.85 * Math.sin(Math.PI * k) * fade);
-  // with the ring complete, a sweep of light circles it once
-  const sw = clamp((t - T_FULL) / 1.6);
+  if (k < 1) star(C + Math.cos(a0 + TAU * k) * R_ORB, C + Math.sin(a0 + TAU * k) * R_ORB, 90, 0.85 * Math.sin(Math.PI * k));
+  // the light that runs round the finished chain
   if (sw > 0 && sw < 1) {
-    const ah = -Math.PI / 2 + TAU * ease.inOut3(sw), env = Math.sin(Math.PI * sw);
+    const ah = a0 + TAU * head, env = Math.sin(Math.PI * sw);
     for (let j = 0; j < 16; j++) {
       const a = ah - j * 0.035;
-      HG.dot(ctx, CREAM, C + Math.cos(a) * R_ORB, C + Math.sin(a) * R_ORB, 22 - j, 0.6 * env * (1 - j / 16));
+      HG.dot(ctx, GOLD, C + Math.cos(a) * R_ORB, C + Math.sin(a) * R_ORB, 22 - j, 0.38 * env * (1 - j / 16));
     }
-    star(C + Math.cos(ah) * R_ORB, C + Math.sin(ah) * R_ORB, 110, 0.7 * env);
+    star(C + Math.cos(ah) * R_ORB, C + Math.sin(ah) * R_ORB, 120, 0.6 * env, STAR_W);
   }
   ctx.restore();
+}
+function flare(i, t) {
+  const sw = clamp((t - SWEEP_T) / SWEEP_D); if (sw <= 0 || sw >= 1) return 0;
+  const d = wrapPi(-Math.PI / 2 + TAU * ease.inOut3(sw) - slotAng(i, t));
+  return Math.exp(-Math.pow(d / 0.32, 2)) * Math.min(1, 1.6 * Math.sin(Math.PI * sw));
 }
 
 // ---------- sparkles (all stateless)
@@ -286,137 +420,162 @@ function popBurst(t, t0, seed, x, y, { n = 46, v = 340, life = 1.25, scale = 1, 
 // the birth glint sits behind the newborn, so the sun flares around it rather than over it
 function birthGlints(t) {
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 5; i++) { const f = bump(t, tE(i) - 0.04, 0.6); if (f > 0) star(C, C, 110 + 210 * f, 0.5 * f, STAR_W); }
+  ctx.restore();
+}
+
+function sparkles(t, S) {
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < 5; i++) {
-    const f = bump(t, tE(i) - 0.04, 0.6);
-    if (f > 0) star(C, C, 120 + 230 * f, 0.5 * f, STAR_W);
+    const dt = t - tE(i);
+    if (dt > 0 && dt < 0.9) {                       // a tinted ring of light that stays inside the orbit
+      const k = dt / 0.9;
+      HG.ring(ctx, C, C, 70 + 200 * ease.out3(k), FOODS[i].tint, { width: 4, blur: 9, alpha: 0.42 * Math.pow(1 - k, 2) });
+    }
+    popBurst(t, tE(i), 300 + i * 17, C, C);
+    const ta = tArr(i) - 0.45;                      // settling into the slot: a small twinkle
+    if (t > ta && t < ta + 1.1 && S[i]) popBurst(t, ta, 500 + i * 13, S[i].x, S[i].y, { n: 16, v: 150, life: 0.9, scale: 0.7, img: STAR_W });
   }
   ctx.restore();
 }
 
-function sparkles(t) {
+// stardust shed from each gift's trailing end, half of it in the gift's own colour
+function trails(t, S) {
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < 5; i++) {
-    const t0 = tE(i), dt = t - t0;
-    // the birth: a soft glint, a ring of light and a spray of sparks
-    if (dt > 0 && dt < 1.0) {
-      const k = dt / 1.0;
-      HG.ring(ctx, C, C, 80 + 250 * ease.out3(k), FOODS[i].tint, { width: 4, blur: 9, alpha: 0.42 * Math.pow(1 - k, 2) });
-    }
-    popBurst(t, t0, 300 + i * 17, C, C);
-    // arriving in its slot: a small settling twinkle around the item
-    const ta = tArrive(i);
-    if (t > ta - 0.1 && t < ta + 1.2) {
-      const s = itemState(i, t);
-      popBurst(t, ta, 500 + i * 13, s.x, s.y, { n: 16, v: 150, life: 0.9, scale: 0.7, img: STAR_W });
-    }
-  }
-  ctx.restore();
-}
-
-// stardust shed behind each orbiting item
-function trails(t) {
-  ctx.save(); ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < 5; i++) {
-    const s = itemState(i, t); if (!s) continue;
-    const on = smooth(tArrive(i) - 0.2, tArrive(i) + 0.8, t) * s.alpha * (1 - smooth(0, 0.5, s.dis));
+    const s = S[i]; if (!s) continue;
+    const on = smooth(tArr(i) - 0.7, tArr(i) + 0.4, t) * s.alpha * (1 - smooth(0, 0.35, s.dis));
     if (on <= 0) continue;
-    const R = HG.rng(700 + i * 31), rr = R_ORB * (1 + 0.16 * s.end), base = slotAng(i, t);
-    for (let j = 0; j < 26; j++) {
-      const ph = R(), side = (R() - 0.5) * 2, sz = 7 + 12 * R(), tw = R() * TAU;
-      const u = frac(t * 0.55 + ph);
-      const a = base - (0.26 + 0.62 * u) / (1 + 0.16 * s.end);
-      const r = rr + side * (8 + 46 * u);
-      const al = on * smooth(0, 0.12, u) * Math.pow(1 - u, 1.6) * (0.55 + 0.45 * Math.sin(t * 9 + tw));
-      HG.dot(ctx, j % 4 ? GOLD : FOODS[i].tint, C + Math.cos(a) * r, C + Math.sin(a) * r, sz, 0.75 * al);
-      if (j % 6 === 0) star(C + Math.cos(a) * r, C + Math.sin(a) * r, sz * 3.2, 0.5 * al);
+    const R = HG.rng(700 + i * 31), back = GEO[i].halfBack * 0.85;
+    for (let j = 0; j < 36; j++) {
+      const ph = R(), side = (R() - 0.5) * 2, sz = 8 + 15 * R(), tw = R() * TAU;
+      const u = frac(t * 0.5 + ph);
+      const a = s.ang - back - 0.86 * u, r = s.r + side * (5 + 30 * u) + 8 * u;
+      const al = on * smooth(0, 0.1, u) * Math.pow(1 - u, 1.3) * (0.6 + 0.4 * Math.sin(t * 8 + tw));
+      HG.dot(ctx, j % 2 ? FOODS[i].tint : j % 3 ? GOLD : CREAM, C + Math.cos(a) * r, C + Math.sin(a) * r, sz * (1 - 0.4 * u), al);
+      if (j % 5 === 0) star(C + Math.cos(a) * r, C + Math.sin(a) * r, sz * 3.4, 0.5 * al);
     }
   }
   ctx.restore();
 }
 
-// the end: a glowing front sweeps across each item from its outer side, and the food
-// comes apart into sparks of its own colours that drift outward
-const DIR = [];
-function dirOf(i) {
-  if (!DIR[i]) { const s = itemState(i, DS(i)), d = Math.hypot(s.x - C, s.y - C); DIR[i] = [(s.x - C) / d, (s.y - C) / d]; }
-  return DIR[i];
+// ---------- the burn: char ahead of the front, a hot gold edge, an orange afterglow
+const CHAR = [44, 14, 5];
+function burn(P, pp) {
+  const F = P.outF.data, E = P.outE.data, pix = P.pix, list = P.list, tau = P.tau;
+  for (let j = 0; j < list.length; j++) {
+    const q = list[j] * 4, d = tau[j] - pp, a = pix[q + 3];
+    if (d > 0.1) { F[q] = pix[q]; F[q + 1] = pix[q + 1]; F[q + 2] = pix[q + 2]; F[q + 3] = a; E[q + 3] = 0; continue; }
+    if (d < -0.09) { F[q + 3] = 0; E[q + 3] = 0; continue; }
+    const ch = 0.92 * (1 - sm(d / 0.1));
+    F[q] = lerp(pix[q], CHAR[0], ch); F[q + 1] = lerp(pix[q + 1], CHAR[1], ch); F[q + 2] = lerp(pix[q + 2], CHAR[2], ch);
+    F[q + 3] = a * sm((d + 0.004) / 0.009);
+    const hot = Math.exp(-Math.pow((d - 0.006) / 0.014, 2)), ag = d < 0 ? 0.6 * Math.exp(d / 0.028) : 0, tot = hot + ag;
+    if (tot < 0.01) { E[q + 3] = 0; continue; }
+    E[q] = 255; E[q + 1] = (hot * 218 + ag * 104) / tot; E[q + 2] = (hot * 128 + ag * 22) / tot;
+    E[q + 3] = Math.min(1, tot) * a;
+  }
+  HG.reset(DISF.ctx); DISF.ctx.clearRect(0, 0, NB, NB); DISF.ctx.putImageData(P.outF, PAD, PAD);
+  HG.reset(DISE.ctx); DISE.ctx.clearRect(0, 0, NB, NB); DISE.ctx.putImageData(P.outE, PAD, PAD);
 }
-const HW = s => 0.62 * s.w;                              // half extent used by the front
-const AMP = 0.55, front = dis => (1.2 + AMP / 2) - (2.4 + AMP) * dis;   // in units of HW, outer side (+) first
-const EDGE = [255, 222, 150], BAND = 0.22;
 
-function dissolve(t) {
-  if (t < DS(0)) return;
-  const fadeAll = 1 - smooth(11.55, 11.97, t);
+// sparks released by the moving front, carried outward and back along the orbit
+function embers(t) {
+  if (t < DS(4)) return;
+  const fadeAll = 1 - smooth(11.25, 11.6, t);
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < 5; i++) {
-    const P = PRE[i].pts, [dx, dy] = dirOf(i), R = HG.rng(900 + i * 7), mid = itemState(i, DS(i) + DD / 2);
-    for (let j = 0; j < 210; j++) {
-      const p = P[Math.floor(R() * P.length)], life = 0.5 + 0.45 * R(), sp = 60 + 150 * R(), sw = (R() - 0.3) * 70, sz = 5 + 10 * R(), tw = R() * TAU;
-      // when the front reaches this point
-      const k = mid.w / N, c = Math.cos(mid.rot), sn = Math.sin(mid.rot);
-      const pn = ((p.x * c - p.y * sn) * k * dx + (p.x * sn + p.y * c) * k * dy) / HW(mid) + AMP * (noiseAt(p.x, p.y) - 0.5);
-      const s0 = DS(i) + DD * clamp((1.2 + AMP / 2 - pn) / (2.4 + AMP)), age = t - s0;
-      if (age < 0 || age > life) continue;
-      const st = itemState(i, s0), k0 = st.w / N, c0 = Math.cos(st.rot), s0n = Math.sin(st.rot);
-      const x0 = st.x + (p.x * c0 - p.y * s0n) * k0, y0 = st.y + (p.x * s0n + p.y * c0) * k0;
-      const m = (1 - Math.exp(-1.7 * age)) / 1.7;
-      const x = x0 + (dx * sp - dy * sw) * m, y = y0 + (dy * sp + dx * sw) * m - 18 * age;
-      const al = smooth(0, 0.05, age) * (1 - smooth(0.2 * life, life, age)) * (0.65 + 0.35 * Math.sin(t * 11 + tw)) * fadeAll;
-      if (j % 9 === 0) star(x, y, sz * 3.4, 0.55 * al);
-      else HG.dot(ctx, p.col, x, y, sz, 0.95 * al);
+    if (t < DS(i)) continue;
+    for (const p of GEO[i].sparks) {
+      const s0 = DS(i) + DD * (p.tau + 0.05) / 1.12, age = t - s0;
+      if (age < 0 || age > p.life) continue;
+      const st = itemState(i, s0), c = Math.cos(st.rot), sn = Math.sin(st.rot);
+      const x0 = st.x + (p.x * c - p.y * sn) * st.k, y0 = st.y + (p.x * sn + p.y * c) * st.k;
+      const r0 = Math.max(1, Math.hypot(x0 - C, y0 - C)), ox = (x0 - C) / r0, oy = (y0 - C) / r0;
+      const m = (1 - Math.exp(-2 * age)) / 2;
+      const x = x0 + (ox * p.vo + oy * p.vb + -oy * p.sw) * m, y = y0 + (oy * p.vo - ox * p.vb + ox * p.sw) * m - 16 * age;
+      const rf = 1 - smooth(440, 486, Math.hypot(x - C, y - C));
+      const al = smooth(0, 0.04, age) * (1 - smooth(0.25 * p.life, p.life, age)) * (0.6 + 0.4 * Math.sin(t * 12 + p.tw)) * fadeAll * rf;
+      if (p.glint) star(x, y, p.sz * 3.6, 0.6 * al, STAR_W);
+      else HG.dot(ctx, p.col, x, y, p.sz * (1 - 0.35 * age / p.life), 0.95 * al);
     }
   }
-  // the sun folds into a last glint
-  const f = bump(t, 10.75, 1.0);
-  if (f > 0) star(C, C, 40 + 170 * f, 0.55 * f);
   ctx.restore();
 }
 
-function paintFood(c, i, s) {
-  const P = PRE[i], k = s.w / N, D = NB * k;
-  c.save(); c.translate(s.x, s.y); c.rotate(s.rot); c.translate(-P.ox * k, -P.oy * k);
-  c.globalAlpha = 0.8 * s.alpha; c.drawImage(P.shade, -D / 2, -D / 2, D, D);   // a soft matte that parts the rays
-  c.globalCompositeOperation = 'lighter';
-  c.globalAlpha = s.alpha * s.halo; c.drawImage(P.halo, -D / 2, -D / 2, D, D);
-  c.globalAlpha = s.alpha * s.bloom; c.drawImage(P.bloom, -D / 2, -D / 2, D, D);
-  c.globalCompositeOperation = 'source-over'; c.globalAlpha = s.alpha; c.drawImage(P.photo, -D / 2, -D / 2, D, D);
-  c.globalCompositeOperation = 'lighter'; c.globalAlpha = s.alpha * s.rim; c.drawImage(P.lines, -D / 2, -D / 2, D, D);
-  c.restore();
+// ---------- a gift: shade, halo, photo, sun wash + engraved lines, sun-facing rim, embers
+function drawFood(i, s, t) {
+  if (!s || s.alpha <= 0.003 || s.dis >= 1) return;
+  const P = GEO[i], F = FOODS[i];
+  let src = P.photo, rem = 1, burning = false;
+  if (s.dis > 0) { const pp = lerp(-0.05, 1.07, s.dis); burn(P, pp); src = DISF.cv; rem = 1 - clamp(pp); burning = true; }
+  const k = s.k, D = NB * k;
+  // light from the sun, in item space
+  const dx = C - s.x, dy = C - s.y, lit = smooth(30, 150, Math.hypot(dx, dy));
+  const la = Math.atan2(dy, dx) - s.rot, ux = Math.cos(la), uy = Math.sin(la);
+  const fl = flare(i, t), boost = F.lift ? 1.45 : 1;
+  const rimA = Math.min(0.85, 0.42 * boost + 0.3 * s.flash + 0.45 * fl) * lit;
+  const washA = (0.22 + 0.2 * fl) * lit * (F.lift ? 1.3 : 1), lineA = 0.1 + 0.22 * s.flash + 0.14 * fl;
+
+  const w = WASH.ctx; HG.reset(w); w.clearRect(0, 0, NB, NB);
+  const cx = NB / 2 + P.ox, cy = NB / 2 + P.oy;
+  if (washA > 0.003) {
+    const q = Math.round(frac(la / TAU) * 64) % 64, e = P.ext[q];
+    const gr = w.createLinearGradient(cx + ux * e, cy + uy * e, cx - ux * e * 0.3, cy - uy * e * 0.3);
+    gr.addColorStop(0, rgba(WARM, Math.min(1, washA))); gr.addColorStop(1, rgba(WARM, 0));
+    w.fillStyle = gr; w.fillRect(0, 0, NB, NB);
+  }
+  if (lit < 0.99) {          // still on the sun: backlit, so the light wraps every edge
+    const e = P.emax, gr = w.createRadialGradient(cx, cy, 0.4 * e, cx, cy, e);
+    gr.addColorStop(0, rgba(WARM, 0)); gr.addColorStop(1, rgba(WARM, 0.42 * (1 - lit) * (F.lift ? 1.3 : 1)));
+    w.globalCompositeOperation = 'lighter'; w.fillStyle = gr; w.fillRect(0, 0, NB, NB);
+  }
+  w.globalCompositeOperation = 'lighter'; w.globalAlpha = lineA; w.drawImage(P.lines, 0, 0);
+  w.globalCompositeOperation = 'destination-in'; w.globalAlpha = 1; w.drawImage(src, 0, 0);
+  if (rimA > 0.004) {
+    const r = RIM.ctx; HG.reset(r); r.clearRect(0, 0, NB, NB);
+    r.drawImage(src, 0, 0);
+    r.globalCompositeOperation = 'source-in'; r.fillStyle = rgba(RIMC, 1); r.fillRect(0, 0, NB, NB);
+    const dl = 6 / k;
+    r.globalCompositeOperation = 'destination-out'; r.filter = 'blur(2px)'; r.drawImage(src, -ux * dl, -uy * dl); r.filter = 'none';
+  }
+
+  const A = s.alpha;
+  ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rot); ctx.translate(-P.ox * k, -P.oy * k);
+  ctx.globalAlpha = 0.72 * A * rem * rem; ctx.drawImage(P.shade, -D / 2, -D / 2, D, D);   // a soft matte that parts the rays
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = A * (0.34 + 0.24 * s.flash + 0.2 * fl) * boost * rem * rem; ctx.drawImage(P.halo, -D / 2, -D / 2, D, D);
+  const bl = A * (0.2 + 0.14 * s.flash);
+  if (burning) { ctx.filter = 'blur(8px)'; ctx.globalAlpha = bl; ctx.drawImage(src, -D / 2, -D / 2, D, D); ctx.filter = 'none'; }
+  else { ctx.globalAlpha = bl; ctx.drawImage(P.bloom, -D / 2, -D / 2, D, D); }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = A; ctx.drawImage(src, -D / 2, -D / 2, D, D);
+  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = A; ctx.drawImage(WASH.cv, -D / 2, -D / 2, D, D);
+  if (rimA > 0.004) {
+    ctx.filter = 'blur(4px)'; ctx.globalAlpha = Math.min(1, A * rimA * 0.9); ctx.drawImage(RIM.cv, -D / 2, -D / 2, D, D);
+    ctx.filter = 'none'; ctx.globalAlpha = Math.min(1, A * rimA); ctx.drawImage(RIM.cv, -D / 2, -D / 2, D, D);
+  }
+  if (burning) {
+    ctx.filter = 'blur(7px)'; ctx.globalAlpha = 0.85 * A; ctx.drawImage(DISE.cv, -D / 2, -D / 2, D, D);
+    ctx.filter = 'blur(1.5px)'; ctx.globalAlpha = 0.9 * A; ctx.drawImage(DISE.cv, -D / 2, -D / 2, D, D);
+    ctx.filter = 'none'; ctx.globalAlpha = 0.55 * A; ctx.drawImage(DISE.cv, -D / 2, -D / 2, D, D);
+  }
+  ctx.restore();
 }
 
-function drawFood(i, s) {
-  if (!s || s.alpha <= 0.003) return;
-  if (s.dis <= 0) { paintFood(ctx, i, s); return; }
-  // paint into a scratch layer, then burn away every pixel the noisy front has passed,
-  // leaving a glowing ember edge along it
-  const P = PRE[i], k = s.w / N, half = 0.75 * NB * k;
-  const x0 = Math.max(0, Math.floor(s.x - half)), y0 = Math.max(0, Math.floor(s.y - half));
-  const x1 = Math.min(W, Math.ceil(s.x + half)), y1 = Math.min(W, Math.ceil(s.y + half)), bw = x1 - x0, bh = y1 - y0;
-  if (bw <= 0 || bh <= 0) return;
-  HG.reset(DL); DL.clearRect(x0, y0, bw, bh);
-  paintFood(DL, i, s);
-  const img = DL.getImageData(x0, y0, bw, bh), d = img.data;
-  const [dx, dy] = dirOf(i), h = HW(s), f = front(s.dis), c = Math.cos(s.rot), sn = Math.sin(s.rot);
-  for (let y = 0; y < bh; y++) {
-    const ry = y0 + y - s.y;
-    for (let x = 0; x < bw; x++) {
-      const q = (y * bw + x) * 4; if (d[q + 3] === 0) continue;
-      const rx = x0 + x - s.x;
-      const u = (rx * c + ry * sn) / k, v = (-rx * sn + ry * c) / k;
-      const left = f - ((rx * dx + ry * dy) / h + AMP * (noiseAt(u, v) - 0.5));
-      if (left <= 0) { d[q + 3] = 0; continue; }
-      if (left < BAND) {
-        const sx = Math.round(u + N / 2 + P.ox), sy = Math.round(v + N / 2 + P.oy);
-        const inside = sx >= 0 && sy >= 0 && sx < N && sy < N ? P.sa[sy * N + sx] / 255 : 0;   // embers only on the food itself
-        const e = 1 - left / BAND, ee = Math.pow(e, 1.4) * inside;
-        d[q] = lerp(d[q], EDGE[0], ee); d[q + 1] = lerp(d[q + 1], EDGE[1], ee); d[q + 2] = lerp(d[q + 2], EDGE[2], ee);
-        d[q + 3] = Math.max(d[q + 3], 200 * ee) * smooth(0, 0.03, left);
-      }
-    }
+// ---------- the end: the folded sun pings once and is gone
+function finale(t) {
+  const x = clamp((t - 10.85) / 0.75); if (x <= 0 || x >= 1) return;
+  const env = smooth(0, 0.2, x) * (1 - smooth(0.2, 1, x));
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  star(C, C, 70 + 330 * ease.out3(x), 0.8 * env, STAR);
+  star(C, C, 40 + 120 * ease.out3(x), 0.5 * env, STAR_W);
+  HG.ring(ctx, C, C, 24 + 200 * ease.out3(x), GOLD, { width: 3, blur: 6, alpha: 0.5 * Math.pow(1 - x, 1.6) });
+  const R = HG.rng(4242);
+  for (let j = 0; j < 28; j++) {
+    const a = R() * TAU, v = 110 + 190 * R(), sz = 6 + 8 * R(), dd = 18 + v * (1 - Math.exp(-2.4 * x)) / 2.4;
+    HG.dot(ctx, j % 3 ? GOLD : CREAM, C + Math.cos(a) * dd, C + Math.sin(a) * dd, sz, 0.8 * Math.pow(1 - x, 1.5) * smooth(0, 0.08, x));
   }
-  DL.putImageData(img, x0, y0);
-  HG.reset(ctx); ctx.drawImage(DLc, x0, y0, bw, bh, x0, y0, bw, bh);
+  ctx.restore();
 }
 
 const assets = {};
@@ -426,18 +585,20 @@ HG.start({
   duration: 12,
   assets,
   render(t, A) {
-    if (!PRE) bake(A);
-    HG.dust(t, { n: 70, colors: [GOLD, CREAM], alpha: 0.22 * smooth(1.5, 3.5, t) * (1 - smooth(10.2, 11.4, t)), size: 5, r: 500, seed: 19 });
-    drawOrbit(t);
+    if (!GEO) bake(A);
+    const S = FOODS.map((_, i) => itemState(i, t));
+    HG.dust(t, { n: 70, colors: [GOLD, CREAM], alpha: 0.22 * smooth(1.5, 3.5, t) * (1 - smooth(10.2, 11.2, t)), size: 5, r: 470, seed: 19 });
+    drawOrbit(t, S);
     drawSun(t);
-    trails(t);
+    trails(t, S);
     birthGlints(t);
-    // settled items first, then the one gliding out, the newborn on top
-    const states = FOODS.map((_, i) => itemState(i, t));
-    const order = [0, 1, 2, 3, 4].filter(i => states[i]).sort((a, b) => states[a].g - states[b].g).reverse();
-    for (const i of order) drawFood(i, states[i]);
-    sparkles(t);
-    dissolve(t);
+    // settled gifts first, then the one gliding out, the newborn on top
+    const order = [0, 1, 2, 3, 4].filter(i => S[i]).sort((a, b) => S[b].g - S[a].g);
+    for (const i of order) drawFood(i, S[i], t);
+    sparkles(t, S);
+    embers(t);
+    finale(t);
   },
 });
+window.__S = { itemState: (i, t) => itemState(i, t), geo: () => GEO, N, PAD, NB, tE, tArr, DS, DD };
 </script></body></html>

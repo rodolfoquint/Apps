@@ -3,12 +3,13 @@
 <body><canvas id="c" width="1080" height="1080"></canvas>
 <script src="../engine.js"></script>
 <script>
-// Alebrije: two neon pens trace the creature's silhouette from the top of its head while its
-// painted patterns draw themselves outward from the face, all in light flowing through the
-// fiesta colours. The pens meet at the tail, the chest flower ignites and the painted alebrije
-// blooms out of it, releasing three comets that spiral into orbit. It floats, breathes and beats
-// its wing; sparkles travel across its patterns and its eyes twinkle. At the end it dissolves,
-// tail to face, into a rising whirlwind of its own coloured sparks.
+// Alebrije: a swirl of gold sparks gathers above the creature's head and ignites two neon pens.
+// They trace its silhouette while its painted patterns draw themselves outward from the face,
+// the light shifting from gold into the fiesta colours. The pens meet at the hind paw, the chest
+// flower ignites and the paint travels outward from it, replacing the neon line by line. Three
+// comets swoop in from the edge of the circle and settle into orbit; the alebrije floats, breathes
+// and beats its wing while sparkles travel across its patterns. At the end it burns away from the
+// paws upward, turning back into neon lines and warm embers that rise on an updraft.
 const { W, C, ctx, clamp, lerp, smooth, ease, rgba, COLORS } = HG;
 const TAU = Math.PI * 2;
 const DATA = (() => { const x = new XMLHttpRequest(); x.open('GET', '../assets/07-alebrije.json', false); x.send(); return JSON.parse(x.responseText); })();
@@ -20,21 +21,35 @@ function pal(u) {
   const i = Math.floor(u), f = u - i, s = f * f * (3 - 2 * f), a = PAL[i], b = PAL[(i + 1) % PAL.length];
   return [Math.round(a[0] + (b[0] - a[0]) * s), Math.round(a[1] + (b[1] - a[1]) * s), Math.round(a[2] + (b[2] - a[2]) * s)];
 }
-// sprites are cached per colour, so animated colours are snapped to a fine palette ramp
+// sprites are cached per colour, so animated colours are snapped to a fine ramp
 const palQ = u => pal(Math.round(u * 60) / 60);
+const mixQ = (a, b, k) => { k = Math.round(clamp(k) * 12) / 12; return [0, 1, 2].map(i => Math.round(lerp(a[i], b[i], k))); };
 const hash = (i, s = 0) => {
   let h = (Math.imul(i + 1, 374761393) + Math.imul(s + 7, 668265263)) >>> 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 };
 const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
 const sine = x => 0.5 - 0.5 * Math.cos(Math.PI * clamp(x));
+// near-constant speed with short eased ends (trapezoidal velocity), 0..1 -> 0..1
+function trap(u, e = 0.18) {
+  u = clamp(u); const n = 1 - e;
+  if (u < e) return u * u / (2 * e) / n;
+  if (u > 1 - e) return 1 - (1 - u) * (1 - u) / (2 * e) / n;
+  return (u - e / 2) / n;
+}
+const GOLD = COLORS.gold, WARM = COLORS.warm;
 
 // ---------- placement: the 1024px asset, scaled so the whole creature sits inside r ~455
 const K = 0.748, AX = 588, AY = 570;   // asset scale and where the asset centre lands
 const PX = 540, PY = 560;              // pivot for float / breathing
 function pose(t) {
   const push = 1 + 0.025 * sine((t - 4.4) / 5.4);       // slow push-in while it is alive
-  return { fy: 7 * Math.sin(TAU * (t - 0.6) / 4.4), b: push * (1 + 0.012 * Math.sin(TAU * (t - 0.3) / 3.3)), r: 0.008 * Math.sin(TAU * t / 5.6) };
+  const live = smooth(3.4, 5.4, t);                      // the creature comes alive as the paint arrives
+  return {
+    fy: (4 + 8 * live) * Math.sin(TAU * (t - 0.6) / 4.4),
+    b: push * (1 + (0.006 + 0.01 * live) * Math.sin(TAU * (t - 0.3) / 3.3)),
+    r: (0.005 + 0.008 * live) * Math.sin(TAU * t / 5.6),
+  };
 }
 function setPose(g, P) {
   g.setTransform(1, 0, 0, 1, 0, 0);
@@ -45,16 +60,27 @@ function map(ax, ay, P) {
   const sx = AX + (ax - 512) * K - PX, sy = AY + (ay - 512) * K - PY, c = Math.cos(P.r), s = Math.sin(P.r);
   return [PX + P.b * (sx * c - sy * s), PY + P.fy + P.b * (sx * s + sy * c)];
 }
+function unmap(x, y, P) {
+  const vx = (x - PX) / P.b, vy = (y - PY - P.fy) / P.b, c = Math.cos(P.r), s = Math.sin(P.r);
+  const sx = vx * c + vy * s, sy = -vx * s + vy * c;
+  return [(sx + PX - AX) / K + 512, (sy + PY - AY) / K + 512];
+}
+// soft silhouette (asset space, 128 px grid, 0..1)
+const SIL = DATA.sil;
+function silAt(ax, ay) {
+  const gx = clamp(ax / 8 - 0.5, 0, 126.999), gy = clamp(ay / 8 - 0.5, 0, 126.999);
+  const ix = Math.floor(gx), iy = Math.floor(gy), fx = gx - ix, fy = gy - iy, v = (x, y) => SIL[y * 128 + x] / 63;
+  return lerp(lerp(v(ix, iy), v(ix + 1, iy), fx), lerp(v(ix, iy + 1), v(ix + 1, iy + 1), fx), fy);
+}
 
-// ---------- wing beat (the wing foreshortens about its root line and lifts slightly)
-// and tail sway (the curl rocks about where it leaves the hip)
+// ---------- wing beat (the wing foreshortens about its root line and lifts) and tail sway
 const WP = DATA.wing.pivot, WU = DATA.wing.axis, WA = Math.atan2(WU[1], WU[0]), WN = [WU[1], -WU[0]];
 const TP = DATA.tail.pivot;
 function flap(t) {
-  const amp = bump(t, 5.1, 5.9, 8.9, 9.45), ph = TAU * (t - 5.1) / 1.75;
+  const amp = bump(t, 5.2, 6.0, 8.9, 9.45), ph = TAU * (t - 5.2) / 1.75;
   const v = 0.5 - 0.5 * Math.cos(ph);
-  const tamp = bump(t, 4.9, 5.9, 8.7, 9.45);
-  return { s: 1 - 0.15 * amp * v, th: -0.045 * amp * Math.sin(ph - 0.9), amp, tail: 0.05 * tamp * Math.sin(TAU * (t - 4.9) / 3.1), tamp };
+  const tamp = bump(t, 5.0, 6.0, 8.7, 9.45);
+  return { s: 1 - 0.15 * amp * v, th: -0.08 * amp * Math.sin(ph - 0.9), amp, v, tail: 0.06 * tamp * Math.sin(TAU * (t - 5.0) / 3.1), tamp };
 }
 function flapPt(x, y, F, w, tw = 0) {
   if (tw > 0 && F.tamp > 0) {
@@ -69,14 +95,20 @@ function flapPt(x, y, F, w, tw = 0) {
   return [lerp(x, fx, w), lerp(y, fy, w)];
 }
 // draw the painted creature in asset space (pose already set on g)
+const WL = HG.layer();
 function creature(g, A, F) {
   g.imageSmoothingQuality = 'high';
   if (F.amp <= 0 && F.tamp <= 0) { g.drawImage(A.full, 0, 0, 1024, 1024); return; }
   g.drawImage(A.body, 0, 0, 1024, 1024);
-  g.save();
-  g.translate(WP[0], WP[1]); g.rotate(WA); g.scale(1, F.s); g.rotate(-WA); g.rotate(F.th); g.translate(-WP[0], -WP[1]);
-  g.drawImage(A.wing, 0, 0, 1024, 1024);
-  g.restore();
+  // the wing, shaded a little as it turns away on the down-stroke so the beat reads in depth
+  const w = WL.ctx; HG.reset(w); w.clearRect(0, 0, W, W);
+  w.setTransform(g.getTransform());
+  w.translate(WP[0], WP[1]); w.rotate(WA); w.scale(1, F.s); w.rotate(-WA); w.rotate(F.th); w.translate(-WP[0], -WP[1]);
+  w.imageSmoothingQuality = 'high';
+  w.drawImage(A.wing, 0, 0, 1024, 1024);
+  const shade = 0.3 * F.amp * F.v;
+  if (shade > 0.005) { HG.reset(w); w.globalCompositeOperation = 'source-atop'; w.fillStyle = `rgba(8,0,20,${shade})`; w.fillRect(0, 0, W, W); }
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(WL.cv, 0, 0); g.restore();
   g.save();
   g.translate(TP[0], TP[1]); g.rotate(F.tail); g.translate(-TP[0], -TP[1]);
   g.drawImage(A.tail, 0, 0, 1024, 1024);
@@ -88,19 +120,23 @@ const CP = Float32Array.from(DATA.paths[0].pts), CW = DATA.paths[0].w, CTW = DAT
 const nearest = (x, y) => { let b = 0, bd = 1e9; for (let i = 0; i < NP; i++) { const d = Math.hypot(CP[2 * i] - x, CP[2 * i + 1] - y); if (d < bd) { bd = d; b = i; } } return b; };
 const PEN0 = nearest(230, 45);                       // top of the head, between the ears
 const PENN = NP / 2;                                 // each pen draws half the outline
+const PEN_T0 = 0.62, PEN_D = 2.6, PEN_END = PEN_T0 + PEN_D;
+const penAt = t => sine((t - PEN_T0) / PEN_D);         // pens' progress (0..1) along their halves
 const POI = DATA.poi;
 const FACE = [175, 205];                             // pattern lines spread out from the face
 
-// dissolve: a front sweeps from the tail (low q) to the face (high q)
-const DD = [-0.82, -0.57], qOf = (x, y) => (x - 512) * DD[0] + (y - 512) * DD[1];
+// dissolve: a front rises from the paws (low q) to the ears (high q)
+const DD = [-0.5, -0.866], qOf = (x, y) => (x - 512) * DD[0] + (y - 512) * DD[1];
 let QMIN = 1e9, QMAX = -1e9; for (let i = 0; i < NP; i++) { const q = qOf(CP[2 * i], CP[2 * i + 1]); QMIN = Math.min(QMIN, q); QMAX = Math.max(QMAX, q); }
-const DS0 = 9.55, DS1 = 11.35;
-const front = t => lerp(QMIN - 40, QMAX + 40, sine((t - DS0) / (DS1 - DS0)));
+const DS0 = 9.45, DS1 = 11.3, DF = 260;              // DF: width of the paint's fade behind the front
+// the front starts below the paws and accelerates, so the neck and the face go almost together
+const front = t => { const u = clamp((t - DS0) / (DS1 - DS0)); return lerp(QMIN - 300, QMAX + 40, 0.5 * u + 0.5 * u * u); };
 const frontTime = q => { let a = DS0, b = DS1; for (let k = 0; k < 30; k++) { const m = (a + b) / 2; if (front(m) < q) a = m; else b = m; } return (a + b) / 2; };
 const quant = c => c.map(v => Math.min(255, Math.round(v / 24) * 24));
-const PARTS = DATA.parts.filter((_, i) => hash(i, 9) < 0.42).map(([x, y, r, g, b], i) => {
+const PARTS = DATA.parts.filter((_, i) => hash(i, 9) < 0.085).map(([x, y, r, g, b], i) => {
   const t0 = frontTime(qOf(x, y)), P0 = pose(t0), [sx, sy] = map(x, y, P0);
-  return { sx, sy, col: quant([r, g, b]), t0, h: [hash(i, 1), hash(i, 2), hash(i, 3), hash(i, 4), hash(i, 5)] };
+  const c = [r, g, b];
+  return { sx, sy, col: quant(c), hot: quant(c.map((v, k) => lerp(v, [255, 200, 110][k], 0.65))), t0, h: [hash(i, 1), hash(i, 2), hash(i, 3), hash(i, 4), hash(i, 5)] };
 });
 const SPARK = DATA.spark.map(([x, y, r, g, b], i) => {
   const m = Math.max(r, g, b, 1), k = 255 / m;
@@ -143,99 +179,142 @@ function penPath(g, i0, count, dir, F) {
   return p;
 }
 
+// the pen head at progress k (asset px, following the wing)
+function penPt(k, dir, F) {
+  const c = k * PENN, n = Math.floor(c), f = c - n, id = j => ((PEN0 + dir * j) % NP + NP) % NP;
+  const p = cpt(id(n), F), q = cpt(id(n + 1), F);
+  return [lerp(p[0], q[0], f), lerp(p[1], q[1], f)];
+}
 // a masked part of the painted creature added as light
-function lightBand(A, P, F, maskFn, alpha, blur = 10) {
+const MUZZLE = [168, 272];
+function lightBand(A, P, F, maskFn, alpha, blur = 10, spareMuzzle = true) {
   if (alpha <= 0.003) return;
   const s = SH.ctx; HG.reset(s); s.clearRect(0, 0, W, W);
   setPose(s, P); creature(s, A, F);
   s.globalCompositeOperation = 'destination-in'; s.fillStyle = maskFn(s); s.fillRect(-1600, -1600, 4200, 4200);
+  // the cream muzzle is already near white: keep added light off it so it never blows out
+  if (spareMuzzle) { s.globalCompositeOperation = 'destination-out'; s.fillStyle = radial(s, MUZZLE, 70, 165, 0.8); s.fillRect(-1600, -1600, 4200, 4200); }
   HG.reset(s);
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   ctx.globalAlpha = alpha * 0.8; ctx.filter = `blur(${blur}px)`; ctx.drawImage(SH.cv, 0, 0); ctx.filter = 'none';
   ctx.globalAlpha = alpha * 0.6; ctx.drawImage(SH.cv, 0, 0); ctx.restore();
 }
+// radial mask in asset space: opaque inside r0, fading to clear at r1
+function radial(g, c, r0, r1, inner = 1, outer = 0) {
+  r1 = Math.max(1, r1); r0 = clamp(r0, 0, r1 - 0.5);
+  const gr = g.createRadialGradient(c[0], c[1], 0, c[0], c[1], r1);
+  gr.addColorStop(0, `rgba(0,0,0,${inner})`); gr.addColorStop(r0 / r1, `rgba(0,0,0,${inner})`); gr.addColorStop(1, `rgba(0,0,0,${outer})`);
+  return gr;
+}
 
-// ---------- comets on tilted orbits around the creature (lower half of each orbit is in front)
+// ---------- opening: gold sparks spiral in to the top of the head and ignite the pens
+function gather(t, P) {
+  if (t > 1.05) return;
+  const [tx, ty] = map(CP[2 * PEN0], CP[2 * PEN0 + 1], P);
+  const R = HG.rng(17);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 110; i++) {
+    const a0 = R() * TAU, r0 = 230 + R() * 300, spin = 1.6 + R() * 1.4, d = 0.05 + R() * 0.32, dur = 0.42 + R() * 0.16;
+    const s = 0.6 + R() * 1.2, col = [GOLD, WARM, COLORS.marigold][Math.floor(R() * 3)];
+    const k = (t - d) / dur; if (k <= 0 || k >= 1) continue;
+    const e = ease.in3(0.15 + 0.85 * k) , rad = r0 * (1 - e), ang = a0 + spin * e;
+    const a = Math.sin(Math.PI * k) ** 0.8 * smooth(0.05, 0.4, t);
+    const x = tx + Math.cos(ang) * rad, y = ty + Math.sin(ang) * rad * 0.8;
+    HG.dot(ctx, col, x, y, 11 * s, 0.85 * a);
+    // short streak behind each spark
+    const e2 = ease.in3(0.15 + 0.85 * Math.max(0, k - 0.06)), r2 = r0 * (1 - e2), a2 = a0 + spin * e2;
+    HG.dot(ctx, col, tx + Math.cos(a2) * r2, ty + Math.sin(a2) * r2 * 0.8, 8 * s, 0.4 * a);
+  }
+  // the ignition glint
+  const u = (t - 0.52) / 0.5;
+  if (u > 0 && u < 1) {
+    HG.dot(ctx, GOLD, tx, ty, 200 * Math.sin(Math.PI * u), 0.4 * Math.sin(Math.PI * u));
+    star(ctx, tx, ty, 170 * Math.sin(Math.PI * Math.pow(u, 0.6)), 0.85 * Math.sin(Math.PI * u), u * 0.7, WARM);
+  }
+  ctx.restore();
+}
+
+// ---------- comets: they swoop in from the edge of the circle and settle onto tilted orbits
+// (the lower half of each orbit passes in front of the creature)
 const COMETS = [
-  { a: 446, b: 112, tilt: -0.30, w: 1.0, th: 0.2, t0: 4.0, hue: 0.0 },
-  { a: 430, b: 140, tilt: 0.40, w: -0.85, th: 2.7, t0: 4.25, hue: 0.35 },
-  { a: 392, b: 92, tilt: 1.30, w: 1.15, th: 4.4, t0: 4.5, hue: 0.7 },
+  { a: 446, b: 118, tilt: -0.34, w: 0.95, th: 0.32, t0: 5.0, hue: 0.0 },
+  { a: 432, b: 142, tilt: 0.16, w: -0.85, th: Math.PI - 0.3, t0: 5.35, hue: 0.35 },
+  { a: 400, b: 96, tilt: 0.56, w: 1.1, th: 0.25, t0: 5.7, hue: 0.7 },
 ];
 const OC = [548, 556];
-function cometAt(c, tau, heart, t) {
-  const k = ease.out3((tau - c.t0) / 1.6);
-  if (k <= 0) return null;
+function cometAt(c, tau) {
+  const u = (tau - c.t0) / 2.0; if (u <= 0) return null;
+  const k = ease.out3(u);
   const out = ease.in3((tau - 10.2) / 1.6);             // at the end the orbits widen and fade
-  const th = c.th + c.w * (tau - c.t0) - 2.4 * Math.sign(c.w) * (1 - k);
-  const rr = k * (1 + 0.12 * out);
+  const th = c.th + c.w * (tau - c.t0);
+  const rr = (1 + 0.8 * (1 - k) * (1 - k)) * (1 + 0.12 * out);
   const lx = c.a * rr * Math.cos(th), ly = c.b * rr * Math.sin(th);
-  const cx = lerp(heart[0], OC[0], k), cy = lerp(heart[1], OC[1], k);
-  return { x: cx + lx * Math.cos(c.tilt) - ly * Math.sin(c.tilt), y: cy + lx * Math.sin(c.tilt) + ly * Math.cos(c.tilt), z: Math.sin(th), k };
+  return { x: OC[0] + lx * Math.cos(c.tilt) - ly * Math.sin(c.tilt), y: OC[1] + lx * Math.sin(c.tilt) + ly * Math.cos(c.tilt), z: Math.sin(th), k: smooth(0, 0.35, u) };
 }
-function comets(t, P, front, master) {
+function comets(t, P, front, master, presence) {
   if (master <= 0.003) return;
-  const heart = map(POI.heart[0], POI.heart[1], P);
+  // over the painted body the comets in front are dimmed and thinned so they never clip to white
+  const cover = (x, y) => { if (!front) return 0; const [ax, ay] = unmap(x, y, P); return silAt(ax, ay) * presence(ax, ay); };
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   COMETS.forEach((c, ci) => {
     // shed glitter: specks released along the path, drifting down and twinkling out
-    for (let m = 0; m < 44; m++) {
-      const idx = Math.floor(t / 0.028) - m, te = idx * 0.028, age = t - te;
-      const o = cometAt(c, te, heart, t); if (!o || (o.z >= 0) !== front) continue;
+    for (let m = 0; m < 40; m++) {
+      const idx = Math.floor(t / 0.03) - m, te = idx * 0.03, age = t - te;
+      const o = cometAt(c, te); if (!o || (o.z >= 0) !== front) continue;
       const h1 = hash(idx, 70 + ci), h2 = hash(idx, 80 + ci), h3 = hash(idx, 90 + ci);
       const life = 0.8 + 0.5 * h3; if (age > life) continue;
       const x = o.x + (h1 - 0.5) * 50 * age, y = o.y + (h2 - 0.5) * 50 * age + 40 * age * age;
-      const tw = 0.55 + 0.45 * Math.sin(t * 22 + h1 * 40);
-      HG.dot(ctx, palQ(c.hue + h3 * 0.5 + 0.2 * t), x, y, 5 + 7 * h2, (1 - age / life) * tw * master * (front ? 0.9 : 0.5) * clamp(o.k * 2));
+      const tw = 0.55 + 0.45 * Math.sin(t * 22 + h1 * 40), cv = cover(x, y);
+      HG.dot(ctx, palQ(c.hue + h3 * 0.5 + 0.2 * t), x, y, 6 + 8 * h2, (1 - age / life) * tw * master * (front ? 0.85 : 0.5) * o.k * (1 - 0.6 * cv));
     }
     // tapered rainbow trail
-    const NT = 46;
+    const NT = 44;
     for (let j = NT - 1; j >= 1; j--) {
-      const o = cometAt(c, t - j * 0.012, heart, t); if (!o || (o.z >= 0) !== front) continue;
-      const u = j / NT, depth = 0.7 + 0.3 * (o.z + 1) / 2;
-      const a = Math.pow(1 - u, 1.3) * master * (front ? 0.85 : 0.5) * clamp(o.k * 2);
-      HG.dot(ctx, palQ(c.hue + 0.7 * u + 0.2 * t), o.x, o.y, (22 * (1 - u) + 5) * depth, a);
+      const o = cometAt(c, t - j * 0.013); if (!o || (o.z >= 0) !== front) continue;
+      const u = j / NT, depth = 0.7 + 0.3 * (o.z + 1) / 2, cv = cover(o.x, o.y);
+      const a = Math.pow(1 - u, 1.4) * master * (front ? 0.8 : 0.5) * o.k * (1 - 0.65 * cv);
+      HG.dot(ctx, palQ(c.hue + 0.7 * u + 0.2 * t), o.x, o.y, (33 * (1 - u) + 7) * depth * (1 - 0.45 * cv), a);
     }
     // head: white-hot core, coloured halo, a slowly turning glint
-    const o = cometAt(c, t, heart, t);
+    const o = cometAt(c, t);
     if (o && (o.z >= 0) === front) {
-      const depth = 0.7 + 0.3 * (o.z + 1) / 2, a = master * (front ? 1 : 0.55) * clamp(o.k * 2), col = palQ(c.hue + 0.2 * t);
-      HG.dot(ctx, col, o.x, o.y, 120 * depth, 0.38 * a);
-      HG.dot(ctx, COLORS.white, o.x, o.y, 30 * depth, 0.95 * a);
-      star(ctx, o.x, o.y, 78 * depth, 0.7 * a, t * 1.4 + ci, col);
+      const cv = cover(o.x, o.y);
+      const depth = 0.7 + 0.3 * (o.z + 1) / 2, a = master * (front ? 1 : 0.55) * o.k * (1 - 0.6 * cv), col = palQ(c.hue + 0.2 * t);
+      HG.dot(ctx, col, o.x, o.y, 175 * depth, 0.36 * a);
+      HG.dot(ctx, COLORS.white, o.x, o.y, 44 * depth, 0.8 * a);
+      star(ctx, o.x, o.y, 120 * depth, 0.7 * a, t * 1.4 + ci, col);
     }
   });
   ctx.restore();
 }
 
-// ---------- the dissolve: as the front passes, the paint blows away as sparks on a warm updraft,
-// dense at the glowing edge and quickly thinning out
+// ---------- the dissolve: as the front rises, the paint lifts away as warm embers on an updraft
 function drift(t, end) {
   if (t < DS0) return;
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (const p of PARTS) {
     const u0 = t - p.t0; if (u0 <= 0) continue;
-    const life = 0.55 + 0.7 * p.h[2]; if (u0 > life) continue;
-    const ang = -0.95 + (p.h[0] - 0.5) * 1.4, sp = 190 + 280 * p.h[1];
-    const vx = Math.cos(ang) * sp, vy = Math.sin(ang) * sp;
-    const pos = u => {
-      const e = (1 - Math.exp(-1.8 * u)) / 1.8, tw = Math.min(1, u * 2);
-      return [p.sx + vx * e + 26 * Math.sin(3.1 * u + p.h[3] * 9) * tw,
-              p.sy + vy * e - 70 * u * u + 18 * Math.cos(2.7 * u + p.h[4] * 9) * tw];
-    };
+    const life = 0.45 + 0.45 * p.h[2]; if (u0 > life) continue;
+    const vx = (p.h[0] - 0.5) * 80, vy = -(110 + 130 * p.h[1]);
+    const pos = u => [p.sx + vx * u + 18 * Math.sin(3.4 * u + p.h[3] * 9) * Math.min(1, u * 2.5),
+                      p.sy + vy * u - 240 * u * u];
     const [x, y] = pos(u0);
-    const a = smooth(0, 0.05, u0) * (1 - smooth(life * 0.2, life, u0)) * end * (0.75 + 0.25 * Math.sin(t * 19 + p.h[4] * 30));
-    const s = (7 + 8 * p.h[4]) * (1 - 0.45 * u0 / life);
-    HG.dot(ctx, p.col, x, y, s, a);
-    for (let j = 1; j <= 2; j++) {           // short streak along the motion
-      if (u0 - j * 0.03 <= 0) break;
-      const [xx, yy] = pos(u0 - j * 0.03);
-      HG.dot(ctx, p.col, xx, yy, s * (1 - 0.2 * j), a * (0.55 - 0.18 * j));
+    const edge = 1 - smooth(405, 468, Math.hypot(x - C, y - C));
+    const a = smooth(0, 0.06, u0) * Math.pow(1 - u0 / life, 1.5) * end * edge * (0.82 + 0.18 * Math.sin(t * 13 + p.h[4] * 30));
+    if (a <= 0.003) continue;
+    const s = (20 + 18 * p.h[4] * p.h[4]) * (1 - 0.45 * u0 / life);
+    const col = u0 < 0.4 * life ? p.hot : p.col;
+    HG.dot(ctx, col, x, y, s, a);
+    for (let j = 1; j <= 2; j++) {           // a short streak trailing below each ember
+      if (u0 - j * 0.04 <= 0) break;
+      const [xx, yy] = pos(u0 - j * 0.04);
+      HG.dot(ctx, col, xx, yy, s * (1 - 0.22 * j), a * (0.42 - 0.14 * j));
     }
   }
   ctx.restore();
 }
 
-const WAVES = [[5.3, 1], [7.75, -1]], WAVE_T = 1.7;   // sparkle waves: start time, direction (head->tail = 1)
+const WAVES = [[5.8, 1], [7.6, -1]], WAVE_T = 2.0;   // sparkle waves: start time, direction (head->tail = 1)
 
 HG.start({
   duration: 12,
@@ -246,70 +325,73 @@ HG.start({
   render(t, A) {
     const P = pose(t), F = flap(t);
     const heartS = map(POI.heart[0], POI.heart[1], P);
-    const dissolving = t > DS0 - 0.05;
     const f = front(t);
+    const dis = smooth(DS0 - 0.05, DS0 + 0.35, t);             // dissolve masks ease in
+    const dissolving = t > DS0 - 0.05;
     const end = 1 - smooth(11.45, 11.95, t);
 
     // ---------- timing
-    const penK = sine((t - 0.25) / 2.75);                       // pens trace the outline
-    const inkK = ease.out3((t - 0.45) / 2.8);                   // pattern lines spread from the face
-    const paintK = ease.inOut3((t - 3.15) / 2.0);               // painted creature blooms from the heart
-    const inkA = 1 - smooth(3.65, 5.1, t);
-    const rimA = lerp(1, 0.42, smooth(3.85, 5.2, t));
+    const penK = penAt(t);                                      // pens trace the outline
+    const inkK = ease.out3((t - 0.85) / 2.7);                   // pattern lines spread from the face
+    const paintU = (t - 3.3) / 1.7;                             // paint travels outward from the chest flower
+    const paintK = trap(paintU);
+    const FB = 230, rho = paintK * (900 + FB);                  // paint front radius (asset px) and its feather
+    const inkA = 1 - smooth(4.75, 5.25, t);
+    const rimA = lerp(1, 0.42, smooth(3.9, 5.1, t));
+    const goldK = 1 - smooth(0.9, 2.1, t);                      // line light starts gold, flows into the fiesta colours
+    const presence = (ax, ay) => dissolving ? smooth(f + 30, f + 30 + DF, qOf(ax, ay)) : 1;
 
-    // ---------- ambient haze behind the creature
-    const haze = bump(t, 3.0, 5.2, 9.6, 11.4);
-    if (haze > 0) {
-      const hg = ctx.createRadialGradient(C, C + 20, 40, C, C + 20, 520);
-      hg.addColorStop(0, rgba([90, 20, 110], 0.2 * haze)); hg.addColorStop(0.6, rgba([40, 10, 70], 0.1 * haze)); hg.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = hg; ctx.fillRect(0, 0, W, W);
-    }
+    gather(t, P);
 
     // ---------- behind the creature
-    const cometA = 1 - smooth(10.4, 11.7, t);
-    comets(t, P, false, cometA);
+    const cometA = 1 - smooth(10.4, 11.4, t);
+    comets(t, P, false, cometA, presence);
+
+    // ---------- a soft, warm fill in the face during the line-art phase so it reads friendly
+    const ghost = bump(t, 0.9, 2.1, 4.0, 4.6);
+    if (ghost > 0.003) lightBand(A, P, F, s => radial(s, [178, 230], 70, 250), 0.3 * ghost, 3, false);
 
     // ---------- painted creature
-    if (paintK > 0 && (!dissolving || f < QMAX + 40)) {
+    if (paintU > 0 && (!dissolving || f < QMAX + 40)) {
       const c = CR.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
       setPose(c, P); creature(c, A, F);
-      const FB = 230, rho = paintK * (900 + FB);
       if (paintK < 1) {
         c.globalCompositeOperation = 'destination-in';
-        const g = c.createRadialGradient(POI.heart[0], POI.heart[1], 0, POI.heart[0], POI.heart[1], Math.max(1, rho));
-        g.addColorStop(0, '#000'); g.addColorStop(Math.max(0, 1 - FB / Math.max(rho, 1)), '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
-        c.fillStyle = g; c.fillRect(-1600, -1600, 4200, 4200);
+        c.fillStyle = radial(c, POI.heart, rho - FB, rho); c.fillRect(-1600, -1600, 4200, 4200);
       }
       if (dissolving) {
         c.globalCompositeOperation = 'destination-in';
-        const o = [512 + DD[0] * (f + 30), 512 + DD[1] * (f + 30)], o2 = [512 + DD[0] * (f + 190), 512 + DD[1] * (f + 190)];
+        const o = [512 + DD[0] * (f + 30), 512 + DD[1] * (f + 30)], o2 = [512 + DD[0] * (f + 30 + DF), 512 + DD[1] * (f + 30 + DF)];
         const g = c.createLinearGradient(o[0], o[1], o2[0], o2[1]);
         g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, '#000');
         c.fillStyle = g; c.fillRect(-1600, -1600, 4200, 4200);
       }
       HG.reset(c);
+      const live = smooth(4.2, 5.4, t) * (1 - smooth(9.5, 10.7, t));
       ctx.save();
-      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.2; ctx.filter = 'blur(16px)'; ctx.drawImage(CR.cv, 0, 0); ctx.filter = 'none';
+      ctx.globalCompositeOperation = 'lighter';
+      if (live > 0.003) { ctx.globalAlpha = 0.24 * live; ctx.filter = 'blur(46px)'; ctx.drawImage(CR.cv, 0, 0); }   // soft aura in its own colours
+      ctx.globalAlpha = 0.2; ctx.filter = 'blur(16px)'; ctx.drawImage(CR.cv, 0, 0); ctx.filter = 'none';
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.drawImage(CR.cv, 0, 0);
       ctx.restore();
 
-      // a surge of colour rides the blooming edge
+      // a gentle surge of colour rides the travelling paint front
       if (paintK < 1) lightBand(A, P, F, s => {
         const g = s.createRadialGradient(POI.heart[0], POI.heart[1], Math.max(0, rho - FB - 70), POI.heart[0], POI.heart[1], Math.max(1, rho));
         g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.55, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
         return g;
-      }, 0.75 * Math.sin(Math.PI * paintK), 12);
+      }, 0.38 * smooth(0, 0.12, paintU) * (1 - smooth(0.8, 1, paintU)), 12);
 
       // lacquer sheen sweeping with the sparkle waves
       for (const [t0, dir] of WAVES) {
         const u = (t - t0) / WAVE_T; if (u <= 0 || u >= 1) continue;
-        const w = lerp(-640, 640, ease.inOut3(u)) * dir;
+        const w = lerp(-640, 640, sine(u)) * dir;
         lightBand(A, P, F, s => {
           const o = [512 + 0.8 * (w - 130), 512 + 0.6 * (w - 130)], o2 = [512 + 0.8 * (w + 130), 512 + 0.6 * (w + 130)];
           const g = s.createLinearGradient(o[0], o[1], o2[0], o2[1]);
           g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.5, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
           return g;
-        }, 0.36 * Math.sin(Math.PI * u), 8);
+        }, 0.26 * Math.sin(Math.PI * u), 8);
       }
     }
 
@@ -317,14 +399,18 @@ HG.start({
     const lg = LN.ctx; HG.reset(lg); lg.clearRect(0, 0, W, W);
     if (inkA > 0 && inkK > 0) {
       setPose(lg, P); lg.globalAlpha = inkA; lg.drawImage(A.ink, 0, 0, 1024, 1024);
+      lg.globalAlpha = 1;
       if (inkK < 1) {
-        const FF = 160, rho = inkK * (1000 + FF);
-        lg.globalAlpha = 1; lg.globalCompositeOperation = 'destination-in';
-        const g = lg.createRadialGradient(FACE[0], FACE[1], 0, FACE[0], FACE[1], Math.max(1, rho));
-        g.addColorStop(0, '#000'); g.addColorStop(Math.max(0, 1 - FF / Math.max(rho, 1)), '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
-        lg.fillStyle = g; lg.fillRect(-1600, -1600, 4200, 4200);
-        lg.globalCompositeOperation = 'source-over';
+        const FF = 160, r = inkK * (1000 + FF);
+        lg.globalCompositeOperation = 'destination-in';
+        lg.fillStyle = radial(lg, FACE, r - FF, r); lg.fillRect(-1600, -1600, 4200, 4200);
       }
+      // the pattern lines give way only where the paint has already arrived
+      if (paintU > 0) {
+        lg.globalCompositeOperation = 'destination-out';
+        lg.fillStyle = radial(lg, POI.heart, rho - FB, rho - 0.35 * FB); lg.fillRect(-1600, -1600, 4200, 4200);
+      }
+      lg.globalCompositeOperation = 'source-over';
     }
     if (penK > 0) {
       setPose(lg, P); lg.globalAlpha = rimA; lg.strokeStyle = '#fff'; lg.lineWidth = 4.4; lg.lineJoin = lg.lineCap = 'round';
@@ -333,29 +419,32 @@ HG.start({
       else { let p = cpt(0, F); lg.moveTo(p[0], p[1]); for (let i = 1; i < NP; i++) { p = cpt(i, F); lg.lineTo(p[0], p[1]); } lg.closePath(); }
       lg.stroke();
     }
-    // during the dissolve only a band of light just ahead of the front remains,
-    // and the pattern lines light up inside it
+    // during the dissolve only a band of light just ahead of the front remains (the rest of the
+    // rim eases down to 40%), and the pattern lines light up inside it
     if (dissolving) {
-      const o = [512 + DD[0] * (f - 40), 512 + DD[1] * (f - 40)], o2 = [512 + DD[0] * (f + 320), 512 + DD[1] * (f + 320)];
+      const far = lerp(1, 0.4, dis), B0 = f - 60, BL = 560, at = q => clamp((q - B0) / BL);
+      const o = [512 + DD[0] * B0, 512 + DD[1] * B0], o2 = [512 + DD[0] * (B0 + BL), 512 + DD[1] * (B0 + BL)];
       setPose(lg, P); lg.globalAlpha = 1; lg.globalCompositeOperation = 'destination-in';
       const g = lg.createLinearGradient(o[0], o[1], o2[0], o2[1]);
-      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.25, 'rgba(0,0,0,1)'); g.addColorStop(0.5, 'rgba(0,0,0,0.4)'); g.addColorStop(1, 'rgba(0,0,0,0.4)');
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(at(f + 20), 'rgba(0,0,0,1)'); g.addColorStop(at(f + 170), 'rgba(0,0,0,1)');
+      g.addColorStop(at(f + 330), `rgba(0,0,0,${far})`); g.addColorStop(1, `rgba(0,0,0,${far})`);
       lg.fillStyle = g; lg.fillRect(-1600, -1600, 4200, 4200);
-      const s2 = S2.ctx; HG.reset(s2); s2.clearRect(0, 0, W, W); setPose(s2, P); s2.drawImage(A.ink, 0, 0, 1024, 1024);
-      s2.globalCompositeOperation = 'destination-in';
+      const s2 = S2.ctx; HG.reset(s2); s2.clearRect(0, 0, W, W); setPose(s2, P); s2.globalAlpha = dis; s2.drawImage(A.ink, 0, 0, 1024, 1024);
+      s2.globalAlpha = 1; s2.globalCompositeOperation = 'destination-in';
       const g2 = s2.createLinearGradient(o[0], o[1], o2[0], o2[1]);
-      g2.addColorStop(0, 'rgba(0,0,0,0)'); g2.addColorStop(0.22, 'rgba(0,0,0,1)'); g2.addColorStop(0.55, 'rgba(0,0,0,0)'); g2.addColorStop(1, 'rgba(0,0,0,0)');
+      g2.addColorStop(0, 'rgba(0,0,0,0)'); g2.addColorStop(at(f + 20), 'rgba(0,0,0,1)'); g2.addColorStop(at(f + 150), 'rgba(0,0,0,0.9)'); g2.addColorStop(at(f + 330), 'rgba(0,0,0,0)'); g2.addColorStop(1, 'rgba(0,0,0,0)');
       s2.fillStyle = g2; s2.fillRect(-1600, -1600, 4200, 4200); HG.reset(s2);
       HG.reset(lg); lg.globalCompositeOperation = 'destination-over'; lg.drawImage(S2.cv, 0, 0);
     }
     HG.reset(lg);
     lg.globalCompositeOperation = 'source-in'; lg.fillStyle = fiesta(lg, t); lg.fillRect(0, 0, W, W);
+    if (goldK > 0.003) { lg.globalCompositeOperation = 'source-atop'; lg.globalAlpha = goldK; lg.fillStyle = rgba(GOLD, 1); lg.fillRect(0, 0, W, W); lg.globalAlpha = 1; }
     // white-hot crest on the spreading pattern front
     if (inkK > 0 && inkK < 1 && inkA > 0) {
       setPose(lg, P); lg.globalCompositeOperation = 'source-atop';
-      const rho = inkK * 1160;
-      const g = lg.createRadialGradient(FACE[0], FACE[1], Math.max(0, rho - 160), FACE[0], FACE[1], Math.max(1, rho));
-      g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.75, 'rgba(255,250,240,0.75)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      const r = inkK * 1160;
+      const g = lg.createRadialGradient(FACE[0], FACE[1], Math.max(0, r - 160), FACE[0], FACE[1], Math.max(1, r));
+      g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.75, 'rgba(255,250,240,0.7)'); g.addColorStop(1, 'rgba(255,255,255,0)');
       lg.fillStyle = g; lg.fillRect(-1600, -1600, 4200, 4200);
     }
     HG.reset(lg);
@@ -365,53 +454,78 @@ HG.start({
     ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.drawImage(LN.cv, 0, 0);
     ctx.restore();
 
-    // ---------- pen heads with a fizz of sparks behind them
-    if (penK > 0 && penK < 1) {
-      const fade = smooth(0, 0.04, penK) * (1 - smooth(0.985, 1, penK));
+    // ---------- pen heads, each throwing off a sparkler fizz: sparks shed along the path,
+    // flung outward and falling as they burn out
+    if (t > 0.62 && t < PEN_END + 0.5) {
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       for (const dir of [1, -1]) {
-        for (let j = 14; j >= 0; j--) {
-          const cnt = penK * PENN - j * 5; if (cnt < 0) continue;
-          const i = Math.floor(((PEN0 + dir * cnt) % NP + NP) % NP);
-          const hh = hash(i, dir > 0 ? 41 : 42), hv = hash(i, 43);
-          const [x, y] = map(CP[2 * i] + (hh - 0.5) * 26 * (j / 14), CP[2 * i + 1] + (hv - 0.5) * 26 * (j / 14), P);
-          const col = palQ(0.3 * t + i / NP * 1.7);
-          if (j === 0) { HG.dot(ctx, col, x, y, 120, 0.4 * fade); HG.dot(ctx, COLORS.white, x, y, 34, 0.95 * fade); }
-          else HG.dot(ctx, col, x, y, 12 * (1 - j / 16), fade * (1 - j / 15) * (0.5 + 0.5 * Math.sin(t * 40 + i)));
+        const seed = dir > 0 ? 0 : 50;
+        for (let m = 0; m < 34; m++) {
+          const idx = Math.floor(t / 0.013) - m, te = idx * 0.013, age = t - te;
+          const k = penAt(te); if (k <= 0 || k >= 1) continue;
+          const life = 0.22 + 0.24 * hash(idx, 31 + seed); if (age > life) continue;
+          const [ax, ay] = penPt(k, dir, F), [px, py] = map(ax, ay, P);
+          const fadeE = smooth(0, 0.03, k) * (1 - smooth(0.985, 1, k));
+          for (let q = 0; q < 2; q++) {
+            const h1 = hash(idx * 2 + q, 33 + seed), h2 = hash(idx * 2 + q, 35 + seed), h3 = hash(idx * 2 + q, 37 + seed);
+            const ang = h1 * TAU, sp = 90 + 230 * h2, e = (1 - Math.exp(-4 * age)) / 4;
+            const x = px + Math.cos(ang) * sp * e, y = py + Math.sin(ang) * sp * e + 260 * age * age;
+            const v = age / life, col = mixQ(palQ(0.3 * te + h3 * 0.4 + (dir > 0 ? 0 : 0.5)), GOLD, goldK);
+            const a = fadeE * (1 - v) * (0.7 + 0.3 * Math.sin(t * 50 + h3 * 20));
+            HG.dot(ctx, v < 0.25 ? WARM : col, x, y, 15 * (1 - 0.5 * v) + 5 * h3, a);
+            // a short streak behind each spark
+            const ag2 = Math.max(0, age - 0.025), e2 = (1 - Math.exp(-4 * ag2)) / 4;
+            HG.dot(ctx, col, px + Math.cos(ang) * sp * e2, py + Math.sin(ang) * sp * e2 + 260 * ag2 * ag2, 9 * (1 - 0.5 * v), 0.5 * a);
+          }
+        }
+      }
+      // the heads: white-hot core, coloured halo and a turning glint, with a short glow along the line
+      if (penK > 0 && penK < 1) {
+        const fade = smooth(0, 0.03, penK) * (1 - smooth(0.985, 1, penK));
+        for (const dir of [1, -1]) {
+          for (let j = 6; j >= 1; j--) {
+            const [ax, ay] = penPt(Math.max(0, penK - j * 0.006), dir, F), [x, y] = map(ax, ay, P);
+            HG.dot(ctx, mixQ(palQ(0.3 * t + j * 0.03), GOLD, goldK), x, y, 34 - 3 * j, 0.5 * fade * (1 - j / 7));
+          }
+          const [ax, ay] = penPt(penK, dir, F), [x, y] = map(ax, ay, P);
+          const i = Math.floor(((PEN0 + dir * penK * PENN) % NP + NP) % NP);
+          const col = mixQ(palQ(0.3 * t + i / NP * 1.7), GOLD, goldK);
+          HG.dot(ctx, col, x, y, 130, 0.42 * fade); HG.dot(ctx, COLORS.white, x, y, 36, 0.95 * fade);
+          star(ctx, x, y, 70, 0.55 * fade, t * 3 + dir, col);
         }
       }
       ctx.restore();
     }
-    // pens meet at the tail with a spark; the heart flower ignites
+    // pens meet at the hind paw with a spark; the heart flower ignites
     {
-      const mi = (PEN0 + Math.round(PENN)) % NP, [mx, my] = map(CP[2 * mi], CP[2 * mi + 1], P);
-      const u = (t - 2.97) / 0.9;
+      const mi = Math.round(PEN0 + PENN) % NP, [mx, my] = map(CP[2 * mi], CP[2 * mi + 1], P);
+      const u = (t - 3.18) / 0.9;
       if (u > 0 && u < 1) {
-        star(ctx, mx, my, 150 * Math.sin(Math.PI * Math.pow(u, 0.6)), 0.9 * Math.sin(Math.PI * u), u * 0.8, COLORS.warm);
+        star(ctx, mx, my, 150 * Math.sin(Math.PI * Math.pow(u, 0.6)), 0.85 * Math.sin(Math.PI * u), u * 0.8, WARM);
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         for (let i = 0; i < 28; i++) {
-          const a = hash(i, 51) * TAU, v = 50 + 90 * hash(i, 52), d = v * ease.out3(u);
-          HG.dot(ctx, pal(hash(i, 53)), mx + Math.cos(a) * d, my + Math.sin(a) * d + 20 * u * u, 10, (1 - u) * 0.9);
+          const a = -Math.PI * hash(i, 51), v = 50 + 90 * hash(i, 52), d = v * ease.out3(u);
+          HG.dot(ctx, pal(hash(i, 53)), mx + Math.cos(a) * d, my + Math.sin(a) * d + 30 * u * u, 11, (1 - u) * 0.85);
         }
         ctx.restore();
       }
-      const hu = (t - 2.9) / 1.1;
+      const hu = (t - 3.1) / 1.1;
       if (hu > 0 && hu < 1) {
-        HG.dot(ctx, COLORS.pink, heartS[0], heartS[1], 260 * Math.sin(Math.PI * hu), 0.45 * Math.sin(Math.PI * hu));
-        star(ctx, heartS[0], heartS[1], 190 * Math.sin(Math.PI * Math.pow(hu, 0.7)), 0.85 * Math.sin(Math.PI * hu), -hu * 0.6, COLORS.warm);
+        HG.dot(ctx, COLORS.pink, heartS[0], heartS[1], 240 * Math.sin(Math.PI * hu), 0.38 * Math.sin(Math.PI * hu));
+        star(ctx, heartS[0], heartS[1], 190 * Math.sin(Math.PI * Math.pow(hu, 0.7)), 0.8 * Math.sin(Math.PI * hu), -hu * 0.6, WARM);
       }
     }
 
     // ---------- sparkles travelling across the patterns
-    if (t > 4.9 && t < 10.0) {
-      const amb = bump(t, 4.9, 5.6, 9.2, 9.8);
+    if (t > 5.0 && t < 10.0) {
+      const amb = bump(t, 5.0, 5.7, 9.2, 9.8);
       for (let i = 0; i < SPARK.length; i++) {
         const p = SPARK[i];
         let a = 0;
         for (let k = 0; k < WAVES.length; k++) {
           const [t0, dir] = WAVES[k], u = (t - t0) / WAVE_T; if (u <= 0 || u >= 1) continue;
           if (hash(i, 60 + k) > 0.5) continue;
-          const w = lerp(-640, 640, ease.inOut3(u)) * dir;
+          const w = lerp(-640, 640, sine(u)) * dir;
           const q = 0.8 * (p.x - 512) + 0.6 * (p.y - 512) + 50 * dir * (p.h[0] - 0.5);
           a = Math.max(a, Math.exp(-Math.pow((q - w) / 60, 2)) * Math.sin(Math.PI * u) ** 0.3);
         }
@@ -422,18 +536,18 @@ HG.start({
         star(ctx, x, y, (26 + 34 * p.h[3]) * (0.6 + 0.4 * a), a, p.h[0] * 0.8 + t * 0.5, p.col);
       }
     }
-    // a twinkle in the eyes
-    {
-      const u = (t - 6.75) / 0.8;
+    // a twinkle in the eyes: once as neon, once painted
+    for (const [t0, sz, al] of [[2.45, 70, 0.75], [7.0, 95, 0.95]]) {
+      const u = (t - t0) / 0.8;
       if (u > 0 && u < 1) for (const [e, d] of [[POI.eyeL, 0], [POI.eyeR, 0.08]]) {
         const v = clamp((u - d) / 0.9); if (v <= 0 || v >= 1) continue;
         const [x, y] = map(e[0] + 8, e[1] - 6, P);
-        star(ctx, x, y, 95 * Math.sin(Math.PI * v), 0.95 * Math.sin(Math.PI * v), 0.4 + v * 0.7, COLORS.warm);
+        star(ctx, x, y, sz * Math.sin(Math.PI * v), al * Math.sin(Math.PI * v), 0.4 + v * 0.7, WARM);
       }
     }
 
     // ---------- in front of the creature
-    comets(t, P, true, cometA);
+    comets(t, P, true, cometA, presence);
     drift(t, end);
   },
 });
