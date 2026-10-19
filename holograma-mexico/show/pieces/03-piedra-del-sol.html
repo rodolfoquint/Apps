@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Piedra del Sol: gold sparks gather into a halo, the engraving lights up from the
+// centre in gold, the real stone glows in and turns, then it all bursts back into sparks.
+const { C, ctx, smooth, ease, COLORS } = HG;
+HG.start({
+  duration: 12,
+  assets: { disc: '../assets/piedra-del-sol.png', lines: '../assets/piedra-del-sol_lines.png' },
+  render(t, A) {
+    const out = smooth(10.4, 12, t);
+    const rot = 0.06 * t + 0.25 * ease.inOut3((t - 6.5) / 4);
+    const pulse = 0.75 + 0.25 * Math.sin(t * 2.6);
+    const size = 900 * (1 + 0.04 * smooth(6, 9, t));
+
+    HG.converge(t, { r: 455, n: 650, dur: 2.2, colors: [COLORS.gold, COLORS.warm], scatter: out * 1.2, alpha: (t < 3 ? 1 : 0.7) * (1 - out * 0.6) });
+
+    const discA = smooth(4.2, 6.4, t) * (1 - out);
+    if (discA > 0) HG.glowImage(ctx, A.disc, C, C, size, { alpha: discA * 0.95, bloom: 0.35 + 0.15 * pulse, rotation: rot });
+
+    const k = ease.out3((t - 1.0) / 3.2);
+    HG.lineReveal(A.lines, C, C, size, k, { rotation: rot, alpha: (t < 6.4 ? 1 : 0.45 + 0.25 * pulse) * (1 - out) });
+
+    HG.ring(ctx, C, C, size / 2 + 16, COLORS.gold, { width: 8, blur: 14, alpha: smooth(3.4, 5, t) * (0.45 + 0.25 * pulse) * (1 - out) });
+    HG.dust(t, { n: 90, alpha: 0.35 * smooth(5, 7, t) * (1 - out) });
+  },
+});
+</script></body></html>
