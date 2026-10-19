@@ -1,0 +1,20 @@
+{
+  "transition_seconds": 1.8,
+  "order": [
+    "01-intro",
+    "02-mapa",
+    "15-cabeza-olmeca",
+    "04-chichen-itza",
+    "13-aguila-nopal",
+    "03-piedra-del-sol",
+    "05-mariposas",
+    "06-ajolote",
+    "07-alebrije",
+    "14-talavera",
+    "08-lucha",
+    "09-sabores",
+    "10-pinata",
+    "11-dia-de-muertos",
+    "12-finale"
+  ]
+}

@@ -3,13 +3,50 @@
   "image_negative": "background, scenery, table, surface, floor, shadow, gradient background, grey background, white background, vignette, text, letters, watermark, logo, frame, border, multiple objects, cropped, blurry, dull colors",
   "video_style": "",
   "scenes": [
-    {"id": "monarca", "title": "Monarch butterfly sprite", "subject": "A single monarch butterfly seen exactly from above with both wings fully open and flat, bright orange wings with black veins and white-spotted black borders, symmetrical"},
-    {"id": "papel-picado-flag", "title": "Papel picado flag", "subject": "A single rectangular Mexican papel picado tissue-paper flag in bright magenta pink, seen straight on, with an intricate symmetrical cut-out pattern of flowers, birds and a sun, a scalloped bottom edge and a thin string along the top edge"},
-    {"id": "cempasuchil", "title": "Marigold flower", "subject": "A single round orange cempasúchil marigold flower head seen from the front, dense ruffled bright orange petals"},
-    {"id": "maiz", "title": "Corn", "subject": "A single ear of bright yellow corn with its green husk peeled back, standing diagonally"},
-    {"id": "cacao", "title": "Cacao pod", "subject": "A single ripe cacao pod cut open lengthwise showing the white pulp and cacao beans inside, warm orange-red pod skin"},
-    {"id": "chile", "title": "Chile", "subject": "A single glossy bright red chile pepper with a green stem, slightly curved, diagonal"},
-    {"id": "aguacate", "title": "Avocado", "subject": "A single avocado cut in half showing the bright green flesh and the round brown pit, with the other half beside it"},
-    {"id": "vainilla", "title": "Vanilla", "subject": "A small bundle of dark vanilla pods tied together with a pale yellow-green vanilla orchid flower on top"}
+    {
+      "id": "monarca",
+      "title": "Monarch butterfly sprite",
+      "subject": "A single monarch butterfly seen exactly from above with both wings fully open and flat, bright orange wings with black veins and white-spotted black borders, symmetrical"
+    },
+    {
+      "id": "papel-picado-flag",
+      "title": "Papel picado flag",
+      "subject": "A single rectangular Mexican papel picado tissue-paper flag in bright magenta pink, seen straight on, with an intricate symmetrical cut-out pattern of flowers, birds and a sun, a scalloped bottom edge and a thin string along the top edge"
+    },
+    {
+      "id": "cempasuchil",
+      "title": "Marigold flower",
+      "subject": "A single round orange cempasúchil marigold flower head seen from the front, dense ruffled bright orange petals"
+    },
+    {
+      "id": "maiz",
+      "title": "Corn",
+      "subject": "A single ear of bright yellow corn with its green husk peeled back, standing diagonally"
+    },
+    {
+      "id": "cacao",
+      "title": "Cacao pod",
+      "subject": "A single ripe cacao pod cut open lengthwise showing the white pulp and cacao beans inside, warm orange-red pod skin"
+    },
+    {
+      "id": "chile",
+      "title": "Chile",
+      "subject": "A single glossy bright red chile pepper with a green stem, slightly curved, diagonal"
+    },
+    {
+      "id": "aguacate",
+      "title": "Avocado",
+      "subject": "A single avocado cut in half showing the bright green flesh and the round brown pit, with the other half beside it"
+    },
+    {
+      "id": "vainilla",
+      "title": "Vanilla",
+      "subject": "A small bundle of dark vanilla pods tied together with a pale yellow-green vanilla orchid flower on top"
+    },
+    {
+      "id": "talavera-tile",
+      "title": "Talavera tile",
+      "subject": "A single square hand-painted Talavera tile from Puebla seen straight on, glossy white glaze with an intricate symmetrical pattern in deep cobalt blue with touches of yellow, orange and green: a central flower medallion with radiating petals and quarter-flower corners, filling the frame"
+    }
   ]
 }

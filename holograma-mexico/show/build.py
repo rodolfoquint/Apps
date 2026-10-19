@@ -5,10 +5,14 @@
   python3 show/build.py 03-piedra-del-sol 05-mariposas   # only these pieces (no loop)
   python3 show/build.py --stills 02-mapa 1,4,8            # 3 stills of a piece -> out-show/stills/
   python3 show/build.py --loop                            # just rebuild the loop from rendered pieces
+  python3 show/build.py --show                            # the finished show: pieces in show.json order joined by
+                                                          # the "portal de luz" transition, as one seamless loop
+                                                          # (out-show/show.mp4) plus gapless segments (out-show/segments/)
 
 Needs node with playwright-core (cd show && npm install) and ffmpeg.
 """
 
+import json
 import subprocess
 import sys
 import tempfile
@@ -54,6 +58,81 @@ def render_piece(name):
     print(f"saved {dest}")
 
 
+def frames_to_mp4(page, seconds, dest, crf=14):
+    """Render a page frame by frame to an unmasked, high-quality mp4."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        run(["node", str(HERE / "render.js"), page, tmp, str(seconds), "30"])
+        run(["ffmpeg", "-loglevel", "error", "-y", "-framerate", "30", "-i", f"{tmp}/f%05d.png",
+             "-c:v", "libx264", "-crf", str(crf), "-preset", "slow", "-pix_fmt", "yuv420p", str(dest)])
+
+
+def raw(name):
+    """Unmasked render of a piece for the show; re-rendered when the page, toolkit or assets change."""
+    html = HERE / "pieces" / f"{name}.html"
+    dest = OUT / "raw" / f"{name}.mp4"
+    newest = max([html.stat().st_mtime, (HERE / "engine.js").stat().st_mtime] +
+                 [a.stat().st_mtime for a in (HERE / "assets").glob(f"{name}*")])
+    if not dest.exists() or dest.stat().st_mtime < newest:
+        frames_to_mp4(str(html), duration_of_piece(html), dest)
+        print(f"rendered {dest}")
+    return dest
+
+
+def portal(seconds):
+    page = HERE / "transitions" / "portal.html"
+    out = {}
+    for layer in ("mask", "fx"):
+        dest = OUT / "raw" / f"_portal_{layer}_{seconds}.mp4"
+        if not dest.exists() or dest.stat().st_mtime < page.stat().st_mtime:
+            frames_to_mp4(f"{page}?layer={layer}&T={seconds}", seconds, dest, crf=10)
+        out[layer] = dest
+    return out
+
+
+def show():
+    cfg = json.loads((HERE / "show.json").read_text())
+    T, order = cfg["transition_seconds"], cfg["order"]
+    missing = [n for n in order if not (HERE / "pieces" / f"{n}.html").exists()]
+    if missing:
+        sys.exit(f"missing pieces: {', '.join(missing)}")
+    raws = {n: raw(n) for n in order}
+    tr = portal(T)
+    seg_dir = OUT / "segments"
+    seg_dir.mkdir(parents=True, exist_ok=True)
+    for old in seg_dir.glob("*.mp4"):
+        old.unlink()
+    segments = []
+    for i, a in enumerate(order):
+        b = order[(i + 1) % len(order)]
+        dur = duration_of_piece(HERE / "pieces" / f"{a}.html")
+        dest = seg_dir / f"{i + 1:02d}-{a}.mp4"
+        # every piece's first T seconds play inside the previous transition (the last
+        # piece's transition leads back into the first), so each segment is the piece's
+        # body followed by the portal into the next piece: gapless and loopable
+        graph = (f"[0:v]trim=start={T}:end={dur - T},setpts=PTS-STARTPTS,fps=30,format=yuv420p[body];"
+                 f"[0:v]trim=start={dur - T}:end={dur},setpts=PTS-STARTPTS,fps=30,format=gbrp[a];"
+                 f"[1:v]trim=start=0:end={T},setpts=PTS-STARTPTS,fps=30,format=gbrp[b];"
+                 f"[2:v]fps=30,format=gbrp[m];[3:v]fps=30,format=gbrp[fx];"
+                 f"[a][b][m]maskedmerge[x];[x][fx]blend=all_mode=screen,format=yuv420p[tr];"
+                 f"[body][tr]concat=n=2:v=1:a=0[seq];[seq][4:v]overlay=shortest=1,format=yuv420p")
+        run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(raws[a]), "-i", str(raws[b]),
+             "-i", str(tr["mask"]), "-i", str(tr["fx"]), "-loop", "1", "-i", str(mask()),
+             "-filter_complex", graph, "-c:v", "libx264", "-crf", "18", "-maxrate", "10M", "-bufsize", "20M",
+             "-preset", "slow", "-r", "30", "-movflags", "+faststart", str(dest)])
+        segments.append(dest)
+        print(f"saved {dest}")
+    listing = OUT / ".show.txt"
+    listing.write_text("".join(f"file '{s}'\n" for s in segments))
+    full = OUT / "show.mp4"
+    run(["ffmpeg", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(listing),
+         "-c", "copy", "-movflags", "+faststart", str(full)])
+    run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(full), "-vf", "scale=540:540",
+         "-c:v", "libx264", "-b:v", "1200k", "-maxrate", "1400k", "-bufsize", "2800k", "-preset", "slow",
+         "-movflags", "+faststart", str(OUT / "show_preview.mp4")])
+    print(f"saved {full} and show_preview.mp4 ({len(segments)} pieces, {T}s portal transitions)")
+
+
 def stills(name, times):
     html = HERE / "pieces" / f"{name}.html"
     dest = OUT / "stills"
@@ -84,6 +163,8 @@ def main():
         stills(args[1], args[2])
     elif args[:1] == ["--loop"]:
         loop()
+    elif args[:1] == ["--show"]:
+        show()
     elif args:
         for name in args:
             render_piece(name)

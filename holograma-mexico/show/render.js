@@ -13,7 +13,9 @@ const path = require('path');
     args: ['--allow-file-access-from-files'] });
   const page = await browser.newPage({ viewport: { width: 1080, height: 1080 } });
   page.on('pageerror', e => { console.error('page error:', e.message); process.exit(1); });
-  await page.goto('file://' + path.resolve(page_));
+  // allow a query string after the file name, e.g. portal.html?layer=mask
+  const [file, query] = page_.split('?');
+  await page.goto('file://' + path.resolve(file) + (query ? '?' + query : ''));
   await page.evaluate(() => window.ready);
   const times = stills || Array.from({ length: Math.round(seconds * fps) }, (_, i) => i / fps);
   for (let i = 0; i < times.length; i++) {

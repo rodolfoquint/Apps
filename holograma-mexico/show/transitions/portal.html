@@ -1,0 +1,52 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// "Portal de luz": the signature transition between pieces.
+// ?layer=mask renders the reveal matte (white = next piece), ?layer=fx the light
+// effect (gold ring + tricolour sparks on black, screen-blended over the cut).
+// Both use the same radius curve so the ring rides exactly on the reveal edge.
+const { C, ctx, smooth, ease, COLORS, TRICOLOR, rng } = HG;
+const params = new URLSearchParams(location.search);
+const T = Number(params.get('T') || 1.8), MAXR = 800, FEATHER = 70;
+const layer = params.get('layer') || 'fx';
+const radius = t => MAXR * ease.inOut3(t / T);
+
+HG.start({
+  duration: T,
+  render(t) {
+    const r = radius(t);
+    if (layer === 'mask') {
+      if (r <= 0) return;
+      const g = ctx.createRadialGradient(C, C, 0, C, C, r);
+      g.addColorStop(0, '#fff');
+      g.addColorStop(Math.max(0, 1 - FEATHER / r), '#fff');
+      g.addColorStop(1, '#000');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, 1080, 1080);
+      return;
+    }
+    // light: ring brightest mid-way, gone by the time it leaves the circle
+    const env = smooth(0, 0.2 * T / 1.5, t) * (1 - smooth(0.6 * T, 0.97 * T, t));
+    const ringR = Math.max(1, r - FEATHER * 0.45);
+    HG.ring(ctx, C, C, ringR, COLORS.gold, { width: 14, blur: 18, alpha: 0.9 * env });
+    HG.ring(ctx, C, C, ringR, COLORS.warm, { width: 4, blur: 3, alpha: 0.9 * env });
+    // soft inner bloom at the very start
+    HG.dot(ctx, COLORS.warm, C, C, 220 * smooth(0, 0.3, t), 0.18 * (1 - smooth(0.2, 0.7, t)));
+    // sparks ride just behind the expanding ring (each follows the ring's path with a
+    // small lag), then fall back and fade: a sparkling band of light
+    const R = rng(29);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 900; i++) {
+      const b = R() * (T - 0.3), a = R() * Math.PI * 2, lag = 0.01 + Math.pow(R(), 2) * 0.12, life = 0.35 + R() * 0.45, out = (R() - 0.3) * 40;
+      const col = R() < 0.5 ? (R() < 0.5 ? COLORS.gold : COLORS.warm) : TRICOLOR[Math.floor(R() * 3)];
+      const s = 8 + R() * 14, dt = t - b;
+      if (dt < 0 || dt > life) continue;
+      const rr = Math.max(0, radius(Math.max(0, t - lag)) - FEATHER * 0.45) + out;
+      const k = 1 - dt / life;
+      HG.dot(ctx, col, C + Math.cos(a) * rr, C + Math.sin(a) * rr, s * (0.5 + 0.5 * k), k * env * 0.9);
+    }
+    ctx.restore();
+  },
+});
+</script></body></html>
