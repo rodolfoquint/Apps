@@ -27,6 +27,13 @@ loop reads as a day passing:
 | Night | 13, 14 | deep blue and purple with warm gold lights |
 | Fiesta night, then dawn | 15 | every colour, ending in sunrise gold |
 
+**The transition tells the time too.** Show 2's pieces are joined by the "horizonte"
+(`transitions/horizonte.html`): a soft horizon of light rises through the circle and
+reveals the next piece below it, with the sun riding the line. Across the show the sun
+moves from the east (left) at dawn to the west (right) at sunset, and the line's colour
+follows the hour; at night the moon takes its place. Settings per boundary are in
+`show.json` (`transition_params`, keyed by the incoming piece).
+
 | # | Piece | Time | What it shows |
 |---|---|---|---|
 | 01 | amanecer-teotihuacan | dawn | The sun rises over the Pyramid of the Sun at Teotihuacan, where the legend says the sun was born |

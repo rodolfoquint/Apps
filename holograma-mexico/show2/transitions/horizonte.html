@@ -1,0 +1,114 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// "Horizonte": show 2's signature transition. A soft horizon of light rises from the
+// bottom of the circle to the top, revealing the next piece below it, with the sun (or
+// the moon at night) riding the line. Over the show the sun travels from east (left) at
+// dawn to west (right) at sunset, then the moon takes over: the transitions tell the
+// time of day.
+//   ?layer=mask  reveal matte (white = next piece)    ?layer=fx  the light, on black
+//   &T=1.8  &body=sun|moon  &sx=-1..1 (horizontal position)  &tint=R,G,B (line colour)
+const { C, W, ctx, smooth, ease, COLORS, rng, rgba, clamp, lerp } = HG;
+const q = new URLSearchParams(location.search);
+const T = Number(q.get('T') || 1.8), layer = q.get('layer') || 'fx';
+const body = q.get('body') || 'sun', SX = Number(q.get('sx') || 0);
+const TINT = (q.get('tint') || '255,200,120').split(',').map(Number);
+const FEATHER = 110;
+// line height: from below the circle to above it
+const lineY = t => lerp(W + FEATHER, -FEATHER, ease.inOut3(t / T));
+const chordHalf = y => Math.sqrt(Math.max(0, 540 * 540 - (y - C) * (y - C)));
+const mix = (a, b, k) => a.map((v, i) => Math.round(lerp(v, b[i], k)));
+
+HG.start({
+  duration: T,
+  render(t) {
+    const y = lineY(t);
+    if (layer === 'mask') {
+      const g = ctx.createLinearGradient(0, y - FEATHER, 0, y + FEATHER * 0.25);
+      g.addColorStop(0, '#000'); g.addColorStop(1, '#fff');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, W);
+      return;
+    }
+    const env = smooth(0, 0.18 * T, t) * (1 - smooth(0.8 * T, T, t));
+    const half = chordHalf(y), lineCol = TINT, hot = mix(TINT, [255, 250, 235], 0.6);
+    const sx = C + SX * Math.max(60, half * 0.62), sy = y - FEATHER * 0.35;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    // the horizon band: wide soft glow + thin bright core, brightest near the sun
+    if (half > 4) {
+      const near = x => clamp(1 - Math.abs(x - sx) / (half * 1.4 + 1));
+      const n = 54;
+      for (let i = 0; i <= n; i++) {
+        const u = i / n, x = C - half + 2 * half * u;
+        const k = (0.3 + 0.7 * Math.pow(near(x), 1.5)) * smooth(0, 0.1, u) * smooth(0, 0.1, 1 - u);
+        HG.dot(ctx, lineCol, x, sy, 170, 0.07 * k * env);
+        HG.dot(ctx, lineCol, x, sy, 70, 0.16 * k * env);
+      }
+      for (const [w, b, a] of [[12, 7, 0.5], [3, 1.2, 0.9]]) {
+        const g = ctx.createLinearGradient(C - half, 0, C + half, 0);
+        for (let i = 0; i <= 12; i++) {
+          const u = i / 12, x = C - half + 2 * half * u;
+          g.addColorStop(u, rgba(hot, a * env * (0.25 + 0.75 * Math.pow(near(x), 1.2)) * smooth(0, 0.12, u) * smooth(0, 0.12, 1 - u)));
+        }
+        ctx.strokeStyle = g; ctx.lineWidth = w; ctx.filter = HG.blur(b);
+        ctx.beginPath(); ctx.moveTo(C - half, sy); ctx.lineTo(C + half, sy); ctx.stroke();
+        ctx.filter = 'none';
+      }
+    }
+    // a faint glow of the new light spreading above the horizon
+    if (half > 4) {
+      const g = ctx.createLinearGradient(0, sy - 230, 0, sy);
+      g.addColorStop(0, rgba(lineCol, 0)); g.addColorStop(1, rgba(lineCol, 0.09 * env));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(C, C, 540, 0, Math.PI * 2); ctx.save(); ctx.clip();
+      ctx.fillRect(0, sy - 230, W, 230); ctx.restore();
+    }
+    // motes lifting off the line and drifting up behind it (they linger above the old scene)
+    const R = rng(body === 'sun' ? 17 : 23);
+    for (let i = 0; i < 260; i++) {
+      const b = R() * T * 0.85, life = 0.5 + R() * 0.6, u = R() * 2 - 1, rise = 40 + R() * 120, s = 6 + R() * 10, warm = R();
+      const dt = t - b; if (dt < 0 || dt > life) continue;
+      const y0 = lineY(b) - FEATHER * 0.35, h0 = chordHalf(y0);
+      if (h0 < 120) continue;
+      const x = C + u * h0 * 0.92, yy = y0 - rise * (dt / life);
+      const k = Math.sin(Math.PI * dt / life);
+      HG.dot(ctx, warm < 0.5 ? lineCol : hot, x, yy, s, 0.55 * k * env);
+    }
+    // the sun or the moon riding the line
+    if (body === 'sun') {
+      HG.dot(ctx, lineCol, sx, sy, 520, 0.22 * env);
+      HG.dot(ctx, hot, sx, sy, 210, 0.45 * env);
+      ctx.filter = HG.blur(3);
+      ctx.fillStyle = rgba(mix(hot, [255, 240, 200], 0.5), 0.85 * env);
+      ctx.beginPath(); ctx.arc(sx, sy, 36, 0, Math.PI * 2); ctx.fill();
+      ctx.filter = 'none';
+      // a few slow rays
+      for (let i = 0; i < 12; i++) {
+        const a = i * Math.PI / 6 + t * 0.4, r0 = 48, r1 = 92 + 18 * Math.sin(i * 1.7 + t * 3);
+        ctx.strokeStyle = rgba(hot, 0.35 * env); ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(sx + Math.cos(a) * r0, sy + Math.sin(a) * r0); ctx.lineTo(sx + Math.cos(a) * r1, sy + Math.sin(a) * r1); ctx.stroke();
+      }
+    } else {
+      HG.dot(ctx, [150, 170, 255], sx, sy, 380, 0.2 * env);
+      ctx.filter = HG.blur(2);
+      ctx.fillStyle = rgba([225, 232, 255], 0.8 * env);
+      ctx.beginPath(); ctx.arc(sx, sy, 34, 0, Math.PI * 2); ctx.fill();
+      ctx.filter = 'none';
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = rgba([150, 160, 200], 0.35 * env);
+      for (const [dx, dy, r] of [[-10, -8, 8], [9, 6, 6], [-4, 13, 4], [12, -12, 3]]) {
+        ctx.beginPath(); ctx.arc(sx + dx, sy + dy, r, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'lighter';
+      // stars twinkle above the line
+      const S = rng(41);
+      for (let i = 0; i < 70; i++) {
+        const x = S() * W, yy = S() * W, ph = S() * 6.28, s = 5 + S() * 7;
+        if (yy > sy - 30 || Math.hypot(x - C, yy - C) > 520) continue;
+        HG.dot(ctx, [230, 235, 255], x, yy, s, (0.35 + 0.35 * Math.sin(t * 6 + ph)) * env);
+      }
+    }
+    ctx.restore();
+  },
+});
+</script></body></html>

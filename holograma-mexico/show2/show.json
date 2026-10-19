@@ -1,7 +1,7 @@
 {
   "title": "Un dia en Mexico",
   "transition_seconds": 1.8,
-  "transition": "rueda.html",
+  "transition": "horizonte.html",
   "order": [
     "01-amanecer-teotihuacan",
     "02-quetzalcoatl",
@@ -18,5 +18,22 @@
     "13-cdmx-noche",
     "14-posadas",
     "15-castillo"
-  ]
+  ],
+  "transition_params": {
+    "01-amanecer-teotihuacan": "body=sun&sx=-0.8&tint=255,150,120",
+    "02-quetzalcoatl": "body=sun&sx=-0.65&tint=255,170,110",
+    "03-cenote": "body=sun&sx=-0.45&tint=255,215,140",
+    "04-jaguar": "body=sun&sx=-0.3&tint=255,225,150",
+    "05-huichol": "body=sun&sx=-0.12&tint=255,235,170",
+    "06-sarape": "body=sun&sx=0.0&tint=255,240,180",
+    "07-arbol-de-la-vida": "body=sun&sx=0.12&tint=255,228,160",
+    "08-taqueria": "body=sun&sx=0.3&tint=255,190,100",
+    "09-voladores": "body=sun&sx=0.48&tint=255,140,80",
+    "10-mariachi": "body=sun&sx=0.62&tint=255,112,90",
+    "11-jarabe-tapatio": "body=sun&sx=0.75&tint=255,90,125",
+    "12-danza-de-la-pluma": "body=sun&sx=0.88&tint=205,105,255",
+    "13-cdmx-noche": "body=moon&sx=-0.5&tint=140,165,255",
+    "14-posadas": "body=moon&sx=0.0&tint=150,160,255",
+    "15-castillo": "body=moon&sx=0.5&tint=175,145,255"
+  }
 }
