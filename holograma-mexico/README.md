@@ -41,6 +41,8 @@ The prompts are in `scenes.json`. The shared style rules (`image_style`, `video_
 
 These are full scenes rather than objects on black. The fan step fades the outer 18% of the circle to black (`fan_feather`), so each one looks like a glowing round window floating in the dark. Scenes with one-way motion, such as the Chepe train or the Xochimilco boats, set `"loop": false`; they get no last frame, and the fan fades hide the restart.
 
+If an AI clip comes out broken and the budget is spent, `video SCENE --kenburns` makes a free slow push-in and back on the still instead. Concheros and the ofrenda use it; the ofrenda adds a warm candle flicker (`"kenburns_flicker": true`).
+
 Every command takes `--set escenas`. That set uses its own outputs and spend log in `out-escenas/`:
 
 ```bash

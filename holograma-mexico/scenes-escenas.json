@@ -108,7 +108,8 @@
       "id": "ofrenda",
       "title": "La ofrenda de Día de Muertos",
       "subject": "A traditional Day of the Dead ofrenda (altar) with several tiers: glowing candles, orange cempasúchil marigolds, pan de muerto, colorful sugar skulls, papel picado banners, copal incense, fruit and a cup of hot chocolate, no photographs",
-      "motion": "Candle flames flicker warmly, copal smoke curls upward, the papel picado flutters and a few marigold petals drift down."
+      "motion": "Candle flames flicker warmly, copal smoke curls upward, the papel picado flutters and a few marigold petals drift down.",
+      "kenburns_flicker": true
     },
     {
       "id": "janitzio",

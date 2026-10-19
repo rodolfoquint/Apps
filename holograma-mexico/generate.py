@@ -368,7 +368,7 @@ def cmd_video(args):
         spin_video(scene["id"], image, args.duration)
         return
     if args.kenburns:
-        kenburns_video(scene["id"], image, args.duration)
+        kenburns_video(scene["id"], image, args.duration, flicker=scene.get("kenburns_flicker", False))
         return
     body = video_body(cfg, scene, image["url"], args.extra, args.duration)
     cost = estimate_usd(VIDEO_MODEL, body)
@@ -439,10 +439,17 @@ def spin_video(scene_id, image, seconds):
     print(f"saved {dest} ({turns} full turn(s) in {seconds}s, rendered locally at no cost; attempt {n}, now selected)")
 
 
-def kenburns_video(scene_id, image, seconds):
+def kenburns_video(scene_id, image, seconds, flicker=False):
     """Free fallback for full scenes: a slow push-in to 10% and back out, with a
-    gentle color pulse. Starts and ends on the still, so it loops seamlessly."""
+    gentle color pulse. Starts and ends on the still, so it loops seamlessly.
+    flicker adds a warm candle-light flicker whose frequencies repeat exactly
+    over the clip, so the loop stays seamless."""
     src = OUT / image["file"]
+    glow = ""
+    if flicker:
+        f1, f2 = 26 / seconds, 47 / seconds
+        glow = (f",eq=brightness='0.025*sin(2*PI*{f1:.5f}*t)+0.015*sin(2*PI*{f2:.5f}*t)'"
+                f":gamma_r='1+0.03*sin(2*PI*{f1:.5f}*t)':eval=frame")
     n = len(load_state(scene_id)["videos"]) + 1
     dest = OUT / "videos" / f"{scene_id}-{n}.mp4"
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -450,7 +457,7 @@ def kenburns_video(scene_id, image, seconds):
     subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-loop", "1", "-framerate", "30", "-i", str(src),
                     "-vf", f"scale=1440:1440,zoompan=z='1+0.10*pow(sin(PI*on/{frames}),2)':d=1:s=1440x1440:fps=30"
                            f":x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2',"
-                           f"hue=s='1+0.15*pow(sin(2*PI*t/{seconds}),2)',format=yuv420p",
+                           f"hue=s='1+0.15*pow(sin(2*PI*t/{seconds}),2)'{glow},format=yuv420p",
                     "-frames:v", str(frames), "-c:v", "libx264", "-crf", "16", "-r", "30", str(dest)], check=True)
     state = load_state(scene_id)
     state["videos"].append({"n": n, "file": str(dest.relative_to(OUT)), "image": image["n"], "kenburns": True})
