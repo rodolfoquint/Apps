@@ -307,6 +307,8 @@ def cmd_estimate(args):
 def cmd_image(args):
     cfg = load_scenes()
     _, scene = find_scene(cfg, args.scene)
+    if args.subject:
+        scene = {**scene, "subject": args.subject}
     body = image_body(cfg, scene, args.extra, args.seed)
     cost = estimate_usd(IMAGE_MODEL, body)
     if args.dry_run:
@@ -315,7 +317,8 @@ def cmd_image(args):
         return
     print(f"{scene['id']}: generating image (${cost:.3f})", flush=True)
     result, pending = run_request(scene["id"], "image", IMAGE_MODEL, body, cost,
-                                  {"extra": args.extra, "seed": args.seed}, poll_every=4)
+                                  {"extra": args.extra, "seed": args.seed, "subject": args.subject},
+                                  poll_every=4)
 
     n = len(load_state(scene["id"])["images"]) + 1
     url = result["images"][0]["url"]
@@ -588,6 +591,7 @@ def main():
     s = sub.add_parser("image")
     s.add_argument("scene")
     s.add_argument("--extra", help="extra prompt text, e.g. a correction after reviewing an attempt")
+    s.add_argument("--subject", help="replace the scene's subject text for this attempt")
     s.add_argument("--seed", type=int)
     s.add_argument("--dry-run", action="store_true")
     s.set_defaults(fn=cmd_image)
