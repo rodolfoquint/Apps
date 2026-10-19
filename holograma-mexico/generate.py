@@ -371,6 +371,25 @@ def cmd_select_video(args):
     print(f"{scene['id']}: video {args.n} selected")
 
 
+def cmd_trim(args):
+    """Keep only part of a video attempt (free), saved as a new selected attempt."""
+    cfg = load_scenes()
+    _, scene = find_scene(cfg, args.scene)
+    state = load_state(scene["id"])
+    src_entry = next((v for v in state["videos"] if v["n"] == args.n), None)
+    if not src_entry:
+        die(f"{scene['id']} has no video attempt {args.n}")
+    n = len(state["videos"]) + 1
+    dest = OUT / "videos" / f"{scene['id']}-{n}.mp4"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-ss", str(args.start), "-to", str(args.end),
+                    "-i", str(OUT / src_entry["file"]), "-an", "-c:v", "libx264", "-crf", "16", str(dest)], check=True)
+    state["videos"].append({"n": n, "file": str(dest.relative_to(OUT)), "image": src_entry.get("image"),
+                            "trimmed_from": args.n, "start": args.start, "end": args.end})
+    state["selected_video"] = n
+    save_state(scene["id"], state)
+    print(f"saved {dest} ({args.start}-{args.end}s of attempt {args.n}; attempt {n}, now selected)")
+
+
 def cmd_video(args):
     cfg = load_scenes()
     _, scene = find_scene(cfg, args.scene)
@@ -659,6 +678,13 @@ def main():
     s.add_argument("--duration", type=int, default=VIDEO_SECONDS, choices=range(3, 16), metavar="3-15")
     s.add_argument("--dry-run", action="store_true")
     s.set_defaults(fn=cmd_video)
+
+    s = sub.add_parser("trim")
+    s.add_argument("scene")
+    s.add_argument("n", type=int, help="video attempt to trim")
+    s.add_argument("--start", type=float, default=0.0)
+    s.add_argument("--end", type=float, required=True)
+    s.set_defaults(fn=cmd_trim)
 
     s = sub.add_parser("frames")
     s.add_argument("scene")
