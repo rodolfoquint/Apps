@@ -20,11 +20,20 @@
       "id": "mariachi",
       "title": "Mariachi en Garibaldi",
       "subject": "A mariachi band playing in Plaza Garibaldi, Mexico City, at night under warm plaza lights and papel picado. Five musicians in matching black gala charro suits: short fitted waist-length jacket with silver-thread embroidery on the lapels, chest and cuffs, tight black trousers with a row of round silver buttons down each outer leg, white shirt, a wide dark wine-red satin butterfly bow tie with two short hanging ends, embroidered belt, black boots. Each wears a black felt charro sombrero: smooth black felt, not straw and not woven palm, a very wide stiff brim with a rolled upturned edge, a tall pinched cone-shaped crown, and rich silver-thread floral embroidery all around the brim and the crown band. Instruments, one each: a clean straight brass trumpet, a violin with its bow, a guitar, a small five-string vihuela with a rounded back, and a guitarron, a huge deep-bodied fretless bass guitar with a very short neck, a small headstock and a V-shaped back, much bigger and deeper than the guitar. Joyful smiles.",
-      "motion": "The mariachis play a lively son: the trumpeters lift their trumpets high, the violinists bow energetically, the guitarrón player plucks hard, and the band steps forward together, sways side to side and turns to each other with big smiles; the camera slowly orbits around the band.",
+      "motion": "A real mariachi band performs in Plaza Garibaldi at night: violin bows move across the strings, guitarists strum, the trumpeter plays, the guitarrón player plucks the bass line, and the musicians sway to the rhythm, smile and sing together as one steps forward for a solo.",
       "previous_motion": "The mariachis play with joy, trumpets raised and violin bows moving, swaying to the rhythm and smiling at each other.",
-      "video_model": "kling3pro",
-      "style_key": "video_style_dynamic",
-      "loop": false
+      "video_model": "cinema4",
+      "style_key": "video_style_cinema",
+      "loop": false,
+      "kling_motion": "The mariachis play a lively son: the trumpeters lift their trumpets high, the violinists bow energetically, the guitarrón player plucks hard, and the band steps forward together, sways side to side and turns to each other with big smiles; the camera slowly orbits around the band.",
+      "cinema": {
+        "camera_movement": "slow-zoom-in",
+        "pacing": "dynamic",
+        "camera_model": "modern",
+        "camera_lens": "clean-sharp",
+        "era": "2020s"
+      },
+      "video_seconds": 10
     },
     {
       "id": "tulum",
@@ -62,11 +71,20 @@
       "id": "jarabe-tapatio",
       "title": "Jarabe Tapatío",
       "subject": "The Jarabe Tapatío on a festive stage: a charro and a china poblana dance joyfully around a single black charro sombrero lying on the floor, its tall dented crown and wide brim edged with silver embroidery. The charro is bareheaded with short black hair, nothing on his head; the sombrero on the floor is his, the only sombrero in the scene. He wears a black charro suit: short waist-length jacket and fitted trousers with silver-white scroll embroidery, a single row of round silver buttons down the outer seam of each trouser leg from waist to ankle, white shirt, wide red silk bow tie, black ankle boots. She wears a white short-sleeved blouse with a wide neckline embroidered with bright flowers, a narrow red-white-green striped sash, and a long full flowing skirt in one smooth piece without tiers or ruffles: shiny green satin from waist to hips, the lower part covered in glittering red and multicolor sequins, green hem band. On the front of the skirt, in sequins, the Mexican coat-of-arms eagle exactly as on the Mexican flag: a brown golden eagle seen in side profile, perched on a green nopal cactus, holding a serpent in its beak and talons. Hair in a bun with red flowers and tricolor ribbons, gold earrings",
-      "motion": "The couple dances the Jarabe Tapatío energetically across the stage: fast zapateado footwork, the china poblana spins around and around swirling her wide skirt in big waves, and the charro circles her with quick stamping steps and hands behind his back; the camera orbits around them.",
+      "motion": "A real folkloric dance couple performs the Jarabe Tapatío on a festive stage: the charro and the china poblana dance the zapateado with crisp rhythmic footwork, she sweeps her wide skirt side to side in big colorful waves and turns gracefully, he circles her with his hands behind his back, and they dance around the sombrero on the floor.",
       "previous_motion": "The couple dances the zapateado around the sombrero, her skirt swirling in wide colorful waves, his hands behind his back, both smiling.",
-      "video_model": "kling3pro",
-      "style_key": "video_style_dynamic",
-      "loop": false
+      "video_model": "cinema4",
+      "style_key": "video_style_cinema",
+      "loop": false,
+      "kling_motion": "The couple dances the Jarabe Tapatío energetically across the stage: fast zapateado footwork, the china poblana spins around and around swirling her wide skirt in big waves, and the charro circles her with quick stamping steps and hands behind his back; the camera orbits around them.",
+      "cinema": {
+        "camera_movement": "arc-left",
+        "pacing": "dynamic",
+        "camera_model": "modern",
+        "camera_lens": "clean-sharp",
+        "era": "2020s"
+      },
+      "video_seconds": 10
     },
     {
       "id": "barrancas-cobre",
@@ -169,5 +187,6 @@
       "loop": false
     }
   ],
-  "video_style_dynamic": "Dynamic, energetic, joyful movement from the very first second to the last: people move their whole bodies, travel across the scene, turn all the way around and interact with each other; nobody stands still or just bobs in place. The camera moves smoothly with the action (tracking, orbiting or pushing in). Faces stay natural and happy, hands and bodies stay correct, and every costume, hat, instrument and prop stays exactly as in the first frame; costumes stay modest and in place. Bright festive colors, no cuts, no text, nothing scary."
+  "video_style_dynamic": "Dynamic, energetic, joyful movement from the very first second to the last: people move their whole bodies, travel across the scene, turn all the way around and interact with each other; nobody stands still or just bobs in place. The camera moves smoothly with the action (tracking, orbiting or pushing in). Faces stay natural and happy, hands and bodies stay correct, and every costume, hat, instrument and prop stays exactly as in the first frame; costumes stay modest and in place. Bright festive colors, no cuts, no text, nothing scary.",
+  "video_style_cinema": "Filmed like real live-performance footage: natural, realistic human movement with real rhythm and timing, correct anatomy and hands, natural weight and footwork, no exaggerated or rubbery motion. Costumes, hats, instruments and props stay exactly as in the reference image. Warm festive light, joyful mood, one continuous shot, no text."
 }

@@ -44,7 +44,13 @@ IMAGE_MODEL = "alibaba/qwen-image-3/text-to-image"
 VIDEO_MODELS = {
     "o3": "kling-video/o3/first-last-frame",
     "kling3pro": "kling-video/v3.0/pro/image-to-video",
+    # Higgsfield's own director model: the still is a reference (<<<image_1>>>),
+    # with camera and pacing presets from the scene's "cinema" settings.
+    "cinema4": "higgsfield/cinema-studio/4.0",
 }
+# Models whose estimate endpoint returns only a pricing description: cost from
+# their published token formula (720p square = 720x720, 24 fps, $0.0214 per 1k tokens).
+TOKEN_PRICED = {"higgsfield/cinema-studio/4.0": lambda body: math.ceil(body["duration"] * 720 * 720 * 24 / 1024) * 0.0214 / 1000}
 VIDEO_MODE = "pro"
 VIDEO_SECONDS = 15
 FAN_SIZE = 1080
@@ -157,6 +163,8 @@ def call(method, path, body=None, idempotency_key=None):
 
 
 def estimate_usd(model, body):
+    if model in TOKEN_PRICED:
+        return TOKEN_PRICED[model](body)
     return float(call("POST", f"estimate/{model}", body)["usd"])
 
 
@@ -292,6 +300,11 @@ def video_body(cfg, scene, image_url, extra=None, duration=VIDEO_SECONDS):
     parts.append(cfg[scene.get("style_key", "video_style")])
     if loop and cfg.get("loop_style"):
         parts.append(cfg["loop_style"])
+    if video_model(cfg, scene) == VIDEO_MODELS["cinema4"]:
+        body = {"prompt": "<<<image_1>>> " + " ".join(parts), "image_urls": [image_url],
+                "duration": scene.get("video_seconds", duration), "resolution": "720p",
+                "aspect_ratio": "1:1", "generate_audio": False, **scene.get("cinema", {})}
+        return body
     if video_model(cfg, scene) == VIDEO_MODELS["kling3pro"]:
         body = {"prompt": " ".join(parts), "image_url": image_url, "duration": duration, "sound": "off"}
         if loop:
