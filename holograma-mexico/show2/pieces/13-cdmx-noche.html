@@ -1,0 +1,531 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Ciudad de México de noche: el Ángel de la Independencia y el Palacio de Bellas Artes.
+// One golden light travels through the night city. The city wakes in a deep-blue night: bokeh
+// lights twinkle, long-exposure car trails circle the Angel's roundabout on Reforma, and the
+// monument stands in moonlit blue. A ring of light climbs the slender white column, floodlighting
+// the marble as it rises while the camera cranes up with it; it reaches the gilded Victory, who
+// ignites: her wings flare (echoes of the wings pulse outward, a specular sheen sweeps the gold,
+// the laurel wreath sparkles). The camera pulls back to the whole lit monument; a spark leaves the
+// wreath and arcs across the night sky, the camera sweeping with it (bokeh slide in parallax) to
+// the Palacio de Bellas Artes, still in moonlit blue. The spark lands on the dome's crowning
+// eagle: the orange-and-gold tiled dome fills with light from the top, the marble facade floods
+// with warm light from the street, and a sheen runs across the dome's ribs. Finally the palace's
+// lights lift off as fireflies and rise into the night sky while the building dissolves upward.
+// Assets: prepare.py on out/images/angel-independencia-3.png (shaft stretched to the real
+// monument's slender proportion, broken chain painted into the Victory's left hand) and
+// out/images/bellas-artes-2.png (diorama plaza faded out), then derive.py (scratchpad) for the
+// gilded parts, moonlit versions and the tiled domes, plus the DATA below (silhouette widths
+// of the monument; warm light points of the palace).
+const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
+const TAU = Math.PI * 2;
+const mix = (a, b, k) => [0, 1, 2].map(i => Math.round(lerp(a[i], b[i], k)));
+const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
+const sine = x => 0.5 - 0.5 * Math.cos(Math.PI * clamp(x));
+const E = (t, a, b) => sine((t - a) / (b - a));
+const DATA = {"angel":{"axis":769.0,"step":6,"half":[0,192,193,192,189,188,185,179,178,172,167,161,153,148,140,136,129,120,116,107,101,97,93,87,83,76,69,62,57,54,53,55,59,66,71,74,75,74,70,60,42,43,43,43,34,38,42,48,48,48,45,44,39,71,71,81,81,80,79,84,83,81,79,78,78,75,55,49,43,43,43,41,38,38,37,35,34,34,34,34,35,35,35,36,36,36,36,36,36,36,36,36,36,37,37,37,37,37,37,38,39,40,41,41,41,41,41,40,40,39,39,39,38,38,37,37,37,38,38,38,38,38,38,38,38,38,38,38,38,38,38,39,39,40,40,41,41,41,40,40,40,40,40,40,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,38,39,39,39,41,44,45,46,51,53,55,61,64,69,76,77,77,76,76,75,96,102,102,103,103,101,98,105,108,111,124,126,125,125,131,136,138,139,139,139,140,140,137,141,145,206,215,216,217,217,215,243,245,245,243,243,244,243,239,245,257,259,260,260,259,259,260,262,273,276,281,285,286,286,286,289,295,299,333,338,347,359,364,374,381,386,397,402,403,403,403,400,388,360,314,238,73],"top":8,"bottom":1530},"bellas":{"pts":[[514,117,169,135,74],[526,139,164,105,25],[481,142,174,132,79],[483,168,182,122,58],[388,258,212,85,18],[456,265,242,85,4],[375,266,253,161,17],[545,271,242,90,1],[552,272,240,87,2],[579,275,247,112,2],[404,275,252,129,6],[381,282,255,187,17],[460,283,255,142,5],[626,284,243,121,11],[647,290,251,165,2],[484,291,250,133,3],[483,292,255,166,6],[545,294,247,108,0],[400,296,251,184,26],[550,298,246,133,1],[577,298,230,132,15],[382,298,177,88,8],[651,298,245,174,2],[657,299,200,97,2],[509,304,254,159,0],[651,310,255,222,59],[413,315,250,204,51],[460,315,169,91,13],[675,316,255,222,70],[608,318,249,166,2],[674,320,254,234,80],[451,320,251,208,52],[472,322,255,213,32],[690,332,235,173,70],[663,334,219,147,42],[511,334,253,221,69],[609,335,250,209,25],[343,338,169,100,12],[364,341,227,163,46],[454,343,249,222,104],[606,345,240,184,57],[730,358,206,131,20],[714,358,233,161,72],[513,364,187,92,19],[708,368,227,164,80],[337,372,163,120,77],[214,407,247,173,44],[222,410,255,197,26],[775,419,183,65,10],[176,419,205,136,50],[834,419,197,103,12],[832,423,252,226,133],[780,426,229,95,4],[252,430,241,155,30],[254,431,242,152,11],[276,432,255,178,47],[246,433,244,208,91],[665,437,207,76,4],[724,440,252,120,3],[803,444,255,160,22],[725,444,250,126,2],[843,444,253,216,103],[769,444,255,137,4],[650,445,255,188,16],[755,446,254,144,5],[703,447,253,130,12],[684,447,161,78,6],[617,448,198,133,90],[522,451,189,146,86],[612,455,206,144,104],[739,457,245,172,19],[678,458,249,187,12],[748,461,250,183,19],[737,463,250,226,72],[735,463,250,216,60],[193,465,193,144,103],[198,465,236,189,125],[630,470,226,151,38],[247,472,230,174,110],[629,472,185,119,45],[844,474,213,149,59],[855,478,195,144,89],[770,483,169,110,57],[813,489,204,153,107],[226,496,170,112,60],[788,497,170,123,58],[779,497,201,159,108],[610,509,190,146,104],[915,514,198,143,90],[740,520,246,195,61],[305,522,224,176,117],[953,530,202,147,96],[947,532,207,145,78],[914,551,173,128,65],[278,552,188,131,56],[296,553,220,170,103],[86,561,208,166,65],[961,570,189,116,23],[969,570,203,127,24],[358,570,188,144,102],[913,575,163,123,85],[282,577,185,121,34],[297,579,205,150,71],[959,580,201,131,29],[255,580,209,143,45],[900,586,191,135,75],[255,588,194,133,52],[370,588,186,144,97],[369,588,168,130,92],[264,589,192,137,66],[902,589,166,112,56],[996,591,215,147,51],[981,601,190,127,58],[307,601,221,166,104],[982,604,186,126,57],[936,605,160,108,51],[239,607,195,146,91],[48,607,197,142,58],[936,611,177,117,56],[928,613,246,199,123],[105,615,207,144,73],[46,616,168,120,62],[208,617,230,184,120],[161,618,165,100,7],[986,618,179,126,59],[157,619,170,103,4],[376,620,210,156,107],[345,624,222,168,106],[168,625,221,154,49],[508,625,234,202,118],[194,626,222,160,79],[967,626,253,184,4],[273,626,221,164,89],[166,627,220,151,42],[294,628,198,145,62],[175,630,236,183,104],[39,633,163,126,86],[335,638,164,114,68],[841,643,174,132,92],[378,646,186,119,36],[956,647,232,147,4],[911,655,202,154,110],[394,656,244,186,94],[999,657,186,129,68],[440,658,164,119,69],[414,658,236,167,52],[214,658,207,160,78],[503,662,182,140,93],[186,663,195,130,37],[410,665,197,134,48],[529,670,185,142,98],[112,673,198,142,33],[490,675,237,169,78],[400,678,163,97,5],[866,680,181,132,85],[959,681,182,132,71],[852,682,211,160,109],[854,683,175,120,65],[452,685,210,149,86],[430,690,208,148,64],[579,691,191,133,63],[524,692,245,181,90],[79,693,175,107,2],[680,693,191,124,13],[714,693,187,131,77],[871,694,223,162,21],[517,698,223,163,66],[819,703,183,140,94],[997,703,179,115,55],[454,703,171,122,67],[197,704,205,153,50],[995,707,172,110,49],[301,708,170,125,66],[257,709,179,131,93],[607,712,169,112,41],[842,712,177,137,94],[705,713,213,142,35],[193,713,251,204,99],[474,715,180,122,62],[179,715,188,107,0],[871,715,232,168,16],[712,716,204,154,100],[427,716,244,198,106],[547,718,177,121,56],[176,719,253,189,23],[759,719,164,122,29],[352,722,170,128,80],[990,727,207,126,44],[594,727,171,116,42],[866,728,246,175,16],[172,731,252,198,48],[323,733,191,143,38],[980,733,201,130,50],[476,734,161,112,48],[324,737,247,192,68],[707,740,206,140,51],[602,740,175,117,54],[996,740,208,145,65],[431,742,240,193,120],[514,746,207,149,22],[987,749,232,155,43],[815,752,190,140,98],[722,753,197,150,104],[400,754,167,106,10],[387,756,172,127,76],[380,756,250,197,114],[527,756,159,115,20],[987,758,175,112,20],[426,760,171,104,17],[515,764,211,141,15],[114,766,178,137,97],[18,769,168,105,4],[722,773,184,135,93],[662,775,184,136,76],[515,785,171,122,34],[522,789,215,170,114],[24,792,191,118,47],[912,796,184,135,55],[357,804,170,126,90],[604,808,187,136,86],[337,808,194,148,100],[189,816,213,154,94],[704,822,183,137,88],[318,832,225,156,57],[274,832,202,130,42],[440,832,187,125,50],[259,833,198,137,62],[303,835,204,132,33],[277,837,190,129,51],[308,838,240,176,82],[443,839,165,108,44],[460,840,173,128,79],[710,840,168,113,59],[266,840,215,152,81],[449,842,172,114,43],[304,845,238,178,91],[299,852,248,197,90],[436,852,221,170,121],[391,852,182,136,82],[653,859,197,138,78],[267,859,159,119,44],[495,860,162,122,86],[739,860,187,128,63],[522,864,197,152,107],[486,864,192,147,100],[349,867,229,172,102],[351,868,240,187,120],[364,869,231,165,74],[661,870,191,143,97],[304,873,242,183,105],[336,875,169,109,20],[657,876,182,131,90],[275,879,166,107,21],[656,879,194,145,105],[357,885,200,147,80],[725,887,166,109,34],[365,891,230,173,97],[320,892,174,95,3],[306,896,251,192,109],[279,900,175,106,12]]}};
+
+const GOLD = [255, 196, 90], GOLD_HI = [255, 230, 160], WARMW = [255, 238, 210], AMBER = [255, 150, 50],
+  TAIL = [255, 46, 40], ICE = [150, 190, 255], WHITE = [255, 255, 255], DOME = [255, 150, 40];
+
+// ---------- world placement (world px = screen px when the camera is at 0,0 with zoom 1)
+const SA = 0.56, AO = 769;                       // angel asset (1536 px), axis at asset x 769
+const aw = (ax, ay) => [(ax - AO) * SA, (ay - AO) * SA];
+const SB = 0.70, BX = 700, BY = 133;             // bellas artes asset (1024 px), centre 512,511
+const bw = (bx, by) => [BX + (bx - 512) * SB, BY + (by - 511) * SB];
+const ANGEL_C = [740, 150], ECHO_C = [738, 105], WREATH = [695, 40], EAGLE = [488, 66];
+
+// ---------- timeline
+const FY0 = 0.85, FY1 = 3.65;                    // the ring of light climbs: asset y 1530 -> 0
+const FLARE = 3.8;                              // the Victory's wings flare
+const SPARK0 = 5.55, SPARK1 = 7.85;              // the spark flies from the wreath to the eagle
+const DOME0 = SPARK1, FACADE0 = 8.0;             // the palace lights up
+const LIFT0 = 9.45;                              // lights rise as fireflies
+const titleOn = t => bump(t, 2.0, 2.6, 9.6, 10.2);
+const DIS0 = LIFT0 + 0.3, DIS1 = LIFT0 + 1.75;
+const disY = t => lerp(1060, -200, E(t, DIS0, DIS1));   // palace dissolves upward (asset y of the front)
+
+// ---------- smooth keyframe curves (monotone cubic: no overshoot, continuous speed)
+function curve(keys) {
+  const n = keys.length, T = keys.map(k => k[0]), V = keys.map(k => k[1]), d = [], m = [0];
+  for (let i = 0; i < n - 1; i++) d.push((V[i + 1] - V[i]) / (T[i + 1] - T[i]));
+  for (let i = 1; i < n - 1; i++) {
+    const h0 = T[i] - T[i - 1], h1 = T[i + 1] - T[i], w1 = 2 * h1 + h0, w2 = h1 + 2 * h0;
+    m.push(d[i - 1] * d[i] <= 0 ? 0 : (w1 + w2) / (w1 / d[i - 1] + w2 / d[i]));
+  }
+  m.push(0);
+  return t => {
+    if (t <= T[0]) return V[0]; if (t >= T[n - 1]) return V[n - 1];
+    let i = 0; while (t > T[i + 1]) i++;
+    const h = T[i + 1] - T[i], s = (t - T[i]) / h, s2 = s * s, s3 = s2 * s;
+    return (2 * s3 - 3 * s2 + 1) * V[i] + (s3 - 2 * s2 + s) * h * m[i] + (-2 * s3 + 3 * s2) * V[i + 1] + (s3 - s2) * h * m[i + 1];
+  };
+}
+// ---------- camera: world point at the centre of the frame, and zoom
+const CAM = [   // t, x, y, zoom
+  [0.0, 0, 0, 0.90],       // the whole monument in moonlight
+  [2.3, 0, -20, 0.97],     // the ring of light climbs the column
+  [4.25, -10, -311, 2.40], // pushed in to the Victory
+  [5.0, -10, -318, 2.48],  // her wings flare
+  [6.3, 110, -60, 1.12],   // pull back with the spark, the city opens
+  [8.1, 700, 235, 1.0],    // Bellas Artes
+  [12, 700, 230, 1.06],
+];
+const camX = curve(CAM.map(k => [k[0], k[1]])), camY = curve(CAM.map(k => [k[0], k[2]])), camLZ = curve(CAM.map(k => [k[0], Math.log(k[3])]));
+const camAt = t => ({ x: camX(t), y: camY(t), z: Math.exp(camLZ(t)) });
+// world -> screen for a layer with parallax f (1 = the monuments' plane)
+const toS = (cam, wx, wy, f = 1) => { const z = Math.pow(cam.z, f); return [C + (wx - cam.x * f) * z, C + (wy - cam.y * f) * z, z]; };
+function view(c, cam, f = 1) { const z = Math.pow(cam.z, f); c.translate(C, C); c.scale(z, z); c.translate(-cam.x * f, -cam.y * f); }
+function angelSpace(c, cam) { HG.reset(c); view(c, cam); c.scale(SA, SA); c.translate(-AO, -AO); }
+function bellasSpace(c, cam) { HG.reset(c); view(c, cam); c.translate(BX, BY); c.scale(SB, SB); c.translate(-512, -511); }
+
+// ---------- the climbing front (asset y of the angel)
+function baseDim(l) {     // keeps the pedestal and steps in soft light (the title sits over them)
+  l.globalCompositeOperation = 'destination-out'; l.globalAlpha = 1;
+  const g = l.createLinearGradient(0, 990, 0, 1110); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.68)');
+  l.fillStyle = g; l.fillRect(0, 990, 1536, 600);
+}
+const frontY = curve([[FY0, 1488], [1.75, 1000], [2.9, 430], [3.2, 300], [FY1, 0]]);
+const halfAt = ay => { const h = DATA.angel.half, i = clamp(ay / 6, 0, h.length - 1), i0 = Math.floor(i); return lerp(h[i0], h[Math.min(h.length - 1, i0 + 1)], i - i0); };
+
+// ---------- deterministic decor
+const BOKEH = (() => {
+  const R = HG.rng(1301), list = [];
+  const pick = () => { const v = R(); return v < 0.4 ? GOLD : v < 0.7 ? WARMW : v < 0.86 ? AMBER : v < 0.95 ? ICE : TAIL; };
+  const add = (n, f, s0, s1, a0, a1, region) => { for (let i = 0; i < n; i++) { const [x, y] = region(); list.push({ x, y, f, s: lerp(s0, s1, R()), a: lerp(a0, a1, R()), col: pick(), ph: R() * TAU, w: 0.7 + 1.4 * R(), up: 0.6 + 0.8 * R() }); } };
+  // far: the city below the horizon, plus tower lights high on the sides
+  add(92, 0.3, 12, 28, 0.38, 0.72, () => [lerp(-1150, 1950, R()), lerp(180, 640, R())]);
+  add(26, 0.3, 10, 20, 0.3, 0.55, () => { const s = R() < 0.5 ? -1 : 1; return [s < 0 ? lerp(-1100, -260, R()) : lerp(260, 1900, R()), lerp(-760, 160, R())]; });
+  // mid
+  add(46, 0.6, 26, 52, 0.22, 0.42, () => [lerp(-1100, 1900, R()), lerp(120, 700, R())]);
+  add(10, 0.6, 22, 40, 0.18, 0.32, () => [lerp(-1100, 1900, R()), lerp(-600, 100, R())]);
+  // near (foreground, out of focus, sliding faster than the monuments)
+  const n0 = list.length; add(11, 1.35, 80, 150, 0.06, 0.11, () => [lerp(-700, 1500, R()), lerp(250, 560, R())]);
+  for (let i = n0; i < list.length; i++) list[i].col = [GOLD, AMBER, WARMW][i % 3];
+  return list;
+})();
+const LANES = [
+  { r: 262, col: TAIL, n: 4, w: 0.95, len: 1.7 },
+  { r: 292, col: WARMW, n: 4, w: 1.2, len: 2.1 },
+  { r: 324, col: AMBER, n: 3, w: 0.8, len: 1.5 },
+];
+const CARS = (() => { const R = HG.rng(55), l = []; LANES.forEach((ln, k) => { for (let i = 0; i < ln.n; i++) l.push({ k, th: (i + R() * 0.6) * TAU / ln.n, w: ln.w * (0.9 + 0.2 * R()), len: ln.len * (0.75 + 0.5 * R()), d: 0.25 + 0.9 * R() }); }); return l; })();
+const RING_SPARKS = (() => { const R = HG.rng(77), l = []; for (let i = 0; i < 100; i++) l.push({ te: 1.05 + 2.1 * (i + R()) / 100, a: R() * TAU, v: 25 + 55 * R(), s: 8 + 8 * R(), col: R() < 0.5 ? GOLD_HI : WARMW }); return l; })();
+// gold motes off the wings: seeded along the upper edges of both wings
+const WING = [[[580, 16], [726, 104]], [[896, 18], [786, 108]]];
+const MOTES = (() => { const R = HG.rng(91), l = []; for (let i = 0; i < 70; i++) { const w = WING[i % 2], u = R(); l.push({ ax: lerp(w[0][0], w[1][0], u) + (R() - 0.5) * 20, ay: lerp(w[0][1], w[1][1], u) + R() * 40, te: FLARE + 0.1 + 2.4 * R(), vx: (i % 2 ? 1 : -1) * (10 + 30 * R()), vy: -(12 + 28 * R()), s: 7 + 7 * R(), ph: R() * TAU, col: R() < 0.7 ? GOLD_HI : WARMW }); } return l; })();
+const FLIES = (() => {
+  const R = HG.rng(404), l = [];
+  for (const p of DATA.bellas.pts) {
+    // each light lifts off as the dissolving front reaches it
+    let a = DIS0 - 0.3, b = DIS1 + 0.3;
+    for (let i = 0; i < 30; i++) { const m = (a + b) / 2; if (disY(m) > p[1] - 70) a = m; else b = m; }
+    l.push({ bx: p[0], by: p[1], col: mix([p[2], p[3], p[4]], WARMW, 0.3), te: a - 0.12 + 0.25 * R(), v: 30 + 60 * R(), acc: 20 + 40 * R(), sw: 12 + 26 * R(), ph: R() * TAU, s: 11 + 8 * R(), bl: 2 + 2.5 * R() });
+  }
+  return l;
+})();
+
+// ---------- sprites built once
+const SPR_K = Math.max(1, HG.S);
+const bokehCache = new Map();
+function bokeh(col) {
+  const key = col.join(',');
+  if (bokehCache.has(key)) return bokehCache.get(key);
+  const n = Math.round(96 * SPR_K), s = document.createElement('canvas'); s.width = s.height = n;
+  const g = s.getContext('2d'), h = n / 2, grd = g.createRadialGradient(h, h, 0, h, h, h);
+  grd.addColorStop(0, rgba(mix(col, WHITE, 0.25), 0.62)); grd.addColorStop(0.62, rgba(col, 0.6));
+  grd.addColorStop(0.84, rgba(mix(col, WHITE, 0.2), 0.82)); grd.addColorStop(0.93, rgba(col, 0.3)); grd.addColorStop(1, rgba(col, 0));
+  g.fillStyle = grd; g.fillRect(0, 0, n, n); bokehCache.set(key, s); return s;
+}
+// the gilded Victory as a tinted silhouette (for the wing echoes)
+let ECHO = null;
+const SX0 = 560, SY0 = 0, SW = 360, SH = 372;     // statue crop of the angel asset
+function echoSprite(A) {
+  if (ECHO) return ECHO;
+  const s = document.createElement('canvas'); s.width = SW; s.height = SH; const g = s.getContext('2d');
+  g.drawImage(A.edge, SX0, SY0, SW, SH, 0, 0, SW, SH);
+  g.globalCompositeOperation = 'source-in'; g.fillStyle = rgba(GOLD_HI, 1); g.fillRect(0, 0, SW, SH);
+  // keep the wings and the raised wreath, let the robe and plinth fall away
+  g.globalCompositeOperation = 'destination-in';
+  const v = g.createLinearGradient(0, 120, 0, 250); v.addColorStop(0, 'rgba(0,0,0,1)'); v.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = v; g.fillRect(0, 0, SW, SH);
+  ECHO = s; return s;
+}
+// scratch canvases for sheens clipped to an image region (fully redrawn every frame)
+const SCR = {};
+function scratch(name, w, h) { if (!SCR[name]) { const s = document.createElement('canvas'); s.width = w; s.height = h; SCR[name] = { cv: s, g: s.getContext('2d') }; } return SCR[name]; }
+
+const L1 = HG.layer(), L2 = HG.layer(), LB = HG.layer();
+for (const c of [ctx, L1.ctx, L2.ctx, LB.ctx]) c.imageSmoothingQuality = 'high';
+function clearL(L) { HG.reset(L.ctx); L.ctx.clearRect(0, 0, W, W); }
+
+// ---------- drawing
+function sky(t, cam, a) {
+  if (a <= 0) return;
+  const hz = toS(cam, 0, 380, 0.3)[1];
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(C, hz, 0, C, hz, 820);
+  g.addColorStop(0, rgba([62, 58, 150], 0.5 * a)); g.addColorStop(0.3, rgba([28, 44, 135], 0.42 * a));
+  g.addColorStop(0.62, rgba([12, 24, 92], 0.32 * a)); g.addColorStop(1, rgba([4, 8, 40], 0));
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, W);
+  ctx.globalCompositeOperation = 'source-over';
+  const v = ctx.createRadialGradient(C, C, 360, C, C, 548);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.9)');
+  ctx.fillStyle = v; ctx.fillRect(0, 0, W, W);
+  ctx.restore();
+}
+
+function drawBokeh(t, cam, f0, f1, a) {
+  if (a <= 0) return;
+  const h = 1 / 60, cp = camAt(t + h), cm = camAt(t - h), tOn = titleOn(t);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const b of BOKEH) {
+    if (b.f < f0 || b.f > f1) continue;
+    const lift = t > LIFT0 ? (Math.pow(t - LIFT0, 1.6) * 60 * b.up) : 0;
+    const [x, y, z] = toS(cam, b.x, b.y - lift / Math.pow(cam.z, b.f), b.f);
+    const size = b.s * Math.pow(z, 0.8);
+    if (x < -size || x > W + size || y < -size || y > W + size) continue;
+    const vx = (toS(cp, b.x, b.y, b.f)[0] - toS(cm, b.x, b.y, b.f)[0]) / (2 * h);
+    const st = Math.min(2.2, 1 + Math.abs(vx) * 0.0016 * Math.sqrt(size / 20));
+    let al = b.a * a * (0.72 + 0.28 * Math.sin(t * b.w + b.ph));
+    al *= 1 - 0.55 * tOn * smooth(730, 850, y);
+    al *= 1 - smooth(LIFT0 + 0.8, LIFT0 + 2.2, t + 0.3 * b.up);
+    if (al <= 0.004) continue;
+    ctx.globalAlpha = Math.min(1, al);
+    ctx.drawImage(bokeh(b.col), x - size * st / 2, y - size / 2, size * st, size);
+  }
+  ctx.restore();
+}
+
+// long-exposure light trails around the Angel's roundabout; part = 'back' | 'front'
+function trails(t, cam, part, a) {
+  if (a <= 0) return;
+  const [cx, cy] = aw(AO, 1488);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const car of CARS) {
+    const ln = LANES[car.k], grow = smooth(0.15 + car.d * 0.5, 1.0 + car.d * 0.9, t);
+    if (grow <= 0) continue;
+    const rx = ln.r, ry = ln.r * 0.15, head = car.th - car.w * t, len = car.len * grow;
+    const z = cam.z, steps = Math.ceil(len * rx * z / 3.2);
+    for (let j = 0; j <= steps; j++) {
+      const u = j / steps, th = head + u * len, sn = Math.sin(th);
+      if ((part === 'front') !== (sn > 0)) continue;
+      const [x, y] = toS(cam, cx + Math.cos(th) * rx, cy + sn * ry);
+      if (y > W + 20 || y < -20) continue;
+      const fall = Math.pow(1 - u, 1.6), size = (6 + 6 * fall) * Math.sqrt(z);
+      HG.dot(ctx, ln.col, x, y, size, a * (0.15 + 0.75 * fall) * (sn > 0 ? 1 : 0.6));
+    }
+  }
+  ctx.restore();
+}
+
+// the ring of light: lifts off the roundabout, contracts around the column and climbs it.
+// part 'back' (the far half, drawn before the stone) or 'front'
+const ringRx = yy => lerp((yy < 1000 ? halfAt(yy) : 40) + 16, 540, smooth(1000, 1488, yy));
+function ring(t, cam, part, G) {
+  const fy = frontY(t), beam = smooth(FY0, FY0 + 0.3, t);
+  if (beam <= 0 || fy < 330) return;
+  const ra = beam * (1 - smooth(470, 330, fy)) * G, lift = smooth(1000, 1488, fy);
+  const c = ctx; angelSpace(c, cam); c.globalCompositeOperation = 'lighter'; c.strokeStyle = rgba(WARMW, 1); c.lineCap = 'round';
+  const a0 = part === 'back' ? Math.PI : 0;
+  for (const [dy, sc, aa] of [[0, 1, 1], [46, 0.92, 0.45], [96, 0.86, 0.2]]) {
+    const yy = fy + dy * (1 - lift), hh = ringRx(yy) * sc, rr = hh * lerp(0.27, 0.15, smooth(1000, 1488, yy));
+    for (const [w, bl, al] of [[30, 20, 0.6], [9, 0, 1]]) {
+      c.lineWidth = w * sc; c.filter = bl ? HG.blur(bl * cam.z * SA) : 'none';
+      c.globalAlpha = al * ra * aa * (part === 'back' ? 0.55 : 1);
+      c.beginPath(); c.ellipse(AO, yy, hh, rr, 0, a0, a0 + Math.PI); c.stroke();
+    }
+  }
+  c.filter = 'none'; HG.reset(c);
+  if (part === 'front') {
+    const [hx, hy, hz] = toS(cam, ...aw(AO, fy)), k = 1 - lift;
+    HG.dot(ctx, GOLD, hx, hy, 60 * SA * hz * 6, 0.32 * ra * k); HG.dot(ctx, WARMW, hx, hy, 60 * SA * hz * 2.2, 0.4 * ra * k);
+  }
+}
+
+function angel(t, cam, A, G) {
+  // visible?
+  const [axs] = toS(cam, 0, 0); if (axs < -500 * cam.z) return;
+  const fy = frontY(t), beam = smooth(FY0, FY0 + 0.25, t);
+  // moonlit stone, with a hint of floodlight
+  const c = ctx;
+  ring(t, cam, 'back', G);
+  angelSpace(c, cam); c.globalAlpha = G; c.drawImage(A.night, 0, 0);
+  c.globalAlpha = 0.07 * G; c.drawImage(A.lit, 0, 0);
+  // floodlit below the climbing front (and a soft bloom)
+  if (beam > 0) {
+    clearL(L1); const l = L1.ctx; angelSpace(l, cam);
+    l.drawImage(A.lit, 0, 0);
+    l.globalCompositeOperation = 'lighter'; l.globalAlpha = 0.12; l.filter = HG.blur(9 * cam.z); l.drawImage(A.lit, 0, 0); l.filter = 'none';
+    l.globalCompositeOperation = 'destination-in'; l.globalAlpha = 1;
+    const g = l.createLinearGradient(0, fy - 50, 0, fy + 26);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)');
+    l.fillStyle = g; l.fillRect(0, 0, 1536, 1536);
+    baseDim(l);
+    HG.drawLayer(ctx, L1, { alpha: 0.8 * G });
+    // the band of light washing over the stone at the front
+    const bandA = beam * (1 - smooth(FY1 - 0.35, FY1 + 0.1, t));
+    if (bandA > 0) {
+      clearL(L2); const m = L2.ctx; angelSpace(m, cam);
+      m.drawImage(A.lit, 0, 0); m.globalCompositeOperation = 'source-in';
+      const b = m.createLinearGradient(0, fy - 60, 0, fy + 90);
+      b.addColorStop(0, 'rgba(255,240,215,0)'); b.addColorStop(0.4, 'rgba(255,246,228,1)');
+      b.addColorStop(0.55, 'rgba(255,215,150,0.55)'); b.addColorStop(1, 'rgba(255,190,110,0)');
+      m.fillStyle = b; m.fillRect(0, 0, 1536, 1536);
+      baseDim(m);
+      HG.drawLayer(ctx, L2, { alpha: bandA * G, op: 'lighter' });
+    }
+  }
+  // the gilded Victory: ignites as the front passes, then flares
+  const ign = smooth(320, 40, fy) * beam;
+  const fl = bump(t, FLARE - 0.05, FLARE + 0.2, FLARE + 0.35, FLARE + 1.7);
+  const glow = (0.3 * ign + 0.5 * fl + 0.15 * smooth(FLARE + 1, FLARE + 2.2, t)) * G;
+  if (glow > 0) {
+    angelSpace(c, cam); c.globalCompositeOperation = 'lighter';
+    c.globalAlpha = 0.34 * glow; c.filter = HG.blur(10 * cam.z * SA); c.drawImage(A.gold, 0, 0);
+    c.globalAlpha = 0.2 * glow; c.filter = HG.blur(30 * cam.z * SA); c.drawImage(A.gold, 0, 0);
+    c.filter = 'none'; c.globalAlpha = 0.1 * fl * G; c.drawImage(A.gold, 0, 0);
+    HG.reset(c);
+  }
+  // wing echoes: the gilded silhouette pulses outward
+  const E1 = echoSprite(A);
+  for (const [t0, amp] of [[FLARE + 0.02, 1], [FLARE + 0.36, 0.75], [FLARE + 0.72, 0.5]]) {
+    const k = (t - t0) / 1.1; if (k <= 0 || k >= 1) continue;
+    const s = 1 + 0.75 * ease.out3(k), al = amp * 0.9 * Math.pow(1 - k, 1.3) * smooth(0, 0.08, k) * G;
+    angelSpace(c, cam); c.translate(ECHO_C[0], ECHO_C[1]); c.scale(s, s); c.translate(-ECHO_C[0], -ECHO_C[1]);
+    c.globalCompositeOperation = 'lighter'; c.globalAlpha = al; c.filter = HG.blur((1 + 5 * k) * cam.z * SA * s);
+    c.drawImage(E1, SX0, SY0); c.filter = 'none';
+  }
+  HG.reset(c);
+  // specular sheen sweeping diagonally across the gold
+  const sk = (t - (FLARE + 0.15)) / 1.1;
+  if (sk > 0 && sk < 1) {
+    const s = scratch('spec', SW, SH), g = s.g;
+    g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, SW, SH);
+    const p = lerp(-160, SW + 160, ease.inOut3(sk));
+    const lg = g.createLinearGradient(p - 70, -40, p + 70, 40);
+    lg.addColorStop(0, 'rgba(255,250,235,0)'); lg.addColorStop(0.5, 'rgba(255,250,235,1)'); lg.addColorStop(1, 'rgba(255,250,235,0)');
+    g.fillStyle = lg; g.fillRect(0, 0, SW, SH);
+    g.globalCompositeOperation = 'destination-in'; g.drawImage(A.gold, SX0, SY0, SW, SH, 0, 0, SW, SH);
+    angelSpace(c, cam); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.7 * G * Math.sin(Math.PI * sk);
+    c.drawImage(s.cv, SX0, SY0); HG.reset(c);
+  }
+  ring(t, cam, 'front', G);
+  // sparks shed by the ring
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const s of RING_SPARKS) {
+    const dt = t - s.te; if (dt < 0 || dt > 1.2) continue;
+    const fye = frontY(s.te); if (fye > 1480 || fye < 330) continue;
+    const hw = ringRx(fye);
+    const ax = AO + Math.cos(s.a) * (hw + s.v * dt), ay = fye + Math.sin(s.a) * hw * 0.22 + 30 * dt + 70 * dt * dt;
+    if (Math.sin(s.a) < -0.2 && hw < 120) continue;   // far side hidden by the column
+    const [x, y, z] = toS(cam, ...aw(ax, ay));
+    HG.dot(ctx, s.col, x, y, s.s * Math.sqrt(z), 0.85 * (1 - dt / 1.2) * (0.6 + 0.4 * Math.sin(dt * 18 + s.a)) * G);
+  }
+  // gold motes drifting off the wings
+  for (const m of MOTES) {
+    const dt = t - m.te; if (dt < 0 || dt > 2.6) continue;
+    const ax = m.ax + m.vx * dt + Math.sin(dt * 2 + m.ph) * 6, ay = m.ay + m.vy * dt + 4 * dt * dt;
+    const [x, y, z] = toS(cam, ...aw(ax, ay));
+    const tw = 0.55 + 0.45 * Math.sin(dt * 7 + m.ph);
+    HG.dot(ctx, m.col, x, y, m.s * Math.sqrt(z), 0.9 * tw * smooth(0, 0.2, dt) * (1 - smooth(1.4, 2.6, dt)) * G);
+  }
+  ctx.restore();
+  // the laurel wreath sparkles, then lets go of the spark
+  const wa = bump(t, FLARE + 0.3, FLARE + 0.7, SPARK0 - 0.1, SPARK0 + 0.25) * G;
+  if (wa > 0) { const [x, y, z] = toS(cam, ...aw(...WREATH)); star(x, y, 70 * Math.sqrt(z) * (0.85 + 0.15 * Math.sin(t * 5)), wa, 0.4 * t); }
+}
+
+// a four-point star glint (two long rays, two short diagonals)
+function star(x, y, r, a, rot = 0, col = GOLD_HI) {
+  if (a <= 0.003) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(x, y); ctx.rotate(rot);
+  for (const [ang, len, th] of [[0, 1, 0.06], [Math.PI / 2, 1, 0.06], [Math.PI / 4, 0.48, 0.07], [-Math.PI / 4, 0.48, 0.07]]) {
+    ctx.save(); ctx.rotate(ang); ctx.scale(1, th);
+    const rr = r * len, g = ctx.createRadialGradient(0, 0, 0, 0, 0, rr);
+    g.addColorStop(0, rgba(WHITE, a)); g.addColorStop(0.2, rgba(col, 0.7 * a)); g.addColorStop(1, rgba(col, 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rr, 0, TAU); ctx.fill(); ctx.restore();
+  }
+  ctx.restore();
+  HG.dot(ctx, col, x, y, r * 0.5, 0.7 * a); ctx.globalAlpha = 1;
+}
+
+// the spark's path: wreath -> over the city -> the eagle on the dome
+function sparkAt(k) {
+  const p0 = aw(...WREATH), p2 = bw(...EAGLE), p1 = [(p0[0] + p2[0]) / 2 - 40, (p0[1] + p2[1]) / 2 - 40];
+  const u = 1 - k; return [u * u * p0[0] + 2 * u * k * p1[0] + k * k * p2[0], u * u * p0[1] + 2 * u * k * p1[1] + k * k * p2[1]];
+}
+const sparkK = t => ease.inOut3((t - SPARK0) / (SPARK1 - SPARK0));
+function spark(t, cam, G) {
+  if (t < SPARK0 - 0.05 || t > SPARK1 + 1.2) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  // glitter left along the path
+  const R = HG.rng(612);
+  for (let i = 0; i < 70; i++) {
+    const te = SPARK0 + 0.1 + (SPARK1 - SPARK0 - 0.15) * (i + R()) / 70, dt = t - te, ph = R() * TAU, s = 5 + 6 * R();
+    if (dt < 0 || dt > 1.3) continue;
+    const [wx, wy] = sparkAt(sparkK(te));
+    const [x, y, z] = toS(cam, wx + Math.sin(ph) * 10 * dt, wy + 22 * dt + 30 * dt * dt);
+    HG.dot(ctx, R() < 0.6 ? GOLD_HI : WARMW, x, y, s * 1.5, 0.8 * (1 - dt / 1.3) * (0.55 + 0.45 * Math.sin(dt * 16 + ph)) * G);
+  }
+  if (t <= SPARK1) {
+    const k = sparkK(t);
+    for (let j = 24; j >= 0; j--) {
+      const kk = sparkK(t - j * 0.02); if (kk <= 0 && j > 0) continue;
+      const [x, y, z] = toS(cam, ...sparkAt(Math.max(0, kk)));
+      const f = 1 - j / 25;
+      HG.dot(ctx, GOLD, x, y, (j ? 34 * f : 52), (j ? 0.6 * f : 1) * G);
+    }
+    const [x, y] = toS(cam, ...sparkAt(k));
+    HG.dot(ctx, GOLD, x, y, 190, 0.3 * G);
+    star(x, y, 110, 0.85 * G, t * 1.6);
+  }
+  ctx.restore();
+}
+
+function bellas(t, cam, A, G) {
+  const [bxs] = toS(cam, BX, BY); if (bxs > W + 420 * cam.z) return;
+  if (G <= 0) return;
+  clearL(LB); const b = LB.ctx;
+  // moonlit stone with faintly lit windows
+  bellasSpace(b, cam); b.drawImage(A.bnight, 0, 0); b.globalAlpha = 0.06; b.drawImage(A.blit, 0, 0); b.globalAlpha = 1;
+  // facade floods with warm light from the street up
+  const fk = E(t, FACADE0, FACADE0 + 1.0), fyB = lerp(1000, -40, fk);
+  if (fk > 0) {
+    clearL(L1); const l = L1.ctx; bellasSpace(l, cam);
+    l.drawImage(A.blit, 0, 0);
+    l.globalCompositeOperation = 'lighter'; l.globalAlpha = 0.18; l.filter = HG.blur(8 * cam.z); l.drawImage(A.blit, 0, 0); l.filter = 'none';
+    l.globalCompositeOperation = 'destination-in'; l.globalAlpha = 1;
+    const g = l.createLinearGradient(0, fyB - 120, 0, fyB + 40); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)');
+    l.fillStyle = g; l.fillRect(0, 0, 1024, 1024);
+    HG.drawLayer(b, L1, { alpha: 0.9 });
+  }
+  // the dome fills with light from its crowning eagle down
+  const dk = E(t, DOME0, DOME0 + 0.75), dy = lerp(40, 480, dk);
+  if (dk > 0) {
+    clearL(L2); const m = L2.ctx; bellasSpace(m, cam);
+    m.drawImage(A.dome, 0, 0);
+    m.globalCompositeOperation = 'lighter'; m.globalAlpha = 0.6; m.filter = HG.blur(10 * cam.z); m.drawImage(A.dome, 0, 0); m.filter = 'none';
+    m.globalCompositeOperation = 'destination-in'; m.globalAlpha = 1;
+    const g = m.createLinearGradient(0, dy - 60, 0, dy + 10); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    m.fillStyle = g; m.fillRect(0, 0, 1024, 1024);
+    HG.drawLayer(b, L2, { op: 'lighter', alpha: 0.75 });
+    // the light front glows as it pours down the ribs
+    if (dk < 1) {
+      clearL(L2); bellasSpace(m, cam); m.drawImage(A.dome, 0, 0); m.globalCompositeOperation = 'source-in';
+      const h = m.createLinearGradient(0, dy - 50, 0, dy + 10); h.addColorStop(0, 'rgba(255,240,200,0)'); h.addColorStop(0.75, 'rgba(255,245,215,1)'); h.addColorStop(1, 'rgba(255,245,215,0)');
+      m.fillStyle = h; m.fillRect(0, 0, 1024, 1024);
+      HG.drawLayer(b, L2, { op: 'lighter', alpha: 0.8 * Math.sin(Math.PI * dk) });
+    }
+  }
+  // a sheen runs across the dome's ribs
+  const sk = (t - 8.75) / 1.2;
+  if (sk > 0 && sk < 1) {
+    const x0 = 140, y0 = 50, w = 760, h = 420, s = scratch('dome', w, h), g = s.g;
+    g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, w, h);
+    const p = lerp(-100, w + 100, ease.inOut3(sk));
+    const lg = g.createLinearGradient(p - 60, 0, p + 60, 0);
+    lg.addColorStop(0, 'rgba(255,248,225,0)'); lg.addColorStop(0.5, 'rgba(255,248,225,1)'); lg.addColorStop(1, 'rgba(255,248,225,0)');
+    g.fillStyle = lg; g.fillRect(0, 0, w, h);
+    g.globalCompositeOperation = 'destination-in'; g.drawImage(A.dome, x0, y0, w, h, 0, 0, w, h);
+    bellasSpace(b, cam); b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.65 * Math.sin(Math.PI * sk);
+    b.drawImage(s.cv, x0, y0); HG.reset(b);
+  }
+  // the palace dissolves upward as its lights rise away
+  const dis = E(t, DIS0, DIS1);
+  if (dis > 0) {
+    const yy = disY(t);
+    // the stone turns to light at the dissolving edge
+    bellasSpace(b, cam); b.globalCompositeOperation = 'source-atop';
+    const hb = b.createLinearGradient(0, yy - 30, 0, yy + 190);
+    hb.addColorStop(0, 'rgba(255,200,110,0)'); hb.addColorStop(0.45, 'rgba(255,215,140,0.75)'); hb.addColorStop(1, 'rgba(255,200,110,0)');
+    b.fillStyle = hb; b.fillRect(-200, -200, 1424, 1424);
+    b.globalCompositeOperation = 'destination-in';
+    const g = b.createLinearGradient(0, yy - 40, 0, yy + 200);
+    g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    b.fillStyle = g; b.fillRect(-200, -200, 1424, 1424); HG.reset(b);
+  }
+  HG.drawLayer(ctx, LB, { alpha: G });
+  // warm street glow at the palace's feet
+  const [gx, gy, gz] = toS(cam, ...bw(560, 930));
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(gx, gy); ctx.scale(1, 0.16);
+  const sg = ctx.createRadialGradient(0, 0, 0, 0, 0, 420 * gz);
+  const sa = 0.3 * G * (0.4 + 0.6 * smooth(FACADE0 - 0.2, FACADE0 + 0.6, t)) * (1 - dis);
+  sg.addColorStop(0, rgba(AMBER, sa)); sg.addColorStop(0.5, rgba(GOLD, sa * 0.4)); sg.addColorStop(1, rgba(GOLD, 0));
+  ctx.fillStyle = sg; ctx.fillRect(-420 * gz, -420 * gz, 840 * gz, 840 * gz); ctx.restore();
+  // landing: a soft bloom and a ripple of light around the eagle
+  const lk = (t - SPARK1) / 0.9;
+  if (lk > 0 && lk < 1) {
+    const [x, y, z] = toS(cam, ...bw(...EAGLE));
+    HG.dot(ctx, GOLD, x, y, (60 + 120 * ease.out3(lk)) * z, 0.5 * (1 - lk) * G);
+    star(x, y, 90 * z * (1 - 0.4 * lk), (1 - lk) * G, 0.3);
+    const R = HG.rng(321);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 30; i++) {
+      const a = -Math.PI * (0.05 + 0.9 * R()), v = (90 + 140 * R()) * z, dd = (1 - Math.exp(-3 * lk)) / 3;
+      HG.dot(ctx, R() < 0.5 ? GOLD_HI : DOME, x + Math.cos(a) * v * dd * 1.6, y + Math.sin(a) * v * dd * 0.9 + 60 * lk * lk, 12, 0.8 * (1 - smooth(0.4, 1, lk)) * G);
+    }
+    ctx.restore();
+  }
+}
+
+function fireflies(t, cam, G) {
+  if (t < 8.9) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const f of FLIES) {
+    const dt = t - f.te;
+    const pre = smooth(-0.4, 0, dt);     // the light swells before lifting off
+    if (dt < 0 && f.ph < 2.2) {          // meanwhile some windows twinkle softly
+      const [x, y] = toS(cam, ...bw(f.bx, f.by));
+      HG.dot(ctx, f.col, x, y, f.s * 0.9, 0.35 * smooth(8.9, 9.5, t) * Math.pow(0.5 + 0.5 * Math.sin(t * f.bl * 0.9 + f.ph * 3), 3) * (1 - pre) * G);
+    }
+    const d = Math.max(0, dt);
+    const [wx, wy] = bw(f.bx, f.by);
+    const x0 = wx + Math.sin(d * 1.3 + f.ph) * f.sw * smooth(0, 1, d), y0 = wy - f.v * d - f.acc * d * d;
+    const [x, y, z] = toS(cam, x0, y0);
+    const blink = 0.5 + 0.5 * Math.pow(0.5 + 0.5 * Math.sin(d * f.bl + f.ph), 2);
+    const a = (dt < 0 ? 0.7 * pre : blink) * (1 - smooth(1.1, 2.1, d)) * G;
+    HG.dot(ctx, f.col, x, y, f.s * Math.sqrt(z), a);
+    HG.dot(ctx, f.col, x, y, f.s * 3.6 * Math.sqrt(z), 0.22 * a);
+  }
+  ctx.restore();
+}
+
+HG.start({
+  duration: 12,
+  assets: {
+    lit: '../assets/13-cdmx-noche-angel.png', night: '../assets/13-cdmx-noche-angel_night.png', gold: '../assets/13-cdmx-noche-angel_gold.png', edge: '../assets/13-cdmx-noche-angel_edge.png',
+    blit: '../assets/13-cdmx-noche-bellas.png', bnight: '../assets/13-cdmx-noche-bellas_night.png', dome: '../assets/13-cdmx-noche-bellas_dome.png',
+  },
+  render(t, A) {
+    const cam = camAt(t);
+    const fin = smooth(0.12, 1.1, t), fout = 1 - smooth(11.1, 11.9, t);
+    sky(t, cam, smooth(0.15, 1.3, t) * (1 - smooth(10.4, 11.8, t)));
+    drawBokeh(t, cam, 0, 0.7, smooth(0.2, 1.4, t));
+    const ta = smooth(0.2, 0.8, t) * (1 - 0.6 * titleOn(t)) * (1 - smooth(6.2, 7.2, t));
+    const stages = [
+      () => trails(t, cam, 'back', ta),
+      () => angel(t, cam, A, smooth(0.25, 1.2, t) * (1 - smooth(7.0, 8.0, t))),
+      () => trails(t, cam, 'front', ta),
+      () => bellas(t, cam, A, smooth(5.9, 7.0, t)),
+      () => spark(t, cam, 1),
+      () => fireflies(t, cam, 1),
+      () => drawBokeh(t, cam, 1, 2, smooth(0.6, 1.8, t)),
+    ];
+    for (const f of stages) { HG.reset(ctx); f(); }
+    // keep the lower band soft while the title is shown
+    const tb = titleOn(t);
+    if (tb > 0) {
+      HG.reset(ctx); const g = ctx.createLinearGradient(0, 730, 0, 1060);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${0.5 * tb})`);
+      ctx.fillStyle = g; ctx.fillRect(0, 730, W, 350);
+    }
+    // master fade (start from black, end in black)
+    HG.reset(ctx); const k = fin * fout;
+    if (k < 1) { ctx.fillStyle = `rgba(0,0,0,${1 - k})`; ctx.fillRect(0, 0, W, W); }
+  },
+});
+</script></body></html>

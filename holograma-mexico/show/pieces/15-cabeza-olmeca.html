@@ -6,22 +6,22 @@
 // Cabeza olmeca: the oldest great civilisation of Mexico.
 // A ring of stone dust gathers out of the dark and turns slowly; grain by grain it spirals in and the
 // head is carved in light, stroke by stroke like a chisel (gold line, teal halo), from the heart of
-// the face outward, and the silhouette closes over the crown. A torch enters from the left: the basalt
-// is relit per pixel from a normal map and the flame burns the carved lines away where it touches.
-// It rakes slowly across the colossal face while a teal rim orbits the silhouette; a glint runs along
-// the helmet band; embers drift. Finally the stone crumbles from the edges inward into drifting dust,
-// the centre of the face going last.
+// the face outward, and the silhouette closes over the crown. A jade light enters from the left: the
+// dark basalt is relit per pixel from a normal map and the light burns the carved lines away where it
+// touches. It rakes slowly across the colossal face while a cool rim orbits the silhouette; a soft
+// sheen sweeps along the helmet band; jade motes drift. Finally the stone crumbles into dust from the
+// centre of the frame outward (just ahead of the show's portal, which opens there), the silhouette last.
 // Assets: prepare.py cut-out of out/images/cabeza-olmeca-3.png, plus (from that aligned cut-out)
 // _paths.json (designed vector line art), _normal.png (dome + soft relief), _dome.png (silhouette normal + edge weight).
 const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
 const N = 1024;
 const CORE = [255, 170, 60], GOLD = [255, 186, 76], WARM = [255, 212, 140], TEAL = [56, 198, 176],
-  DEEPTEAL = [16, 100, 104], EMBER = [255, 138, 44];
+  DEEPTEAL = [16, 100, 104], JADE = [44, 206, 148], JADEAIR = [30, 170, 130];
 
 // ---------- placement: the 1024 px assets are drawn S0*zoom wide, asset centre at (HX, HY)
 const HX = 552, HY = 518, S0 = 850;
 const zoomAt = t => 0.97 + 0.05 * ease.inOut3((t - 0.4) / 11.2);
-const FACE = { u: 420, v: 600 };      // heart of the face (between eyes and mouth): carving starts here, dissolves last
+const FACE = { u: 420, v: 600 };      // heart of the face (between eyes and mouth): the carving starts here
 const toCanvas = (u, v, z) => ({ x: HX + (u - 512) * S0 * z / N, y: HY + (v - 512) * S0 * z / N });
 const assetXform = (c, z) => { const s = S0 * z / N; c.setTransform(s, 0, 0, s, HX - 512 * s, HY - 512 * s); };
 const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
@@ -43,8 +43,10 @@ function spark(c, core, mid, x, y, size, a, wide = false) {
   if (a <= 0.003 || size <= 0) return;
   c.globalAlpha = Math.min(1, a); c.drawImage(glow(core, mid, wide), x - size / 2, y - size / 2, size, size);
 }
-const SPARKC = [255, 192, 84], EMBERC = [255, 190, 110], HOT = [255, 188, 96];
-const GRAIN = { gold: [[255, 212, 128], GOLD], warm: [[255, 220, 150], WARM], teal: [[140, 232, 208], TEAL] };
+const SPARKC = [255, 190, 70], HOT = [255, 182, 72];
+const GRAIN = { gold: [[255, 205, 100], GOLD], warm: [[255, 214, 122], WARM], teal: [[110, 232, 196], TEAL],
+  jade: [[160, 250, 200], JADE] };
+const MOTE = { jade: [[110, 255, 190], JADE], teal: [[100, 235, 225], [40, 190, 190]], gold: [[255, 205, 110], [255, 170, 60]] };
 
 // ---------- the carved line art: vector strokes, oriented to be cut from the face outward
 const PATHS = (() => { const x = new XMLHttpRequest(); x.open('GET', '../assets/15-cabeza-olmeca_paths.json', false); x.send(); return JSON.parse(x.responseText); })();
@@ -66,7 +68,7 @@ const STROKES = PATHS.map(o => {
     nx[i] = -dy / l; ny[i] = dx / l;
   }
   return { k: o.k, name: o.n || '', n, xs, ys, cl, nx, ny, L: cl[n - 1], dmin,
-    w: o.k === 'outline' ? 3.4 : o.k === 'face' ? 3.3 : 2.9 };
+    w: o.k === 'outline' ? 5.2 : o.k === 'face' ? 5.0 : 4.4 };
 });
 const INNER = STROKES.filter(s => s.k !== 'outline'), OUTLINE = STROKES.filter(s => s.k === 'outline');
 const BAND = STROKES.find(s => s.name === 'band');
@@ -108,6 +110,7 @@ function ribbon(g, S, s0, s1, W, tip = 16) {
 const HEADC = mk(N), hctx = HEADC.getContext('2d'), HIMG = hctx.createImageData(N, N), HD = HIMG.data;
 const LC = mk(N), lc = LC.getContext('2d');   // gold line cores
 const LT = mk(N), lt = LT.getContext('2d');   // the same, tinted teal for the halo
+const SH = mk(N), sh = SH.getContext('2d', { willReadFrequently: true });   // the sheen on the helmet band
 
 // ---------- precomputed data (built once from the images; render stays a pure function of t)
 let P = null;
@@ -126,35 +129,45 @@ function valueNoise(cells, seed) {
   return out;
 }
 const OMEGA = 0.32;                                         // the dust ring's rotation (rad/s)
-const TH0 = 9.75, TH1 = 11.5;                               // crumbling window
-const thAt = t => Math.pow(clamp((t - TH0) / (TH1 - TH0)), 1.25);
+// crumbling: a front (canvas px from the CANVAS centre) runs outward just ahead of the show's portal,
+// which opens at the canvas centre over the last 1.8 s. Each stone pixel goes when the front passes
+// its distance plus a noise of up to AMP px and a per-pixel grit of up to GRIT px (a sandy, speckled
+// edge rather than a smooth burnt-paper contour); the silhouette goes last.
+const CR0 = 9.7, CR1 = 11.1, HEND = 540, HP = 1.25, AMP = 55, GRIT = 22;
+const frontAt = t => t <= CR0 ? 0 : HEND * Math.pow((t - CR0) / (CR1 - CR0), HP);
+const releaseAt = d => CR0 + (CR1 - CR0) * Math.pow(Math.max(0, d) / HEND, 1 / HP);
 function prepare(A) {
   const img = pixels(A.head), nrm = pixels(A.normal), dom = pixels(A.dome);
   const n1 = valueNoise(5, 3), n2 = valueNoise(13, 4), n3 = valueNoise(31, 5), n4 = valueNoise(90, 6), n5 = valueNoise(230, 8);
   const idx = [], V = new Float32Array(N * N);
   const NX = new Float32Array(N * N), NY = new Float32Array(N * N), NZ = new Float32Array(N * N), DX = new Float32Array(N * N), DY = new Float32Array(N * N), EW = new Float32Array(N * N);
   const AR = new Float32Array(N * N), AG = new Float32Array(N * N), AB = new Float32Array(N * N), AA = new Float32Array(N * N);
-  // dissolve order: the silhouette goes first, the heart of the face last, broken up by a grainy noise
-  let maxD = 0;
-  for (let i = 0; i < N * N; i++) if (img[i * 4 + 3] > 3) maxD = Math.max(maxD, Math.hypot(i % N - FACE.u, (i / N | 0) - FACE.v));
-  let vmin = 1e9, vmax = -1e9;
+  // dissolve order: distance (canvas px) from the canvas centre, broken up by a grainy noise
+  const sr = S0 * zoomAt(10.4) / N, CU = 512 + (C - HX) / sr, CV = 512 + (C - HY) / sr;
+  const NZS = new Float32Array(N * N);
+  let nmin = 1e9, nmax = -1e9;
   for (let i = 0; i < N * N; i++) {
-    const x = i % N, y = i / N | 0, rn = Math.hypot(x - FACE.u, y - FACE.v) / maxD;
-    const nz = n1[i] * 0.36 + n2[i] * 0.18 + n3[i] * 0.12 + n4[i] * 0.14 + n5[i] * 0.2;
-    V[i] = 0.6 * (1 - rn) + 0.4 * nz;
+    const nz = n1[i] * 0.16 + n2[i] * 0.2 + n3[i] * 0.17 + n4[i] * 0.2 + n5[i] * 0.27;
+    NZS[i] = nz;
     const a = img[i * 4 + 3] / 255;
     if (a > 0.01) {
-      idx.push(i); vmin = Math.min(vmin, V[i]); vmax = Math.max(vmax, V[i]);
-      AR[i] = img[i * 4] / 255; AG[i] = img[i * 4 + 1] / 255; AB[i] = img[i * 4 + 2] / 255; AA[i] = a;
+      idx.push(i); nmin = Math.min(nmin, nz); nmax = Math.max(nmax, nz);
+      // basalt: the photo's luminance with a cool grey-green cast (the light gives the colour)
+      const lum = (img[i * 4] * 0.3 + img[i * 4 + 1] * 0.59 + img[i * 4 + 2] * 0.11) / 255;
+      AR[i] = lum * 0.84; AG[i] = lum * 0.95; AB[i] = lum; AA[i] = a;
       NX[i] = nrm[i * 4] / 127.5 - 1; NY[i] = nrm[i * 4 + 1] / 127.5 - 1; NZ[i] = nrm[i * 4 + 2] / 255;
       DX[i] = dom[i * 4] / 127.5 - 1; DY[i] = dom[i * 4 + 1] / 127.5 - 1; EW[i] = dom[i * 4 + 2] / 255;
     }
   }
-  for (let i = 0; i < N * N; i++) V[i] = clamp((V[i] - vmin) / (vmax - vmin));
+  const RG = HG.rng(23);
+  for (const i of idx) {
+    const x = i % N, y = i / N | 0;
+    V[i] = Math.hypot(x - CU, y - CV) * sr + AMP * (NZS[i] - nmin) / (nmax - nmin) + GRIT * RG();
+  }
 
-  // ---- gathering dust: 2400 grains on an even ring; each spirals in to the point of a stroke at the
-  // moment the chisel passes it. Grains are matched to ring angles by rank so the ring is evenly filled
-  // and every spiral turns the same way by a similar amount.
+  // ---- gathering dust: 2400 grains on an even ring at mid radius; each spirals in (or out) to the
+  // point of a stroke at the moment the chisel passes it. Grains are matched to ring angles by rank so
+  // the ring is evenly filled and every spiral turns the same way by a similar amount.
   const R = HG.rng(17), total = INNER.reduce((a, s) => a + s.L, 0) + OUTLINE.reduce((a, s) => a + s.L, 0);
   const NG = 2400, targets = [];
   let si = 0, acc = 0;
@@ -167,8 +180,8 @@ function prepare(A) {
     const ta = Math.atan2(c.y - C, c.x - C), spin0 = 1.3 + R() * 0.6;
     const ideal = ((ta - spin0 - OMEGA * tdep) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
     const roll = R();
-    targets.push({ u, v, arrive, tdep, ideal, r0: 330 + Math.sqrt(R()) * 125, s: 0.6 + R() * 0.7, ph: R() * 6.28, tw: R() * 6.28,
-      col: roll < 0.2 ? GRAIN.teal : roll < 0.6 ? GRAIN.gold : GRAIN.warm });
+    targets.push({ u, v, arrive, tdep, ideal, r0: 236 + Math.sqrt(R()) * 104, s: 0.6 + R() * 0.7, ph: R() * 6.28, tw: R() * 6.28,
+      col: roll < 0.3 ? GRAIN.teal : roll < 0.62 ? GRAIN.gold : GRAIN.warm });
   }
   targets.sort((a, b) => a.ideal - b.ideal);
   const off = R() * 0.4;
@@ -183,30 +196,24 @@ function prepare(A) {
 
   // ---- crumbling dust: grains of the stone itself, released where the dissolve front passes
   const stone = [];
-  for (let y = 2; y < N; y += 4) for (let x = 2; x < N; x += 4) {
-    const i = y * N + x;
-    if (img[i * 4 + 3] > 200) {
-      const r = img[i * 4], g = img[i * 4 + 1], b = img[i * 4 + 2], m = Math.max(r, g, b, 1), f = 255 / m;
-      stone.push({ u: x, v: y, c: [Math.round(lerp(r * f, 255, 0.3)), Math.round(lerp(g * f, 214, 0.3)), Math.round(lerp(b * f, 140, 0.3))] });
-    }
-  }
+  for (let y = 2; y < N; y += 4) for (let x = 2; x < N; x += 4) if (img[(y * N + x) * 4 + 3] > 200) stone.push({ u: x, v: y });
   for (let i = stone.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [stone[i], stone[j]] = [stone[j], stone[i]]; }
-  const crumble = stone.slice(0, 3000).map(p => {
-    const v = V[p.v * N + p.u], gold = R() < 0.18;
-    return { ...p, rel: TH0 + (TH1 - TH0) * Math.pow(v, 0.8), sp: 35 + R() * 85, up: 22 + R() * 50, life: 1.0 + R() * 0.7,
-      sway: R() * 6.28, s: 0.5 + R() * 0.7, core: gold ? [255, 222, 150] : p.c.map(c => Math.min(255, c + 25)), mid: gold ? GOLD : p.c, tw: R() * 6.28 };
+  const crumble = stone.slice(0, 4200).map(p => {
+    const roll = R(), col = roll < 0.45 ? MOTE.jade : roll < 0.8 ? MOTE.teal : MOTE.gold;
+    return { ...p, rel: releaseAt(V[p.v * N + p.u] - 4), sp: 70 + R() * 120, up: 18 + R() * 40, life: 0.9 + R() * 0.6,
+      sway: R() * 6.28, s: 0.6 + R() * 0.7, core: col[0], mid: col[1], tw: R() * 6.28 };
   });
   P = { idx: Int32Array.from(idx), V, NX, NY, NZ, DX, DY, EW, AR, AG, AB, AA, gather: targets, crumble };
 }
 
-// ---------- the torch: a smooth path across the face (asset coords, z = distance in front)
+// ---------- the jade light (a 'torch'): a smooth path across the face (asset coords, z = distance in front)
 const KEYS = [
   { t: 3.1, p: [-300, 660, 230] },
   { t: 4.7, p: [60, 580, 250] },
   { t: 6.3, p: [330, 440, 270] },
   { t: 7.8, p: [660, 470, 300] },
-  { t: 9.1, p: [470, 250, 560] },
-  { t: 10.6, p: [420, 190, 680] },
+  { t: 9.1, p: [610, 250, 430] },
+  { t: 10.6, p: [560, 170, 520] },
 ];
 function torchPos(t) {
   if (t <= KEYS[0].t) return KEYS[0].p;
@@ -221,27 +228,28 @@ function torchPos(t) {
 }
 // slow, smooth breathing of the flame (no jitter)
 const flicker = t => 1 + 0.06 * Math.sin(t * 2.3) + 0.04 * Math.sin(t * 3.9 + 1.3) + 0.025 * Math.sin(t * 6.1 + 2.1);
-// teal rim on the side away from the flame: orbits over the crown as the torch crosses, then keeps drifting
+// cool rim on the side away from the light: orbits over the crown as the light crosses, then keeps drifting
 const rimAngle = t => -Math.PI * smooth(5.4, 8.2, t) - 0.3 * Math.PI * smooth(8.0, 10.5, t);
 
 // ---------- relight the stone head into HEADC
 const soft = x => x < 0.72 ? x : 0.72 + (x - 0.72) / (1 + (x - 0.72) * 3.6);   // highlight roll-off, never white blobs
-function shadeHead(t, { I, amb, rim, th, R }) {
+function shadeHead(t, { I, amb, rim, fill, H, R, sheen = null, sheenA = 0 }) {
   const [Lx, Ly, Lz] = torchPos(t);
   const { idx, V, NX, NY, NZ, DX, DY, EW, AR, AG, AB, AA } = P;
   const invR2 = 1 / (R * R), fl = I * flicker(t);
-  const aR = 0.62 * amb, aG = 0.8 * amb, aB = 0.9 * amb;                // ambient: cool and faint
-  const tR = 1.18 * fl, tG = 0.9 * fl, tB = 0.58 * fl;                   // torch: warm gold
+  const aR = 0.42 * amb, aG = 0.7 * amb, aB = 0.9 * amb;                // ambient: cool and faint (night basalt)
+  const tR = 0.55 * fl, tG = 1.12 * fl, tB = 0.8 * fl;                   // key: jade light
+  const fR = 0.2 * fill, fG = 0.55 * fill, fB = 0.78 * fill;           // fill: a soft cool light from the upper right
   const ra = rimAngle(t), rx = Math.cos(ra), ry = Math.sin(ra);
-  const W0 = 0.012;                                                     // dissolve feather (narrow: a grainy edge)
+  const W0 = 7, EG = 0.55;                                              // dissolve feather (px, narrow: a grainy edge), edge glow
   for (let k = 0; k < idx.length; k++) {
     const i = idx[k], o = i * 4;
     let vis = 1, edge = 0;
-    if (th > 0) {
-      const d = V[i] - th;
-      if (d <= -0.02) { HD[o + 3] = 0; continue; }
+    if (H > 0) {
+      const d = V[i] - H;
+      if (d <= -3) { HD[o + 3] = 0; continue; }
       vis = d <= 0 ? 0 : d >= W0 ? 1 : (d / W0) * (d / W0) * (3 - 2 * d / W0);
-      const e = (d - 0.003) / 0.005; edge = Math.exp(-e * e) * 0.25;
+      const e = (d - 2) / 3.5; edge = Math.exp(-e * e) * EG;
     }
     const x = i & 1023, y = i >> 10;
     const nx = NX[i], ny = NY[i], nz = NZ[i];
@@ -256,15 +264,19 @@ function shadeHead(t, { I, amb, rim, th, R }) {
     let ndh = (nx * hx + ny * hy + nz * hz) / Math.sqrt(hx * hx + hy * hy + hz * hz);
     ndh = ndh > 0 ? ndh : 0; ndh *= ndh; ndh *= ndh; ndh *= ndh; ndh *= ndh;
     const sp = ndh * lit * fl * 0.2;
+    let nf = nx * 0.55 - ny * 0.25 + nz * 0.8; nf = nf > 0 ? nf : 0;
     // rim from the silhouette's roundness only (dome normal), held to the outer edge
     let rm = DX[i] * rx + DY[i] * ry; rm = rm > 0 ? rm * EW[i] * EW[i] * rim : 0;
     const a = AA[i];
-    let r = soft(AR[i] * (aR + tR * lit) + sp + rm * 0.26);
-    let g = soft(AG[i] * (aG + tG * lit) + sp * 0.85 + rm * 0.78);
-    let b = soft(AB[i] * (aB + tB * lit) + sp * 0.5 + rm * 0.66);
-    // premultiply, add the faint gold dissolve edge, un-premultiply
+    const sv = sheen ? sheen[o + 3] * sheenA : 0;                        // warm sheen on the helmet band
+    let r = AR[i] * (aR + tR * lit + fR * nf + 1.3 * sv) + sp * 0.62 + rm * 0.2 + sv * 0.1;
+    let g = AG[i] * (aG + tG * lit + fG * nf + 1.1 * sv) + sp + rm * 0.6 + sv * 0.085;
+    let b = AB[i] * (aB + tB * lit + fB * nf + 0.6 * sv) + sp * 0.8 + rm * 0.95 + sv * 0.04;
+    const m = r > g ? (r > b ? r : b) : (g > b ? g : b);                 // highlight roll-off that keeps the hue
+    if (m > 0.72) { const f = soft(m) / m; r *= f; g *= f; b *= f; }
+    // premultiply, add the faint jade dissolve edge, un-premultiply
     const al = a * vis;
-    r = r * al + edge; g = g * al + edge * 0.72; b = b * al + edge * 0.32;
+    r = r * al + edge * 0.4; g = g * al + edge; b = b * al + edge * 0.78;
     const A2 = Math.min(1, al + edge * 0.8);
     if (A2 <= 0.002) { HD[o + 3] = 0; continue; }
     HD[o] = Math.min(255, r / A2 * 255); HD[o + 1] = Math.min(255, g / A2 * 255); HD[o + 2] = Math.min(255, b / A2 * 255); HD[o + 3] = A2 * 255;
@@ -300,11 +312,11 @@ function lineLayer(g, t, col, wmul, { inner, outline, erase, torch }) {
 function carvedLines(t, z, o) {
   if (o.inner <= 0.003 && o.outline <= 0.003) return;
   lineLayer(lc, t, CORE, 1, o);
-  lineLayer(lt, t, TEAL, 2.6, o);
+  lineLayer(lt, t, TEAL, 2.0, o);
   ctx.save(); assetXform(ctx, z); ctx.globalCompositeOperation = 'lighter';
-  ctx.filter = 'blur(7px)'; ctx.globalAlpha = 0.5; ctx.drawImage(LT, 0, 0);
+  ctx.filter = 'blur(4px)'; ctx.globalAlpha = 0.8; ctx.drawImage(LT, 0, 0);
   ctx.filter = 'blur(2.5px)'; ctx.globalAlpha = 0.28; ctx.drawImage(LC, 0, 0);
-  ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 0.86; ctx.drawImage(LC, 0, 0);
+  ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 0.95; ctx.drawImage(LC, 0, 0);
   ctx.restore();
 }
 // the chisel fronts: a hot gold section behind each cutting tip and a spark at the tip
@@ -322,16 +334,27 @@ function chiselFronts(t, z) {
   ctx.restore();
 }
 // a glint of light running along a stroke
-function glint(S, z, k, env, len = 70, size = 34, sheen = 0) {
+function glint(S, z, k, env, len = 70, size = 34) {
   if (env <= 0.003 || k <= 0 || k >= 1) return;
   const D = S.L * k;
   ctx.save(); assetXform(ctx, z); ctx.globalCompositeOperation = 'lighter';
   ctx.globalAlpha = 0.4 * env; ctx.fillStyle = rgba(HOT, 1);
   ctx.beginPath(); ribbon(ctx, S, D - len, D + len * 0.25, S.w * 1.1, len * 0.25); ctx.fill();
   const [px, py] = pointAt(S, D);
-  if (sheen > 0) spark(ctx, [255, 200, 110], GOLD, px, py, sheen, 0.3 * env, true);   // light catching the stone edge
   spark(ctx, SPARKC, GOLD, px, py, size, 0.55 * env);
   ctx.restore();
+}
+
+// a broad soft sheen sweeping along the helmet band: a soft mask (asset space) that shadeHead adds as a
+// warm light on the stone, so it goes through the same hue-keeping roll-off (never white)
+function sheenMask(k) {
+  const D = BAND.L * k;
+  HG.reset(sh); sh.clearRect(0, 0, N, N);
+  sh.translate(0, -24); sh.filter = 'blur(18px)'; sh.fillStyle = '#fff';
+  sh.globalAlpha = 0.65; sh.beginPath(); ribbon(sh, BAND, D - 95, D + 95, 82, 95); sh.fill();
+  sh.globalAlpha = 0.6; sh.beginPath(); ribbon(sh, BAND, D - 45, D + 45, 40, 45); sh.fill();
+  HG.reset(sh);
+  return sh.getImageData(0, 0, N, N).data;
 }
 
 // ---------- particles
@@ -360,45 +383,48 @@ function gatherDust(t, z) {
     const a = env * (0.66 + 0.14 * u) * tw * (1 - after) * (1 - 0.75 * smooth(0.8, 1, u)) + 0.12 * pop * env;
     const fade = circleFade(x, y, 470, 530);
     if (a * fade <= 0.004) continue;
-    spark(ctx, p.col[0], p.col[1], x, y, (9.5 + 3 * pop) * p.s, a * fade);
+    const big = 1.25 - 0.25 * u;                                         // larger on the ring, for the fan
+    spark(ctx, p.col[0], p.col[1], x, y, (9.5 * big + 3 * pop) * p.s, a * fade);
     if (u > 0 && u < 0.98) for (let j = 1; j <= 3; j++) {
       const [tx, ty] = pos(p, t - j * 0.045, tr, ta);
-      spark(ctx, p.col[0], p.col[1], tx, ty, 7 * p.s * (1 - j * 0.15), a * 0.4 * (1 - j / 4) * fade);
+      spark(ctx, p.col[0], p.col[1], tx, ty, 7.5 * p.s * (1 - j * 0.15), a * 0.4 * (1 - j / 4) * fade);
     }
   }
   ctx.restore();
 }
-// the head crumbling: grains released where the dissolve front passes, drifting out and up
+// the head crumbling: grains released where the dissolve front passes, flying outward from the
+// canvas centre (ahead of the portal) and drifting up
 function crumbleDust(t, z) {
-  if (t < TH0) return;
+  if (t < CR0) return;
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
-  const head = toCanvas(FACE.u, FACE.v, z), fin = 1 - smooth(11.3, 11.92, t);
+  const fin = 1 - smooth(11.3, 11.92, t);
   for (const p of P.crumble) {
     const dt = t - p.rel;
     if (dt <= 0 || dt > p.life) continue;
     const q = toCanvas(p.u, p.v, z);
-    let dx = q.x - head.x, dy = q.y - head.y; const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
-    const go = p.sp * (0.4 * dt + 0.5 * dt * dt), up = p.up * (dt + 0.6 * dt * dt);
+    let dx = q.x - C, dy = q.y - C; const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
+    const go = p.sp * (0.5 * dt + 0.6 * dt * dt), up = p.up * (dt + 0.6 * dt * dt);
     const x = q.x + dx * go + Math.sin(dt * 2.2 + p.sway) * 9 * dt, y = q.y + dy * go - up;
     const k = dt / p.life;
     const pop = 1 + 0.5 * Math.exp(-((dt / 0.12) ** 2));
     const a = pop * (1 - smooth(0.3, 1, k)) * smooth(0, 0.06, dt) * fin * circleFade(x, y) * (0.75 + 0.25 * Math.sin(t * 3 + p.tw));
-    spark(ctx, p.core, p.mid, x, y, 8.5 * p.s * (1 - 0.35 * k), a * 0.8);
+    spark(ctx, p.core, p.mid, x, y, 9 * p.s * (1 - 0.35 * k), a * 0.8);
   }
   ctx.restore();
 }
-// drifting embers: few, large, soft; each loops on its own track and is invisible at the wrap
-function embers(t, alpha, seed, n, spread) {
+// drifting motes of jade light (a few gold): few, large, soft; each loops on its own track and is invisible at the wrap
+function embers(t, alpha, seed, n, spread, gold = 0.2) {
   if (alpha <= 0.003) return;
   const R = HG.rng(seed);
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < n; i++) {
     const x0 = C + (R() - 0.5) * spread, sp = 24 + R() * 26, ph = R() * 3000, sz = 34 + R() * 8, sw = R() * 6.28, f = 0.35 + R() * 0.4;
+    const roll = R(), col = roll < gold ? MOTE.gold : roll < 0.6 ? MOTE.jade : MOTE.teal;
     const travel = (ph + sp * t) % 780, y = 930 - travel;
     const x = x0 + Math.sin(t * f + sw) * 24 + Math.sin(t * f * 2.1 + sw * 2) * 8;
     const life = smooth(0, 140, travel) * (1 - smooth(470, 760, travel));
     const tw = 0.78 + 0.22 * Math.sin(t * 2.6 + sw * 3);
-    spark(ctx, EMBERC, EMBER, x, y, sz, alpha * life * tw * circleFade(x, y, 380, 470), true);
+    spark(ctx, col[0], col[1], x, y, sz, alpha * life * tw * circleFade(x, y, 380, 470), true);
   }
   ctx.restore();
 }
@@ -413,18 +439,23 @@ HG.start({
   render(t, A) {
     if (!P) prepare(A);
     const z = zoomAt(t);
-    const th = thAt(t);
+    const H = frontAt(t);
     const torch = torchPos(t);
     const torchC = toCanvas(torch[0], torch[1], z);
 
-    // light levels (everything is back to zero by ~11.5 s)
-    const I = 1.35 * smooth(3.1, 4.6, t) * (1 - 0.3 * smooth(9.4, 10.6, t)) * (1 - smooth(10.5, 11.4, t));
-    const amb = (0.03 + 0.2 * smooth(5.0, 8.2, t) + 0.16 * smooth(8.0, 9.3, t)) * (1 - 0.3 * smooth(9.4, 10.6, t)) * smooth(3.0, 4.4, t);
-    const rim = 0.9 * smooth(4.0, 5.8, t) * (1 - 0.6 * smooth(9.4, 10.4, t));
-    const stoneOn = t > 3.0 && t < 11.55;
+    // light levels: the light and ambient sink as the crumble opens the centre (from 9.7 s), so nothing
+    // bright sits where the portal is born; all zero by 11.1 s
+    const fall = (1 - smooth(10.3, 11.1, t));
+    const I = 1.35 * smooth(3.1, 4.6, t) * (1 - 0.4 * smooth(9.6, 10.4, t)) * fall;
+    const amb = (0.03 + 0.07 * smooth(4.4, 5.4, t) + 0.17 * smooth(5.0, 8.2, t) + 0.08 * smooth(8.0, 9.3, t)) *
+      (1 - 0.35 * smooth(9.6, 10.4, t)) * fall * smooth(3.0, 4.4, t);
+    const rim = 0.9 * smooth(4.0, 5.8, t) * (1 - 0.35 * smooth(9.6, 10.4, t)) * (1 - smooth(10.7, 11.2, t));
+    // a cool fill holds the right half (cheek, ear flap) while the key is still on the left
+    const fill = 0.36 * smooth(4.2, 5.2, t) * (1 - 0.65 * smooth(6.2, 7.8, t)) * (1 - smooth(9.6, 10.6, t));
+    const stoneOn = t > 3.0 && t < 11.35;
 
-    // ---------- atmosphere: deep teal haze behind the head, the torch's warm air
-    const haze = smooth(0.8, 4.5, t) * (1 - smooth(10.0, 11.5, t));
+    // ---------- atmosphere: deep teal haze behind the head, the jade light's glow in the air
+    const haze = smooth(0.8, 4.5, t) * (1 - smooth(9.5, 10.4, t));
     if (haze > 0) {
       const hc = toCanvas(512, 512, z), hg = ctx.createRadialGradient(hc.x, hc.y, 80, hc.x, hc.y, 540);
       hg.addColorStop(0, rgba(DEEPTEAL, 0.16 * haze)); hg.addColorStop(0.7, rgba([8, 50, 60], 0.12 * haze)); hg.addColorStop(1, 'rgba(0,0,0,0)');
@@ -432,51 +463,61 @@ HG.start({
     }
     if (I > 0.003) {
       const R = 460 * z, tg = ctx.createRadialGradient(torchC.x, torchC.y, 0, torchC.x, torchC.y, R);
-      tg.addColorStop(0, rgba(EMBER, 0.07 * I * flicker(t))); tg.addColorStop(0.5, rgba(EMBER, 0.025 * I)); tg.addColorStop(1, 'rgba(0,0,0,0)');
+      tg.addColorStop(0, rgba(JADEAIR, 0.07 * I * flicker(t))); tg.addColorStop(0.5, rgba(JADEAIR, 0.025 * I)); tg.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = tg; ctx.fillRect(0, 0, W, W); ctx.restore();
     }
-    const emberA = smooth(4.4, 6.2, t) * (1 - smooth(10.2, 11.3, t));
-    embers(t, 0.6 * emberA, 41, 6, 760);                                 // behind the stone
+    // the dust ring's own soft glow: a band of light at mid radius while the grains turn on it
+    const ringGlow = smooth(0.2, 1.0, t) * (1 - smooth(2.0, 3.2, t));
+    if (ringGlow > 0.003) {
+      const rg = ctx.createRadialGradient(C, C, 180, C, C, 390);
+      rg.addColorStop(0, 'rgba(0,0,0,0)'); rg.addColorStop(0.3, rgba([34, 160, 140], 0.18 * ringGlow));
+      rg.addColorStop(0.52, rgba([40, 150, 120], 0.18 * ringGlow)); rg.addColorStop(0.78, rgba([60, 110, 70], 0.07 * ringGlow)); rg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = rg; ctx.fillRect(0, 0, W, W); ctx.restore();
+    }
+    const moteA = smooth(4.4, 6.2, t) * (1 - smooth(9.6, 10.4, t));
+    embers(t, 0.6 * moteA, 41, 6, 760);                                  // behind the stone
 
     // ---------- the stone, relit
     if (stoneOn) {
-      shadeHead(t, { I, amb, rim, th, R: lerp(340, 620, smooth(6.4, 9.3, t)) });
+      // the hero beat: a broad warm sheen sweeps along the helmet band
+      const sk = ease.inOut3((t - 7.8) / 1.6), se = bump(t, 7.8, 8.15, 9.0, 9.4);
+      const sheen = se > 0.003 && sk > 0 && sk < 1 ? sheenMask(sk) : null;
+      shadeHead(t, { I, amb, rim, fill, H, R: lerp(340, 620, smooth(6.4, 9.3, t)), sheen, sheenA: se / 255 });
       ctx.save(); assetXform(ctx, z);
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(HEADC, 0, 0);
-      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.26 * (1 - 0.4 * smooth(TH0, TH0 + 0.6, t)); ctx.filter = 'blur(16px)';
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.26 * (1 - 0.4 * smooth(CR0, CR0 + 0.6, t)); ctx.filter = 'blur(16px)';
       ctx.drawImage(HEADC, 0, 0);
       ctx.restore();
     }
 
-    // ---------- carved light lines: drawn while the dust gathers, burnt away by the flame,
+    // ---------- carved light lines: drawn while the dust gathers, burnt away by the light,
     // the silhouette kept as a thin rim over the stone and gone before it crumbles
     const inner = 1 - smooth(4.2, 5.1, t);
-    const outline = (1 - 0.68 * smooth(4.3, 6.0, t)) * (1 - smooth(9.2, 9.9, t));
+    const outline = (1 - 0.68 * smooth(4.3, 6.0, t)) * (1 - smooth(7.4, 8.4, t));
     carvedLines(t, z, { inner, outline, erase: smooth(3.3, 4.5, t), torch });
     chiselFronts(t, z);
 
-    // ---------- a seed of light at the heart of the face: the dust turns around it, the carving starts from it
-    const seed = smooth(0.25, 1.2, t) * (1 - smooth(1.9, 2.7, t));
+    // ---------- a seed of light at the heart of the face: lit early (the incoming portal opens on it),
+    // the dust turns around it, the carving starts from it
+    const seed = smooth(0.1, 0.8, t) * (1 - smooth(1.9, 2.7, t));
     if (seed > 0.003) {
       const f = toCanvas(FACE.u, FACE.v, z), br = 1 + 0.1 * Math.sin(t * 2.4);
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
-      const sg = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, 140 * br);
-      sg.addColorStop(0, rgba(WARM, 0.26 * seed)); sg.addColorStop(0.25, rgba(GOLD, 0.1 * seed)); sg.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = sg; ctx.fillRect(f.x - 150, f.y - 150, 300, 300);
-      spark(ctx, SPARKC, GOLD, f.x, f.y, 30 * br, 0.6 * seed);
+      const sg = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, 170 * br);
+      sg.addColorStop(0, rgba(WARM, 0.34 * seed)); sg.addColorStop(0.22, rgba(GOLD, 0.14 * seed)); sg.addColorStop(0.55, rgba(TEAL, 0.06 * seed)); sg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = sg; ctx.fillRect(f.x - 180, f.y - 180, 360, 360);
+      spark(ctx, SPARKC, GOLD, f.x, f.y, 40 * br, 0.6 * seed);
       ctx.restore();
     }
 
     // ---------- particles and glints
     gatherDust(t, z);
     crumbleDust(t, z);
-    // a glint closes the silhouette once more before the flame arrives
+    // a glint closes the silhouette once more before the light arrives
     const og = ease.inOut3((t - 3.55) / 1.05);
     for (const S of OUTLINE) glint(S, z, og, bump(t, 3.55, 3.8, 4.35, 4.6), 80, 30);
-    // the hero beat: light runs along the helmet band
-    glint(BAND, z, ease.inOut3((t - 7.9) / 1.6), bump(t, 7.9, 8.25, 9.15, 9.5), 120, 34, 150);
-    embers(t, 0.75 * emberA, 43, 10, 700);                                // in front of the stone
+    embers(t, 0.6 * moteA, 43, 10, 700, 0);                               // in front of the stone (no gold: it would whiten over lit jade)
   },
 });
 </script></body></html>

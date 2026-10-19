@@ -1,0 +1,527 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Sarape de Saltillo (Coahuila), woven in light at midday. The loom is strung first: cream warp
+// threads drop like harp strings, sparks leading them down. Then shuttles of light fly across the
+// circle, each one laying a coloured weft thread that glows and is packed down with a flash: the
+// cloth grows from the bottom up, faster and faster, its graded rainbow stripes (deep red to yellow,
+// green to turquoise and indigo, violet to rose, thin black and white lines between) and, in the
+// middle, the serrated concentric rombo appearing row by row with the stepped edges of real weaving.
+// When the last pass is done the diamond's rings light up from the centre outward and a serrated
+// diamond of light radiates out of it to the ends of the cloth, where the loose warp ends twist into
+// knotted cords. Cut free, the sarape floats: a breeze rolls in from the left, waves run through it,
+// it turns in depth and rocks gently, light runs over its folds and glints on the diamond's tips;
+// a stronger gust halfway, with an echo of the rings' pulse. At the end the fringe draws in and the
+// weft threads are pulled out from both ends toward the diamond, streaming away as silky ribbons of
+// colour (top half to the right, bottom half to the left); the last threads leave the centre in a glint.
+// All procedural: the cloth is built once (stripes + woven diamond) and every frame is cut, warped
+// and lit from it as a pure function of t.
+const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
+const TAU = Math.PI * 2;
+const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
+const mix = (a, b, k) => [0, 1, 2].map(i => Math.round(lerp(a[i], b[i], clamp(k))));
+const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
+
+// ---------- the cloth (portrait, stripes across its width, fringe at both short ends)
+const CX = 540, CY = 456, CW = 412, CH = 644;
+const XL = CX - CW / 2, XR = CX + CW / 2, YT = CY - CH / 2, YB = CY + CH / 2;
+const FL = 46;                                    // fringe length
+const NW = 24, WX = i => XL + 10 + i * (CW - 20) / (NW - 1);   // warp threads (paired into 12 cords)
+const DA = 172, DB = 218;                         // diamond half-width / half-height
+
+// ---------- palette (wool dyes, tuned to glow on LEDs)
+const PAL = {
+  wine: [150, 12, 48], crimson: [214, 22, 52], red: [245, 48, 40], verm: [255, 88, 30], orange: [255, 132, 22],
+  amber: [255, 176, 36], yellow: [255, 218, 58], lemon: [246, 240, 120], lime: [165, 225, 52], green: [44, 200, 82],
+  emerald: [12, 150, 92], teal: [0, 168, 160], turq: [36, 214, 226], sky: [72, 170, 255], blue: [48, 98, 240],
+  indigo: [80, 54, 200], purple: [132, 52, 216], violet: [176, 62, 226], magenta: [226, 42, 186], pink: [255, 88, 166],
+  rose: [255, 142, 190],
+};
+const CREAM = [255, 238, 210], WHITE = [255, 255, 255], GOLD = [255, 205, 120];
+
+// top half of the stripe sequence, from the end of the cloth toward its centre ('K' black, 'W' white line)
+const BANDS = [
+  [[PAL.wine, 12]], 'K',
+  [[PAL.crimson, 5], [PAL.red, 6], [PAL.verm, 6], [PAL.orange, 7], [PAL.amber, 7], [PAL.yellow, 11], [PAL.lemon, 4]], 'W', 'K',
+  [[PAL.lime, 5], [PAL.green, 6], [PAL.emerald, 6], [PAL.teal, 7], [PAL.turq, 11], [PAL.sky, 6], [PAL.blue, 6], [PAL.indigo, 8]], 'W', 'K',
+  [[PAL.purple, 6], [PAL.violet, 6], [PAL.magenta, 10], [PAL.pink, 6], [PAL.rose, 5]], 'K',
+  [[PAL.yellow, 5], [PAL.amber, 5], [PAL.orange, 6], [PAL.verm, 6], [PAL.red, 9], [PAL.crimson, 6]], 'W', 'K',
+  [[PAL.turq, 5], [PAL.teal, 6], [PAL.emerald, 9], [PAL.green, 6], [PAL.lime, 5]], 'K',
+  [[PAL.indigo, 6], [PAL.blue, 8], [PAL.sky, 6], [PAL.turq, 5]], 'W', 'K',
+  [[PAL.rose, 5], [PAL.pink, 6], [PAL.magenta, 8], [PAL.violet, 6], [PAL.purple, 7]], 'K',
+  [[PAL.crimson, 6], [PAL.red, 6], [PAL.verm, 6], [PAL.orange, 6], [PAL.amber, 6], [PAL.yellow, 12]],
+];
+// diamond rings, outer boundary (diamond metric) and colour, outside in (null = black)
+const RINGS = [
+  [1.075, null], [1.0, CREAM], [0.95, null], [0.915, PAL.crimson], [0.80, CREAM], [0.765, PAL.amber],
+  [0.65, null], [0.615, PAL.turq], [0.50, CREAM], [0.465, PAL.magenta], [0.35, null], [0.315, PAL.green],
+  [0.20, CREAM], [0.165, PAL.yellow], [0.075, PAL.crimson],
+];
+const NT = 9, TEETH = 0.055, LH = 4;              // serration: teeth per edge, height; weft line height
+
+// stripes (top to bottom) and the weaving rows (black lines ride with the row above them)
+const STRIPES = [], ROWS = [];
+(() => {
+  const half = [];
+  for (const b of BANDS) {
+    if (b === 'K') half.push([null, 3]); else if (b === 'W') half.push([CREAM, 3]); else for (const s of b) half.push([s[0], s[1]]);
+  }
+  let sum = half.reduce((s, x) => s + x[1], 0);
+  while (sum - half[half.length - 1][1] >= CH / 2) sum -= half.pop()[1];
+  half[half.length - 1][1] += CH / 2 - sum;
+  let y = YT;
+  for (const [c, h] of half) { STRIPES.push({ y0: y, y1: y + h, col: c }); y += h; }
+  // the centre stripe is shared by both halves
+  const mid = STRIPES[STRIPES.length - 1];
+  for (let k = half.length - 1; k >= 0; k--) {
+    const [c, h] = half[k];
+    if (k === half.length - 1) { mid.y1 += h; y += h; continue; }
+    STRIPES.push({ y0: y, y1: y + h, col: c }); y += h;
+  }
+  for (const s of STRIPES) {
+    if (!s.col && ROWS.length) ROWS[ROWS.length - 1].y1 = s.y1;
+    else ROWS.push({ y0: s.y0, y1: s.y1, col: s.col || CREAM });
+  }
+  // weaving from the bottom up (accelerating), pulling out from both ends toward the centre
+  const R = HG.rng(606);
+  ROWS.forEach((r, i) => {
+    const yc = (r.y0 + r.y1) / 2, q = (YB - yc) / CH;
+    r.dir = (ROWS.length - i) % 2 ? 1 : -1;
+    r.ts = 0.55 + 3.45 * Math.pow(q, 0.74);
+    r.D = 0.5 + 0.06 * R();
+    r.xa = CX - r.dir * (CW / 2 + 150); r.xb = CX + r.dir * (CW / 2 + 150);
+    const fe = (r.dir > 0 ? XR - r.xa : r.xa - XL) / (CW + 300);     // fraction of the path where the far edge is
+    r.tc = r.ts + r.D * Math.acos(1 - 2 * fe) / Math.PI;             // thread complete (beaten in)
+    const dc = Math.abs(yc - CY) / (CH / 2);
+    r.tu = 9.15 + 1.25 * Math.pow(1 - dc, 1.1) + 0.03 * R();
+    r.udir = yc < CY ? 1 : -1; r.idx = i;
+    r.seed = R() * TAU;
+    r.dens = lerp(1, 0.55, smooth(0.15, 0.7, q));
+  });
+})();
+
+// ---------- layers and the cloth texture (built once, at the render resolution)
+const P = HG.layer(), M = HG.layer(), SH = HG.layer();
+let TEX = null, RPATH = null;
+function ringAt(x, y) {
+  const ax = Math.abs(x - CX) / DA, ay = Math.abs(y - CY) / DB, d = ax + ay;
+  if (d > RINGS[0][0] * (1 + TEETH)) return -1;
+  const p = d > 0 ? ax / d : 0, v = p * NT, tri = 1 - Math.abs(2 * (v - Math.floor(v)) - 1);
+  const de = d / (1 + TEETH * tri);
+  let k = -1;
+  for (let i = 0; i < RINGS.length; i++) if (de < RINGS[i][0]) k = i;
+  return k;
+}
+function buildTex() {
+  TEX = HG.layer(); const g = TEX.ctx; HG.reset(g);
+  g.fillStyle = '#000'; g.fillRect(XL, YT, CW, CH);
+  // stripes: each a little brighter in its middle, like a round bundle of wool
+  for (const s of STRIPES) {
+    if (!s.col) continue;
+    const h = s.y1 - s.y0;
+    if (h >= 5) {
+      const gr = g.createLinearGradient(0, s.y0, 0, s.y1);
+      gr.addColorStop(0, rgb(mix([0, 0, 0], s.col, 0.8))); gr.addColorStop(0.5, rgb(s.col)); gr.addColorStop(1, rgb(mix([0, 0, 0], s.col, 0.8)));
+      g.fillStyle = gr;
+    } else g.fillStyle = rgb(s.col);
+    g.fillRect(XL, s.y0, CW, h);
+  }
+  // the diamond, woven line by line (stepped diagonals), colour runs sampled every half pixel
+  RPATH = RINGS.map(() => new Path2D());
+  const N = Math.ceil(DB * 1.15 / LH), dx = 0.5;
+  for (let j = -N; j < N; j++) {
+    const y = CY + j * LH, yc = y + LH / 2;
+    let run = -2, x0 = XL;
+    for (let x = XL; x <= XR + dx; x += dx) {
+      const k = x <= XR ? ringAt(x + dx / 2, yc) : -2;
+      if (k !== run) {
+        if (run >= 0) {
+          const col = RINGS[run][1];
+          g.fillStyle = col ? rgb(col) : '#000'; g.fillRect(x0, y, x - x0, LH);
+          RPATH[run].rect(x0, y, x - x0, LH);
+        }
+        run = k; x0 = x;
+      }
+    }
+  }
+}
+
+// ---------- the floating cloth: travelling waves along its width, a slow turn in depth, lit from the upper left
+const K1 = TAU / 330, W1 = 2.3, K2 = TAU / 185, W2 = 3.1, FOC = 1500;
+const LV = (() => { const v = [-0.55, -0.5, -1], n = Math.hypot(...v); return v.map(x => x / n); })();
+const HV = (() => { const v = [LV[0], LV[1], LV[2] - 1], n = Math.hypot(...v); return v.map(x => x / n); })();
+const ND0 = -LV[2];
+function surface(t) {
+  const life = smooth(5.2, 6.4, t) * (1 - smooth(9.3, 10.45, t));
+  const gust = bump(t, 7.0, 7.7, 8.2, 9.0);
+  const A = 30 * life * (1 + 0.4 * gust);
+  const th = 0.22 * Math.sin(0.9 * (t - 5.5)) * smooth(5.5, 6.9, t) * (1 - smooth(9.2, 10.3, t));
+  const roll = 0.065 * Math.sin(0.75 * (t - 5.7)) * smooth(5.7, 6.9, t) * (1 - smooth(8.7, 9.5, t));
+  const bob = 6 * Math.sin(1.05 * (t - 5.4)) * smooth(5.4, 6.6, t) * (1 - smooth(9.4, 10.4, t));
+  const front = -CW / 2 - 170 + 430 * (t - 5.2);
+  const flat = A < 0.01 && Math.abs(th) < 1e-4 && Math.abs(bob) < 0.01;
+  const c = Math.cos(th), s = Math.sin(th);
+  function at(u) {
+    let z = 0, dz = 0;
+    if (A > 0.001) {
+      const x = clamp((u - front + 170) / 170), e = 1 - x * x * (3 - 2 * x), de = (x > 0 && x < 1) ? -6 * x * (1 - x) / 170 : 0;
+      const p1 = K1 * u - W1 * t, p2 = K2 * u - W2 * t + 1.3;
+      const f = 0.62 * Math.sin(p1) + 0.38 * Math.sin(p2), df = 0.62 * K1 * Math.cos(p1) + 0.38 * K2 * Math.cos(p2);
+      z = A * e * f; dz = A * (e * df + de * f);
+    }
+    const X = u * c + z * s, Z = -u * s + z * c, sc = FOC / (FOC + Z);
+    const dX = c + dz * s, dZ = -s + dz * c, nl = Math.hypot(dX, dZ), nx = dZ / nl, nz = -dX / nl;
+    const shade = clamp(0.24 + 0.68 * (nx * LV[0] + nz * LV[2]) / ND0, 0.12, 1);
+    const spec = Math.pow(Math.max(0, nx * HV[0] + nz * HV[2]), 70);
+    return { x: CX + X * sc, sc, shade, spec };
+  }
+  return { A, th, bob, roll, flat, at, gust, map: (x, y) => { const q = at(x - CX); return [q.x, CY + bob + (y - CY) * q.sc, q]; } };
+}
+
+// warp the flat cloth in P onto M, column by column (each column scaled for its depth)
+const COLW = 3;
+function warpCols(st, xa, xb, ya, yb) {
+  const g = M.ctx, S = HG.S; HG.reset(g); g.clearRect(0, 0, W, W);
+  g.imageSmoothingQuality = 'high';
+  const n = Math.ceil((xb - xa) / COLW), cols = [];
+  let prev = st.at(xa - CX);
+  for (let i = 0; i < n; i++) {
+    const x0 = xa + i * COLW, nxt = st.at(x0 + COLW - CX), sc = (prev.sc + nxt.sc) / 2;
+    const d0 = Math.round(prev.x * S) / S, d1 = Math.round(nxt.x * S) / S;
+    if (d1 > d0) g.drawImage(P.cv, x0 * S, ya * S, COLW * S, (yb - ya) * S, d0, CY + st.bob + (ya - CY) * sc, d1 - d0, (yb - ya) * sc);
+    if (i % 4 === 0) cols.push(prev);
+    prev = nxt;
+  }
+  cols.push(prev);
+  return cols;
+}
+
+// light the layer: folds facing away darken, and the midday sun from above leaves the foot of the cloth a little dimmer
+function shadeLayer(L, st, cols) {
+  const g = L.ctx; HG.reset(g); g.globalCompositeOperation = 'destination-in';
+  if (cols) {
+    const gr = g.createLinearGradient(0, 0, W, 0);
+    for (const c of cols) gr.addColorStop(clamp(c.x / W), `rgba(0,0,0,${c.shade.toFixed(3)})`);
+    g.fillStyle = gr; g.fillRect(0, 0, W, W);
+  } else { g.fillStyle = 'rgba(0,0,0,0.92)'; g.fillRect(0, 0, W, W); }
+  const vg = g.createLinearGradient(0, YT - 40, 0, YB + 40);
+  vg.addColorStop(0, 'rgba(0,0,0,1)'); vg.addColorStop(0.55, 'rgba(0,0,0,0.93)'); vg.addColorStop(1, 'rgba(0,0,0,0.78)');
+  g.fillStyle = vg; g.fillRect(0, 0, W, W);
+  HG.reset(g);
+}
+
+// four-point glint star
+function star(g, x, y, s, a, rot = 0, col = CREAM) {
+  if (a <= 0.003 || s <= 0) return;
+  const sp = HG.sprite(col);
+  g.save(); g.globalCompositeOperation = 'lighter'; g.translate(x, y); g.rotate(rot);
+  g.globalAlpha = Math.min(1, a);
+  g.drawImage(sp, -s / 2, -s * 0.045, s, s * 0.09);
+  g.drawImage(sp, -s * 0.045, -s / 2, s * 0.09, s);
+  g.globalAlpha = Math.min(1, a * 0.8);
+  g.drawImage(sp, -s * 0.16, -s * 0.16, s * 0.32, s * 0.32);
+  g.restore();
+}
+
+// ---------- timeline
+const DU = 0.72;                                   // a pulled thread's flight
+const T_PULSE = 4.5;                               // diamond rings light up, centre outward
+const dropHead = (i, t) => lerp(YT - FL - 12, YB + FL + 4, ease.inOut3((t - 0.22 - 0.028 * Math.abs(i - (NW - 1) / 2)) / 0.78));
+const twistK = t => ease.inOut3((t - 5.1) / 0.65);
+// how far from the centre the warp still shows: all of it until the unravel; then the fringe draws in
+// and the bare warp dissolves just behind the threads being pulled out (the ends first, the centre last)
+const retractR = t => {
+  if (t < 9.38) return CH / 2 + (FL + 4) * (1 - smooth(9.1, 9.38, t));
+  return Math.min(CH / 2, (CH / 2) * (1 - Math.pow(clamp((t - 9.37) / 1.25), 1 / 1.1)));
+};
+
+// warp threads: inside the cloth (seen before the weft covers them and after it is pulled out) and
+// their ends outside it, straight on the loom, twisted into knotted cords once the cloth is cut free.
+// All drawn flat into P, so they bend, turn and light up together with the cloth.
+function threadsP(p, t, st) {
+  if (t < 0.2 || t > 10.7) return;
+  const R = retractR(t), tw = twistK(t);
+  const lines = new Path2D(), knots = new Path2D(), mids = new Path2D(), warps = new Path2D();
+  for (let i = 0; i < NW; i++) {
+    const x = WX(i), y0 = Math.max(YT, CY - R), y1 = Math.min(YB, dropHead(i, t), CY + R);
+    if (y1 > y0) { warps.moveTo(x, y0); warps.lineTo(x, y1); }
+  }
+  const segs = 14, lk = 0.58, L = FL * (1 - 0.08 * tw);
+  const lean = 0.3 * clamp(st.A / 30);
+  for (const end of [-1, 1]) {
+    const yE = end < 0 ? YT : YB;
+    for (let j = 0; j < NW / 2; j++) {
+      const xc = (WX(2 * j) + WX(2 * j + 1)) / 2, half = (WX(2 * j + 1) - WX(2 * j)) / 2;
+      // visible part (l = 0 at the cloth, 1 at the tip): the drop at the start, the retraction at the end
+      let l0 = 0, l1 = 1;
+      const hy = Math.min(dropHead(2 * j, t), dropHead(2 * j + 1, t));
+      if (end < 0) l0 = Math.max(l0, (YT - hy) / FL); else l1 = Math.min(l1, (hy - YB) / FL);
+      l1 = Math.min(l1, (R - CH / 2) / FL);
+      if (l1 <= l0 + 0.01) continue;
+      const ph = 2.4 * t - 0.022 * xc + (end < 0 ? 0 : 1.9);
+      const pts = [];
+      let x = xc, y = yE;
+      for (let s = 0; s <= segs; s++) {
+        const l = s / segs;
+        if (s > 0) {
+          const ang = tw * ((end < 0 ? 1 : 0.7) * lean + 0.3 * Math.sin(ph - 2.4 * l)) * (0.35 + 0.65 * l);
+          x += Math.sin(ang) * L / segs; y += end * Math.cos(ang) * L / segs;
+        }
+        pts.push([x, y, l]);
+      }
+      // a two-ply cord: the strands slide together, twist round a middle strand, a knot near the cloth
+      const offAt = l => 1.9 * Math.cos(TAU * 2.4 * l);
+      for (const sgn of [-1, 1]) {
+        let first = true;
+        for (const [px, py, l] of pts) {
+          if (l < l0 - 1e-6 || l > l1 + 1e-6) continue;
+          const off = sgn * lerp(half, offAt(l), tw);
+          if (first) { lines.moveTo(px + off, py); first = false; } else lines.lineTo(px + off, py);
+        }
+      }
+      if (tw > 0.02) {
+        let first = true;
+        for (const [px, py, l] of pts) { if (l > l1 + 1e-6) break; if (first) { mids.moveTo(px, py); first = false; } else mids.lineTo(px, py); }
+        const k = Math.round(0.2 * segs);
+        if (l1 >= 0.2) { knots.moveTo(pts[k][0] + 3.6 * tw, pts[k][1]); knots.arc(pts[k][0], pts[k][1], 3.6 * tw, 0, TAU); }
+      }
+    }
+  }
+  const a = 1 - 0.5 * smooth(9.05, 9.35, t);
+  p.save(); p.lineCap = 'round'; p.lineJoin = 'round'; p.strokeStyle = rgba(CREAM, 1);
+  p.globalAlpha = 0.35 * a; p.lineWidth = 6; p.filter = HG.blur(3); p.stroke(lines);
+  p.filter = 'none'; p.globalAlpha = 0.8 * a; p.lineWidth = lerp(2.2, 2.6, tw); p.stroke(lines);
+  p.globalAlpha = 0.8 * a * tw; p.lineWidth = 2.2; p.stroke(mids);
+  p.fillStyle = rgba(GOLD, 1); p.globalAlpha = 0.95 * a; p.fill(knots);
+  // the bare warp: its ends soften away near the unravelling edge
+  if (R < 0.5) { p.restore(); return; }
+  if (R < CH / 2 + 0.5) {
+    const soft = Math.min(36, R), g = p.createLinearGradient(0, CY - R, 0, CY + R);
+    g.addColorStop(0, rgba(CREAM, 0)); g.addColorStop(soft / (2 * R), rgba(CREAM, 1));
+    g.addColorStop(1 - soft / (2 * R), rgba(CREAM, 1)); g.addColorStop(1, rgba(CREAM, 0));
+    p.strokeStyle = g;
+  }
+  // (once the ends are cords, the warp inside must not peek out past the hems)
+  if (tw > 0) { p.beginPath(); p.rect(XL - 12, YT + 0.5, CW + 24, CH - 1); p.clip(); }
+  p.globalAlpha = 0.35 * a; p.lineWidth = 6; p.filter = HG.blur(3); p.stroke(warps);
+  p.filter = 'none'; p.globalAlpha = 0.8 * a; p.lineWidth = 2.2; p.stroke(warps);
+  p.restore();
+}
+
+// weft rows: laid by the shuttles, then (at the end) pulled out as flying streaks
+function rowsP(p, t) {
+  const S = HG.S;
+  for (const r of ROWS) {
+    if (t < r.ts) continue;
+    if (t >= r.tu) { streakP(p, r, t); continue; }
+    const tau = t - r.ts, h = r.y1 - r.y0;
+    let x0 = XL, x1 = XR, hx = null;
+    if (tau < r.D) {
+      hx = lerp(r.xa, r.xb, 0.5 - 0.5 * Math.cos(Math.PI * tau / r.D));
+      if (r.dir > 0) x1 = clamp(hx, XL, XR); else x0 = clamp(hx, XL, XR);
+    }
+    if (x1 - x0 < 0.05) continue;
+    p.drawImage(TEX.cv, x0 * S, r.y0 * S, (x1 - x0) * S, h * S, x0, r.y0, x1 - x0, h);
+    // the fresh thread glows behind the shuttle, and flashes as the beater packs it in
+    p.save(); p.globalCompositeOperation = 'lighter';
+    if (hx !== null) {
+      const gr = p.createLinearGradient(hx, 0, hx - r.dir * 170, 0);
+      gr.addColorStop(0, rgba(WHITE, 0.45 * r.dens)); gr.addColorStop(1, rgba(WHITE, 0));
+      p.fillStyle = gr; p.fillRect(x0, r.y0, x1 - x0, h);
+    }
+    const fl = bump(t, r.tc, r.tc + 0.05, r.tc + 0.08, r.tc + 0.45);
+    if (fl > 0.003) { p.fillStyle = rgba(mix(r.col, WHITE, 0.5), 0.32 * fl * r.dens); p.fillRect(XL, r.y0, CW, h); }
+    p.restore();
+  }
+}
+
+function streakP(p, r, t) {
+  const k = (t - r.tu) / DU; if (k >= 1) return;
+  const S = HG.S, h = r.y1 - r.y0, yc = (r.y0 + r.y1) / 2, d = r.udir;
+  // the woven row lets go...
+  if (k < 0.14) { p.globalAlpha = 1 - k / 0.14; p.drawImage(TEX.cv, XL * S, r.y0 * S, CW * S, h * S, XL, r.y0, CW, h); p.globalAlpha = 1; }
+  // ...and its thread slides out, stretching, thinning and rippling as it flies
+  const shift = d * (40 * k + 900 * k * k), len = CW * (1 + 0.9 * k * k), xc = CX + shift;
+  const xa = xc - len / 2, xb = xc + len / 2;
+  const th = Math.max(3.2, (h - 2) * lerp(1, 0.6, ease.out3(k)));
+  const amp = 12 * Math.pow(Math.sin(Math.PI * Math.min(1, k * 1.15)), 0.8);
+  const gr = p.createLinearGradient(xa, 0, xb, 0);
+  for (const [f, col] of r.stops) gr.addColorStop(f, rgba(col, 1));
+  const NP = 36, yAt = x => yc - 1 + amp * Math.sin(0.014 * x - 7.5 * t + r.idx * 0.16);
+  p.save(); p.globalAlpha = Math.min(1, k / 0.06) * (1 - smooth(0.45, 1, k));
+  p.strokeStyle = gr; p.lineWidth = th; p.lineCap = 'round'; p.lineJoin = 'round';
+  p.beginPath();
+  for (let i = 0; i <= NP; i++) { const x = lerp(xa, xb, i / NP); i ? p.lineTo(x, yAt(x)) : p.moveTo(x, yAt(x)); }
+  p.stroke();
+  // its loose end leads, glowing
+  const lead = d > 0 ? xb : xa;
+  p.globalCompositeOperation = 'lighter';
+  HG.dot(p, mix(r.col, WHITE, 0.3), lead, yAt(lead), 30, 0.75 * Math.sin(Math.PI * Math.min(1, k * 1.3)));
+  p.restore();
+}
+
+// colour stops along each row (for its pulled-out thread), read from the weave; black is skipped
+function rowStops() {
+  for (const r of ROWS) {
+    const yc = (r.y0 + r.y1) / 2, runs = [];
+    for (let x = XL; x < XR; x += 1) {
+      const k = ringAt(x + 0.5, yc), col = k >= 0 ? RINGS[k][1] : r.col;
+      if (runs.length && runs[runs.length - 1][2] === col) runs[runs.length - 1][1] = x + 1;
+      else runs.push([x, x + 1, col]);
+    }
+    r.stops = [];
+    for (const [x0, x1, col] of runs) {
+      if (!col) continue;
+      const m = Math.min(1.5, (x1 - x0) / 2);
+      r.stops.push([(x0 + m - XL) / CW, col], [(x1 - m - XL) / CW, col]);
+    }
+    if (!r.stops.length) r.stops.push([0, r.col], [1, r.col]);
+  }
+}
+
+// the woven diamond lights up ring by ring from its centre when the last pass is done (and echoes with the gust)
+function pulseP(p, t) {
+  p.save(); p.globalCompositeOperation = 'lighter';
+  for (const [T0, gain, dt] of [[T_PULSE, 1, 0.045], [7.45, 0.45, 0.06]]) {
+    if (t < T0 || t > T0 + 1.6) continue;
+    for (let i = RINGS.length - 1; i >= 0; i--) {
+      const col = RINGS[i][1]; if (!col) continue;
+      const t0 = T0 + dt * (RINGS.length - 1 - i);
+      const e = bump(t, t0, t0 + 0.08, t0 + 0.12, t0 + 0.45) * gain;
+      if (e <= 0.003) continue;
+      p.fillStyle = rgba(mix(col, WHITE, col === CREAM ? 0 : 0.3), (col === CREAM ? 0.55 : 0.75) * e);
+      p.fill(RPATH[i]);
+    }
+  }
+  p.restore();
+}
+
+// the serrated outline of the diamond at scale d (same teeth as the weave)
+function diamondOutline(d) {
+  const path = new Path2D(), n = NT * 6;
+  const quad = [[1, -1], [1, 1], [-1, 1], [-1, -1]];
+  quad.forEach(([sx, sy], qi) => {
+    for (let i = 0; i <= n; i++) {
+      // walk each edge from tip to tip, clockwise
+      const pp = (qi % 2 === 0) ? i / n : 1 - i / n;
+      const v = pp * NT, tri = 1 - Math.abs(2 * (v - Math.floor(v)) - 1), f = d * (1 + TEETH * tri);
+      const x = CX + sx * DA * pp * f, y = CY + sy * DB * (1 - pp) * f;
+      (qi === 0 && i === 0) ? path.moveTo(x, y) : path.lineTo(x, y);
+    }
+  });
+  path.closePath();
+  return path;
+}
+
+// when the weave is finished, a diamond of light radiates out of the rombo to the ends of the cloth
+function shockwave(t) {
+  const u = (t - 4.98) / 0.7; if (u <= 0 || u >= 1) return;
+  const d = 1.05 + 0.52 * ease.out3(u), a = Math.pow(1 - u, 2) * smooth(0, 0.08, u);
+  const path = diamondOutline(d);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = rgba(GOLD, 1); ctx.globalAlpha = 0.7 * a; ctx.lineWidth = 18; ctx.filter = HG.blur(10); ctx.stroke(path);
+  ctx.filter = 'none'; ctx.strokeStyle = rgba(CREAM, 1); ctx.globalAlpha = 0.95 * a; ctx.lineWidth = 4.5; ctx.stroke(path);
+  ctx.restore();
+}
+
+// shuttles: a white-hot head with a comet tail in the colour of its thread
+function shuttles(t) {
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const r of ROWS) {
+    const tau = t - r.ts; if (tau <= 0 || tau >= r.D) continue;
+    const u = tau / r.D, hx = lerp(r.xa, r.xb, 0.5 - 0.5 * Math.cos(Math.PI * u)), hy = (r.y0 + r.y1) / 2;
+    const a = Math.pow(Math.sin(Math.PI * u), 0.6) * r.dens;
+    const tl = 190 * (0.6 + 0.4 * Math.sin(Math.PI * u)), tx = hx - r.dir * tl;
+    const gr = ctx.createLinearGradient(tx, 0, hx, 0);
+    gr.addColorStop(0, rgba(r.col, 0)); gr.addColorStop(1, rgba(r.col, 0.85 * a));
+    ctx.strokeStyle = gr; ctx.lineCap = 'round';
+    ctx.lineWidth = 9; ctx.globalAlpha = 0.5; ctx.filter = HG.blur(5);
+    ctx.beginPath(); ctx.moveTo(tx, hy); ctx.lineTo(hx, hy); ctx.stroke();
+    ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.lineWidth = 2.6; ctx.stroke();
+    HG.dot(ctx, r.col, hx, hy, 64, 0.55 * a);
+    HG.dot(ctx, WHITE, hx, hy, 20, 0.95 * a);
+  }
+  ctx.restore();
+}
+
+// warp threads dropping onto the loom: a spark leads each one down
+function dropSparks(t) {
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < NW; i++) {
+    const t0 = 0.22 + 0.028 * Math.abs(i - (NW - 1) / 2), u = (t - t0) / 0.78;
+    if (u <= 0 || u >= 1) continue;
+    const y = dropHead(i, t), a = Math.sin(Math.PI * u) * smooth(0.22, 0.45, t);
+    HG.dot(ctx, CREAM, WX(i), y, 30, 0.7 * a);
+    HG.dot(ctx, WHITE, WX(i), y, 10, 0.8 * a);
+  }
+  ctx.restore();
+}
+
+// draw a full-frame layer, rocked by the cloth's roll about its centre (pixel-exact when it is not rolling)
+function drawRolled(c, L, roll, { alpha = 1, op = 'source-over', blur = 0 } = {}) {
+  if (!roll && !blur) return HG.drawLayer(c, L, { alpha, op });
+  c.save(); HG.reset(c);
+  if (roll) { c.translate(CX, CY); c.rotate(roll); c.translate(-CX, -CY); }
+  c.globalAlpha = alpha; c.globalCompositeOperation = op; c.filter = blur ? HG.blur(blur) : 'none';
+  c.imageSmoothingQuality = 'high'; c.drawImage(L.cv, 0, 0, W, W);
+  c.restore();
+}
+const rollPt = (x, y, roll) => { const c = Math.cos(roll), s = Math.sin(roll), dx = x - CX, dy = y - CY; return [CX + dx * c - dy * s, CY + dx * s + dy * c]; };
+
+HG.start({
+  duration: 12,
+  render(t) {
+    if (!TEX) { buildTex(); rowStops(); }
+    const st = surface(t);
+
+    // ---------- the flat cloth (P): warp threads, woven rows, pulled threads, the diamond's pulse
+    const p = P.ctx; HG.reset(p); p.clearRect(0, 0, W, W);
+    threadsP(p, t, st);
+    rowsP(p, t);
+    pulseP(p, t);
+    HG.reset(p);
+
+    // ---------- float it: warp into depth and light it
+    let L = P, cols = null;
+    if (!st.flat) {
+      const wide = t > 9.1;
+      cols = warpCols(st, wide ? 0 : XL - 44, wide ? W : XR + 44, YT - FL - 14, YB + FL + 14);
+      L = M;
+    }
+    shadeLayer(L, st, cols);
+
+    drawRolled(ctx, L, st.roll, { alpha: 0.3, op: 'lighter', blur: 16 });
+    drawRolled(ctx, L, st.roll);
+
+    // light running over the folds (and a sweep of sunlight with the gust)
+    if (cols) {
+      const s = SH.ctx; HG.reset(s); s.clearRect(0, 0, W, W);
+      HG.drawLayer(s, L);
+      s.globalCompositeOperation = 'destination-in';
+      const gr = s.createLinearGradient(0, 0, W, 0);
+      for (const c of cols) gr.addColorStop(clamp(c.x / W), `rgba(0,0,0,${Math.min(1, c.spec).toFixed(3)})`);
+      s.fillStyle = gr; s.fillRect(0, 0, W, W); HG.reset(s);
+      drawRolled(ctx, SH, st.roll, { alpha: 0.75, op: 'lighter' });
+    }
+
+    dropSparks(t);
+    shuttles(t);
+    shockwave(t);
+
+    // glints where the light catches the diamond's tips
+    if (cols) {
+      const life = bump(t, 5.6, 6.2, 9.0, 9.5);
+      const tips = [[CX, CY - DB], [CX + DA, CY], [CX, CY + DB], [CX - DA, CY]];
+      tips.forEach(([x, y], i) => {
+        const [mx, my, q] = st.map(x, y), [sx, sy] = rollPt(mx, my, st.roll);
+        star(ctx, sx, sy, 95 + 30 * st.gust, life * clamp(q.spec * 1.4) * (i === 2 ? 0.5 : 1), 0.3 * t, CREAM);
+      });
+    }
+    // a last glint where the warp strings fold together
+    const g = bump(t, 10.5, 10.78, 10.85, 11.25);
+    if (g > 0) star(ctx, CX, CY, 120 * g, 0.9 * g, 0.6 * (t - 10.5), GOLD);
+  },
+});
+</script></body></html>

@@ -1,0 +1,658 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// El jaguar (morning). The cenote's fireflies drift into a wall of jungle leaves (monstera,
+// banana and palm, plants of the selva of Chiapas) whose veins wake with light. Two golden eyes
+// open in the dark gap and blink. Then the jungle opens like an eye: the leaves swing back to
+// the rim while, from the jaguar's eyes, its rosettes ignite one by one and link up like a
+// constellation (in Mesoamerica the jaguar's spotted pelt was likened to the starry night sky).
+// The jaguar blooms out of its own stars as the morning sun breaks through the canopy in gold
+// shafts, and walks slowly toward us; a shimmer runs along its rosettes. At the end it melts back
+// into its constellation, tail first, the stars lift away as sparks toward the midday sun, the
+// jungle closes like an eye and the eyes are the last to go out.
+// Rosettes are drawn as the jaguar's own mark (a broken ring with a spot inside, the feature that
+// tells a jaguar from a leopard); head, legs and tail carry solid spots, as on a real jaguar.
+// Asset: prepare.py on out-show2/images/jaguar-1.png -> 04-jaguar-cat; derived from it (scratchpad
+// derive.py): -cat_solid (cut-out with the see-through spots filled), -cat_sil (silhouette),
+// -cat_rim (sun rim light). Stars (scratchpad figure.py): the coat's spots (local maxima of its
+// darkness), the traced silhouette and leg gap, the left ear and cheek; FIG holds the figure's
+// links. Leaves and heliconias are vector, built once. Everything is a pure function of t.
+const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
+const TAU = Math.PI * 2, DEG = Math.PI / 180;
+const mix = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)];
+const bump = (t, c, w) => Math.exp(-Math.pow((t - c) / w, 2));
+
+// ---------- palette (morning in the selva: emerald and turquoise, gold sunlight)
+const LEAF = [46, 222, 138], LEAF_HI = [175, 255, 205], VEIN = [70, 215, 140], TURQ = [40, 205, 215],
+  SUN = [255, 212, 135], GOLD = [255, 186, 72], WARM = [255, 232, 185], AMBER = [225, 130, 35],
+  FLY = [200, 255, 120], WHITE = [255, 250, 235];
+
+// ---------- timeline
+const T_EYES = 1.0;                      // the eyes open in the dark
+const T_BLINK = 1.85;
+const T_IRIS = 1.95, D_IRIS = 1.8;       // the jungle opens like an eye
+const T_STAR = 2.05, D_STAR = 2.2;       // the constellation grows from the eyes
+const T_PULSE = 4.2;                     // a pulse of light runs through the finished constellation
+const T_PH = 4.6, D_PH = 0.9, D_BLOOM = 0.9;   // the photo condenses out of the stars, face first
+const T_FLOOR = 6.0;                     // the photo is fully in
+const T_SUN = 4.6;                       // the sun breaks through
+const T_WALK = 5.4, T_WALK_END = 9.7;    // the slow approach
+const T_WAVE = 7.1, D_WAVE = 1.5;        // a ripple of light sweeps from its face across the coat
+const T_REC = 8.7, D_REC = 1.0;          // the jaguar melts back into stars, tail first
+const T_LIFT = 9.5, D_LIFTS = 0.85, D_LIFT = 1.0;   // the stars lift away
+const T_CLOSE = 9.45, D_CLOSE = 1.45;    // the jungle closes
+const T_OUT = 10.55;                     // the eyes go out
+
+// ---------- the jaguar: the 1024 px asset placed by an anchor point, approaching slowly
+const AX0 = 600, AY0 = 820;              // anchor low on the body: it grows up and toward us
+const EYE_A = [[617, 260], [773, 259]];
+function jag(t) {
+  const walk = ease.inOut3((t - T_WALK) / (T_WALK_END - T_WALK));
+  const amp = smooth(T_WALK - 0.3, T_WALK + 1.2, t) * (1 - smooth(T_WALK_END - 0.7, T_WALK_END + 0.3, t));
+  const ph = Math.PI * (t - T_WALK) / 0.95;           // one footfall every 0.95 s
+  return {
+    s: 0.8 + 0.07 * walk,
+    r: 0.008 * amp * Math.sin(ph),                    // the weight shifts from side to side
+    x: 543 + 5 * amp * Math.sin(ph),
+    y: 846 + 14 * walk - 6 * amp * Math.pow(Math.sin(ph), 2),
+  };
+}
+function P(J, u, v) {
+  const c = Math.cos(J.r), s = Math.sin(J.r), x = (u - AX0) * J.s, y = (v - AY0) * J.s;
+  return [J.x + x * c - y * s, J.y + x * s + y * c];
+}
+const toJag = (c, J) => { c.translate(J.x, J.y); c.rotate(J.r); c.scale(J.s, J.s); c.translate(-AX0, -AY0); };
+
+// ---------- stars: [u, v, darkness, type]; type 0 rosette, 1 solid spot, 2 figure star (outline,
+// leg, ear, cheek), 3 eye, 4 nose. FIG: the figure's links (outline, legs, ear and cheek).
+const STARS = [[617,260,1.0,3],[773,259,1.0,3],[366,6,0.5,2],[408,11,0.5,2],[448,21,0.5,2],[487,30,0.5,2],[529,23,0.5,2],[567,8,0.5,2],[608,13,0.5,2],[648,24,0.5,2],[687,35,0.5,2],[723,56,0.5,2],[760,75,0.5,2],[796,96,0.5,2],[833,79,0.5,2],[869,58,0.5,2],[894,85,0.5,2],[886,126,0.5,2],[874,164,0.5,2],[857,199,0.5,2],[855,241,0.5,2],[852,284,0.5,2],[844,325,0.5,2],[835,349,0.5,2],[819,381,0.5,2],[828,413,0.5,2],[836,439,0.5,2],[820,464,0.5,2],[785,476,0.5,2],[754,494,0.5,2],[744,531,0.5,2],[733,570,0.5,2],[733,614,0.5,2],[727,656,0.5,2],[718,697,0.5,2],[708,737,0.5,2],[695,776,0.5,2],[682,816,0.5,2],[670,856,0.5,2],[661,897,0.5,2],[671,937,0.5,2],[702,959,0.5,2],[709,999,0.5,2],[672,1015,0.5,2],[630,1015,0.5,2],[588,1015,0.5,2],[553,998,0.5,2],[531,965,0.5,2],[504,992,0.5,2],[463,986,0.5,2],[427,968,0.5,2],[402,935,0.5,2],[387,897,0.5,2],[379,856,0.5,2],[361,866,0.5,2],[366,905,0.5,2],[325,914,0.5,2],[284,915,0.5,2],[251,897,0.5,2],[256,855,0.5,2],[253,811,0.5,2],[250,768,0.5,2],[248,725,0.5,2],[240,684,0.5,2],[231,643,0.5,2],[213,611,0.5,2],[173,606,0.5,2],[145,575,0.5,2],[132,536,0.5,2],[129,495,0.5,2],[146,458,0.5,2],[184,457,0.5,2],[199,440,0.5,2],[192,398,0.5,2],[182,358,0.5,2],[175,316,0.5,2],[170,274,0.5,2],[171,230,0.5,2],[176,188,0.5,2],[188,148,0.5,2],[205,111,0.5,2],[228,76,0.5,2],[260,49,0.5,2],[297,30,0.5,2],[335,14,0.5,2],[569,639,0.5,2],[563,680,0.5,2],[560,722,0.5,2],[561,766,0.5,2],[566,809,0.5,2],[560,851,0.5,2],[551,892,0.5,2],[537,910,0.5,2],[538,875,0.5,2],[520,842,0.5,2],[498,808,0.5,2],[478,773,0.5,2],[461,736,0.5,2],[462,693,0.5,2],[459,653,0.5,2],[499,645,0.5,2],[539,648,0.5,2],[588,104,0.5,2],[543,86,0.5,2],[495,66,0.5,2],[470,110,0.5,2],[465,158,0.5,2],[498,228,0.5,2],[506,300,0.5,2],[535,372,0.5,2],[585,445,0.5,2],[680,487,0.5,2],[770,470,0.5,2],[316,612,0.5,2],[322,690,0.5,2],[340,770,0.5,2],[366,846,0.5,2],[711,400,0.8,4],[164,492,0.99,1],[476,418,0.96,0],[283,678,0.89,0],[290,558,0.85,0],[275,616,0.83,0],[248,556,0.82,0],[438,612,0.79,0],[443,530,0.76,0],[507,565,0.71,0],[517,446,0.69,0],[657,63,0.68,1],[197,587,0.68,1],[400,575,0.68,0],[694,68,0.67,1],[631,462,0.66,1],[208,549,0.66,1],[622,566,0.65,0],[606,67,0.65,1],[512,155,0.65,1],[394,485,0.64,0],[616,748,0.63,1],[735,84,0.63,1],[689,531,0.62,0],[659,616,0.62,0],[286,501,0.6,0],[429,110,0.6,0],[442,367,0.58,0],[592,604,0.57,0],[612,116,0.57,1],[635,147,0.55,1],[635,205,0.55,1],[287,762,0.54,1],[405,624,0.51,0],[548,467,0.49,0],[751,149,0.49,1],[761,200,0.49,1],[396,125,0.48,0],[718,124,0.48,1],[771,117,0.47,1],[723,227,0.47,1],[680,228,0.47,1],[481,333,0.46,1],[549,268,0.45,1],[425,811,0.45,1],[661,125,0.45,1],[602,797,0.44,1],[585,169,0.43,1],[224,361,0.42,0],[370,448,0.42,0],[845,154,0.42,1],[406,161,0.42,0],[355,738,0.41,1],[648,685,0.4,0],[221,399,0.4,0],[226,325,0.4,0],[684,155,0.4,1],[577,301,0.39,1],[639,809,0.39,1],[565,398,0.39,1],[487,377,0.38,1],[709,581,0.38,0],[364,177,0.38,0],[326,540,0.36,0],[249,454,0.36,0],[423,870,0.36,1],[834,264,0.36,1],[439,468,0.36,0],[410,666,0.35,0],[198,227,0.35,0],[496,601,0.35,0],[358,501,0.35,0],[711,188,0.34,1],[665,185,0.33,1],[441,570,0.33,0],[798,162,0.33,1],[564,224,0.33,1],[562,339,0.33,1],[678,729,0.33,1],[859,111,0.33,0],[381,534,0.33,0],[505,958,0.32,1],[391,771,0.31,1],[305,823,0.31,1],[430,191,0.31,0],[614,858,0.3,1],[807,208,0.28,1],[532,308,0.28,1],[816,293,0.28,1],[348,654,0.28,0],[354,598,0.27,0],[399,732,0.26,1],[287,275,0.26,0],[474,931,0.26,1],[457,897,0.26,1],[422,435,0.26,0],[520,242,0.25,1],[483,504,0.25,0],[422,330,0.25,0],[586,492,0.25,0],[629,920,0.24,1],[604,951,0.24,1],[673,576,0.23,0],[464,259,0.22,0],[282,330,0.22,0],[433,757,0.22,1],[297,439,0.22,0],[407,370,0.22,0],[293,380,0.21,0],[598,905,0.21,1],[401,405,0.2,0],[371,698,0.19,1],[379,324,0.18,0],[477,292,0.18,1],[441,285,0.18,0],[480,860,0.17,1],[311,235,0.16,0],[352,236,0.16,0],[330,429,0.16,0],[264,116,0.15,0],[366,401,0.15,0],[438,227,0.14,0],[387,284,0.13,0],[604,361,0.13,1]];
+const FIG = [[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,24],[24,25],[25,26],[26,27],[27,28],[28,29],[29,30],[30,31],[31,32],[32,33],[33,34],[34,35],[35,36],[36,37],[37,38],[38,39],[39,40],[40,41],[41,42],[42,43],[43,44],[44,45],[45,46],[46,47],[47,48],[48,49],[49,50],[50,51],[51,52],[52,53],[53,54],[54,55],[55,56],[56,57],[57,58],[58,59],[59,60],[60,61],[61,62],[62,63],[63,64],[64,65],[65,66],[66,67],[67,68],[68,69],[69,70],[70,71],[71,72],[72,73],[73,74],[74,75],[75,76],[76,77],[77,78],[78,79],[79,80],[80,81],[81,82],[82,83],[83,84],[84,2],[85,86],[86,87],[87,88],[88,89],[89,90],[90,91],[91,92],[92,93],[93,94],[94,95],[95,96],[96,97],[97,98],[98,99],[99,100],[100,101],[101,85],[102,103],[103,104],[104,105],[105,106],[106,107],[107,108],[108,109],[109,110],[110,111],[111,112],[112,28],[113,114],[114,115],[115,116],[116,53]];
+// the constellation: a minimum spanning tree grown from the two eyes (Prim); each star ignites
+// when the growth, travelling along the tree, reaches it
+const NODES = STARS;
+const NN = NODES.length;
+const TREE = (() => {
+  const parent = new Int32Array(NN).fill(-1), dist = new Float64Array(NN), inT = new Uint8Array(NN);
+  const best = new Float64Array(NN).fill(1e9), from = new Int32Array(NN).fill(-1);
+  const d = (i, j) => Math.hypot(NODES[i][0] - NODES[j][0], NODES[i][1] - NODES[j][1]);
+  const add = i => { inT[i] = 1; for (let j = 0; j < NN; j++) if (!inT[j]) { const q = d(i, j); if (q < best[j]) { best[j] = q; from[j] = i; } } };
+  add(0); add(1);
+  for (let k = 2; k < NN; k++) {
+    let bi = -1, bd = 1e9;
+    for (let j = 0; j < NN; j++) if (!inT[j] && best[j] < bd) { bd = best[j]; bi = j; }
+    parent[bi] = from[bi]; dist[bi] = dist[from[bi]] + bd; add(bi);
+  }
+  let dmax = 0; for (let i = 0; i < NN; i++) dmax = Math.max(dmax, dist[i]);
+  const R = HG.rng(41), info = [];
+  const FACE = [695, 262], fd = i => Math.hypot(NODES[i][0] - FACE[0], NODES[i][1] - FACE[1]);
+  let fmax = 0; for (let i = 0; i < NN; i++) fmax = Math.max(fmax, fd(i));
+  for (let i = 0; i < NN; i++) {
+    const f = dist[i] / dmax;
+    info.push({
+      p: parent[i], f, fe: fd(i) / fmax,
+      tIg: T_STAR + D_STAR * Math.pow(f, 0.85),
+      tPh: T_PH + D_PH * f,
+      tRec: T_REC + D_REC * (1 - f),
+      tLift: T_LIFT + D_LIFTS * (1 - f) + 0.12 * R(),
+      ph: R() * TAU, rot: R() * TAU, sway: (R() - 0.5) * 2, rise: 0.8 + 0.5 * R(),
+    });
+  }
+  return info;
+})();
+
+// ---------- jungle leaves (vector, built once): monstera, banana and palm
+function bentPath(pts, bend, L, close = true) {
+  const p = new Path2D();
+  pts.forEach(([x, y], i) => { const yy = y + bend * L * (x / L) * (x / L); i ? p.lineTo(x, yy) : p.moveTo(x, yy); });
+  if (close) p.closePath();
+  return p;
+}
+const B = (x, y, bend, L) => [x, y + bend * L * (x / L) * (x / L)];
+function slitPoints(edgeA, edgeB, M, O, depth, L) {
+  const I = [M[0] + (O[0] - M[0]) * depth, M[1] + (O[1] - M[1]) * depth];
+  const dl = Math.hypot(O[0] - M[0], O[1] - M[1]) || 1, dx = (O[0] - M[0]) / dl, dy = (O[1] - M[1]) / dl;
+  const n = [-dy * 0.006 * L, dx * 0.006 * L];
+  let a = [I[0] + n[0], I[1] + n[1]], b = [I[0] - n[0], I[1] - n[1]];
+  if (Math.hypot(a[0] - edgeA[0], a[1] - edgeA[1]) > Math.hypot(b[0] - edgeA[0], b[1] - edgeA[1])) [a, b] = [b, a];
+  return [edgeA, a, [I[0] + dx * 0.005 * L, I[1] + dy * 0.005 * L], b, edgeB];
+}
+function makeMonstera(L, seed, bend) {
+  const R = HG.rng(seed);
+  const cx = 0.46 * L, a = 0.5 * L, b = 0.42 * L;
+  const edge = (phi, sd) => {
+    let x = cx - a * Math.cos(phi);
+    const y = sd * b * Math.sin(phi) * (1 - 0.18 * Math.cos(phi));
+    x += 0.13 * L * Math.exp(-Math.pow(phi / 0.3, 2)) + 0.05 * L * Math.exp(-Math.pow((Math.PI - phi) / 0.22, 2));
+    return [x, y];
+  };
+  const origin = M => [clamp(M[0] - 0.2 * L, 0.07 * L, 0.88 * L), 0];
+  const shape = new Path2D(), veins = new Path2D();
+  const outline = [];
+  const holes = [], laterals = [];
+  for (const sd of [1, -1]) {
+    const k = 5 + Math.floor(R() * 2), sl = [];
+    for (let j = 0; j < k; j++) sl.push({ phi: 0.75 + 1.85 * (j + 0.5 + (R() - 0.5) * 0.45) / k, depth: 0.5 + R() * 0.2, half: 0.045 + R() * 0.02 });
+    const side = [], N = 140;
+    for (let i = 0; i <= N; i++) {
+      const phi = Math.PI * i / N, q = sl.find(s => Math.abs(phi - s.phi) < s.half);
+      if (q) {
+        if (!q.done) { q.done = true; side.push(...slitPoints(edge(q.phi - q.half, sd), edge(q.phi + q.half, sd), edge(q.phi, sd), origin(edge(q.phi, sd)), q.depth, L)); }
+        continue;
+      }
+      side.push(edge(phi, sd));
+    }
+    outline.push(sd > 0 ? side : side.reverse());
+    // veins between the slits and oval holes near the midrib
+    const marks = [0.32, ...sl.map(s => s.phi), 2.95];
+    for (let j = 0; j < marks.length - 1; j++) {
+      const pm = (marks[j] + marks[j + 1]) / 2, M = edge(pm, sd), O = origin(M);
+      laterals.push([O, [O[0] + (M[0] - O[0]) * 0.93, O[1] + (M[1] - O[1]) * 0.93]]);
+      if (j > 0 && j < marks.length - 2 && R() < 0.8) {
+        const H = [O[0] + (M[0] - O[0]) * 0.27, O[1] + (M[1] - O[1]) * 0.27];
+        holes.push([H, Math.atan2(M[1] - O[1], M[0] - O[0]), 0.045 * L + R() * 0.02 * L, 0.016 * L + R() * 0.006 * L]);
+      }
+    }
+  }
+  const pts = [...outline[0], ...outline[1]];
+  pts.forEach(([x, y], i) => { const p = B(x, y, bend, L); i ? shape.lineTo(p[0], p[1]) : shape.moveTo(p[0], p[1]); });
+  shape.closePath();
+  for (const [H, ang, rx, ry] of holes) {
+    const p = B(H[0], H[1], bend, L);
+    shape.moveTo(p[0] + Math.cos(ang) * rx, p[1] + Math.sin(ang) * rx);
+    shape.ellipse(p[0], p[1], rx, ry, ang, 0, TAU);
+  }
+  for (const [O, M] of laterals) {
+    const o = B(O[0], O[1], bend, L), m = B(M[0], M[1], bend, L), c = B((O[0] + M[0]) / 2 + 0.03 * L, (O[1] + M[1]) / 2, bend, L);
+    veins.moveTo(o[0], o[1]); veins.quadraticCurveTo(c[0], c[1], m[0], m[1]);
+  }
+  const mid = new Path2D(); for (let i = 0; i <= 20; i++) { const p = B(0.05 * L + 0.95 * L * i / 20, 0, bend, L); i ? mid.lineTo(p[0], p[1]) : mid.moveTo(p[0], p[1]); }
+  return { shape, veins, mid, L, midW: 4.5, w: 0.45 };
+}
+function makeBanana(L, seed, bend) {
+  const R = HG.rng(seed);
+  const hw = u => 0.155 * L * Math.pow(Math.sin(Math.PI * Math.pow(clamp(u), 0.8)), 0.55) * (1 - 0.1 * u);
+  const edge = (u, sd) => [u * L, sd * hw(u)];
+  const shape = new Path2D(), veins = new Path2D(), outline = [];
+  for (const sd of [1, -1]) {
+    const k = 4 + Math.floor(R() * 4), sl = [];
+    for (let j = 0; j < k; j++) sl.push({ u: 0.14 + 0.74 * (j + 0.5 + (R() - 0.5) * 0.7) / k, depth: 0.6 + R() * 0.38, half: 0.007 + R() * 0.008 });
+    const side = [], N = 160;
+    for (let i = 0; i <= N; i++) {
+      const u = i / N, q = sl.find(s => Math.abs(u - s.u) < s.half);
+      if (q) {
+        if (!q.done) { q.done = true; const M = edge(q.u, sd); side.push(...slitPoints(edge(q.u - q.half, sd), edge(q.u + q.half, sd), M, [M[0] - 0.05 * L, 0], q.depth, L)); }
+        continue;
+      }
+      side.push(edge(u, sd));
+    }
+    outline.push(sd > 0 ? side : side.reverse());
+    for (let u = 0.1 + R() * 0.03; u < 0.95; u += 0.075 + R() * 0.02) {
+      const o = B(u * L - 0.045 * L, sd * 0.012 * L, bend, L), m = B(u * L, sd * hw(u) * 0.95, bend, L);
+      veins.moveTo(o[0], o[1]); veins.lineTo(m[0], m[1]);
+    }
+  }
+  [...outline[0], ...outline[1]].forEach(([x, y], i) => { const p = B(x, y, bend, L); i ? shape.lineTo(p[0], p[1]) : shape.moveTo(p[0], p[1]); });
+  shape.closePath();
+  const mid = new Path2D(); for (let i = 0; i <= 24; i++) { const p = B(0.98 * L * i / 24, 0, bend, L); i ? mid.lineTo(p[0], p[1]) : mid.moveTo(p[0], p[1]); }
+  return { shape, veins, mid, L, midW: 6, w: 0.16 };
+}
+function makePalm(L, seed, bend) {
+  const R = HG.rng(seed);
+  const rach = u => [u * L, bend * L * u * u];
+  const tang = u => { const x = L, y = 2 * bend * L * u, l = Math.hypot(x, y); return [x / l, y / l]; };
+  const shape = new Path2D(), veins = new Path2D();
+  const n = 14;
+  for (const sd of [1, -1]) for (let j = 0; j < n; j++) {
+    const u = 0.1 + 0.86 * (j + 0.3 + 0.4 * R()) / n;
+    const len = 0.36 * L * Math.pow(Math.sin(Math.PI * (0.2 + 0.78 * u)), 0.75);
+    const ang = sd * (40 + 10 * R()) * DEG, T = tang(u);
+    const D = [T[0] * Math.cos(ang) - T[1] * Math.sin(ang), T[0] * Math.sin(ang) + T[1] * Math.cos(ang)];
+    const P0 = rach(u), curv = 0.22;
+    const m = v => [P0[0] + D[0] * len * v + T[0] * len * curv * v * v, P0[1] + D[1] * len * v + T[1] * len * curv * v * v + 0.06 * len * v * v * sd];
+    const wv = v => 0.024 * L * Math.sin(Math.PI * Math.pow(v, 0.65));
+    const left = [], right = [], M = 12;
+    for (let i = 0; i <= M; i++) {
+      const v = i / M, a = m(Math.max(0, v - 0.02)), b = m(Math.min(1, v + 0.02));
+      let tx = b[0] - a[0], ty = b[1] - a[1]; const l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l;
+      const p = m(v), w = wv(v);
+      left.push([p[0] - ty * w, p[1] + tx * w]); right.push([p[0] + ty * w, p[1] - tx * w]);
+    }
+    const pts = [...left, ...right.reverse()];
+    pts.forEach(([x, y], i) => i ? shape.lineTo(x, y) : shape.moveTo(x, y));
+    shape.closePath();
+    for (let i = 0; i <= 8; i++) { const p = m(i / 8 * 0.92); i ? veins.lineTo(p[0], p[1]) : veins.moveTo(p[0], p[1]); }
+  }
+  const mid = new Path2D(); for (let i = 0; i <= 24; i++) { const p = rach(i / 24); i ? mid.lineTo(p[0], p[1]) : mid.moveTo(p[0], p[1]); }
+  return { shape, veins, mid, L, midW: 5, w: 0.3 };
+}
+// heliconia (platanillo): a zigzag stem of red boat-shaped bracts edged in yellow
+function makeHeliconia(L, seed, bend) {
+  const R = HG.rng(seed);
+  const shape = new Path2D(), veins = new Path2D(), mid = new Path2D();
+  const n = 6, nodes = [];
+  for (let j = 0; j < n; j++) { const u = 0.38 + 0.1 * j, sd = j % 2 ? 1 : -1; nodes.push([u * L, sd * 0.02 * L + bend * L * u * u, sd]); }
+  mid.moveTo(0, 0); mid.lineTo(nodes[0][0] - 0.05 * L, 0);
+  nodes.forEach(([x, y]) => mid.lineTo(x, y));
+  mid.lineTo(nodes[n - 1][0] + 0.06 * L, nodes[n - 1][1]);
+  nodes.forEach(([x, y, sd], j) => {
+    // a boat-shaped bract: a nearly straight open lip facing the tip, a deep belly toward the base
+    const lb = 0.3 * L * (1 - 0.09 * j), ang = sd * (50 + 6 * R()) * DEG;
+    const D = [Math.cos(ang), Math.sin(ang)], N = [-D[1] * sd, D[0] * sd];   // N points toward the plant's tip
+    const m = v => [x + D[0] * lb * v + 0.22 * lb * v * v, y + D[1] * lb * v];
+    const wv = v => 0.1 * L * Math.sin(Math.PI * Math.pow(v, 0.62)) * (1 - 0.3 * v);
+    const up = [], lo = [];
+    for (let i = 0; i <= 16; i++) {
+      const v = i / 16, q = m(v), w = wv(v);
+      up.push([q[0] + N[0] * w * 0.12, q[1] + N[1] * w * 0.12]);
+      lo.push([q[0] - N[0] * w, q[1] - N[1] * w]);
+    }
+    [...up, ...lo.reverse()].forEach(([a, b], i) => i ? shape.lineTo(a, b) : shape.moveTo(a, b));
+    shape.closePath();
+    up.forEach(([a, b], i) => i ? veins.lineTo(a, b) : veins.moveTo(a, b));
+  });
+  return { shape, veins, mid, L, midW: 4, w: 0.3, flower: true };
+}
+const MAKE = { monstera: makeMonstera, banana: makeBanana, palm: makePalm, heliconia: makeHeliconia };
+
+// the leaves form an iris around the jaguar's eyes; opening swings each one about its base
+function leafSet(defs, Rb, hole, layer, slide, aim = [C, C]) {
+  return defs.map(([kind, angDeg, off, swing, lenK, bend, flip, seed], i) => {
+    const a = angDeg * DEG, bx = C + Rb * Math.cos(a), by = C + Rb * Math.sin(a);
+    const L = (Math.hypot(aim[0] - bx, aim[1] - by) - hole) * lenK;
+    const th = Math.atan2(aim[1] - by, aim[0] - bx) + off * DEG;
+    return { ...MAKE[kind](L, seed, bend), kind, bx, by, th, swing: swing * DEG, flip, i, seed, layer, slide };
+  });
+}
+//                  kind      base°  aim° swing° len  bend  flip seed
+const FRONT = leafSet([
+  ['monstera',  -92,   0,  58, 0.78, 0.06, 1, 11],
+  ['palm',      -46,   0,  58, 1.0,  0.10, 0, 12],
+  ['heliconia',   2,   0,  36, 0.8,  -0.05, 0, 13],
+  ['monstera',   44,   0,  58, 0.8,  0.05, 0, 14],
+  ['palm',       90,   0,  56, 1.0,  -0.10, 1, 15],
+  ['monstera',  136,   0,  58, 0.78, -0.05, 1, 17],
+  ['heliconia', 204,   0, -34, 0.8,  0.05, 1, 16],
+  ['palm',      226,   0,  58, 1.0,  0.10, 0, 18],
+], 640, 225, 'front', 55);
+// the nearest leaves close the jungle around the eyes at the start and swing right out of view
+const NEAR = leafSet([
+  ['monstera',  -68,   0, -78, 0.86, 0.06, 0, 51],
+  ['banana',    -16,   0,  80, 1.0,  0.05, 1, 52],
+  ['monstera',   36,   0, -78, 0.82, -0.05, 1, 53],
+  ['palm',       88,   0,  80, 1.0,  0.10, 0, 54],
+  ['banana',    140,   0, -80, 1.0,  -0.05, 0, 55],
+  ['monstera',  190,   0,  78, 0.86, 0.06, 1, 56],
+  ['palm',      244,   0, -80, 1.0,  -0.10, 1, 57],
+], 680, 175, 'near', 170, [585, 465]);
+const BACK = leafSet([
+  ['palm',      -69,  38,  20, 0.9,  0.10, 1, 31],
+  ['banana',    -23,  40,  18, 0.85, -0.06, 0, 32],
+  ['palm',       22,  38,  20, 0.85, 0.10, 0, 33],
+  ['palm',      113,  38,  20, 0.9,  -0.10, 1, 35],
+  ['banana',    158,  40,  18, 0.85, 0.06, 0, 36],
+  ['monstera',  204,  40,  20, 0.6,  -0.05, 0, 37],
+], 610, 260, 'back', 30);
+
+const SUNDIR = (() => { const x = -0.62, y = -0.78, l = Math.hypot(x, y); return [x / l, y / l]; })();
+const STYLE = {
+  front: { base: [2, 16, 12], mid: [4, 38, 26], tip: [9, 60, 40], fillA: 0.94, edge: LEAF, vein: VEIN, midrib: LEAF_HI },
+  near: { base: [2, 16, 12], mid: [4, 40, 27], tip: [9, 64, 42], fillA: 0.95, edge: LEAF, vein: VEIN, midrib: LEAF_HI },
+  back: { base: [1, 12, 15], mid: [3, 28, 32], tip: [6, 44, 48], fillA: 0.92, edge: [36, 175, 185], vein: [40, 150, 160], midrib: [120, 225, 225] },
+};
+// iris opening of leaf i: 0 closed, 1 open
+function irisK(t, lf) {
+  const st = lf.layer === 'back' ? 0.05 : 0.075;
+  const open = ease.inOut3((t - T_IRIS - st * lf.i) / D_IRIS);
+  const close = ease.inOut3((t - T_CLOSE - 0.05 * (8 - lf.i)) / D_CLOSE);
+  return open - 0.82 * close;
+}
+// a band of light that runs along the leaf from the base to the tip
+function pulseGrad(c, L, col, base, peak, k) {
+  const g = c.createLinearGradient(0, 0, L, 0);
+  if (k <= -0.25 || k >= 1.25) { g.addColorStop(0, rgba(col, base)); g.addColorStop(1, rgba(col, base)); return g; }
+  const st = [[0, base], [k - 0.22, base], [k, peak], [k + 0.1, base], [1, base]];
+  for (const [o, a] of st) if (o >= 0 && o <= 1) g.addColorStop(o, rgba(col, a));
+  return g;
+}
+const HUES = [[46, 222, 138], [110, 232, 110], [40, 215, 175], [70, 230, 150]];
+const FLOWER = { base: [140, 14, 28], mid: [232, 42, 40], tip: [255, 110, 35], fillA: 0.95, edge: [255, 120, 60], vein: [255, 228, 70], midrib: [120, 230, 110] };
+function styleOf(lf) {
+  if (lf.flower) return FLOWER;
+  const S = STYLE[lf.layer];
+  if (lf.layer === 'back') return S;
+  const h = HUES[lf.seed % HUES.length];
+  return { ...S, edge: h, vein: mix(h, VEIN, 0.5), midrib: mix(h, LEAF_HI, 0.6) };
+}
+function drawLeaf(c, lf, t, sunK, alpha) {
+  if (alpha <= 0.003) return;
+  const S = styleOf(lf), k = irisK(t, lf);
+  const ang = Math.atan2(lf.by - C, lf.bx - C), gustT = 6.3 + 0.9 * (0.5 + 0.5 * Math.cos(ang - 2.3));
+  const sway = (lf.layer === 'back' ? 2.2 : 1.6) * DEG * Math.sin(t * 0.9 + lf.seed * 1.7) + 0.8 * DEG * Math.sin(t * 1.7 + lf.seed)
+    + 4.5 * DEG * Math.sin(TAU * (t - gustT) / 1.5) * bump(t, gustT + 0.5, 0.75) * (lf.layer === 'back' ? 0.6 : 1);
+  const drift = (1 - smooth(0, 1.6, t)) * 6 * DEG;   // they settle into place as they appear
+  const th = lf.th - lf.swing * k + sway - drift * (lf.i % 2 ? 1 : -1);
+  const back = lf.slide * k;                                // slide a little out toward the rim as they open
+  const ox = lf.bx - Math.cos(lf.th) * back, oy = lf.by - Math.sin(lf.th) * back;
+  c.save();
+  c.translate(ox, oy); c.rotate(th); if (lf.flip) c.scale(1, -1);
+  c.globalAlpha = alpha;
+  const L = lf.L;
+  const g = c.createLinearGradient(0, 0, L, 0);
+  g.addColorStop(0, rgba(S.base, S.fillA)); g.addColorStop(0.55, rgba(S.mid, S.fillA)); g.addColorStop(1, rgba(S.tip, S.fillA));
+  c.fillStyle = g; c.fill(lf.shape, 'evenodd');
+  const vk = (t - 0.2 - 0.07 * lf.i) / 1.1;            // the veins wake with a band of light
+  c.save(); c.clip(lf.shape, 'evenodd');
+  c.lineCap = 'round';
+  c.strokeStyle = rgba(S.edge, 0.13); c.lineWidth = 18; c.stroke(lf.shape);
+  c.strokeStyle = pulseGrad(c, L, S.vein, 0.4, 1, vk); c.lineWidth = 2.4; c.stroke(lf.veins);
+  c.restore();
+  c.lineCap = 'round';
+  c.strokeStyle = pulseGrad(c, L, S.midrib, 0.75, 1, vk); c.lineWidth = lf.midW; c.stroke(lf.mid);
+  // outline: the side that faces the sun turns gold once the sun is up
+  let ex = SUNDIR[0], ey = SUNDIR[1];
+  const ca = Math.cos(-th), sa = Math.sin(-th);
+  let lx = ex * ca - ey * sa, ly = ex * sa + ey * ca; if (lf.flip) ly = -ly;
+  const R = 0.5 * L, cx = 0.5 * L;
+  const og = c.createLinearGradient(cx - lx * R, -ly * R, cx + lx * R, ly * R);
+  og.addColorStop(0, rgba(S.edge, 1)); og.addColorStop(0.35, rgba(S.edge, 1)); og.addColorStop(0.8, rgba(mix(S.edge, SUN, 0.9 * sunK), 1)); og.addColorStop(1, rgba(mix(S.edge, WARM, sunK), 1));
+  c.strokeStyle = og; c.lineWidth = 3; c.lineJoin = 'round'; c.stroke(lf.shape);
+  if (lf.flower) { c.strokeStyle = rgba(S.vein, 1); c.lineWidth = 3.4; c.stroke(lf.veins); }
+  c.restore();
+}
+
+// ---------- sun shafts through the canopy (from the upper left: the morning sun in the east)
+const SUN_SRC = [-140, -220];
+const BEAMS = [[42.5, 80, 0.7, 0.2], [47.5, 130, 1.0, 1.3], [52, 60, 0.6, 2.2], [56.5, 105, 0.85, 3.1], [61.5, 65, 0.55, 4.0], [66, 90, 0.6, 5.2]];
+const beamAng = (b, t) => (b[0] + 1.6 * Math.sin(t * 0.33 + b[3]) + 2.2 * smooth(T_SUN, 10, t)) * DEG;
+const beamK = (b, t) => b[2] * (0.72 + 0.28 * Math.sin(t * 0.8 + b[3] * 2.3));
+function beamAt(x, y, t) {
+  let s = 0;
+  for (const b of BEAMS) {
+    const a = beamAng(b, t), dx = x - SUN_SRC[0], dy = y - SUN_SRC[1];
+    const d = Math.abs(-Math.sin(a) * dx + Math.cos(a) * dy);
+    s += beamK(b, t) * Math.exp(-Math.pow(d / (b[1] * 0.45), 2));
+  }
+  return s;
+}
+
+// ---------- layers and helpers
+const LB = HG.layer(), LJ = HG.layer(), LR = HG.layer(), LF = HG.layer(), LS = HG.layer();
+for (const l of [LB, LJ, LR, LF, LS]) l.ctx.imageSmoothingQuality = 'high';
+ctx.imageSmoothingQuality = 'high';
+function bloom(c, L, px, alpha) {
+  if (alpha <= 0) return;
+  HG.reset(c); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, alpha); c.filter = HG.blur(px);
+  c.drawImage(L.cv, 0, 0, W, W); HG.reset(c);
+}
+// soft white disc used to grow the photo out of each star
+const BLOB = (() => {
+  const n = Math.round(128 * Math.max(1, HG.S)), cv = document.createElement('canvas'); cv.width = cv.height = n;
+  const g = cv.getContext('2d'), h = n / 2, grd = g.createRadialGradient(h, h, 0, h, h, h);
+  grd.addColorStop(0, 'rgba(255,255,255,1)'); grd.addColorStop(0.55, 'rgba(255,255,255,0.9)'); grd.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grd; g.fillRect(0, 0, n, n); return cv;
+})();
+
+// dappled light from the canopy sliding over the coat as the jaguar walks (a warm additive
+// light masked to its silhouette)
+const LD = HG.layer();
+const DAPPLE = (() => { const R = HG.rng(23), d = []; for (let i = 0; i < 9; i++) d.push([R() * 1024, R() * 1400, 90 + R() * 80, R() * TAU, 0.6 + 0.4 * R()]); return d; })();
+function dapples(t, J, A, k) {
+  const c = LD.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+  toJag(c, J);
+  for (const [u0, v0, r, ph, a] of DAPPLE) {
+    // the patches drift up and back over the body (it walks toward us under the canopy)
+    const u = u0 - 26 * t + 30 * Math.sin(t * 0.4 + ph), v = ((v0 - 95 * t) % 1400 + 1400) % 1400 - 150;
+    const g = c.createRadialGradient(u, v, 0, u, v, r);
+    g.addColorStop(0, rgba(WARM, a)); g.addColorStop(0.5, rgba(SUN, 0.55 * a)); g.addColorStop(1, rgba(SUN, 0));
+    c.fillStyle = g; c.fillRect(u - r, v - r, 2 * r, 2 * r);
+  }
+  // the ripple: a ring of warm light expanding from the face (alpha is scaled down below)
+  const wr = (t - T_WAVE) / D_WAVE;
+  if (wr > -0.05 && wr < 1.1) {
+    const R0 = Math.max(1, 1180 * wr + 40), g = c.createRadialGradient(695, 262, Math.max(0, R0 - 150), 695, 262, R0 + 40);
+    const a = 2.2 * (1 - smooth(0.75, 1.1, wr)) * smooth(-0.05, 0.08, wr);
+    g.addColorStop(0, rgba(SUN, 0)); g.addColorStop(0.7, rgba(WARM, Math.min(1, a))); g.addColorStop(1, rgba(SUN, 0));
+    c.fillStyle = g; c.fillRect(-200, -200, 1424, 1424);
+  }
+  c.globalCompositeOperation = 'destination-in'; c.drawImage(A.cat, 0, 0, 1024, 1024);
+  HG.reset(c);
+  HG.drawLayer(ctx, LD, { alpha: 0.32 * k, op: 'lighter' });
+}
+
+// state of star i at time t (all analytic)
+function starState(i, t) {
+  const S = TREE[i], n = NODES[i], typ = n[3];
+  const ig = t - S.tIg;
+  if (ig < 0) return null;
+  const bl = ease.inOut3((t - S.tPh - 0.3) / D_BLOOM);             // its patch of photo condenses
+  const hold = typ === 0 ? 0.06 : 0;
+  let a = lerp(1, hold, bl) + 0.6 * bump(t, T_PULSE + 0.55 * S.f, 0.13) * (1 - bl);
+  if (typ < 2) a += (typ === 0 ? 0.55 : 0.75) * bump(t, T_WAVE + D_WAVE * S.fe, 0.16) * bl;   // the ripple of light across the coat
+  const rc = ease.inOut3((t - S.tRec) / 0.6);
+  a = lerp(a, 1, rc);
+  const lf = (t - S.tLift) / D_LIFT;
+  return { ig, bl, rc, a, lf, pop: ease.outBack(ig / 0.38), flash: Math.exp(-ig * 5) };
+}
+</script>
+<script>
+HG.start({
+  duration: 12,
+  assets: { cat: '../assets/04-jaguar-cat_solid.png', sil: '../assets/04-jaguar-cat_sil.png', rim: '../assets/04-jaguar-cat_rim.png' },
+  render(t, A) {
+    const J = jag(t);
+    const sunK = smooth(T_SUN, T_SUN + 1.8, t) * (1 - smooth(9.3, 10.8, t));
+    const leafA = smooth(0.12, 0.95, t) * (1 - smooth(10.35, 11.25, t));
+    const photo = smooth(T_PH, T_FLOOR, t) * (1 - smooth(T_REC, T_REC + D_REC + 0.4, t));
+
+    // ---- back leaves (behind the jaguar, a little soft: depth)
+    {
+      const c = LB.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+      for (const lf of BACK) drawLeaf(c, lf, t, sunK, 1);
+      HG.reset(ctx); ctx.globalAlpha = 0.7 * leafA; ctx.filter = HG.blur(1.2); ctx.drawImage(LB.cv, 0, 0, W, W); HG.reset(ctx);
+      bloom(ctx, LB, 8, 0.2 * leafA);
+    }
+
+    // ---- warm breath of light behind the jaguar
+    if (photo > 0) {
+      const br = 0.5 + 0.5 * Math.sin(TAU * (t - T_WALK) / 1.9);
+      const p = P(J, 560, 520);
+      const g = ctx.createRadialGradient(p[0], p[1], 0, p[0], p[1], 430);
+      g.addColorStop(0, rgba(SUN, 0.14 * photo * (0.75 + 0.25 * br))); g.addColorStop(0.6, rgba(GOLD, 0.05 * photo)); g.addColorStop(1, rgba(GOLD, 0));
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(0, 0, W, W); ctx.restore();
+    }
+
+    // ---- the jaguar, grown out of its stars
+    {
+      const c = LJ.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+      toJag(c, J);
+      const floor = smooth(T_FLOOR - 0.7, T_FLOOR + 0.3, t) * (1 - smooth(T_REC - 0.35, T_REC + 0.05, t));
+      if (floor > 0) { c.globalAlpha = floor; c.drawImage(A.sil, 0, 0, 1024, 1024); }
+      let any = floor > 0;
+      for (let i = 0; i < NN; i++) {
+        const S = TREE[i];
+        const k = ease.inOut3((t - S.tPh) / D_BLOOM) * (1 - ease.inOut3((t - S.tRec) / 0.75));
+        if (k <= 0.004) continue;
+        const r = 150 * (0.55 + 0.45 * k);
+        any = true; c.globalAlpha = 0.3 * k;
+        c.drawImage(BLOB, NODES[i][0] - r, NODES[i][1] - r, 2 * r, 2 * r);
+      }
+      if (any) {
+        c.globalAlpha = 1; c.globalCompositeOperation = 'source-in';
+        c.drawImage(A.cat, 0, 0, 1024, 1024);
+        // it condenses as warm gold light first, then takes its own colours
+        const gold = 1 - smooth(T_PH + 0.4, T_FLOOR + 0.2, t) + 0.55 * smooth(T_REC - 0.2, T_REC + 0.6, t);
+        if (gold > 0.01) { c.globalCompositeOperation = 'source-atop'; c.globalAlpha = 0.55 * Math.min(1, gold); c.fillStyle = rgba(GOLD, 1); c.fillRect(0, 0, 1024, 1024); }
+        HG.reset(c);
+        HG.drawLayer(ctx, LJ);
+        bloom(ctx, LJ, 12, 0.22);
+        if (sunK > 0 && photo > 0) dapples(t, J, A, sunK * photo);
+        // sun rim light on the back and head, breathing
+        if (sunK > 0 && photo > 0) {
+          const br = 0.5 + 0.5 * Math.sin(TAU * (t - T_WALK) / 1.9);
+          ctx.save(); toJag(ctx, J); ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = sunK * photo * (0.55 + 0.3 * br);
+          ctx.drawImage(A.rim, 0, 0, 1024, 1024);
+          ctx.globalAlpha = sunK * photo * 0.35; ctx.filter = HG.blur(6); ctx.drawImage(A.rim, 0, 0, 1024, 1024);
+          ctx.restore(); HG.reset(ctx);
+        }
+      }
+    }
+
+    // ---- the constellation: links, rosette rings and stars
+    const ST = [];
+    for (let i = 0; i < NN; i++) ST.push(starState(i, t));
+    {
+      const c = LR.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+      c.lineCap = 'round';
+      // a link grows from its earlier star to the later one as the growth arrives; the figure links
+      // (outline, head, eyes to nose) stay bright, the web inside fades to a whisper; both flash
+      // back as the jaguar melts into stars and vanish when a star lifts away
+      const link = (i, j, hiA, loA, width) => {
+        let a = i, b = j; if (TREE[b].tIg < TREE[a].tIg) [a, b] = [b, a];
+        const Ta = TREE[a], Tb = TREE[b], sa = ST[a]; if (!sa) return;
+        const grow = clamp((t - Ta.tIg) / Math.max(0.06, Tb.tIg - Ta.tIg));
+        let al = (lerp(hiA, loA, smooth(Tb.tIg + 0.3, Tb.tIg + 1.0, t)) + 0.55 * bump(t, T_PULSE + 0.55 * Tb.f, 0.13)) * (1 - smooth(Tb.tPh - 0.2, Tb.tPh + 0.6, t));
+        al += hiA * 0.6 * smooth(Math.max(Ta.tRec, Tb.tRec) - 0.1, Math.max(Ta.tRec, Tb.tRec) + 0.35, t);
+        const sb = ST[b], lf = Math.max(sa.lf, sb ? sb.lf : -1);
+        al *= 1 - smooth(-0.15, 0.08, lf);
+        if (al <= 0.01) return;
+        const p0 = P(J, NODES[a][0], NODES[a][1]), p1 = P(J, NODES[b][0], NODES[b][1]);
+        c.strokeStyle = rgba(WARM, Math.min(1, al)); c.lineWidth = width;
+        c.beginPath(); c.moveTo(p0[0], p0[1]); c.lineTo(lerp(p0[0], p1[0], grow), lerp(p0[1], p1[1], grow)); c.stroke();
+      };
+      for (let i = 2; i < NN; i++) {
+        const pp = TREE[i].p;
+        if (NODES[i][3] === 2 || NODES[i][3] === 4 || NODES[pp][3] === 2 || NODES[pp][3] === 4) continue;
+        link(pp, i, 0.62, 0.14, 2.0);
+      }
+      for (const [i, j] of FIG) link(i, j, 0.8, 0.26, 2.2);
+      // rosette rings: a broken ring around a spot, the jaguar's mark
+      for (let i = 2; i < NN; i++) {
+        const s = ST[i]; if (!s || NODES[i][3] !== 0) continue;
+        const life = s.lf > 0 ? 1 - smooth(0, 0.55, s.lf) : 1;
+        const a = s.a * life; if (a <= 0.01) continue;
+        let [x, y] = P(J, NODES[i][0], NODES[i][1]);
+        if (s.lf > 0) { const q = liftOffset(i, s.lf); x += q[0]; y += q[1]; }
+        const rr = (8.5 + 6 * NODES[i][2]) * J.s * (0.35 + 0.65 * s.pop) * (1 + 0.6 * Math.max(0, s.lf));
+        c.strokeStyle = rgba(mix(GOLD, WARM, s.flash), Math.min(1, a)); c.lineWidth = 2.6;
+        const r0 = TREE[i].rot;
+        for (let k = 0; k < 4; k++) {
+          const a0 = r0 + k * TAU / 4 + 0.32, a1 = r0 + (k + 1) * TAU / 4 - 0.32 + 0.12 * Math.sin(k * 2.1 + i);
+          c.beginPath(); c.arc(x, y, rr, a0, a1); c.stroke();
+        }
+      }
+      HG.reset(c);
+      bloom(ctx, LR, 5, 0.9);
+      HG.drawLayer(ctx, LR, { op: 'lighter' });
+    }
+    // star cores
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (let i = 2; i < NN; i++) {
+      const s = ST[i]; if (!s) continue;
+      const typ = NODES[i][3], Si = TREE[i];
+      const life = s.lf > 0 ? 1 - smooth(0.1, 1, s.lf) : 1;
+      const tw = 0.8 + 0.2 * Math.sin(t * 4.2 + Si.ph);
+      const a = s.a * life * tw; if (a <= 0.01) continue;
+      let [x, y] = P(J, NODES[i][0], NODES[i][1]);
+      if (s.lf > 0) { const q = liftOffset(i, s.lf); x += q[0]; y += q[1]; }
+      const sz = (typ === 2 ? 19 : typ === 4 ? 22 : typ === 0 ? 13 : 11 + 6 * NODES[i][2]) * (0.4 + 0.6 * s.pop);
+      const col = s.lf > 0 ? mix(GOLD, WARM, smooth(0, 0.6, s.lf)) : GOLD;
+      HG.dot(ctx, col, x, y, sz * (1 + 1.6 * s.flash), Math.min(1, a));
+      if (s.lf > 0.02) for (let j = 1; j <= 4; j++) {
+        const q = liftOffset(i, s.lf - j * 0.045), b = P(J, NODES[i][0], NODES[i][1]);
+        HG.dot(ctx, col, b[0] + q[0], b[1] + q[1], sz * (1 - j * 0.17), Math.min(1, a) * 0.5 * (1 - j / 5));
+      }
+      if (s.flash > 0.05) HG.dot(ctx, WARM, x, y, 46 * s.flash, 0.5 * s.flash);
+    }
+    ctx.restore();
+
+    // ---- eyes: eyeshine in the dark, then a catchlight on the photo, last to go out
+    {
+      const open = smooth(T_EYES, T_EYES + 0.25, t) * (1 - 0.96 * bump(t, T_BLINK, 0.065)) * (1 - smooth(T_OUT, T_OUT + 0.2, t));
+      const shine = 1 - 0.75 * smooth(T_PH, T_PH + 0.9, t) + 0.75 * smooth(T_REC + D_REC - 0.4, T_REC + D_REC + 0.2, t);
+      if (open > 0.01) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        EYE_A.forEach(([u, v], k) => {
+          const [x, y] = P(J, u, v);
+          HG.dot(ctx, GOLD, x, y, 190 * J.s, 0.3 * open * shine);
+          HG.dot(ctx, GOLD, x, y, 80 * J.s, 0.35 * open * shine);
+          ctx.save(); ctx.translate(x, y); ctx.rotate(J.r + (k ? -0.1 : 0.1)); ctx.scale(1, Math.max(0.02, open));
+          const hw = 23 * J.s, hh = 12 * J.s;
+          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, hw);
+          g.addColorStop(0, rgba(WHITE, shine)); g.addColorStop(0.35, rgba(GOLD, shine)); g.addColorStop(1, rgba(AMBER, 0.6 * shine));
+          ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-hw, 0); ctx.quadraticCurveTo(0, -hh * 1.9, hw, 0); ctx.quadraticCurveTo(0, hh * 1.9, -hw, 0); ctx.fill();
+          ctx.restore();
+          HG.dot(ctx, WHITE, x + 3 * J.s, y - 3 * J.s, 14, 0.8 * open * (0.4 + 0.6 * shine));
+        });
+        ctx.restore();
+      }
+    }
+
+    // ---- front leaves (occlude the jaguar), then their glow
+    {
+      const c = LF.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+      for (const lf of FRONT) drawLeaf(c, lf, t, sunK, 1);
+      for (const lf of NEAR) drawLeaf(c, lf, t, sunK, 1);
+      HG.drawLayer(ctx, LF, { alpha: leafA });
+      bloom(ctx, LF, 9, 0.28 * leafA);
+    }
+
+    // ---- sun shafts and the pollen floating in them
+    if (sunK > 0) {
+      const c = LS.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
+      c.globalCompositeOperation = 'lighter';
+      for (const b of BEAMS) {
+        const a = beamAng(b, t), k = beamK(b, t), w = b[1];
+        c.save(); c.translate(SUN_SRC[0], SUN_SRC[1]); c.rotate(a);
+        const g = c.createLinearGradient(0, -w / 2, 0, w / 2);
+        g.addColorStop(0, rgba(SUN, 0)); g.addColorStop(0.5, rgba(SUN, k)); g.addColorStop(1, rgba(SUN, 0));
+        c.fillStyle = g; c.fillRect(0, -w / 2, 2000, w);
+        c.restore();
+      }
+      c.globalCompositeOperation = 'destination-in';
+      const fg = c.createRadialGradient(SUN_SRC[0], SUN_SRC[1], 200, SUN_SRC[0], SUN_SRC[1], 1650);
+      fg.addColorStop(0, 'rgba(0,0,0,1)'); fg.addColorStop(0.45, 'rgba(0,0,0,0.75)'); fg.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = fg; c.fillRect(0, 0, W, W);
+      HG.reset(c);
+      HG.drawLayer(ctx, LS, { alpha: 0.24 * sunK, op: 'lighter' });
+      // pollen
+      const R = HG.rng(77);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 110; i++) {
+        const x0 = R() * W, y0 = R() * W, sp = 8 + R() * 14, ph = R() * TAU, sz = 5 + R() * 6;
+        const x = ((x0 + sp * t * 0.6 + 18 * Math.sin(t * 0.5 + ph)) % W + W) % W, y = ((y0 + sp * t + 14 * Math.sin(t * 0.7 + ph * 2)) % W + W) % W;
+        if (Math.hypot(x - C, y - C) > 520) continue;
+        const k = Math.min(1, beamAt(x, y, t));
+        HG.dot(ctx, WARM, x, y, sz, 0.75 * k * sunK * (0.6 + 0.4 * Math.sin(t * 2.5 + ph)));
+      }
+      ctx.restore();
+    }
+
+    // ---- fireflies from the cenote, fading as the morning grows
+    {
+      const fa = smooth(0, 0.6, t) * (1 - smooth(4.4, 6.0, t));
+      if (fa > 0) {
+        const R = HG.rng(5);
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 34; i++) {
+          const ang = R() * TAU, rad = 120 + R() * 360, ph = R() * TAU, ph2 = R() * TAU, fr = 1.6 + R() * 1.6, sz = 12 + R() * 10;
+          const x = C + Math.cos(ang) * rad + 46 * Math.sin(t * 0.45 + ph) + 22 * Math.sin(t * 1.15 + ph2);
+          const y = C + Math.sin(ang) * rad + 34 * Math.sin(t * 0.55 + ph2) - 14 * t;
+          const blink = Math.pow(0.5 + 0.5 * Math.sin(t * fr + ph), 3);
+          HG.dot(ctx, FLY, x, y, sz * 2.4, 0.22 * blink * fa);
+          HG.dot(ctx, FLY, x, y, sz, 0.85 * blink * fa);
+        }
+        ctx.restore();
+      }
+    }
+  },
+});
+
+// path of a star lifting away at the end: it rises, accelerating, swaying, toward the midday sun
+function liftOffset(i, lf) {
+  const S = TREE[i], k = Math.max(0, lf);
+  return [S.sway * 90 * k * k + 18 * Math.sin(k * 5 + S.ph) * k, -(520 * k * k + 130 * k) * S.rise];
+}
+</script></body></html>

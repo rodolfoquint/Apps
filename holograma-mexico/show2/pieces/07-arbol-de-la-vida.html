@@ -1,0 +1,510 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body>
+<svg width="0" height="0" style="position:absolute"><filter id="l2a" color-interpolation-filters="sRGB" x="0" y="0" width="1" height="1"><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1 0 0 0 0"/></filter></svg>
+<canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Arbol de la Vida (Metepec, Estado de Mexico), at midday. A golden seed of light falls and lands at the
+// foot of the circle; from it the tree GROWS: a trunk of light climbs, and the branches unfurl along the
+// real branches of the painted clay tree, the outer arches rising like the arms of a candelabra. The
+// painted clay floods in behind the light, following the same branches; the big clay flowers wait as
+// drawings of light and then pop open one after another, root to crown, each with a sparkle. The crown
+// flower opens last and the midday sun blooms behind it; four light doves lift off from the clay doves
+// and circle the tree in two mirrored orbits (passing in front of it and behind it); petals and colour
+// sparks drift down; a sheen of light crosses the glaze. Ending: the colour recedes from the crown back
+// down the branches, each flower releasing its petals into a swirl as the edge passes it, the branches
+// of light retract into the seed, and the seed goes out.
+// The growth uses a precomputed growth-distance map (tools/gen.py in the work folder): every pixel's
+// distance from the root along a hand-traced skeleton of the tree's branches. A mask of the tree grown up
+// to distance u is made with one filtered drawImage (brightness/contrast threshold + luminance to alpha).
+const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
+const TAU = Math.PI * 2;
+const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
+const mix = (a, b, k) => [0, 1, 2].map(i => Math.round(lerp(a[i], b[i], k)));
+
+const DATA = {};
+
+// ---------- placement: the 1536 px cut-out square on screen
+const SQ = 690, TX = C - SQ / 2, TY = 97, K = SQ / 1536;
+const sx = x => TX + x * K, sy = y => TY + y * K;
+const ROOT = [sx(DATA.root[0]), sy(DATA.root[1]) + 4];
+
+// ---------- palette (midday: warm gold light; the clay keeps its own colours)
+const GOLD = [255, 186, 72], WARM = [255, 226, 168], WHITE = [255, 250, 240], SUN = [255, 204, 120], LEAF = [90, 225, 120];
+const PCOL = { pink: [255, 82, 168], yellow: [255, 214, 48], orange: [255, 132, 28], red: [255, 62, 58], turq: [40, 226, 226], blue: [70, 150, 255], magenta: [236, 62, 204] };
+const FL = DATA.flowers.map((f, i) => ({ ...f, i, col: PCOL[f.c], X: sx(f.x), Y: sy(f.y), Rr: f.r * K }));
+
+// ---------- timeline
+const LAND = 1.15;                                                     // the seed touches down
+const growE = u => { u = clamp(u); return 0.55 * ease.inOut3(u) + 0.45 * ease.out3(u); };
+const kLight = t => 0.87 * growE((t - 1.2) / 2.45);                   // branches of light (skeleton distance)
+const uColour = t => lerp(-0.08, 1.12, ease.inOut3((t - 2.05) / 2.75)); // painted clay floods in
+const uRecede = t => lerp(1.12, -0.1, ease.inOut3((t - 9.4) / 1.4));     // ...and recedes at the end
+const uGold = t => lerp(0.87, -0.03, ease.inOut3((t - 9.62) / 1.35));    // light retracts into the seed
+const EDGE = 0.06;                                                      // soft edge of the growth front
+// time at which a monotonic f(t) crosses v (bisection; evaluated once, deterministic)
+function crossing(f, v, a, b) { const up = f(b) > f(a); for (let i = 0; i < 40; i++) { const m = (a + b) / 2; if ((f(m) < v) === up) a = m; else b = m; } return (a + b) / 2; }
+
+// pop schedule: root to crown, left and right a beat apart; the crown flower opens last
+const CROWN = 0;
+for (const f of FL) {
+  const arrive = crossing(uColour, f.d + 0.02, 1.5, 6);
+  const side = f.x < 760 ? 0 : f.x > 776 ? 0.11 : 0.05;
+  f.tPop = Math.max(arrive + 0.3, 3.45 + 3.05 * clamp((f.d - 0.05) / 0.87)) + side;
+  f.tRel = crossing(uRecede, f.d + 0.05, 9.3, 11.2);
+}
+FL[CROWN].tPop = 7.0;
+const POP = 0.62;
+
+// ---------- layers
+const MK = HG.layer(), MK2 = HG.layer(), TL = HG.layer(), BR = HG.layer(), LN = HG.layer(), FX = HG.layer();
+
+// alpha mask of the tree grown up to distance u (soft edge w): alpha = clamp((u - D) / w).
+// The map stores I = 1 - 0.85 D, so alpha = clamp((I - (1 - 0.85 u)) / 0.85 w), done as brightness + contrast.
+function growMask(L, img, u, w = EDGE) {
+  const g = L.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+  if (u <= -w) return false;
+  if (u >= 1 + w) { g.fillStyle = '#fff'; g.fillRect(TX, TY, SQ, SQ); return true; }
+  const k = 0.85 * u, wi = 0.85 * w, c = 1 + 2 * (1 - k) / wi, b = 1 / (wi * c);
+  g.filter = `brightness(${b.toFixed(5)}) contrast(${c.toFixed(5)}) url(#l2a)`;
+  g.drawImage(img, TX, TY, SQ, SQ);
+  g.filter = 'none';
+  return true;
+}
+function apply(g, L, op) { g.save(); g.globalCompositeOperation = op; HG.drawLayer(g, L, { op }); g.restore(); }
+
+// soft disc (the flower holes) in the same profile as the flower sprites
+function discGrad(g, X, Y, r, a = 1) {
+  const R = (r + 4) * K, gr = g.createRadialGradient(X, Y, 0, X, Y, R);
+  gr.addColorStop(0, `rgba(0,0,0,${a})`); gr.addColorStop((r - 7) / (r + 4), `rgba(0,0,0,${a})`);
+  gr.addColorStop((r + 1) / (r + 4), 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(X - R, Y - R, 2 * R, 2 * R);
+}
+
+// flower sprites cut from the tree (built once from the asset)
+let SPR = null;
+function sprites(img) {
+  if (SPR) return SPR;
+  SPR = FL.map(f => {
+    const R = f.r + 4, n = 2 * R, cv = document.createElement('canvas'); cv.width = cv.height = n;
+    const g = cv.getContext('2d');
+    g.drawImage(img, f.x - R, f.y - R, n, n, 0, 0, n, n);
+    g.globalCompositeOperation = 'destination-in';
+    const gr = g.createRadialGradient(R, R, 0, R, R, R);
+    gr.addColorStop(0, '#000'); gr.addColorStop((f.r - 7) / R, '#000'); gr.addColorStop((f.r + 1) / R, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, n, n);
+    return { cv, R };
+  });
+  return SPR;
+}
+
+// four-point glint star
+function star(g, x, y, s, a, rot = 0, col = WARM) {
+  if (a <= 0.003 || s <= 0) return;
+  const sp = HG.sprite(col);
+  g.save(); g.globalCompositeOperation = 'lighter'; g.translate(x, y); g.rotate(rot);
+  g.globalAlpha = Math.min(1, a);
+  g.drawImage(sp, -s / 2, -s * 0.045, s, s * 0.09);
+  g.drawImage(sp, -s * 0.045, -s / 2, s * 0.09, s);
+  g.globalAlpha = Math.min(1, a * 0.8);
+  g.drawImage(sp, -s * 0.16, -s * 0.16, s * 0.32, s * 0.32);
+  g.restore();
+}
+
+// ---------- the branches of light: every skeleton path drawn up to distance k, tapering to its growing tip
+function branchShape(p, k, wScale) {
+  const n = p.x.length, pts = [];
+  for (let j = 0; j < n; j++) {
+    if (p.d[j] <= k) { pts.push([sx(p.x[j]), sy(p.y[j]), p.w[j], p.d[j]]); continue; }
+    if (j > 0) {
+      const f = (k - p.d[j - 1]) / (p.d[j] - p.d[j - 1]);
+      pts.push([sx(lerp(p.x[j - 1], p.x[j], f)), sy(lerp(p.y[j - 1], p.y[j], f)), lerp(p.w[j - 1], p.w[j], f), k]);
+    }
+    break;
+  }
+  if (pts.length < 2) return null;
+  const L = [], R = [];
+  for (let j = 0; j < pts.length; j++) {
+    const a = pts[Math.max(0, j - 1)], b = pts[Math.min(pts.length - 1, j + 1)];
+    let dx = b[0] - a[0], dy = b[1] - a[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+    const hw = pts[j][2] * K * wScale * smooth(0, 0.07, k - pts[j][3]) + 0.6;
+    L.push([pts[j][0] - dy * hw, pts[j][1] + dx * hw]); R.push([pts[j][0] + dy * hw, pts[j][1] - dx * hw]);
+  }
+  return { pts, L, R, tip: pts[pts.length - 1] };
+}
+function smoothLine(g, P, move = true) {
+  if (move) g.moveTo(P[0][0], P[0][1]); else g.lineTo(P[0][0], P[0][1]);
+  for (let j = 1; j < P.length - 1; j++) g.quadraticCurveTo(P[j][0], P[j][1], (P[j][0] + P[j + 1][0]) / 2, (P[j][1] + P[j + 1][1]) / 2);
+  g.lineTo(P[P.length - 1][0], P[P.length - 1][1]);
+}
+function drawBranches(g, k, alpha) {
+  const shapes = DATA.paths.map(p => branchShape(p, k, p.n === 'T' ? 0.62 : 0.8)).filter(Boolean);
+  if (!shapes.length) return shapes;
+  g.save(); g.lineJoin = 'round'; g.lineCap = 'round';
+  // body of the branch: a warm translucent fill
+  g.globalAlpha = alpha * 0.34; g.fillStyle = rgba(GOLD, 1);
+  for (const s of shapes) { g.beginPath(); smoothLine(g, s.L); smoothLine(g, s.R.slice().reverse(), false); g.closePath(); g.fill(); }
+  // outlines
+  g.globalAlpha = alpha; g.strokeStyle = rgba(GOLD, 1); g.lineWidth = 2.6;
+  for (const s of shapes) { g.beginPath(); smoothLine(g, s.L); g.stroke(); g.beginPath(); smoothLine(g, s.R); g.stroke(); }
+  // a bright vein of sap up the middle
+  g.strokeStyle = rgba(WARM, 1); g.lineWidth = 3.2; g.globalAlpha = alpha * 0.9;
+  for (const s of shapes) { g.beginPath(); smoothLine(g, s.pts); g.stroke(); }
+  g.restore();
+  return shapes;
+}
+
+// ---------- a dove of light, side view, facing +x in its own frame; ang = wing angle (rad, up positive)
+const DOVE_BODY = [[36, -11], [27, -15], [24, -23, 11, -23, 9, -13], [3, -6, -14, -6, -27, -6], [-47, -12], [-52, -4, -48, 3], [-27, 4],
+  [-12, 13, 12, 13, 21, 3], [25, -2, 29, -6, 35, -8]];
+function wingPath(g, shx, shy, ang, span) {
+  const s = Math.sin(ang), c = Math.cos(ang);
+  const P = v => [shx + 8 - 26 * Math.pow(v, 1.4) - 4 * c * v, shy - span * v * s];      // leading edge
+  const Q = v => [shx - 24 + 10 * v - 4 * c * v, shy - span * v * s];                    // trailing edge (feathers)
+  g.beginPath();
+  let p = P(0); g.moveTo(p[0], p[1]);
+  for (let i = 1; i <= 8; i++) { p = P(i / 8); g.lineTo(p[0], p[1]); }
+  // primaries: four rounded feather tips from the wingtip back to the root
+  const tips = [1, 0.84, 0.68, 0.52];
+  for (let f = 0; f < tips.length; f++) {
+    const v = tips[f], a = P(v), b = Q(v), nb = Q(v - 0.16);
+    const fx = lerp(a[0], b[0], 0.5) - 7, fy = lerp(a[1], b[1], 0.5) - span * 0.04 * s;
+    g.quadraticCurveTo(fx, fy, nb[0], nb[1]);
+  }
+  p = Q(0); g.lineTo(p[0], p[1]);
+  g.closePath();
+}
+function dove(g, x, y, s, head, ang, a) {
+  if (a <= 0.003) return;
+  const roll = clamp(Math.cos(head) / 0.3, -1, 1);       // stays belly-down whichever way it flies
+  const fly = Math.abs(roll) < 1e-3 ? 1e-3 : roll;
+  g.save(); g.translate(x, y); g.rotate(head); g.scale(s, s * fly);
+  HG.dot(g, WARM, -4, -8, 150, 0.22 * a);
+  g.lineJoin = 'round';
+  // far wing (behind the body), a touch later in its beat
+  wingPath(g, 1, -11, ang - 0.12, 40);
+  g.globalAlpha = a * 0.75; g.fillStyle = rgba([238, 232, 222], 1); g.fill();
+  g.globalAlpha = a; g.strokeStyle = rgba(GOLD, 1); g.lineWidth = 1.8 / s; g.stroke();
+  // body
+  g.beginPath();
+  g.moveTo(DOVE_BODY[0][0], DOVE_BODY[0][1]);
+  for (const q of DOVE_BODY.slice(1)) { if (q.length === 2) g.lineTo(q[0], q[1]); else if (q.length === 4) g.quadraticCurveTo(...q); else g.bezierCurveTo(...q); }
+  g.closePath();
+  g.shadowColor = rgba(SUN, 0.9); g.shadowBlur = HG.px(14 * s);
+  g.globalAlpha = a; g.fillStyle = rgba(WHITE, 1); g.fill();
+  g.shadowBlur = 0; g.strokeStyle = rgba(GOLD, 1); g.lineWidth = 1.8 / s; g.stroke();
+  // beak and eye
+  g.fillStyle = rgba([255, 150, 50], 1); g.beginPath(); g.moveTo(27, -15); g.lineTo(37, -11); g.lineTo(28, -9); g.closePath(); g.fill();
+  g.fillStyle = 'rgba(25,18,12,1)'; g.beginPath(); g.arc(20, -15.5, 2.3, 0, TAU); g.fill();
+  // near wing
+  wingPath(g, 5, -9, ang, 44);
+  g.shadowColor = rgba(SUN, 0.9); g.shadowBlur = HG.px(10 * s);
+  g.globalAlpha = a; g.fillStyle = rgba(WHITE, 1); g.fill();
+  g.shadowBlur = 0; g.strokeStyle = rgba(GOLD, 1); g.lineWidth = 1.8 / s; g.stroke();
+  g.restore();
+}
+
+// doves: two mirrored pairs (mid perches circle the tree, top perches circle the crown)
+const DV = DATA.doves.map((d, i) => ({
+  x0: sx(d.x), y0: sy(d.y) - 6, f: d.f,
+  lift: [5.85, 6.1, 6.35, 6.6][[0, 2, 3, 1][i]],
+  orb: i < 2 ? { ox: C, oy: 335, rx: 382, ry: 108 } : { ox: C, oy: 182, rx: 250, ry: 62 },
+  ph: i * 1.7,
+}));
+const OMEGA = 0.95;
+function dovePos(d, t) {
+  const u = t - d.lift;
+  const ex = ease.inOut3((t - 9.45) / 1.4);                                   // exit: the orbit opens out past the rim
+  const o = d.orb, rx = o.rx * (1 + 0.75 * ex), ry = o.ry * (1 + 0.9 * ex), oy = o.oy - 230 * ex;
+  const phi = -0.95 + OMEGA * u;
+  const ox = o.ox + d.f * rx * Math.sin(phi), oyy = oy + ry * Math.cos(phi), z = Math.cos(phi);
+  // lift-off: up and forward from the perch, then swoop into the orbit
+  const lu = clamp(u / 1.3), lx = d.x0 + d.f * 70 * ease.out3(lu), ly = d.y0 - 85 * Math.sin(Math.PI / 2 * ease.out3(lu));
+  const w = ease.inOut3((u - 0.15) / 1.25);
+  return { x: lerp(lx, ox, w), y: lerp(ly, oyy, w), z: lerp(0.6, z, w), w };
+}
+
+// ---------- petals
+function petal(g, x, y, len, rot, flip, col, a) {
+  if (a <= 0.003) return;
+  HG.dot(g, col, x, y, len * 2.4, a * 0.35);
+  g.save(); g.translate(x, y); g.rotate(rot); g.scale(1, Math.abs(flip) < 0.08 ? 0.08 * Math.sign(flip || 1) : flip);
+  g.globalAlpha = Math.min(1, a);
+  g.fillStyle = rgba(col, 1);
+  g.beginPath(); g.moveTo(0, -len / 2);
+  g.bezierCurveTo(len * 0.45, -len * 0.28, len * 0.32, len * 0.42, 0, len / 2);
+  g.bezierCurveTo(-len * 0.32, len * 0.42, -len * 0.45, -len * 0.28, 0, -len / 2); g.fill();
+  g.fillStyle = rgba(mix(col, WHITE, 0.55), 1); g.globalAlpha = Math.min(1, a) * 0.7;
+  g.beginPath(); g.moveTo(0, -len * 0.3);
+  g.bezierCurveTo(len * 0.18, -len * 0.12, len * 0.12, len * 0.2, 0, len * 0.3);
+  g.bezierCurveTo(-len * 0.12, len * 0.2, -len * 0.18, -len * 0.12, 0, -len * 0.3); g.fill();
+  g.restore();
+}
+
+HG.start({
+  duration: 12,
+  assets: {
+    tree: '../assets/07-arbol-de-la-vida-tree.png',
+    lines: '../assets/07-arbol-de-la-vida-tree_lines.png',
+    grow: '../assets/07-arbol-de-la-vida-tree_grow.png',
+  },
+  render(t, A) {
+    const spr = sprites(A.tree);
+    const ending = t > 9;
+    const uMask = ending ? uRecede(t) : uColour(t);
+    const kGold = ending ? uGold(t) : kLight(t);
+
+    // ---------- midday sun: a warm halo behind the crown, blooming when the crown flower opens
+    const halo = 0.11 * smooth(3.2, 5.5, t) * (1 - smooth(9.4, 10.6, t)) + 0.09 * bump(t, 7.0, 7.5, 8.2, 9.6);
+    if (halo > 0.002) {
+      const hg = ctx.createRadialGradient(C, 300, 0, C, 300, 470);
+      hg.addColorStop(0, rgba(SUN, halo * 1.6)); hg.addColorStop(0.35, rgba(SUN, halo * 0.8)); hg.addColorStop(1, rgba(SUN, 0));
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = hg; ctx.fillRect(0, 0, W, W); ctx.restore();
+    }
+
+    // ---------- doves (computed now; the ones behind the tree are drawn before it)
+    const doves = [];
+    for (const d of DV) {
+      const u = t - d.lift; if (u < 0) continue;
+      const p = dovePos(d, t), p0 = dovePos(d, t - 0.03), p1 = dovePos(d, t + 0.03);
+      const head = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+      const flap = Math.sin(TAU * 3.3 * u + d.ph);
+      const ang = 0.3 + (0.95 + 0.15 * (1 - p.w)) * flap;
+      const s = (d.orb.rx > 300 ? 0.78 : 0.62) * (1 + 0.2 * p.z) * lerp(0.82, 1, smooth(0, 0.8, u));
+      const a = smooth(0, 0.3, u) * (0.82 + 0.18 * p.z) * (1 - smooth(10.15, 10.85, t));
+      doves.push({ ...p, head, ang, s, a });
+    }
+    for (const d of doves) if (d.z < 0) dove(ctx, d.x, d.y, d.s, d.head, d.ang, d.a);
+
+    // ---------- the painted clay tree, grown up to uMask, with holes where the big flowers will open
+    const g = TL.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+    const any = growMask(MK, A.grow, uMask);
+    if (any) {
+      // branches of light (only where the clay hasn't arrived yet)
+      const b = BR.ctx; HG.reset(b); b.clearRect(0, 0, W, W);
+      let shapes = [];
+      if (kGold > 0 && uMask < 1 + EDGE) {
+        shapes = drawBranches(b, kGold, 1);
+        apply(b, MK, 'destination-out');
+      }
+      // holes for the flowers
+      const m = MK.ctx; HG.reset(m); m.globalCompositeOperation = 'destination-out';
+      for (const f of FL) discGrad(m, f.X, f.Y, f.r);
+      HG.reset(m);
+      g.drawImage(A.tree, TX, TY, SQ, SQ);
+      apply(g, MK, 'destination-in');
+      // the flowers: pop open (lighter, so a settled flower fills its hole exactly), then release at the end
+      g.save(); g.globalCompositeOperation = 'lighter';
+      for (const f of FL) {
+        const pu = (t - f.tPop) / POP; if (pu <= 0) continue;
+        const ru = (t - f.tRel) / 0.5;
+        let sc = ease.outBack(pu), a = smooth(0, 0.14, pu), rot = -0.75 * (1 - ease.out3(pu)) * (f.i % 2 ? 1 : -1);
+        if (ru > 0) { sc *= 1 - 0.45 * ease.in3(ru); a *= 1 - smooth(0, 1, ru); rot += 0.6 * ease.in3(ru); }
+        if (a <= 0.003) continue;
+        const sp = spr[f.i], R = sp.R * K;
+        g.save(); g.translate(f.X, f.Y); g.rotate(rot); g.scale(sc, sc); g.globalAlpha = a;
+        g.drawImage(sp.cv, -R, -R, 2 * R, 2 * R); g.restore();
+      }
+      g.restore();
+
+      // bloom + the tree itself
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.32; ctx.filter = HG.blur(16);
+      HG.drawLayer(ctx, TL, { alpha: 0.32, op: 'lighter' }); ctx.restore();
+      ctx.save(); ctx.filter = HG.blur(16); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.3;
+      ctx.restore();
+      bloomLayer(TL, 16, 0.32);
+      HG.drawLayer(ctx, TL);
+
+      // the growth front glows: a ring of the clay just behind the edge, lit up (gold-tinted while receding)
+      if (uMask > -EDGE && uMask < 1 + 2 * EDGE) {
+        growMask(MK2, A.grow, uMask - 0.07, EDGE);
+        const fx = FX.ctx; HG.reset(fx); fx.clearRect(0, 0, W, W);
+        HG.drawLayer(fx, TL); apply(fx, MK2, 'destination-out');
+        fx.globalCompositeOperation = 'source-atop'; fx.globalAlpha = ending ? 0.55 : 0.3; fx.fillStyle = rgba(GOLD, 1); fx.fillRect(0, 0, W, W);
+        HG.reset(fx);
+        bloomLayer(FX, 10, 0.8);
+        HG.drawLayer(ctx, FX, { alpha: 0.75, op: 'lighter' });
+      }
+
+      // fine line drawing of leaves, birds and flowers, spreading behind the branches (growth only)
+      if (!ending && t < 6.6) {
+        const kl = kLight(t) * 1.08 - 0.05;
+        const l = LN.ctx; HG.reset(l); l.clearRect(0, 0, W, W);
+        if (growMask(MK2, A.grow, kl, 0.08)) {
+          l.drawImage(A.lines, TX, TY, SQ, SQ);
+          apply(l, MK2, 'destination-in');
+          apply(l, MK, 'destination-out');
+          // inside the holes the drawing stays until its flower opens
+          l.globalCompositeOperation = 'destination-out';
+          for (const f of FL) { const pu = clamp((t - f.tPop) / (POP * 0.5)); if (pu > 0) discGrad(l, f.X, f.Y, f.r + 6, pu); }
+          HG.reset(l);
+          bloomLayer(LN, 5, 0.9);
+          HG.drawLayer(ctx, LN, { alpha: 0.85, op: 'lighter' });
+        }
+      }
+
+      // branches of light on top, with a glow and sparks riding the growing tips
+      if (shapes.length) {
+        bloomLayer(BR, 9, 1.0);
+        HG.drawLayer(ctx, BR, { op: 'lighter' });
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        DATA.paths.forEach((p, i) => {
+          const d0 = p.d[0], d1 = p.d[p.d.length - 1];
+          const live = smooth(d0, d0 + 0.02, kGold) * (1 - smooth(d1 - 0.01, d1 + 0.03, kGold));
+          if (live <= 0.01 || ending) return;
+          const s = branchShape(p, kGold, 1); if (!s) return;
+          const [x, y] = s.tip;
+          HG.dot(ctx, WARM, x, y, 46, 0.9 * live);
+          star(ctx, x, y, 58, 0.8 * live, 0.4 * t + i);
+        });
+        ctx.restore();
+      }
+    }
+
+    // ---------- pops: a glint and a ring of colour sparks for every flower that opens
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (const f of FL) {
+      const u = (t - f.tPop) / 0.85; if (u <= 0 || u >= 1) continue;
+      const big = f.i === CROWN ? 1.8 : 1;
+      const sa = Math.sin(Math.PI * clamp(u * 1.6));
+      star(ctx, f.X, f.Y, (60 + f.Rr * 2.2) * big * sa, 0.85 * sa, f.i);
+      const R = HG.rng(31 + f.i), n = f.i === CROWN ? 18 : 9;
+      for (let j = 0; j < n; j++) {
+        const a = (j + R()) / n * TAU, v = (0.9 + 0.5 * R()) * big;
+        const rr = f.Rr * (0.8 + 1.5 * v * ease.out3(u));
+        HG.dot(ctx, j % 3 ? f.col : WARM, f.X + Math.cos(a) * rr, f.Y + Math.sin(a) * rr + 14 * u * u, 15 * (1 - u * 0.6), 0.95 * (1 - u));
+      }
+    }
+    // crown: a ring of light opens around the last flower
+    {
+      const u = (t - FL[CROWN].tPop - 0.1) / 1.2;
+      if (u > 0 && u < 1) HG.ring(ctx, FL[CROWN].X, FL[CROWN].Y, 40 + 230 * ease.out3(u), SUN, { width: 5, blur: 12, alpha: 0.7 * (1 - u) });
+    }
+    ctx.restore();
+
+    // ---------- a sheen of light crossing the glaze
+    const shU = (t - 7.9) / 1.5;
+    if (shU > 0 && shU < 1 && !ending) {
+      const fx = FX.ctx; HG.reset(fx); fx.clearRect(0, 0, W, W);
+      HG.drawLayer(fx, TL);
+      const e = ease.inOut3(shU), cx = lerp(160, 920, e), cy = lerp(120, 760, e), vx = 0.6, vy = 0.8;
+      const lg = fx.createLinearGradient(cx - vx * 90, cy - vy * 90, cx + vx * 90, cy + vy * 90);
+      lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(0.5, 'rgba(0,0,0,1)'); lg.addColorStop(1, 'rgba(0,0,0,0)');
+      fx.globalCompositeOperation = 'destination-in'; fx.fillStyle = lg; fx.fillRect(0, 0, W, W); HG.reset(fx);
+      HG.drawLayer(ctx, FX, { alpha: 0.45 * Math.sin(Math.PI * shU), op: 'lighter' });
+    }
+
+    // ---------- twinkles on the flowers while the tree rests
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    {
+      const R = HG.rng(77);
+      for (let j = 0; j < 26; j++) {
+        const t0 = 7.4 + R() * 2.0, f = FL[Math.floor(R() * FL.length)], ang = R() * TAU, rr = R() * f.Rr * 0.7;
+        const u = (t - t0) / 0.55; if (u <= 0 || u >= 1) continue;
+        star(ctx, f.X + Math.cos(ang) * rr, f.Y + Math.sin(ang) * rr, 54 * Math.sin(Math.PI * u), 0.75 * Math.sin(Math.PI * u), u);
+      }
+    }
+    // colour sparks drifting up through the crown
+    {
+      const R = HG.rng(5), cols = [PCOL.pink, PCOL.yellow, PCOL.turq, PCOL.orange, LEAF, PCOL.magenta];
+      const amb = smooth(4.6, 6, t) * (1 - smooth(9.3, 10.2, t));
+      if (amb > 0) for (let j = 0; j < 34; j++) {
+        const x0 = C + (R() - 0.5) * 640, y0 = 300 + R() * 420, sp = 18 + R() * 22, ph = R() * 10, col = cols[j % cols.length], per = 3.2 + R() * 2;
+        const life = ((t + ph) % per) / per;
+        const x = x0 + Math.sin(t * 0.8 + ph) * 18, y = y0 - sp * life * per;
+        const a = amb * Math.sin(Math.PI * life) * (1 - smooth(640, 720, y0));
+        HG.dot(ctx, col, x, y, 11, 0.55 * a);
+      }
+    }
+    ctx.restore();
+
+    // ---------- doves in front of the tree
+    for (const d of doves) if (d.z >= 0) dove(ctx, d.x, d.y, d.s, d.head, d.ang, d.a);
+    // the clay dove glows as its light dove lifts off
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (const d of DV) { const u = (t - d.lift) / 0.7; if (u > 0 && u < 1) HG.dot(ctx, WARM, d.x0, d.y0 + 6, 120, 0.7 * Math.sin(Math.PI * u)); }
+    ctx.restore();
+
+    // ---------- petals drifting down while the tree rests
+    ctx.save(); ctx.globalCompositeOperation = 'source-over';
+    {
+      const R = HG.rng(19);
+      for (let j = 0; j < 30; j++) {
+        const ts = 5.0 + R() * 4.3, f = FL[1 + Math.floor(R() * (FL.length - 1))], ang = R() * TAU, ph = R() * TAU, ph2 = R() * TAU, len = 15 + R() * 8, life = 2.6;
+        const tau = t - Math.max(ts, f.tPop + 0.5);
+        if (tau <= 0 || tau >= life) continue;
+        const x = f.X + Math.cos(ang) * f.Rr * 0.7 + Math.sin(1.7 * tau + ph) * 22 + 14 * tau;
+        const y = f.Y + Math.sin(ang) * f.Rr * 0.7 + 34 * tau + 9 * tau * tau;
+        const a = smooth(0, 0.35, tau) * (1 - smooth(life - 0.7, life, tau)) * (1 - smooth(660, 730, y)) * (1 - smooth(9.4, 9.9, t));
+        petal(ctx, x, y, len, ph + 1.4 * tau, Math.cos(ph2 + 3.2 * tau), f.col, a);
+      }
+    }
+    // ---------- the ending: every flower releases its petals into a swirl as the receding edge passes it
+    if (t > 9.2) {
+      const V = [C, 470];
+      for (const f of FL) {
+        const R = HG.rng(101 + f.i), n = f.i === CROWN ? 14 : 9;
+        for (let j = 0; j < n; j++) {
+          const ang = R() * TAU, rr = Math.sqrt(R()) * f.Rr * 0.8, ph = R() * TAU, len = 14 + R() * 9, dl = R() * 0.18, spd = 0.85 + 0.4 * R();
+          const tau = t - f.tRel - dl; if (tau <= 0) continue;
+          const px = f.X + Math.cos(ang) * rr, py = f.Y + Math.sin(ang) * rr;
+          const rho0 = Math.hypot(px - V[0], py - V[1]), phi0 = Math.atan2(py - V[1], px - V[0]);
+          const phi = phi0 + spd * (2.0 * tau + 1.1 * tau * tau), rho = rho0 + spd * (110 * tau + 300 * tau * tau);
+          const x = V[0] + Math.cos(phi) * rho, y = V[1] + Math.sin(phi) * rho - 60 * tau;
+          const a = smooth(0, 0.08, tau) * (1 - smooth(0.7, 1.05, tau));
+          petal(ctx, x, y, len, ph + 4 * tau, Math.cos(ph + 6 * tau), j % 4 ? f.col : mix(f.col, WHITE, 0.4), a);
+        }
+      }
+    }
+    ctx.restore();
+
+    // ---------- the seed: falls, lands, sprouts; at the end the light returns into it and it goes out
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const fallU = (t - 0.12) / (LAND - 0.12);
+    const seedAt = u => [ROOT[0] + 16 * Math.sin(u * Math.PI * 2.2) * (1 - u), lerp(-20, ROOT[1], 0.18 * u + 0.82 * u * u)];
+    if (fallU > 0 && fallU < 1) {
+      for (let j = 7; j >= 0; j--) {
+        const u = fallU - j * 0.022; if (u <= 0) continue;
+        const [x, y] = seedAt(u);
+        HG.dot(ctx, j ? GOLD : WARM, x, y, (j ? 22 - j * 1.8 : 30), (j ? 0.55 * (1 - j / 8) : 1) * smooth(0, 0.12, fallU));
+      }
+      const [x, y] = seedAt(fallU);
+      HG.dot(ctx, GOLD, x, y, 120, 0.35 * smooth(0, 0.15, fallU));
+      star(ctx, x, y, 70, 0.7 * smooth(0, 0.15, fallU), t * 2);
+    }
+    // landing: a ripple and a splash of sparks, then the seed glows at the root while the trunk rises
+    const lu = t - LAND;
+    if (lu > 0 && lu < 1.2) {
+      for (let r = 0; r < 2; r++) {
+        const u = (lu - r * 0.22) / 0.95; if (u <= 0 || u >= 1) continue;
+        const rx = 24 + 190 * ease.out3(u);
+        ctx.save(); ctx.translate(ROOT[0], ROOT[1] + 6); ctx.scale(1, 0.2);
+        ctx.strokeStyle = rgba(GOLD, 1); ctx.globalAlpha = 0.7 * (1 - u) * (r ? 0.6 : 1);
+        ctx.lineWidth = 10; ctx.filter = HG.blur(5); ctx.beginPath(); ctx.arc(0, 0, rx, 0, TAU); ctx.stroke();
+        ctx.filter = 'none'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, rx, 0, TAU); ctx.stroke();
+        ctx.restore();
+      }
+      const R = HG.rng(9);
+      for (let j = 0; j < 12; j++) {
+        const a = -Math.PI / 2 + (R() - 0.5) * 2.2, v = 120 + 160 * R(), u = lu / 0.9;
+        if (u >= 1) continue;
+        HG.dot(ctx, j % 2 ? GOLD : WARM, ROOT[0] + Math.cos(a) * v * u, ROOT[1] + Math.sin(a) * v * u + 160 * u * u, 13, 0.9 * (1 - u));
+      }
+    }
+    const seedGlow = smooth(0.95, 1.15, t) * (1 - smooth(1.9, 2.8, t)) + bump(t, 10.35, 10.85, 10.95, 11.3);
+    if (seedGlow > 0.003) {
+      HG.dot(ctx, GOLD, ROOT[0], ROOT[1], 150, 0.45 * seedGlow);
+      HG.dot(ctx, WARM, ROOT[0], ROOT[1], 34, 0.95 * seedGlow);
+      star(ctx, ROOT[0], ROOT[1], 90, 0.7 * seedGlow, t);
+    }
+    ctx.restore();
+  },
+});
+
+// soft additive bloom of a layer onto the frame
+function bloomLayer(L, b, a) {
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a;
+  ctx.filter = HG.blur(b); ctx.drawImage(L.cv, 0, 0); ctx.restore();
+}
+</script></body></html>

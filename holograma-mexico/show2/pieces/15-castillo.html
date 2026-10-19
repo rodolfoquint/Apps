@@ -1,0 +1,681 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Castillo de pirotecnia (Tultepec): the fiesta's last act, and the night turning into dawn.
+// A real 3D scene seen from the plaza, looking up: a tall lattice tower of carrizo with its reed
+// wheels, heart and flowers stands in the dark. A fuse catches at its foot and climbs the frame,
+// lighting the reeds as it passes; tier by tier the castillo fires: twin green ruedas whirl and
+// throw spiral arms of sparks; a great silver wheel turns against an inner gold ring; a heart of
+// red lances lights from its tip while two fountains spray beside it; two rosa-mexicano dahlias of
+// fire trace their petals; at the top the gold corona catches, spins faster and faster and lifts
+// off, climbing on a helix of sparks while the castillo burns out below. The camera tilts up after
+// it, the tower falls away, the crown turns to face us and its whirl becomes the rising sun; the
+// sky warms to dawn, the sun draws in to a single golden point (where Teotihuacan's dawn begins)
+// and fades.
+// Everything is analytic: every spark is born at a fixed emission time on a moving jet and flies
+// with drag and gravity, so render(t) is a pure function of t.
+const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
+const TAU = Math.PI * 2;
+
+// ---------- palette
+const HOT = [255, 236, 204], REED = [226, 146, 84], EMBER = [255, 96, 36];
+const PAL = {
+  green: { hot: [214, 255, 190], main: [46, 236, 118], deep: [14, 160, 100] },
+  white: { hot: [255, 250, 236], main: [212, 226, 255], deep: [136, 156, 255] },
+  gold2: { hot: [255, 240, 196], main: [255, 204, 104], deep: [255, 146, 46] },
+  red:   { hot: [255, 200, 120], main: [255, 54, 50], deep: [206, 18, 54] },
+  pink:  { hot: [255, 206, 236], main: [255, 56, 170], deep: [190, 34, 210] },
+  gold:  { hot: [255, 236, 170], main: [255, 184, 58], deep: [255, 116, 22] },
+  fuse:  { hot: [255, 240, 200], main: [255, 196, 96], deep: [255, 120, 40] },
+};
+const mix = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)];
+const css = c => rgba(c.map(Math.round), 1);
+for (const p of Object.values(PAL)) {           // 8-step ramps hot -> main -> deep
+  p.ramp = [];
+  for (let i = 0; i < 8; i++) {
+    const k = i / 7;
+    p.ramp.push(css(k < 0.3 ? mix(p.hot, p.main, k / 0.3) : mix(p.main, p.deep, (k - 0.3) / 0.7)));
+  }
+}
+
+// integer hash -> [0,1): stateless per-spark randomness
+function hash(a, b) {
+  let h = (Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+
+// ---------- timeline
+const I1 = 1.35, I2 = 2.75, I3 = 4.15, I4 = 5.6, I5 = 6.95;   // ignitions: green, white, red, pink, crown
+const LIFT = 9.1;                                              // the crown lifts off
+const SUN0 = 10.45, SUN1 = 11.3;                               // the whirl becomes the sun
+const SHR0 = 11.8, SHR1 = 12.85;                               // the sun draws in to a point
+const PT0 = 12.95, PT1 = 13.4;                                 // the point fades
+
+// ---------- the tower (local coords: x right, y down (screen-like px), z away from us; axis at x = z = 0)
+const LV = [[850, 104], [748, 92], [640, 80], [530, 68], [405, 56], [290, 44]];   // [y, half width]
+const hwAt = y => {
+  for (let i = 1; i < LV.length; i++) if (y >= LV[i][0]) return lerp(LV[i][1], LV[i - 1][1], (y - LV[i][0]) / (LV[i - 1][0] - LV[i][0]));
+  return LV[LV.length - 1][1];
+};
+const NECK = 256, CROWN_Y = 238, CROWN_R = 82;
+const TIER = [0, 690, 585, 458, 345];
+const SEG = [];                                          // frame segments [x0,y0,z0,x1,y1,z1, width]
+(() => {
+  const corner = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  for (let i = 0; i < LV.length; i++) {
+    const [y, h] = LV[i];
+    for (let c = 0; c < 4; c++) { const a = corner[c], b = corner[(c + 1) % 4]; SEG.push([a[0] * h, y, a[1] * h, b[0] * h, y, b[1] * h, 1.0]); }
+    if (i + 1 < LV.length) {
+      const [y2, h2] = LV[i + 1];
+      for (let c = 0; c < 4; c++) { const a = corner[c]; SEG.push([a[0] * h, y, a[1] * h, a[0] * h2, y2, a[1] * h2, 1.3]); }
+      for (let c = 0; c < 4; c++) {
+        const a = corner[c], b = corner[(c + 1) % 4];
+        SEG.push([a[0] * h, y, a[1] * h, b[0] * h2, y2, b[1] * h2, 0.7]);
+        SEG.push([b[0] * h, y, b[1] * h, a[0] * h2, y2, a[1] * h2, 0.7]);
+      }
+    }
+  }
+  const [y, h] = LV[LV.length - 1];
+  for (const [sx, sz] of corner) SEG.push([sx * h, y, sz * h, sx * 12, NECK, sz * 12, 0.9]);
+})();
+
+const DEV = [
+  { kind: 'wheel', pal: 'green', tier: 1, ti: I1, x: -232, y: TIER[1], r: 84, dir: -1 },
+  { kind: 'wheel', pal: 'green', tier: 1, ti: I1, x: 232, y: TIER[1], r: 84, dir: 1 },
+  { kind: 'star', pal: 'white', tier: 2, ti: I2, x: 0, y: TIER[2], r: 82 },
+  { kind: 'heart', pal: 'red', tier: 3, ti: I3, x: 0, y: TIER[3], r: 3.9 },
+  { kind: 'fountain', pal: 'red', tier: 3, ti: I3 + 0.32, x: -180, y: TIER[3] + 34 },
+  { kind: 'fountain', pal: 'red', tier: 3, ti: I3 + 0.32, x: 180, y: TIER[3] + 34 },
+  { kind: 'flower', pal: 'pink', tier: 4, ti: I4, x: -182, y: TIER[4], r: 74, dir: 1 },
+  { kind: 'flower', pal: 'pink', tier: 4, ti: I4, x: 182, y: TIER[4], r: 74, dir: -1 },
+];
+for (const d of DEV) d.z = -hwAt(d.y) - 8;
+for (const d of DEV) if (d.x !== 0) {                    // arms (and a strut) out to the side devices
+  const h = hwAt(d.y), s = Math.sign(d.x), y2 = d.y + 50;
+  SEG.push([s * h, d.y, -h, d.x, d.y, d.z, 1.1]);
+  SEG.push([s * hwAt(y2), y2, -hwAt(y2), s * (h + 0.5 * (Math.abs(d.x) - h)), d.y, d.z, 0.7]);
+}
+
+// tier brightness: flare on ignition, full while newest, calmer once the next fires, burn-out at the end
+const NEXT = { 1: I2, 2: I3, 3: I4, 4: I5 };
+const OUT = { 1: 8.7, 2: 8.85, 3: 9.0, 4: 9.15 };
+function tierEnv(tier, ti, t) {
+  if (t < ti) return 0;
+  const flare = 0.6 * Math.exp(-Math.pow((t - ti - 0.1) / 0.2, 2));
+  const sustain = lerp(1, 0.55, smooth(NEXT[tier] + 0.1, NEXT[tier] + 1.1, t));
+  return (smooth(ti, ti + 0.16, t) * sustain + flare) * (1 - smooth(OUT[tier], OUT[tier] + 0.8, t));
+}
+const emberAt = (tier, t) => smooth(OUT[tier] + 0.1, OUT[tier] + 0.5, t) * (1 - smooth(OUT[tier] + 0.7, OUT[tier] + 1.7, t));
+
+// ---------- camera: a viewer in the plaza looking up at the tower; tilts up after the crown
+const D = 1750, EY = 860;
+const A0 = Math.atan2(EY - 548, D);
+const yawAt = t => 0.27 - 0.011 * t;
+// the crown in flight (world coords): rises and comes toward us, from rest to rest
+const FLY = 2.25, FLY_H = 650, FLY_Z = 750;
+const flyK = t => ease.inOut3((t - LIFT) / FLY);
+const crownPos = t => { const k = flyK(t); return [-14 * (1 - k), CROWN_Y - FLY_H * k, -FLY_Z * k]; };
+const focalAt = t => D * (1 + 0.025 * smooth(0, 9, t)) * (1 + 0.1 * smooth(LIFT + 0.4, SUN1, t));
+const ENDY = 555;                                            // the final point (where the next piece's point waits)
+const sstep = x => { x = clamp(x); return x * x * x * (x * (6 * x - 15) + 10); };
+// the camera tilts up after it: eased so the crown holds near the top, then settles at the centre
+const EL_END = Math.atan2(EY - (CROWN_Y - FLY_H), D - FLY_Z);
+const PITCH_END = EL_END + Math.atan((ENDY - 540) / focalAt(20));
+const pitchAt = t => lerp(A0, PITCH_END, sstep((t - 9.4) / 1.95));
+// the crown tilts toward us in flight, so that it ends facing us
+const tiltAt = t => (Math.PI / 2 - EL_END) * smooth(LIFT + 0.25, LIFT + 2.0, t);
+let V = null, SUBA = 1;                                    // SUBA: alpha share of a motion-blur sub-sample
+function view(t) {
+  const a = pitchAt(t), psi = yawAt(t);
+  V = { ca: Math.cos(a), sa: Math.sin(a), f: focalAt(t), cp: Math.cos(psi), sp: Math.sin(psi) };
+  return V;
+}
+function proj(X, Y, Z) {                                     // world -> screen [x, y, scale]
+  const dy = Y - EY, dz = Z + D;
+  const zc = -dy * V.sa + dz * V.ca, yc = dy * V.ca + dz * V.sa;
+  if (zc < 60) return null;
+  const k = V.f / zc;
+  return [C + X * k, C + yc * k, k];
+}
+const TX = -14;                                              // tower axis offset: the front face sits centred
+function P3(x, y, z) { return proj(TX + x * V.cp - z * V.sp, y, x * V.sp + z * V.cp); }
+function projDir(dx, dy, dz, v = V) {
+  const zc = -dy * v.sa + dz * v.ca, yc = dy * v.ca + dz * v.sa;
+  if (zc < 0.05) return null;
+  return [C + dx * v.f / zc, C + yc * v.f / zc];
+}
+const devMap = d => (a, b, z = 0) => P3(d.x + a, d.y + b, d.z + z);
+
+// ---------- sprites and layers
+const SPR = new Map();
+function spr(col) {
+  const key = col.join(); if (SPR.has(key)) return SPR.get(key);
+  const n = Math.round(64 * Math.max(1, HG.S)), s = document.createElement('canvas'); s.width = s.height = n;
+  const g = s.getContext('2d'), h = n / 2, grd = g.createRadialGradient(h, h, 0, h, h, h);
+  grd.addColorStop(0, css(mix(col, HOT, 0.75))); grd.addColorStop(0.2, rgba(col, 0.9));
+  grd.addColorStop(0.5, rgba(col, 0.28)); grd.addColorStop(1, rgba(col, 0));
+  g.fillStyle = grd; g.fillRect(0, 0, n, n); SPR.set(key, s); return s;
+}
+function dot(c, col, x, y, size, a) {
+  if (a <= 0.004 || size <= 0) return;
+  c.globalAlpha = Math.min(1, a); c.drawImage(spr(col), x - size / 2, y - size / 2, size, size);
+}
+function glint(c, col, x, y, s, a, rot = 0, thin = 0.07) {
+  if (a <= 0.004 || s <= 0) return;
+  const sp = spr(col);
+  c.save(); c.translate(x, y); c.rotate(rot); c.globalAlpha = Math.min(1, a);
+  c.drawImage(sp, -s / 2, -s * thin / 2, s, s * thin); c.drawImage(sp, -s * thin / 2, -s / 2, s * thin, s);
+  c.restore();
+}
+function radial(c, x, y, r, stops, a) {
+  if (a <= 0.003 || r <= 0) return;
+  c.save(); c.globalCompositeOperation = 'lighter';
+  const g = c.createRadialGradient(x, y, 0, x, y, r);
+  for (const [o, col, al] of stops) g.addColorStop(o, rgba(col, clamp(al * a)));
+  c.fillStyle = g; c.fillRect(x - r, y - r, 2 * r, 2 * r); c.restore();
+}
+const LF = HG.layer(), LX = HG.layer();
+function clearL(L) { HG.reset(L.ctx); L.ctx.clearRect(0, 0, W, W); return L.ctx; }
+function bloom(L, px, a) {
+  if (a <= 0.003) return;
+  HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.min(1, a); ctx.filter = HG.blur(px);
+  ctx.drawImage(L.cv, 0, 0, W, W); HG.reset(ctx);
+}
+// stroke a polyline of screen points (nulls break it)
+function polyline(c, pts, close = false) {
+  c.beginPath(); let on = false;
+  for (const p of pts) { if (!p) { on = false; continue; } on ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]); on = true; }
+  if (close && pts[0]) c.closePath();
+  c.stroke();
+}
+
+// ---------- the spark engine
+// A jet emits sparks at fixed times tau_k = t0 + k / rate; jet(tau, h1, h2, k) -> {x, y, z, vx, vy, vz, a}
+// (device-plane or world coords, map converts to screen). Sparks fly with linear drag kap and gravity g.
+const flight = (J, s, kap, g) => {
+  const E = (1 - Math.exp(-kap * s)) / kap;
+  return [J.x + J.vx * E, J.y + J.vy * E + (g / kap) * (s - E), (J.z || 0) + (J.vz || 0) * E];
+};
+function stream(c, t, o) {
+  const { t0, t1 = 1e9, rate, life0, life1, seed, jet, map, pal, kap = 2.4, g = 240, w = 2.6, crackle = 0.08, gain = 1, head = 1, streak = 0.05, maxAge = 9 } = o;
+  const kLo = Math.max(0, Math.ceil((t - life1 - t0) * rate)), kHi = Math.floor((Math.min(t, t1) - t0) * rate);
+  const P = PAL[pal];
+  c.lineCap = 'round';
+  for (let k = kLo; k <= kHi; k++) {
+    const tau = t0 + k / rate, u = t - tau;
+    const h3 = hash(seed + 13, k), life = lerp(life0, life1, h3);
+    if (u < 0 || u > life) continue;
+    const h1 = hash(seed, k), h2 = hash(seed + 7, k);
+    const J = jet(tau, h1, h2, k);
+    if (!J || J.a <= 0.01) continue;
+    const q = u / life;
+    const p1 = map(...flight(J, u, kap, g)); if (!p1) continue;
+    const A = J.a * gain * (1 - smooth(maxAge - 0.15, maxAge, u));
+    if (h2 < crackle && q > 0.7 && q < 0.86) {               // crackle: a few sparks pop into a tiny star
+      const pk = Math.sin(Math.PI * (q - 0.7) / 0.16);
+      glint(c, P.hot, p1[0], p1[1], 30 * p1[2], 0.9 * pk * A, h1 * 3);
+      dot(c, P.hot, p1[0], p1[1], 13 * p1[2], 0.8 * pk * A);
+      continue;
+    }
+    const a = A * smooth(0, 0.035, u) * (1 - smooth(0.35, 1, q));
+    if (a <= 0.01) continue;
+    const p0 = map(...flight(J, Math.max(0, u - streak), kap, g)); if (!p0) continue;
+    c.globalAlpha = Math.min(1, a); c.strokeStyle = P.ramp[Math.min(7, Math.floor(q * 8))]; c.lineWidth = w * p1[2] * (1 - 0.45 * q);
+    c.beginPath(); c.moveTo(p0[0], p0[1]); c.lineTo(p1[0] + 0.01, p1[1]); c.stroke();
+    if (head && q < 0.2) dot(c, P.main, p1[0], p1[1], 8 * p1[2] * head, a * 0.6 * (1 - q / 0.2));
+  }
+}
+// the arm of light a jet draws at time t: where every spark it shot in the last `life` s is now (nominal)
+function ribbon(c, t, { t0, life, n = 26, jet, map, pal, kap, g, w, a = 1 }) {
+  const P = PAL[pal]; let prev = null;
+  c.lineCap = 'butt'; c.lineJoin = 'round';
+  for (let i = 0; i <= n; i++) {
+    const s = life * i / n, tau = t - s; if (tau < t0) break;
+    const J = jet(tau); if (!J) { prev = null; continue; }
+    const p = map(...flight(J, s, kap, g));
+    if (prev && p) {
+      const q = i / n, al = a * J.a * Math.pow(1 - q, 1.6);
+      if (al > 0.01) {
+        c.globalAlpha = Math.min(1, al); c.strokeStyle = P.ramp[Math.min(7, Math.floor(q * 9))];
+        c.lineWidth = w * p[2] * (1 - 0.75 * q);
+        c.beginPath(); c.moveTo(prev[0], prev[1]); c.lineTo(p[0], p[1]); c.stroke();
+      }
+    }
+    prev = p;
+  }
+}
+// spin angle of a wheel that spins up with time constant tc to angular speed wm
+const spinAngle = (t, ti, wm, tc) => { const u = t - ti; return u <= 0 ? 0 : wm * (u - tc * (1 - Math.exp(-u / tc))); };
+// a jet on a spinning rim: sparks leave backwards along the rim, tilted outward
+function rimJet(r, n, th, dir, sp0, tilt0, envFn) {
+  return (tau, h1 = 0.5, h2 = 0.5, j = 0) => {
+    const a = th(tau) + j * TAU / n, sp = sp0 * (0.84 + 0.32 * h1), tilt = tilt0 + 0.36 * (h2 - 0.5);
+    const tx = dir * Math.sin(a), ty = -dir * Math.cos(a), rx = Math.cos(a), ry = Math.sin(a);
+    return { x: r * rx, y: r * ry, vx: (Math.cos(tilt) * tx + Math.sin(tilt) * rx) * sp, vy: (Math.cos(tilt) * ty + Math.sin(tilt) * ry) * sp, a: envFn(tau) };
+  };
+}
+// a comet arc along a circle in device-plane coords: bright head at angle th, tail behind
+function cometArc(c, M, r, th, len, dir, col, w, a) {
+  if (a <= 0.01) return;
+  const n = 10; let prev = null;
+  c.lineCap = 'round'; c.strokeStyle = css(col);
+  for (let i = 0; i <= n; i++) {
+    const ang = th - dir * len * (i / n), p = M(r * Math.cos(ang), r * Math.sin(ang));
+    if (prev && p) {
+      const k = 1 - i / n;
+      c.globalAlpha = Math.min(1, a * k * k); c.lineWidth = w * p[2] * (0.35 + 0.65 * k);
+      c.beginPath(); c.moveTo(prev[0], prev[1]); c.lineTo(p[0], p[1]); c.stroke();
+    }
+    prev = p;
+  }
+}
+
+// ---------- the reed structures of the devices (drawn into the frame layer)
+function structStyle(F, d, t, base) {
+  const env = tierEnv(d.tier, d.ti, t), emb = emberAt(d.tier, t);
+  const col = mix(mix(REED, PAL[d.pal].main, 0.55 * clamp(env)), EMBER, emb);
+  F.strokeStyle = css(col);
+  F.globalAlpha = SUBA * Math.min(1, base * 1.3 + 0.3 * clamp(env) + 0.45 * emb);
+  return env;
+}
+const circlePts = (M, r, n = 44, a0 = 0) => { const o = []; for (let i = 0; i <= n; i++) { const a = a0 + i / n * TAU; o.push(M(r * Math.cos(a), r * Math.sin(a))); } return o; };
+
+// ---------- devices
+function drawWheel(c, F, d, t, base, fire = true) {
+  const M = devMap(d), P = PAL[d.pal], n = 6, wm = 5.4;
+  const th = s => d.dir * spinAngle(s, d.ti, wm, 0.4);
+  const envF = s => tierEnv(d.tier, d.ti, s);
+  structStyle(F, d, t, base); F.lineWidth = 1.5;
+  polyline(F, circlePts(M, d.r));
+  const a0 = th(t), hub = M(0, 0);
+  F.beginPath();
+  for (let j = 0; j < n; j++) { const a = a0 + j * TAU / n, q = M(d.r * Math.cos(a), d.r * Math.sin(a)); if (hub && q) { F.moveTo(hub[0], hub[1]); F.lineTo(q[0], q[1]); } }
+  F.stroke();
+  const env = envF(t); if (env <= 0.005 || !fire) return;
+  const J = rimJet(d.r, n, th, d.dir, 330, 0.5, envF);
+  for (let j = 0; j < n; j++) ribbon(c, t, { t0: d.ti, life: 0.62, jet: s => J(s, 0.5, 0.5, j), map: M, pal: d.pal, kap: 2.2, g: 210, w: 4.2, a: 0.75 });
+  stream(c, t, { t0: d.ti, rate: 260, life0: 0.45, life1: 0.95, seed: 100 + d.x, pal: d.pal, kap: 2.2, g: 210, w: 2.6,
+    map: M, jet: (s, h1, h2, k) => J(s, h1, h2, k % n) });
+  for (let j = 0; j < n; j++) cometArc(c, M, d.r, a0 + j * TAU / n, 0.6, d.dir, P.main, 6, 0.85 * env);
+  for (let j = 0; j < n; j++) { const a = a0 + j * TAU / n, p = M(d.r * Math.cos(a), d.r * Math.sin(a)); if (p) dot(c, P.hot, p[0], p[1], 22 * p[2], 0.85 * env); }
+  if (hub) dot(c, P.main, hub[0], hub[1], 24 * hub[2], 0.55 * env);
+}
+
+function drawStar(c, F, d, t, base, fire = true) {
+  const M = devMap(d), P = PAL.white, G = PAL.gold2, rI = d.r * 0.5;
+  const thO = s => spinAngle(s, d.ti, 3.6, 0.5), thI = s => -spinAngle(s, d.ti + 0.12, 5.2, 0.4);
+  const envO = s => tierEnv(d.tier, d.ti, s), envI = s => tierEnv(d.tier, d.ti + 0.12, s);
+  structStyle(F, d, t, base); F.lineWidth = 1.4;
+  polyline(F, circlePts(M, d.r)); polyline(F, circlePts(M, rI, 30));
+  const hub = M(0, 0), aO = thO(t), aI = thI(t);
+  F.beginPath();
+  for (let j = 0; j < 8; j++) { const a = aO + j * TAU / 8, q = M(d.r * Math.cos(a), d.r * Math.sin(a)); if (hub && q) { F.moveTo(hub[0], hub[1]); F.lineTo(q[0], q[1]); } }
+  F.stroke();
+  const env = envO(t); if (env <= 0.005 || !fire) return;
+  const JO = rimJet(d.r, 8, thO, 1, 270, 0.55, envO), JI = rimJet(rI, 5, thI, -1, 170, 0.3, envI);
+  for (let j = 0; j < 8; j++) ribbon(c, t, { t0: d.ti, life: 0.55, jet: s => JO(s, 0.5, 0.5, j), map: M, pal: 'white', kap: 2.4, g: 180, w: 3.6, a: 0.6 });
+  for (let j = 0; j < 5; j++) ribbon(c, t, { t0: d.ti + 0.12, life: 0.4, jet: s => JI(s, 0.5, 0.5, j), map: M, pal: 'gold2', kap: 3, g: 140, w: 3.4, a: 0.65 });
+  stream(c, t, { t0: d.ti, rate: 230, life0: 0.4, life1: 0.85, seed: 300, pal: 'white', kap: 2.4, g: 180, w: 2.4, gain: 0.8,
+    map: M, jet: (s, h1, h2, k) => JO(s, h1, h2, k % 8) });
+  stream(c, t, { t0: d.ti + 0.12, rate: 110, life0: 0.3, life1: 0.55, seed: 340, pal: 'gold2', kap: 3, g: 140, w: 2.3, gain: 0.8,
+    map: M, jet: (s, h1, h2, k) => JI(s, h1, h2, k % 5) });
+  for (let j = 0; j < 8; j++) cometArc(c, M, d.r, aO + j * TAU / 8, 0.45, 1, P.main, 5.5, 0.8 * env);
+  for (let j = 0; j < 5; j++) cometArc(c, M, rI, aI + j * TAU / 5, 0.7, -1, G.main, 5, 0.75 * envI(t));
+  for (let j = 0; j < 8; j++) { const a = aO + j * TAU / 8, p = M(d.r * Math.cos(a), d.r * Math.sin(a)); if (p) dot(c, P.hot, p[0], p[1], 18 * p[2], 0.75 * env); }
+  if (hub) {                                                     // the centre: an eight-ray star of lances
+    for (let j = 0; j < 8; j++) {
+      const a = j * TAU / 8 + 0.15 * Math.sin(t * 1.3), l = j % 2 ? 22 : 33, p = M(l * Math.cos(a), l * Math.sin(a)); if (!p) continue;
+      c.strokeStyle = css(G.main); c.globalAlpha = 0.8 * env * (0.8 + 0.2 * Math.sin(t * 17 + j));
+      c.lineWidth = 3 * hub[2]; c.beginPath(); c.moveTo(hub[0], hub[1]); c.lineTo(p[0], p[1]); c.stroke();
+      dot(c, G.hot, p[0], p[1], 11 * p[2], 0.75 * env);
+    }
+    dot(c, G.main, hub[0], hub[1], 30 * hub[2], 0.75 * env);
+  }
+}
+
+// heart curve (classic parametric), s = 0 at the top cleft, s = PI at the bottom tip
+const heartXY = s => [16 * Math.pow(Math.sin(s), 3), -(13 * Math.cos(s) - 5 * Math.cos(2 * s) - 2 * Math.cos(3 * s) - Math.cos(4 * s)) - 2];
+const HEART = (() => {
+  const N = 600, pts = [], cum = [0];
+  for (let i = 0; i <= N; i++) pts.push(heartXY(i / N * TAU));
+  for (let i = 1; i <= N; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const L = cum[N], NL = 34, lances = [];
+  for (let j = 0; j < NL; j++) {
+    const s = (j + 0.5) / NL * L; let i = 1; while (cum[i] < s) i++;
+    const f = (s - cum[i - 1]) / (cum[i] - cum[i - 1]);
+    lances.push({ x: lerp(pts[i - 1][0], pts[i][0], f), y: lerp(pts[i - 1][1], pts[i][1], f), from: Math.abs(s / L - 0.5) * 2 });
+  }
+  const outline = []; for (let i = 0; i <= 80; i++) outline.push(heartXY(i / 80 * TAU));
+  return { lances, outline };
+})();
+function drawHeart(c, F, d, t, base, fire = true) {
+  const M = devMap(d), P = PAL.red, sc = d.r;
+  structStyle(F, d, t, base); F.lineWidth = 1.4;
+  polyline(F, HEART.outline.map(([x, y]) => M(x * sc, y * sc)));
+  const env = tierEnv(d.tier, d.ti, t); if (env <= 0.005 || !fire) return;
+  const hub = M(0, 4 * sc);
+  if (hub) radial(c, hub[0], hub[1], 105 * hub[2], [[0, P.main, 0.2], [0.6, P.deep, 0.07], [1, P.deep, 0]], env);
+  const out = 1 - smooth(OUT[3], OUT[3] + 0.8, t);
+  HEART.lances.forEach((L, j) => {
+    const lt = d.ti + 0.5 * L.from, on = smooth(lt, lt + 0.06, t) * out;
+    if (on <= 0.005) return;
+    const p = M(L.x * sc, L.y * sc); if (!p) return;
+    const flick = 0.8 + 0.2 * Math.sin(t * 23 + j * 2.1) * Math.sin(t * 7.3 + j);
+    const pop = Math.exp(-Math.pow((t - lt - 0.05) / 0.12, 2));
+    dot(c, P.main, p[0], p[1], (30 + 24 * pop) * p[2], on * (0.65 * flick + 0.5 * pop) * Math.max(0.6, env));
+    dot(c, P.hot, p[0], p[1], 11 * p[2], on * (0.75 * flick + 0.3 * pop));
+  });
+  stream(c, t, { t0: d.ti, rate: 80, life0: 0.35, life1: 0.7, seed: 500, pal: 'red', kap: 3, g: 320, w: 2.2, crackle: 0.05, head: 0.6,
+    map: M, jet: (s, h1, h2) => {
+      const L = HEART.lances[Math.floor(h1 * HEART.lances.length)], lt = d.ti + 0.5 * L.from;
+      if (s < lt) return null;
+      const a = (h2 - 0.5) * 1.2 + Math.PI / 2;
+      return { x: L.x * sc, y: L.y * sc, vx: Math.cos(a) * 40, vy: Math.sin(a) * 40 - 30, a: tierEnv(d.tier, d.ti, s) * 0.8 };
+    } });
+}
+
+function drawFountain(c, F, d, t, base, fire = true) {
+  const M = devMap(d), s = Math.sign(d.x);
+  structStyle(F, d, t, base); F.lineWidth = 1.6;
+  polyline(F, [M(-9, -6), M(0, 16), M(9, -6)]);
+  const env = tierEnv(d.tier, d.ti, t); if (env <= 0.005 || !fire) return;
+  stream(c, t, { t0: d.ti, rate: 220, life0: 0.6, life1: 1.1, seed: 600 + d.x, pal: 'red', kap: 1.3, g: 470, w: 2.6, crackle: 0.12,
+    map: M, jet: (tau, h1, h2) => {
+      const a = -Math.PI / 2 + s * 0.14 + (h1 - 0.5) * 0.55, sp = 380 + 160 * h2;
+      return { x: 0, y: -6, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, a: tierEnv(d.tier, d.ti, tau) };
+    } });
+  const p = M(0, -6); if (p) { dot(c, PAL.red.hot, p[0], p[1], 22 * p[2], 0.85 * env); dot(c, PAL.red.main, p[0], p[1], 60 * p[2], 0.35 * env); }
+}
+
+// a six-petal dahlia of fire: three heads chase along r = R |cos 3phi|^0.7 while the flower turns
+const petalR = f => Math.pow(Math.abs(Math.cos(3 * f)), 0.7);
+function drawFlower(c, F, d, t, base, fire = true) {
+  const M = devMap(d), P = PAL.pink, R = d.r;
+  const rot = s => d.dir * (0.35 * (s - 0) + 0.9 * Math.max(0, s - d.ti));
+  const ph = s => d.dir * 3.4 * spinAngle(s, d.ti, 1, 0.25);
+  const at = (s, j) => { const f = ph(s) + j * TAU / 3, r = R * petalR(f), a = f + rot(s); return [r * Math.cos(a), r * Math.sin(a)]; };
+  const curve = s => { const o = []; for (let i = 0; i <= 120; i++) { const f = i / 120 * TAU, r = R * petalR(f), a = f + rot(s); o.push(M(r * Math.cos(a), r * Math.sin(a))); } return o; };
+  structStyle(F, d, t, base); F.lineWidth = 1.4;
+  polyline(F, curve(t));
+  const env = tierEnv(d.tier, d.ti, t); if (env <= 0.005 || !fire) return;
+  // petals glow where a head has just passed
+  const hub = M(0, 0);
+  for (let i = 0; i < 6; i++) {
+    const fc = i * Math.PI / 3;
+    let glow = 0.25;
+    for (let j = 0; j < 3; j++) { let dd = ((ph(t) + j * TAU / 3 - fc) % TAU + TAU) % TAU; if (dd > Math.PI) dd -= TAU; glow += Math.exp(-Math.pow(dd / 0.55, 2)); }
+    const pts = []; for (let m = 0; m <= 16; m++) { const f = fc - Math.PI / 6 + m / 16 * Math.PI / 3, r = R * petalR(f), a = f + rot(t); pts.push(M(r * Math.cos(a), r * Math.sin(a))); }
+    if (!hub || pts.some(p => !p)) continue;
+    const tip = M(R * 0.95 * Math.cos(fc + rot(t)), R * 0.95 * Math.sin(fc + rot(t)));
+    const g = c.createLinearGradient(hub[0], hub[1], tip[0], tip[1]);
+    g.addColorStop(0, rgba(P.deep, 0)); g.addColorStop(0.55, rgba(P.main, 0.2 * Math.min(1.4, glow) * env)); g.addColorStop(1, rgba(P.hot, 0.3 * Math.min(1.4, glow) * env));
+    c.globalAlpha = 1; c.fillStyle = g; c.beginPath(); c.moveTo(hub[0], hub[1]); for (const p of pts) c.lineTo(p[0], p[1]); c.closePath(); c.fill();
+  }
+  c.strokeStyle = css(P.main); c.lineWidth = 2.2; c.globalAlpha = 0.45 * env; polyline(c, curve(t));
+  for (let j = 0; j < 3; j++) {                                  // comet heads with trails along the petals
+    let prev = null; c.lineCap = 'round'; c.strokeStyle = css(P.main);
+    for (let i = 0; i <= 16; i++) {
+      const s = t - i * 0.02; if (s < d.ti) break;
+      const q = at(s, j), p = M(q[0], q[1]);
+      if (prev && p) { const k = 1 - i / 16; c.globalAlpha = env * k * k; c.lineWidth = 6.5 * p[2] * (0.3 + 0.7 * k); c.beginPath(); c.moveTo(prev[0], prev[1]); c.lineTo(p[0], p[1]); c.stroke(); }
+      prev = p;
+    }
+    const q = at(t, j), p = M(q[0], q[1]); if (p) dot(c, P.hot, p[0], p[1], 22 * p[2], 0.85 * env);
+  }
+  stream(c, t, { t0: d.ti, rate: 180, life0: 0.3, life1: 0.6, seed: 700 + d.x, pal: 'pink', kap: 3.2, g: 140, w: 2.3, crackle: 0.1,
+    map: M, jet: (s, h1, h2, k) => {
+      const j = k % 3, q = at(s, j), q2 = at(s - 0.01, j), r = Math.hypot(q[0], q[1]) || 1;
+      return { x: q[0], y: q[1], vx: -12 * (q[0] - q2[0]) + q[0] / r * 80 + (h1 - 0.5) * 90, vy: -12 * (q[1] - q2[1]) + q[1] / r * 80 + (h2 - 0.5) * 90, a: tierEnv(d.tier, d.ti, s) };
+    } });
+  if (hub) {                                                      // the dahlia's golden centre
+    for (let i = 0; i < 8; i++) { const a = i * TAU / 8 - rot(t) * 0.5, p = M(13 * Math.cos(a), 13 * Math.sin(a)); if (p) dot(c, PAL.gold.main, p[0], p[1], 11 * p[2], 0.8 * env); }
+    dot(c, PAL.gold.hot, hub[0], hub[1], 22 * hub[2], 0.7 * env);
+  }
+}
+
+// ---------- the fuse: a bright head running along the frame, sputtering
+const FUSE = (() => {
+  const fp = (x, y) => [x, y, -hwAt(y) - 2], lvl = i => LV[i][0], out = [];
+  const arm = (y, x) => [[0, y, -hwAt(y) - 2], [Math.sign(x) * hwAt(y), y, -hwAt(y)], [x, y, -hwAt(y) - 8]];
+  out.push({ t0: 0.42, t1: 1.12, pts: [fp(0, 850), fp(-hwAt(798) * 0.9, 798), fp(0, 748), fp(0, TIER[1])] });
+  for (const s of [-1, 1]) out.push({ t0: 1.12, t1: I1, pts: arm(TIER[1], s * 232) });
+  out.push({ t0: 2.28, t1: I2, pts: [fp(0, TIER[1]), fp(hwAt(lvl(2)) * 0.9, lvl(2)), fp(0, TIER[2])] });
+  out.push({ t0: 3.66, t1: I3, pts: [fp(0, TIER[2]), fp(-hwAt(lvl(3)) * 0.9, lvl(3)), fp(0, TIER[3] + 3.9 * 15)] });
+  for (const s of [-1, 1]) out.push({ t0: I3, t1: I3 + 0.32, pts: arm(TIER[3] + 34, s * 180) });
+  out.push({ t0: 5.08, t1: 5.42, pts: [fp(0, TIER[3] - 50), fp(hwAt(lvl(4)) * 0.9, lvl(4)), fp(0, TIER[4])] });
+  for (const s of [-1, 1]) out.push({ t0: 5.42, t1: I4, pts: arm(TIER[4], s * 182) });
+  out.push({ t0: 6.45, t1: I5, pts: [fp(0, TIER[4]), fp(-hwAt(lvl(5)) * 0.9, lvl(5)), [0, NECK, 0], [0, CROWN_Y + 4, -CROWN_R * 0.7]] });
+  for (const f of out) {
+    f.cum = [0];
+    for (let i = 1; i < f.pts.length; i++) f.cum.push(f.cum[i - 1] + Math.hypot(...[0, 1, 2].map(k => f.pts[i][k] - f.pts[i - 1][k])));
+    f.len = f.cum[f.cum.length - 1];
+  }
+  return out;
+})();
+function fuseAt(f, tau) {
+  const L = ease.inOut3((tau - f.t0) / (f.t1 - f.t0)) * f.len * 0.999;
+  let i = 1; while (i < f.pts.length - 1 && f.cum[i] < L) i++;
+  const k = (L - f.cum[i - 1]) / (f.cum[i] - f.cum[i - 1]);
+  return [0, 1, 2].map(m => lerp(f.pts[i - 1][m], f.pts[i][m], clamp(k)));
+}
+function drawFuses(c, t, lights) {
+  FUSE.forEach((f, n) => {
+    if (t < f.t0 - 0.05 || t > f.t1 + 0.7) return;
+    stream(c, t, { t0: f.t0, t1: f.t1, rate: 160, life0: 0.2, life1: 0.5, seed: 900 + n * 31, pal: 'fuse', kap: 2.5, g: 520, w: 2.0, crackle: 0.04, head: 0.5,
+      map: P3, jet: (tau, h1, h2) => {
+        const p = fuseAt(f, tau), a = h1 * TAU, sp = 60 + 120 * h2;
+        return { x: p[0], y: p[1], z: p[2], vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.7 - 40, vz: 0, a: 0.9 };
+      } });
+    if (t >= f.t0 && t <= f.t1 + 0.04) {
+      const p = P3(...fuseAt(f, t)); if (!p) return;
+      const fl = 0.85 + 0.15 * Math.sin(t * 40 + n);
+      dot(c, PAL.fuse.main, p[0], p[1], 46 * p[2], 0.55 * fl);
+      dot(c, HOT, p[0], p[1], 16 * p[2], 0.95 * fl);
+      lights.push([p[0], p[1], PAL.fuse.main, 0.8]);
+    }
+  });
+}
+
+// ---------- the crown (corona): a gold ring of four jets with five points, spinning on its vertical axis
+const crownW = t => t < I5 ? 0 : 2.2 + 11.8 * Math.pow(smooth(I5, LIFT + 0.1, t), 1.6) - 10.2 * smooth(SUN0 - 0.3, SUN1 + 0.5, t);
+const CW_N = 2800, CW_DT = 14 / CW_N, CROWN_TH = new Float32Array(CW_N + 1);
+(() => { let a = 0; for (let i = 1; i <= CW_N; i++) { a += crownW((i - 0.5) * CW_DT) * CW_DT; CROWN_TH[i] = a; } })();
+const crownTh = t => { const x = clamp(t / CW_DT, 0, CW_N), i = Math.min(CW_N - 1, Math.floor(x)); return lerp(CROWN_TH[i], CROWN_TH[i + 1], x - i); };
+const crownEnv = t => t < I5 ? 0 : smooth(I5, I5 + 0.2, t) + 0.6 * Math.exp(-Math.pow((t - I5 - 0.12) / 0.22, 2));
+// crown-local vector (x, y down, z) -> world, tilted about the x axis so the underside turns toward us
+const tiltV = (b, x, y, z) => [x, y * Math.cos(b) + z * Math.sin(b), -y * Math.sin(b) + z * Math.cos(b)];
+const crownWorld = (t, r, a, h = 0) => {
+  const [cx, cy, cz] = crownPos(t), [x, y, z] = tiltV(tiltAt(t), r * Math.cos(a), -h, r * Math.sin(a));
+  return [cx + x, cy + y, cz + z];
+};
+const NJ = 4;
+function crownJet(tau, h1 = 0.5, h2 = 0.5, j = 0) {
+  const a = crownTh(tau) + j * TAU / NJ, sp = 250 * (0.84 + 0.32 * h1);
+  const sunk = smooth(SUN0 - 0.2, SUN1, tau);
+  const dn = 0.06 + 0.5 * smooth(LIFT - 0.3, LIFT + 0.5, tau) * (1 - sunk) + 0.25 * (h2 - 0.5);
+  const [x, y, z] = crownWorld(tau, CROWN_R, a);
+  const [, y1, z1] = crownPos(tau + 0.01), [, y0, z0] = crownPos(tau - 0.01);
+  const out = 0.4 * (1 - smooth(LIFT, LIFT + 0.6, tau)) + 0.3 * sunk;   // flared on the tower, rays in the sun
+  const tx = Math.sin(a) * (1 - out) + Math.cos(a) * out, tz = -Math.cos(a) * (1 - out) + Math.sin(a) * out;
+  const [vx, vy, vz] = tiltV(tiltAt(tau), tx * sp * Math.cos(dn), Math.sin(dn) * sp, tz * sp * Math.cos(dn));
+  return { x, y, z, vx, vy: vy + 0.45 * (y1 - y0) / 0.02, vz: vz + 0.45 * (z1 - z0) / 0.02,
+           a: crownEnv(tau) * (1 - smooth(SHR0 - 0.1, SHR0 + 0.55, tau)) };
+}
+function drawCrown(c, F, t, lights, base) {
+  const env = crownEnv(t), sunK = smooth(SUN0, SUN1, t), fade = 1 - smooth(SHR0, SHR0 + 0.55, t);
+  const th = crownTh(t), w = crownW(t);
+  // the frame: ring + five points, motion-blurred by sub-samples as it speeds up
+  const frameA = (t < I5 ? base * 1.6 : 0.5 + 0.3 * env) * (1 - sunK);
+  if (frameA > 0.01) {
+    F.strokeStyle = css(mix(REED, PAL.gold.main, t < I5 ? 0.25 : 0.8)); F.lineCap = 'round'; F.lineJoin = 'round';
+    for (let s = 0; s < 4; s++) {
+      const a0 = crownTh(t - s * 0.0083);
+      F.globalAlpha = frameA * (s ? 0.35 : 1); F.lineWidth = 1.8;
+      const ring = []; for (let i = 0; i <= 48; i++) ring.push(proj(...crownWorld(t, CROWN_R, a0 + i / 48 * TAU)));
+      polyline(F, ring);
+      for (let j = 0; j < 5; j++) {
+        const a = a0 + j * TAU / 5;
+        polyline(F, [proj(...crownWorld(t, CROWN_R, a - 0.38)), proj(...crownWorld(t, CROWN_R * 0.93, a, 46)), proj(...crownWorld(t, CROWN_R, a + 0.38))]);
+      }
+      if (t < I5) break;
+    }
+    if (env > 0) for (let j = 0; j < 5; j++) {
+      const tip = proj(...crownWorld(t, CROWN_R * 0.93, th + j * TAU / 5, 50));
+      if (tip) dot(c, PAL.gold.hot, tip[0], tip[1], 16 * tip[2], 0.75 * env * (1 - sunK));
+    }
+  }
+  if (t < I5) return;
+  // four jets spray tangentially (and downwards in flight): spiral arms, then a helix of sparks
+  // arms limited to under a turn while it spins fast; old helix trails cleared as the sun is born
+  const rl = Math.min(clamp(5.2 / Math.max(1, w), 0.36, 0.8) + 0.5 * smooth(LIFT - 0.2, LIFT + 0.4, t), 0.8) * lerp(1, 0.6, smooth(SUN0 - 0.4, SUN0 + 0.4, t));
+  for (let j = 0; j < NJ; j++) ribbon(c, t, { t0: I5, life: rl, n: 30, jet: s => crownJet(s, 0.5, 0.5, j), map: proj, pal: 'gold', kap: 2, g: 190, w: 4.4, a: 0.7 });
+  stream(c, t, { t0: I5, t1: SHR1, rate: 300, life0: 0.5, life1: 1.1, seed: 1100, pal: 'gold', kap: 2.0, g: 190, w: 2.6, crackle: 0.12, streak: 0.028,
+    maxAge: lerp(1.2, 0.5, smooth(SUN0 - 0.5, SUN0 + 0.3, t)), map: proj, jet: (tau, h1, h2, k) => crownJet(tau, h1, h2, k % NJ) });
+  const len = clamp(0.35 + w * 0.065, 0.35, 1.5);                // the ring of fire, longer as it spins faster
+  for (let j = 0; j < NJ; j++) {
+    const a0 = th + j * TAU / NJ, pts = [];
+    for (let i = 0; i <= 12; i++) pts.push(proj(...crownWorld(t, CROWN_R, a0 - len * i / 12)));
+    c.lineCap = 'round'; c.strokeStyle = css(PAL.gold.main);
+    for (let i = 1; i <= 12; i++) {
+      const p = pts[i], q = pts[i - 1]; if (!p || !q) continue;
+      const k = 1 - i / 12; c.globalAlpha = Math.min(1, env * k * fade); c.lineWidth = 7 * p[2] * (0.35 + 0.65 * k);
+      c.beginPath(); c.moveTo(q[0], q[1]); c.lineTo(p[0], p[1]); c.stroke();
+    }
+    if (pts[0]) dot(c, PAL.gold.hot, pts[0][0], pts[0][1], 24 * pts[0][2], 0.9 * env * fade);
+  }
+  const cp = proj(...crownWorld(t, 0, 0)); if (cp) lights.push([cp[0], cp[1], PAL.gold.main, 1.3 * env * (1 - sunK)]);
+}
+
+// the sun: born inside the whirl, then drawn in to a single golden point
+function drawSun(t) {
+  const k = smooth(SUN0, SUN1, t); if (k <= 0.003 || t > PT1) return;
+  const cp = proj(...crownWorld(t, 0, 0)); if (!cp) return;
+  const shr = ease.inOut3((t - SHR0) / (SHR1 - SHR0));
+  const x = lerp(cp[0], 540, shr), y = lerp(cp[1], ENDY, shr);
+  const R = 88 * (0.55 + 0.45 * k) * (1 - shr);
+  const pulse = 0.5 + 0.5 * Math.sin(t * 2.4);
+  radial(ctx, x, y, R * 3.2 + 40, [[0, [255, 176, 80], 0.3], [0.32, [255, 120, 90], 0.12], [1, [255, 90, 110], 0]], k);
+  radial(ctx, x, y, R * 1.14, [[0, [255, 234, 178], 0.92], [0.6, [255, 202, 98], 0.88], [0.86, [255, 160, 58], 0.62], [1, [255, 130, 40], 0]], k);
+  if (R > 2) HG.ring(ctx, x, y, R * 0.97, [255, 196, 90], { width: 4, blur: 6, alpha: 0.35 * k });
+  HG.reset(ctx);
+  // the golden point it becomes (the point Teotihuacan's dawn opens with)
+  const pa = smooth(SHR0 + 0.25, SHR1 - 0.1, t) * (1 - smooth(PT0, PT1, t));
+  if (pa > 0.003) {
+    ctx.globalCompositeOperation = 'lighter';
+    radial(ctx, x, y, 190, [[0, [255, 190, 80], 0.25], [0.4, [255, 160, 60], 0.08], [1, [255, 160, 60], 0]], pa * (0.8 + 0.2 * pulse));
+    dot(ctx, [255, 225, 160], x, y, 34 + 6 * pulse, pa);
+    glint(ctx, [255, 190, 80], x, y, 110 + 20 * pulse, pa * 0.65, 0.25 * Math.sin(t * 0.6), 0.06);
+    HG.reset(ctx);
+  }
+}
+
+// ---------- sky: stars on the dome, the wash of dawn
+const STARS = (() => {
+  const R = HG.rng(77), out = [];
+  for (let i = 0; i < 110; i++) {
+    const el = Math.asin(lerp(0.04, 0.995, R())), az = (R() - 0.5) * 1.15;
+    out.push({ d: [Math.sin(az) * Math.cos(el), -Math.sin(el), Math.cos(az) * Math.cos(el)], s: 5 + 6 * R(), ph: R() * TAU, sp: 0.8 + 1.6 * R(), warm: R() < 0.3 });
+  }
+  return out;
+})();
+const lerp3 = (a, b, k) => a.map((v, i) => Math.round(lerp(v, b[i], k)));
+function drawSky(t, blaze) {
+  const night = smooth(0.25, 1.4, t);
+  const dawn = smooth(SUN0 - 0.5, SUN1 + 0.2, t);
+  const nb = night * (1 - smooth(SHR0 + 0.1, SHR1 - 0.05, t));
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  if (nb > 0.003) {
+    const g = ctx.createLinearGradient(0, 60, 0, 1020);
+    g.addColorStop(0, rgba(lerp3([14, 16, 64], [64, 38, 128], dawn), nb * (0.3 + 0.15 * dawn)));
+    g.addColorStop(0.5, rgba(lerp3([8, 10, 42], [170, 62, 120], dawn), nb * (0.22 + 0.3 * dawn)));
+    g.addColorStop(1, rgba(lerp3([2, 2, 14], [255, 140, 84], dawn), nb * (0.12 + 0.5 * dawn)));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, W);
+  }
+  const sa = night * (1 - 0.6 * blaze) * (1 - smooth(SUN0 - 0.2, SUN1 + 0.3, t));
+  const Vp = { ...V }, a1 = pitchAt(t - 1 / 60); Vp.ca = Math.cos(a1); Vp.sa = Math.sin(a1);
+  ctx.lineCap = 'round';
+  if (sa > 0.01) for (const s of STARS) {
+    const p = projDir(...s.d); if (!p) continue;
+    const r = Math.hypot(p[0] - C, p[1] - C); if (r > 520) continue;
+    const tw = 0.55 + 0.45 * Math.sin(t * s.sp + s.ph), col = s.warm ? [255, 220, 170] : [200, 215, 255];
+    const a = sa * tw * 0.75 * (1 - smooth(440, 520, r)) * smooth(-0.02, 0.1, -s.d[1]);
+    const q = projDir(...s.d, Vp), mv = q ? Math.hypot(p[0] - q[0], p[1] - q[1]) : 0;
+    if (mv > 2) {                                                  // smeared while the camera tilts
+      ctx.globalAlpha = Math.min(1, a * 0.8 * Math.min(1, 6 / mv)); ctx.strokeStyle = css(col); ctx.lineWidth = s.s * 0.35;
+      ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.lineTo(p[0], p[1]); ctx.stroke();
+    } else dot(ctx, col, p[0], p[1], s.s, a);
+  }
+  ctx.restore();
+}
+
+// ---------- the lattice, lit by its own fire
+function frameBase(t) { return 0.13 * smooth(0.2, 1.3, t) * (1 - 0.5 * smooth(8.4, 10.0, t)) * (1 - smooth(10.2, 11.2, t)); }
+function drawFrame(F, t, lights, base) {
+  if (base <= 0.003) return;
+  F.lineCap = 'round';
+  for (const s of SEG) {
+    const p = P3(s[0], s[1], s[2]), q = P3(s[3], s[4], s[5]); if (!p || !q) continue;
+    const mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2;
+    let L = 0, cr = 0, cg = 0, cb = 0;
+    for (const [lx, ly, lc, li] of lights) {
+      const k = li * Math.exp(-((mx - lx) ** 2 + (my - ly) ** 2) / (2 * 140 * 140));
+      L += k; cr += lc[0] * k; cg += lc[1] * k; cb += lc[2] * k;
+    }
+    const col = L > 0 ? mix(REED, [cr / L, cg / L, cb / L], clamp(L) * 0.5) : REED;
+    const zb = (s[2] + s[5]) / 2 > 0 ? 0.5 : 1;
+    F.globalAlpha = SUBA * Math.min(1, (base + 0.5 * clamp(L) * (base / 0.13)) * zb);
+    F.strokeStyle = css(col); F.lineWidth = 2 * s[6] * p[2];
+    F.beginPath(); F.moveTo(p[0], p[1]); F.lineTo(q[0], q[1]); F.stroke();
+  }
+}
+
+const DRAW = { wheel: drawWheel, star: drawStar, heart: drawHeart, fountain: drawFountain, flower: drawFlower };
+HG.start({
+  duration: 14,
+  render(t) {
+    view(t);
+    const F = clearL(LF), X = clearL(LX);
+    X.globalCompositeOperation = 'lighter'; F.globalCompositeOperation = 'lighter';
+    const base = frameBase(t);
+
+    const lights = [];
+    for (const d of DEV) {
+      const e = tierEnv(d.tier, d.ti, t); if (e <= 0.01) continue;
+      const p = devMap(d)(0, 0); if (p) lights.push([p[0], p[1], PAL[d.pal].main, e * (d.kind === 'fountain' ? 0.7 : 1)]);
+    }
+    let blaze = 0; for (const l of lights) blaze += l[3]; blaze = clamp(blaze / 3);
+
+    drawFuses(X, t, lights);
+    drawCrown(X, F, t, lights, base);
+    for (const d of DEV) DRAW[d.kind](X, F, d, t, base);
+    // the tower is smeared into a few sub-samples while the camera tilts fast (no strobing rungs)
+    const rate = Math.abs(pitchAt(t) - pitchAt(t - 1 / 30)), subs = rate > 0.004 ? 4 : 1;
+    SUBA = 1 / subs;
+    for (let i = 0; i < subs; i++) {
+      if (i) { view(t - i / (30 * subs)); for (const d of DEV) DRAW[d.kind](X, F, d, t, base, false); }
+      drawFrame(F, t, lights, base);
+    }
+    SUBA = 1; view(t);
+
+    drawSky(t, blaze);
+    bloom(LF, 4, 0.6);
+    HG.drawLayer(ctx, LF, { op: 'lighter' });
+    bloom(LX, 18, 0.4);
+    bloom(LX, 5, 0.7);
+    HG.drawLayer(ctx, LX, { op: 'lighter' });
+    drawSun(t);
+
+    // keep the title band (below y 780) calm while the name is shown
+    const band = smooth(1.6, 2.4, t) * (1 - smooth(11.4, 12.2, t));
+    if (band > 0.003) {
+      HG.reset(ctx);
+      const g = ctx.createLinearGradient(0, 735, 0, 860);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${(0.8 * band).toFixed(3)})`);
+      ctx.fillStyle = g; ctx.fillRect(0, 735, W, W - 735);
+    }
+  },
+});
+</script></body></html>

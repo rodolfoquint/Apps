@@ -1,0 +1,545 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Jarabe Tapatio at sunset, seen from above. The Jalisco dancer stamps and spins: her red full-circle
+// skirt flares open from a dark bud into a flower, and the stamp's light runs out through it, lighting
+// its rows of ribbons (green, white, yellow, rosa mexicano) and the lace at the hem. Its folds trail as
+// spirals while she turns. Faldeo: she swings the skirt side to side, the hem flaring left and right,
+// waves running through the ruffle, a pulse of light through the ribbons on every zapateado stamp.
+// A last fast turn flings sparks off the hem as the view tilts down to the floor, and the charro's
+// sombrero is thrown in and lands in the heart of the flower. She dances around its brim (a warm light
+// trailing four braided ribbons that pass behind the crown, gold footprints of the zapateado left on
+// the brim) while the big skirt whirls around the hat. On the closing "tan-tan" she twirls once more, the skirt flings its
+// ribbons out as sparks, and the hat is lifted away into the dusk.
+// Assets: prepare.py on out-show2/images/sombrero-charro-1.png, plus _solid (same pixels, alpha
+// filled to the silhouette so the black felt hides what is behind it).
+const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
+const TAU = Math.PI * 2;
+const mix = (a, b, k) => [0, 1, 2].map(i => Math.round(lerp(a[i], b[i], clamp(k))));
+const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
+// integral of smooth(a, b, x) dx from a to t: a velocity that ramps up smoothly, integrated
+function rampInt(t, a, b) {
+  if (t <= a) return 0; const d = b - a;
+  if (t >= b) return d / 2 + (t - b);
+  const x = (t - a) / d; return d * (x * x * x - x * x * x * x / 2);
+}
+const backE = (x, s = 1.0) => { x = clamp(x); return 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2); };
+
+// ---------- palette (sunset; the dress in festival colours)
+const RED = [214, 22, 50], RED2 = [238, 42, 70], REDD = [70, 4, 20];
+const GREEN = [26, 206, 104], WHITE = [255, 240, 230], YELLOW = [255, 206, 50], ROSA = [246, 56, 156];
+const LACE = [255, 228, 222], GOLD = [255, 196, 90], HOT = [255, 248, 236], SIL = [226, 234, 255];
+const PUR = [150, 85, 255], MAG = [230, 50, 170], ORA = [255, 140, 50], WAVE = [255, 226, 180];
+
+// ---------- the skirt: fabric coordinates (u: 0 waist .. 1 hem, th0: angle on the cloth)
+const K = 14, KR = 48, KL = 72, RW = 58;
+// rows from the hem inward: [outer u, colour, is a ribbon]
+const BANDS = [
+  [1.000, GREEN, 1], [0.975, RED2, 0], [0.905, WHITE, 1], [0.880, RED, 0], [0.862, YELLOW, 1], [0.832, RED, 0],
+  [0.814, GREEN, 1], [0.784, RED, 0], [0.766, ROSA, 1], [0.736, RED, 0], [0.718, WHITE, 1], [0.690, RED, 0],
+  [0.540, GREEN, 1], [0.515, RED, 0], [0.500, WHITE, 1], [0.475, RED, 0],
+];
+const RIBBONS = BANDS.filter((b, i) => b[2]).map(b => { const i = BANDS.indexOf(b); return { u: (b[0] + (BANDS[i + 1] ? BANDS[i + 1][0] : 0)) / 2, col: b[1] }; });
+
+// ---------- rhythm (son jalisciense: a 6/8 bar answered by a 3/4 bar)
+const STOMPS = [
+  { t: 0.40, w: 1.0, d: 1.15 },                 // she stamps and the skirt opens: this wave lights the ribbons
+  { t: 1.62, w: 0.55, d: 0.75 },
+  { t: 2.35, w: 1.0, d: 0.7 }, { t: 2.95, w: 0.65, d: 0.7 },
+  { t: 3.55, w: 1.0, d: 0.7 }, { t: 3.95, w: 0.6, d: 0.7 }, { t: 4.35, w: 0.65, d: 0.7 },
+  { t: 4.75, w: 1.1, d: 0.8 },
+  { t: 7.00, w: 1.25, d: 0.85 },                // the sombrero lands
+  { t: 8.05, w: 0.6, d: 0.65 }, { t: 8.65, w: 0.6, d: 0.65 }, { t: 9.45, w: 0.7, d: 0.65 },
+  { t: 9.90, w: 0.8, d: 0.7 }, { t: 10.30, w: 1.25, d: 0.6 },
+];
+// zapateado around the brim: a step every eighth, accents on the bar beats
+const STEPS = [];
+for (let k = 0, t0 = 7.45; t0 < 9.86; k++, t0 += 0.2) {
+  const rel = ((t0 - 7.45) % 2.4 + 2.4) % 2.4, acc = [0, 0.6, 1.2, 1.6, 2.0].some(a => Math.abs(rel - a) < 0.05);
+  STEPS.push({ t: t0, w: acc ? 1 : 0.45, k });
+}
+function env(t, list, tau = 0.28, atk = 0.05) {
+  let e = 0;
+  for (const a of list) {
+    const d = t - a.t; if (d < -atk || d > tau * 6) continue;
+    e += a.w * smooth(-atk, 0, d) * Math.exp(-Math.max(0, d) / tau);
+  }
+  return e;
+}
+
+// ---------- motion
+function spin(t) {
+  return -0.5
+    + TAU * 0.75 * out2((t - 0.3) / 2.3)                                       // the opening turn
+    + 0.34 * Math.cos(TAU * (t - 2.35) / 2.4) * bump(t, 2.0, 2.6, 4.6, 5.0)    // faldeo sway
+    + TAU * 1.05 * smooth(4.75, 6.65, t)                                        // the vuelta
+    + 0.6 * rampInt(t, 6.2, 7.2)                                                // slow whirl around the hat
+    + TAU * 1.0 * ease.in3((t - 9.85) / 1.25);                                  // last twirl
+}
+function out2(x) { x = clamp(x); return 1 - (1 - x) * (1 - x); }
+const omega = t => (spin(t + 0.005) - spin(t - 0.005)) / 0.01;
+
+function params(t) {
+  const open = backE((t - 0.3) / 1.45, 0.8);
+  const vu = bump(t, 4.9, 5.5, 6.2, 6.9);
+  const fin = ease.out3((t - 10.3) / 0.8);
+  const w = omega(t), wl = (w + omega(t - 0.08) + omega(t - 0.16) + omega(t - 0.24)) / 4;
+  const e = env(t, STOMPS, 0.22);
+  const fald = bump(t, 2.0, 2.6, 4.6, 5.1), sw = Math.cos(TAU * (t - 2.35) / 2.4);
+  const actE = smooth(6.6, 7.4, t);
+  return {
+    t, w, rw: RW, spin: spin(t), twist: -0.15 * wl,
+    R: (lerp(62, 432, open) + 16 * vu + 9 * e) * (1 + 0.28 * fin), fald,
+    Af: lerp(0.09, 0.045, open) * (1 - 0.4 * vu) * (1 + 0.25 * Math.sin(1.7 * t)), phf: 0.5 * t,
+    A1: 0.11 * fald * sw,
+    A2: 0.092 * fald + 0.03 * actE, psi: (0.85 * sw + Math.PI * ease.inOut3((t - 3.5) / 1.3)) * fald + actE * 1.1 * (t - 6.6),
+    A3: 0.018 + 0.012 * actE, psi3: -1.3 * t,
+    Ar: 0.014 / (1 + Math.pow(w / 1.0, 2)) * (1 + 0.8 * Math.min(1, e)), phr: -2.6 * t,
+    lace: 1 / (1 + Math.pow(w / 1.2, 2)),
+    fc: 0.5 + 0.5 / (1 + Math.pow(w / 3, 2)),
+    e,
+  };
+}
+function fab(P, u, th0) {
+  const th = th0 + P.spin + P.twist * Math.pow(u, 1.3), up = Math.pow(Math.max(0, u), 1.6);
+  let r = P.rw + (P.R - P.rw) * u
+    + P.R * up * (P.Af * Math.cos(K * th0 + P.phf) + P.A2 * Math.cos(2 * (th - P.psi)) + P.A3 * Math.cos(3 * th + P.psi3));
+  if (u > 0.9) r += P.R * P.Ar * smooth(0.9, 1, u) * Math.cos(KR * th0 + P.phr);
+  return [r * Math.cos(th) + P.R * up * P.A1, r * Math.sin(th)];
+}
+function curvePath(p, P, u, n) {
+  for (let i = 0; i <= n; i++) { const [x, y] = fab(P, u, i / n * TAU); i ? p.lineTo(x, y) : p.moveTo(x, y); }
+  p.closePath();
+}
+function region(p, P, ua, ub, ta, tb, nu = 12, nt = 5) {
+  for (let i = 0; i <= nu; i++) { const [x, y] = fab(P, ua + (ub - ua) * i / nu, ta); i ? p.lineTo(x, y) : p.moveTo(x, y); }
+  for (let i = 1; i <= nt; i++) { const [x, y] = fab(P, ub, ta + (tb - ta) * i / nt); p.lineTo(x, y); }
+  for (let i = nu; i >= 0; i--) { const [x, y] = fab(P, ua + (ub - ua) * i / nu, tb); p.lineTo(x, y); }
+  p.closePath();
+}
+// the light of the first stamp runs out through the skirt and lights its rows
+const igF = t => (t - 0.40) / 1.15;
+const ignite = (t, u) => smooth(-0.02, 0.1, igF(t) - u);
+
+// ---------- layers and helpers
+const SK = HG.layer(), HT = HG.layer(), SH = HG.layer(), SHN = HG.layer(), RB = HG.layer(), RF = HG.layer();
+function clearL(L) { HG.reset(L.ctx); L.ctx.clearRect(0, 0, W, W); return L.ctx; }
+function bloomLayer(L, blurPx, glowA, crispA, op = 'source-over') {
+  if (glowA > 0.003) {
+    ctx.save(); HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.min(1, glowA);
+    ctx.filter = HG.blur(blurPx); ctx.drawImage(L.cv, 0, 0, W, W); ctx.restore();
+  }
+  if (crispA > 0.003) HG.drawLayer(ctx, L, { alpha: Math.min(1, crispA), op });
+}
+function star(c, x, y, s, a, rot = 0, col = SIL) {               // four-point glint
+  if (a <= 0.003 || s <= 0) return;
+  const sp = HG.sprite(col);
+  c.save(); c.globalCompositeOperation = 'lighter'; c.translate(x, y); c.rotate(rot); c.globalAlpha = Math.min(1, a);
+  c.drawImage(sp, -s / 2, -s * 0.05, s, s * 0.1); c.drawImage(sp, -s * 0.05, -s / 2, s * 0.1, s);
+  c.drawImage(sp, -s * 0.17, -s * 0.17, s * 0.34, s * 0.34);
+  c.restore();
+}
+
+// ---------- the view: top-down, then tilting down to the floor as the sombrero is thrown
+function view(t) {
+  const k = ease.inOut3((t - 5.85) / 1.2);
+  return { tilt: lerp(1, 0.72, k), z: lerp(1, 0.94, k) + 0.045 * ease.inOut3((t - 7.2) / 3.0), cy: lerp(540, 556, k), k };
+}
+const toScreen = (V, x, y, h = 0) => [C + V.z * x, V.cy + V.z * (V.tilt * y - h * Math.sqrt(1 - V.tilt * V.tilt))];
+function planeT(g, V) { HG.reset(g); g.translate(C, V.cy); g.scale(V.z, V.z * V.tilt); }
+
+// ---------- drawing the skirt (g already in plane coordinates)
+function drawSkirt(g, P, t, V) {
+  const n = 720;
+  // lace peeking past the hem
+  const lp = new Path2D();
+  for (let i = 0; i <= n; i++) {
+    const th0 = i / n * TAU, [x, y] = fab(P, 1, th0), r = Math.hypot(x, y) || 1;
+    const h = 5 + 10 * Math.pow(Math.abs(Math.sin(KL * th0 / 2)), 0.8) * P.lace + 3 * (1 - P.lace);
+    i ? lp.lineTo(x + x / r * h, y + y / r * h) : lp.moveTo(x + x / r * h, y + y / r * h);
+  }
+  lp.closePath();
+  g.fillStyle = rgba(mix(REDD, LACE, ignite(t, 1.02)), 0.82); g.fill(lp);
+  // rows, painted from the hem inward
+  for (const [u, col, rib] of BANDS) {
+    const k = ignite(t, u - 0.01);
+    const c = rib ? mix(mix(REDD, col, 0.16), col, k) : mix(REDD, col, k);
+    const p = new Path2D(); curvePath(p, P, u, u > 0.85 ? n : 480);
+    g.fillStyle = rgba(c); g.fill(p);
+  }
+  // swags of ribbon on the upper skirt, tied with little rosettes
+  const fA = new Path2D(), fB = new Path2D(), ros = [];
+  for (let k = 0; k < 8; k++) {
+    for (let s = 0; s <= 24; s++) {
+      const th0 = (k + s / 24) * TAU / 8 + 0.2, u = 0.21 + 0.16 * Math.sin(Math.PI * s / 24);
+      const [x, y] = fab(P, u, th0), [x2, y2] = fab(P, u - 0.038, th0);
+      s ? (fA.lineTo(x, y), fB.lineTo(x2, y2)) : (fA.moveTo(x, y), fB.moveTo(x2, y2));
+    }
+    ros.push([fab(P, 0.19, k * TAU / 8 + 0.2), k % 2 ? ROSA : YELLOW]);
+  }
+  const kf = ignite(t, 0.3);
+  g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+  g.lineWidth = 11; g.strokeStyle = rgba(mix(mix(REDD, GREEN, 0.22), GREEN, kf)); g.stroke(fA);
+  g.lineWidth = 8; g.strokeStyle = rgba(mix(mix(REDD, WHITE, 0.22), WHITE, kf)); g.stroke(fB);
+  for (const [[x, y], col] of ros) {
+    g.fillStyle = rgba(mix(mix(REDD, col, 0.22), col, kf));
+    for (let j = 0; j < 5; j++) { const a = j * TAU / 5 + P.spin; g.beginPath(); g.ellipse(x + Math.cos(a) * 8, y + Math.sin(a) * 8, 8, 5, a, 0, TAU); g.fill(); }
+    g.fillStyle = rgba(mix(REDD, WHITE, kf)); g.beginPath(); g.arc(x, y, 4.5, 0, TAU); g.fill();
+  }
+  g.restore();
+
+  // folds: valleys shade, ridges catch the light (both blur away when she spins fast)
+  const sm = Math.min(0.16 * TAU / K, Math.abs(P.w) / 90), dk = new Path2D(), lt = new Path2D(), dw = 0.3 * TAU / K + sm, lw = 0.2 * TAU / K + sm;
+  for (let j = 0; j < K; j++) {
+    const cv = (TAU * (j + 0.5) - P.phf) / K, cr = (TAU * j - P.phf) / K;
+    region(dk, P, 0.1, 1.05, cv - dw, cv + dw);
+    region(lt, P, 0.12, 1.0, cr - lw, cr + lw);
+  }
+  const Rg = P.R * 1.1;
+  // ridges: a copy of the cloth, kept only on the ridges, added back on top (satin sheen, colours stay saturated)
+  const sg = clearL(SHN); HG.reset(sg); sg.drawImage(SK.cv, 0, 0, W, W);
+  planeT(sg, V); sg.globalCompositeOperation = 'destination-in'; sg.filter = HG.blur(9);
+  let gr = sg.createRadialGradient(0, 0, P.rw, 0, 0, Rg);
+  gr.addColorStop(0, 'rgba(0,0,0,0.15)'); gr.addColorStop(0.55, 'rgba(0,0,0,0.75)'); gr.addColorStop(1, 'rgba(0,0,0,1)');
+  sg.fillStyle = gr; sg.fill(lt); sg.filter = 'none'; HG.reset(sg);
+  g.save(); g.globalCompositeOperation = 'source-atop';
+  gr = g.createRadialGradient(0, 0, P.rw, 0, 0, Rg);
+  gr.addColorStop(0, 'rgba(16,0,10,0.05)'); gr.addColorStop(0.45, `rgba(16,0,10,${0.5 * P.fc})`); gr.addColorStop(1, `rgba(16,0,10,${0.72 * P.fc})`);
+  g.filter = HG.blur(13); g.fillStyle = gr; g.fill(dk);
+  g.save(); HG.reset(g); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.55 * P.fc; g.drawImage(SHN.cv, 0, 0, W, W); g.restore();
+  // the gathered ruffle
+  if (P.lace > 0.05) {
+    const rp = new Path2D(), rw_ = 0.3 * TAU / KR;
+    for (let j = 0; j < KR; j++) { const c = (TAU * (j + 0.5) - P.phr) / KR; region(rp, P, 0.905, 1.03, c - rw_, c + rw_, 3, 3); }
+    g.filter = HG.blur(2.5); g.fillStyle = `rgba(30,0,12,${0.38 * P.lace})`; g.fill(rp);
+  }
+  g.filter = 'none';
+  // stamp waves: a band of light running out through the cloth
+  for (const s of STOMPS) {
+    const uf = (t - s.t) / s.d; if (uf < -0.08 || uf > 1.08) continue;
+    const rf = P.rw + (P.R - P.rw) * uf, a = 0.5 * s.w * (1 - 0.3 * uf) * smooth(-0.08, 0.05, uf);
+    const r0 = Math.max(0, rf - 80), r1 = rf + 18;
+    const wg = g.createRadialGradient(0, 0, r0, 0, 0, r1);
+    wg.addColorStop(0, rgba(WAVE, 0)); wg.addColorStop(clamp((rf - r0) / (r1 - r0), 0.01, 0.99), rgba(WAVE, a)); wg.addColorStop(1, rgba(WAVE, 0));
+    g.fillStyle = wg; g.fillRect(-r1, -r1, 2 * r1, 2 * r1);
+  }
+  // where her hands lift the skirt the cloth rises to the light
+  if (P.fald > 0.01) {
+    const cg = g.createConicGradient(P.psi + P.spin * 0, 0, 0);
+    for (let i = 0; i <= 16; i++) { const a = i / 16, c = Math.pow(Math.max(0, Math.cos(2 * a * TAU)), 3); cg.addColorStop(a, rgba(WAVE, 0.2 * c * P.fald)); }
+    g.fillStyle = cg; g.fillRect(-P.R * 1.3, -P.R * 1.3, P.R * 2.6, P.R * 2.6);
+  }
+  // sunset light: warm from the west (right), violet in the east
+  const lg = g.createLinearGradient(-P.R, 0, P.R, 0);
+  lg.addColorStop(0, rgba(PUR, 0.2)); lg.addColorStop(0.42, rgba(PUR, 0)); lg.addColorStop(0.6, rgba(ORA, 0)); lg.addColorStop(1, rgba(ORA, 0.26));
+  g.fillStyle = lg; g.fillRect(-P.R * 1.2, -P.R * 1.2, P.R * 2.4, P.R * 2.4);
+  g.restore();
+
+  // the dancer herself at the centre: blouse ruffle, braids woven with ribbons
+  drawCentre(g, P, t);
+}
+
+function drawCentre(g, P, t) {
+  const k = ignite(t, 0.05), rot = P.spin * 0.9;
+  const ring = (r0, amp, lobes, ph, col) => {
+    g.beginPath();
+    for (let i = 0; i <= 120; i++) { const a = i / 120 * TAU, r = r0 + amp * Math.cos(lobes * a + ph); const x = Math.cos(a + rot) * r, y = Math.sin(a + rot) * r; i ? g.lineTo(x, y) : g.moveTo(x, y); }
+    g.closePath(); g.fillStyle = rgba(col); g.fill();
+  };
+  // the blouse's ruffled shoulders (holan), edged with ribbon
+  ring(108, 7, 14, 0, mix(REDD, WHITE, k));
+  ring(99, 6, 14, 0, mix(REDD, GREEN, k));
+  ring(91, 5, 14, 0, mix(REDD, [255, 226, 216], k));
+  ring(80, 4, 14, 0.5, mix(REDD, RED2, k));
+  ring(70, 3, 14, 0.5, mix(REDD, WHITE, k * 0.9));
+  g.save(); g.rotate(rot);
+  // hair, with the braids wound round the head as a crown, ribbons woven through them
+  g.fillStyle = 'rgb(56,20,50)'; g.beginPath(); g.arc(0, 0, 56, 0, TAU); g.fill();
+  const cols = [RED2, WHITE, GREEN];
+  for (let i = 0; i < 18; i++) {
+    const a = i * TAU / 18;
+    g.fillStyle = i % 2 ? 'rgb(96,40,84)' : rgba(mix(REDD, cols[(i >> 1) % 3], k));
+    g.beginPath(); g.ellipse(Math.cos(a) * 45, Math.sin(a) * 45, 11, 6, a + Math.PI / 2 + (i % 2 ? 0.6 : -0.6), 0, TAU); g.fill();
+  }
+  // a big satin bow (mono) of rosa ribbon on top
+  const bow = mix(REDD, ROSA, k), bowL = mix(REDD, [255, 150, 205], k);
+  for (const s of [-1, 1]) {
+    g.fillStyle = rgba(bow);
+    g.beginPath(); g.moveTo(0, 0); g.bezierCurveTo(s * 18, -30, s * 48, -26, s * 44, 0); g.bezierCurveTo(s * 48, 26, s * 18, 30, 0, 0); g.fill();
+    g.fillStyle = rgba(bowL);
+    g.beginPath(); g.moveTo(s * 4, -2); g.bezierCurveTo(s * 16, -18, s * 34, -18, s * 36, -6); g.bezierCurveTo(s * 26, -10, s * 14, -8, s * 4, -2); g.fill();
+    g.fillStyle = rgba(bow);                               // tails
+    g.beginPath(); g.moveTo(s * 3, 4); g.lineTo(s * 16, 40); g.lineTo(s * 9, 36); g.lineTo(s * 5, 44); g.lineTo(-s * 2, 6); g.closePath(); g.fill();
+  }
+  g.fillStyle = rgba(mix(REDD, YELLOW, k)); g.beginPath(); g.ellipse(0, 0, 8, 10, 0, 0, TAU); g.fill();
+  g.restore();
+}
+
+// ---------- sparks (precomputed launch states, positions are functions of t)
+const SPARKS = (() => {
+  const out = [], R = HG.rng(29);
+  // shed off the hem during the vuelta
+  for (let i = 0; i < 80; i++) {
+    const te = 5.05 + 1.4 * R(), th0 = R() * TAU, P = params(te), [x, y] = fab(P, 1.0, th0), r = Math.hypot(x, y);
+    const w = clamp(omega(te) * r, -900, 900) * 0.5, vr = 140 + 220 * R();
+    out.push({ te, life: 0.65 + 0.4 * R(), x, y, vx: x / r * vr - y / r * w, vy: y / r * vr + x / r * w,
+      col: [GOLD, HOT, YELLOW, ROSA, GREEN][Math.floor(R() * 5)], s: 9 + 7 * R(), tw: R() * 6.28 });
+  }
+  // the last twirl flings the ribbons out as sparks, peeling off around the skirt
+  for (let i = 0; i < 300; i++) {
+    const f = i / 300, te = 10.27 + 0.3 * f + 0.03 * R(), th0 = f * TAU + R() * 0.25, rb = R() < 0.18 ? { u: 0.99, col: RED2 } : RIBBONS[Math.floor(R() * RIBBONS.length)];
+    const P = params(te), [x, y] = fab(P, rb.u, th0), r = Math.hypot(x, y);
+    const w = clamp(omega(te) * r, -900, 900) * 0.4, vr = 320 + 340 * R();
+    out.push({ te, life: Math.min(0.95, 11.2 - te), x, y, vx: x / r * vr - y / r * w, vy: y / r * vr + x / r * w,
+      col: rb.col, s: 13 + 9 * R(), tw: R() * 6.28 });
+  }
+  return out;
+})();
+function drawSparks(t, V) {
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+  const pos = (p, tt) => { const d = (1 - Math.exp(-2.4 * Math.max(0, tt))) / 2.4; return toScreen(V, p.x + p.vx * d, p.y + p.vy * d); };
+  for (const p of SPARKS) {
+    const dt = t - p.te; if (dt < 0 || dt > p.life) continue;
+    const fade = Math.pow(1 - dt / p.life, 1.4) * smooth(0, 0.04, dt), tw = 0.8 + 0.2 * Math.sin(t * 24 + p.tw);
+    const [x1, y1] = pos(p, dt), [x0, y0] = pos(p, dt - 0.07);
+    ctx.strokeStyle = rgba(p.col, 1);
+    ctx.globalAlpha = 0.45 * fade; ctx.lineWidth = p.s * 0.9; ctx.filter = HG.blur(5);
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.filter = 'none';
+    ctx.globalAlpha = 0.9 * fade * tw; ctx.lineWidth = p.s * 0.32;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    HG.dot(ctx, p.col, x1, y1, p.s * 1.6, fade * tw);
+  }
+  ctx.restore();
+}
+
+// ---------- the sombrero
+const HAT0 = 6.1, HATL = 7.0, AH = 236;                 // throw, landing, brim half-width on screen
+const HW = AH * 1024 / 509, HDY = (532 - 512) / 1024;    // drawn width; brim centre below the image centre
+const GLINTS = [[200, 390], [320, 360], [820, 390], [700, 360], [240, 620], [790, 620], [490, 790], [380, 740], [640, 740], [430, 590], [600, 590], [512, 150]];
+function hatState(t, V) {
+  if (t < HAT0) return null;
+  const p = clamp((t - HAT0) / (HATL - HAT0)), d = t - HATL;
+  const ex = 1 - Math.pow(1 - p, 2), ey = Math.pow(p, 1.5);
+  let x = lerp(C + 340, C, ex), y = lerp(-190, V.cy, ey);
+  let s = (1 + 0.5 * Math.pow(1 - p, 1.5)) * V.z / 0.94, rot = -0.5 * Math.pow(1 - p, 2), sx = 1, sy = 1;
+  const h = 1 - ease.in3(p);                              // height above the floor (0..1)
+  if (d > 0) {
+    const sq = Math.exp(-d * 9) * Math.cos(d * 26);
+    sy = 1 - 0.06 * sq; sx = 1 + 0.03 * sq;
+    y -= 10 * Math.exp(-d * 7) * Math.abs(Math.sin(d * 13));
+    rot += 0.03 * Math.exp(-d * 6) * Math.sin(d * 19);
+  }
+  y += 2.5 * Math.min(1.2, env(t, STEPS.filter(q => q.w >= 1), 0.12));
+  const lift = ease.inOut3((t - 10.32) / 0.75);
+  y -= 80 * lift; s *= 1 + 0.12 * lift;
+  const a = 1 - smooth(10.45, 11.0, t);
+  return { x, y, s, rot, sx, sy, h, a, lift };
+}
+let HATT = null;
+function hatTint(img) {
+  if (HATT) return HATT;
+  const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
+  const g = cv.getContext('2d'); g.drawImage(img, 0, 0);
+  g.globalCompositeOperation = 'lighter';
+  let gr = g.createRadialGradient(512, 360, 0, 512, 400, 560);
+  gr.addColorStop(0, 'rgba(110,70,150,0.26)'); gr.addColorStop(0.6, 'rgba(90,55,130,0.15)'); gr.addColorStop(1, 'rgba(70,40,110,0.1)');
+  g.fillStyle = gr; g.fillRect(0, 0, 1024, 1024);
+  gr = g.createLinearGradient(560, 0, 1024, 0);
+  gr.addColorStop(0, 'rgba(255,130,70,0)'); gr.addColorStop(1, 'rgba(255,130,70,0.2)');
+  g.fillStyle = gr; g.fillRect(0, 0, 1024, 1024);
+  g.globalCompositeOperation = 'destination-in'; g.drawImage(img, 0, 0);
+  return (HATT = cv);
+}
+function hatXf(g, H) { g.translate(H.x, H.y); g.rotate(H.rot); g.scale(H.s * H.sx, H.s * H.sy); }
+const hatPt = (H, u, v) => {
+  const lx = (u - 512) / 1024 * HW * H.s * H.sx, ly = ((v - 512) / 1024 - HDY) * HW * H.s * H.sy, c = Math.cos(H.rot), s = Math.sin(H.rot);
+  return [H.x + lx * c - ly * s, H.y + lx * s + ly * c];
+};
+
+// ---------- the dancer around the brim
+const DANCE0 = 7.15;
+const phiD = t => 0.35 - 2.45 * rampInt(t, DANCE0, DANCE0 + 0.6);
+const RHO = AH / 0.94 * 0.7;                              // on the felt of the brim, between crown and rope edge
+// the crown's outline in asset pixels: whatever passes behind it is hidden
+const CROWN = [[512, 250], [592, 262], [642, 300], [660, 380], [684, 468], [738, 520], [744, 600], [704, 662], [604, 694], [512, 702],
+  [420, 694], [320, 662], [280, 600], [286, 520], [340, 468], [364, 380], [382, 300], [432, 262]];
+
+HG.start({
+  duration: 12,
+  assets: { hat: '../assets/11-jarabe-tapatio-sombrero_solid.png', hatL: '../assets/11-jarabe-tapatio-sombrero_lines.png' },
+  render(t, A) {
+    const V = view(t), P = params(t);
+    const skA = smooth(0.12, 0.6, t) * (1 - smooth(10.32, 10.78, t));
+    const fadeAll = 1 - smooth(10.6, 11.2, t);
+
+    // ---------- sunset haze
+    const haze = smooth(0.1, 1.6, t) * (1 - smooth(10.2, 11.2, t));
+    if (haze > 0.003) {
+      const hg = ctx.createRadialGradient(C, V.cy, 0, C, V.cy, 540);
+      hg.addColorStop(0, rgba([255, 90, 110], 0.14 * haze)); hg.addColorStop(0.5, rgba([200, 40, 170], 0.1 * haze));
+      hg.addColorStop(0.85, rgba([90, 30, 190], 0.07 * haze)); hg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = hg; ctx.fillRect(0, 0, W, W);
+    }
+
+    // ---------- stamp waves leaving the hem (under the skirt)
+    ctx.save(); planeT(ctx, V); ctx.globalCompositeOperation = 'lighter';
+    for (const s of STOMPS) {
+      const uf = (t - s.t) / s.d; if (s.w < 0.9 || s.t > 10 || uf < 0.85 || uf > 1.45) continue;
+      const r = P.rw + (P.R - P.rw) * uf, a = 0.6 * s.w * smooth(0.85, 1.0, uf) * (1 - smooth(1.0, 1.45, uf)) * fadeAll;
+      ctx.strokeStyle = rgba(GOLD, 1);
+      ctx.globalAlpha = a * 0.55; ctx.lineWidth = 26; ctx.filter = HG.blur(14); ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
+      ctx.filter = 'none'; ctx.globalAlpha = a * 0.7; ctx.lineWidth = 3.5; ctx.strokeStyle = rgba(WAVE, 1); ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
+    }
+    ctx.restore();
+
+    // ---------- the skirt
+    if (skA > 0.003) {
+      const g = clearL(SK); planeT(g, V);
+      drawSkirt(g, P, t, V);
+      HG.reset(g);
+      bloomLayer(SK, 16, 0.32 * skA, skA);
+    }
+
+    // ---------- sequins streaking as she spins
+    const streak = smooth(1.8, 4.0, Math.abs(P.w)) * skA * (1 - smooth(10.2, 10.4, t));
+    if (streak > 0.01) {
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+      const Rr = HG.rng(5), len = clamp(Math.abs(P.w) * 0.06, 0.03, 0.5) * Math.sign(P.w);
+      for (const rb of RIBBONS) {
+        if (rb.u < 0.6) continue;
+        for (let i = 0; i < 3; i++) {
+          const th0 = (i + Rr()) * TAU / 3, tw = (0.65 + 0.35 * Math.sin(t * 6 + i * 2.1 + rb.u * 20)) * (0.3 + 0.7 * ignite(t, rb.u));
+          const pts = [];
+          for (let j = 0; j <= 10; j++) { const [x, y] = fab(P, rb.u, th0 - len * j / 10); pts.push(toScreen(V, x, y)); }
+          for (const [col, lw, bl, al] of [[GOLD, 16, 8, 0.5], [HOT, 5, 0, 0.95]]) {
+            ctx.strokeStyle = rgba(col, 1); ctx.globalAlpha = al * streak * tw; ctx.lineWidth = lw; ctx.filter = bl ? HG.blur(bl) : 'none';
+            ctx.beginPath(); pts.forEach(([x, y], j) => j ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke();
+          }
+          ctx.filter = 'none';
+          HG.dot(ctx, HOT, pts[0][0], pts[0][1], 26, streak * tw);
+        }
+      }
+      ctx.restore();
+    }
+
+    // ---------- the sombrero: shadow on the skirt, then the hat
+    const H = hatState(t, V);
+    if (H && H.a > 0.003) {
+      const sh = smooth(HAT0 + 0.25, HAT0 + 0.6, t) * (1 - smooth(10.35, 10.8, t)) * (1 - 0.7 * H.h);
+      if (sh > 0.003) {
+        ctx.save(); planeT(ctx, V);
+        ctx.globalAlpha = 0.7 * sh; ctx.fillStyle = 'rgb(8,0,6)'; ctx.filter = HG.blur(14 + 40 * H.h);
+        const rr = AH / 0.94 * (1.02 + 0.4 * H.h);
+        ctx.beginPath(); ctx.ellipse(-40 - 60 * H.h, 22, rr, rr, 0, 0, TAU); ctx.fill();
+        ctx.restore();
+      }
+      const g = clearL(HT); g.save(); hatXf(g, H); g.imageSmoothingQuality = 'high';
+      g.drawImage(hatTint(A.hat), -HW / 2, -HW / 2 - HDY * HW, HW, HW); g.restore();
+      bloomLayer(HT, 12, 0.3 * H.a, H.a);
+      // a sheen of light runs across the silver embroidery as it lands, and as it is lifted away
+      const sw = [[(t - 6.95) / 0.75, 1], [(t - 10.25) / 0.6, 1.2]].find(([q]) => q > 0 && q < 1);
+      if (sw) {
+        const q = sw[0], s = clearL(SH); s.save(); hatXf(s, H);
+        s.drawImage(A.hatL, -HW / 2, -HW / 2 - HDY * HW, HW, HW);
+        s.globalCompositeOperation = 'destination-in';
+        const bx = lerp(-HW * 0.8, HW * 0.8, q), bg = s.createLinearGradient(bx - 160, -100, bx + 160, 100);
+        bg.addColorStop(0, 'rgba(0,0,0,0)'); bg.addColorStop(0.5, 'rgba(0,0,0,1)'); bg.addColorStop(1, 'rgba(0,0,0,0)');
+        s.fillStyle = bg; s.fillRect(-HW, -HW, 2 * HW, 2 * HW); s.restore();
+        HG.drawLayer(ctx, SH, { alpha: 0.9 * sw[1] * Math.sin(Math.PI * q) * H.a, op: 'lighter' });
+      }
+      // embroidery glints on the landing and on the accented steps
+      const gl = [{ t: HATL + 0.05, i: 0 }, { t: HATL + 0.12, i: 2 }, { t: HATL + 0.2, i: 6 }].concat(STEPS.filter(q => q.w >= 1).map((q, j) => ({ t: q.t + 0.03, i: (j * 5 + 3) % GLINTS.length })));
+      for (const G of gl) {
+        const d = t - G.t; if (d < 0 || d > 0.6) continue;
+        const [x, y] = hatPt(H, ...GLINTS[G.i]);
+        star(ctx, x, y, 110 * Math.sin(Math.PI * Math.pow(d / 0.6, 0.6)), 0.85 * H.a * Math.sin(Math.PI * d / 0.6), d * 0.9);
+      }
+    }
+
+    // ---------- the dancer around the brim: footprints, trailing ribbons, her little spinning skirt
+    const dA = smooth(DANCE0, DANCE0 + 0.4, t) * (1 - smooth(10.3, 10.75, t));
+    if (dA > 0.003) {
+      const fly = ease.in3((t - 10.25) / 0.6), rhoT = tt => RHO * (1 + 0.9 * ease.in3((tt - 10.25) / 0.6));
+      const at = (tt, dr = 0, h = 0) => { const ph = phiD(tt), r = rhoT(tt) + dr; return toScreen(V, Math.cos(ph) * r, Math.sin(ph) * r, h); };
+      // everything of hers goes on two layers: behind the crown (far half of the brim) and in front
+      const back = clearL(RB), front = clearL(RF);
+      const pick = y => (y < V.cy - 6 ? back : front);
+      // footprints left on the brim by the zapateado
+      for (const q of STEPS) {
+        const d = t - q.t; if (d < 0 || d > 1.0) continue;
+        const [x, y] = at(q.t, q.k % 2 ? 10 : -10), g = pick(y);
+        const a = dA * Math.exp(-d / 0.5) * (q.w >= 1 ? 1 : 0.75);
+        g.globalCompositeOperation = 'lighter';
+        HG.dot(g, GOLD, x, y, (q.w >= 1 ? 50 : 34) * (1 + 0.6 * Math.exp(-d / 0.08)), a);
+        if (q.w >= 1 && d < 0.6) {
+          const rr = 12 + 64 * ease.out3(d / 0.6);
+          g.globalAlpha = 0.75 * dA * (1 - d / 0.6); g.strokeStyle = rgba(GOLD, 1); g.lineWidth = 5;
+          g.beginPath(); g.ellipse(x, y, rr * V.z, rr * V.z * V.tilt, 0, 0, TAU); g.stroke();
+        }
+        g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+      }
+      // four ribbons braided behind her (trenzas con listones), streaming round the brim
+      const RC = [GREEN, WHITE, ROSA, YELLOW], TR = 0.95, NS = 60, TAIL = [44, 10, 40];
+      const segs = [];
+      for (let i = 0; i < 4; i++) {
+        const P_ = [], D = [], Wd = [];
+        for (let j = 0; j <= NS; j++) {
+          const s = j / NS, tt = t - s * TR, beta = i * TAU / 4 + TAU * 1.5 * s - 6 * t;
+          const A_ = 6 + 15 * s, dr = A_ * Math.cos(beta), h = 16 + 30 * s + A_ * Math.sin(beta);
+          P_.push(at(tt, dr, h)); D.push(Math.sin(beta)); Wd.push(17 * (1 - 0.6 * s) * smooth(DANCE0, DANCE0 + 0.25, tt));
+        }
+        // ribbon edges from the path normals: neighbouring quads share their edges, so nothing doubles up
+        const L = [], Rr = [];
+        for (let j = 0; j <= NS; j++) {
+          const a0 = P_[Math.max(0, j - 1)], a1 = P_[Math.min(NS, j + 1)];
+          let nx = -(a1[1] - a0[1]), ny = a1[0] - a0[0]; const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
+          const hw = Wd[j] / 2; L.push([P_[j][0] + nx * hw, P_[j][1] + ny * hw]); Rr.push([P_[j][0] - nx * hw, P_[j][1] - ny * hw]);
+        }
+        for (let j = 0; j < NS; j++) {
+          const s = (j + 0.5) / NS, d = (D[j] + D[j + 1]) / 2;
+          if (Wd[j] + Wd[j + 1] < 0.5) continue;
+          segs.push({ d, i, s, j, q: [L[j], L[j + 1], Rr[j + 1], Rr[j]], m: [(P_[j][1] + P_[j + 1][1]) / 2],
+            col: mix(mix(RC[i], [0, 0, 0], 0.2 * (1 - d) / 2), TAIL, Math.pow(s, 1.4)) });
+        }
+        if (Wd[0] > 0.5) segs.push({ d: D[0] + 0.01, i, s: 0, cap: P_[0], r: Wd[0] / 2, m: [P_[0][1]], col: mix(RC[i], [0, 0, 0], 0.2 * (1 - D[0]) / 2) });
+      }
+      segs.sort((p, q) => p.d - q.d);                       // strands behind the braid first
+      // a soft dark shadow under the braid, then the ribbons themselves
+      for (const g of [back, front]) { g.filter = HG.blur(7); g.globalAlpha = 0.65 * dA; g.fillStyle = 'rgb(6,0,8)'; }
+      for (const sg of segs) {
+        if (sg.cap || sg.s > 0.85) continue;
+        const g = pick(sg.m[0]); g.beginPath(); sg.q.forEach(([x, y], k) => k ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath();
+        g.lineWidth = 8; g.strokeStyle = 'rgb(6,0,8)'; g.fill(); g.stroke();
+      }
+      for (const g of [back, front]) { g.filter = 'none'; g.globalAlpha = dA; g.lineJoin = 'round'; }
+      for (const sg of segs) {
+        const g = pick(sg.m[0]); g.fillStyle = g.strokeStyle = rgba(sg.col, 1); g.lineWidth = 1.4;
+        g.beginPath();
+        if (sg.cap) g.arc(sg.cap[0], sg.cap[1], sg.r, 0, TAU);
+        else { sg.q.forEach(([x, y], k) => k ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); }
+        g.fill(); if (!sg.cap) g.stroke();
+      }
+      for (const g of [back, front]) g.globalAlpha = 1;
+      // her: a warm light at the head of the ribbons
+      const [mx, my] = at(t, 0, 16), hg = pick(my);
+      hg.globalCompositeOperation = 'lighter';
+      HG.dot(hg, ROSA, mx, my, 180 * (1 + 0.15 * env(t, STEPS, 0.1)), 0.5 * dA * (1 - fly));
+      HG.dot(hg, HOT, mx, my, 50, 0.95 * dA * (1 - fly));
+      // the crown hides the far half
+      if (H && H.a > 0.003) {
+        back.save(); HG.reset(back); hatXf(back, H); back.globalCompositeOperation = 'destination-out';
+        back.filter = HG.blur(3); back.fillStyle = '#000'; back.beginPath();
+        CROWN.forEach(([u, v], i) => { const x = (u - 512) / 1024 * HW, y = ((v - 512) / 1024 - HDY) * HW; i ? back.lineTo(x, y) : back.moveTo(x, y); });
+        back.closePath(); back.fill(); back.restore();
+      }
+      bloomLayer(RB, 10, 0.45, 1);
+      bloomLayer(RF, 10, 0.45, 1);
+    }
+
+    // ---------- sparks
+    drawSparks(t, V);
+  },
+});
+</script></body></html>

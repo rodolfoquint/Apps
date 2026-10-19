@@ -3,13 +3,15 @@
 <body><canvas id="c" width="1080" height="1080"></canvas>
 <script src="../engine.js"></script>
 <script>
-// Intro / welcome. Green, white and red sparks stream in from the rim along three
-// spiral arms; the vortex tightens, its heart heats to gold, thin rings of light
-// pinch inward and it blooms into a gold sun medallion with 24 rays (the sun cut
-// into the papel picado). The rays fold away into a warm backlight while three
-// garlands of papel picado drop in from above and sway in a breeze that travels
-// along each cord; a sheen of light sweeps across them. At the end each flag burns
-// into its glowing lace and breaks into coloured sparkles that drift up and warm to gold.
+// Intro / welcome. Green, warm-white and red sparks stream in from the rim along three
+// luminous spiral ribbons; the vortex tightens, its heart heats to gold, soft bands of
+// light pinch inward and the whole vortex is pulled into the heart, which blooms into a
+// gold sun medallion with 24 rays (the sun cut into the papel picado) and three
+// tricolour rings of sparks. The sun holds the stage, then its rays fold away while
+// three garlands of papel picado drop in from above and sway, hinged on their cords.
+// A gust runs left to right along every row with a band of light riding it; then a
+// spark of light runs back along each cord, lighting every flag it passes. At the end
+// each flag burns into its glowing lace and breaks into sparkles that drift up and warm to gold.
 const { W, C, ctx, clamp, lerp, smooth, ease, rng, COLORS, rgba } = HG;
 const TAU = Math.PI * 2;
 
@@ -19,7 +21,7 @@ const TRI = [GREEN, WHITE, RED];
 const FC = { pink: [255, 55, 165], orange: [255, 135, 25], turq: [35, 212, 235], yellow: [255, 208, 40], green: [55, 222, 105], purple: [165, 92, 255] };
 const TB = 3.6;            // the bloom
 const HOLD = 0.45;         // extra time the sun medallion holds the stage alone before the garlands fall
-const RING_A = 0.42;
+const RING_A = 0.42;       // peak alpha of the soft bands of light the vortex inhales before the bloom
 
 // ---------- small helpers (kept local to this piece)
 const canvas = (w, h) => { const c = document.createElement('canvas'); c.width = Math.ceil(w); c.height = Math.ceil(h); return c; };
@@ -34,7 +36,6 @@ function intSmooth(a, b, t) {
   return d * (x * x * x - x * x * x * x / 2);
 }
 const outBackSoft = (x, c1 = 1.1) => { x = clamp(x); const c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
-const sineInOut = x => 0.5 - 0.5 * Math.cos(Math.PI * clamp(x));
 
 // soft spark with a tinted (not white) hot core, so overlaps never burn to white blobs
 const glowCache = new Map();
@@ -175,9 +176,9 @@ function drawArmBodies(t) {
 const RIB_WIDE = 0.4, RIB_TIGHT = 0.25;
 function drawVortex(t) {
   if (t > TB + 0.05) return;
-  const ramp = smooth(0.1, 0.8, t), off = vortexOff(t) * swallow(t), climb = 0.9 + 0.3 * smooth(1.8, 3.4, t);
+  const ramp = smooth(0.1, 0.8, t), off = vortexOff(t) * swallow(t), climb = 0.9 + 0.2 * smooth(1.8, 3.4, t);
   // the white arm thickens fastest into the climax; ease it back there so overlaps never burn to pure white
-  const whiteK = (1 - 0.5 * smooth(1.9, 3.0, t)) * Math.pow(implode(t), 1.3);
+  const whiteK = (1 - 0.55 * smooth(1.9, 3.0, t)) * Math.pow(implode(t), 1.5);
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
   for (const P of VORTEX) {
     const h = vortexAt(P, t);
@@ -191,14 +192,14 @@ function drawVortex(t) {
     for (let j = 1; j <= 6; j++) {
       const b = vortexAt(P, t - j * 0.024);
       if (!b) break;
-      ctx.globalAlpha = a * 0.5 * (1 - j / 7); ctx.lineWidth = Math.max(0.7, size * 0.2 * (1 - j / 8));
+      ctx.globalAlpha = a * 0.5 * (1 - j / 7); ctx.lineWidth = Math.max(1.1, size * 0.24 * (1 - j / 8));
       ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); prev = b;
     }
     spark(P.col, h[0], h[1], size, a);
   }
   ctx.restore();
 }
-// the heart: grows and heats toward gold as the vortex pinches; thin rings of light are drawn in
+// the heart: grows and heats toward gold as the vortex pinches; soft bands of light are drawn in
 function drawHeart(t) {
   const on = smooth(0.3, 1.0, t);           // frame 0 is pure black
   if (t < TB + 0.6 && on > 0) {
@@ -359,7 +360,7 @@ ROWS.forEach((R, ri) => { R.ri = ri; });
 const HW = 600, BASEW = 158, SS = 1.4;
 
 // the gust: one breath of wind runs left to right along every row, the clear beat of the hold
-const GUST_T = 6.5, GUST_V = 820, GUST_ROW = 0.08;
+const GUST_T = 6.35, GUST_V = 820, GUST_ROW = 0.08;
 const gustTau = (x, ri, t) => t - GUST_T - (x + 120) / GUST_V - ri * GUST_ROW;
 // damped swing: pushed downwind in ~0.27 s, swings back past rest, settles within about 1.3 s (peak 1)
 const gustSwing = u => u <= 0 ? 0 : smooth(0, 0.08, u) * Math.sin(4.2 * u) * Math.exp(-1.9 * u) / 0.5425;

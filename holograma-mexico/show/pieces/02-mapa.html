@@ -195,7 +195,7 @@ function drawWindow(img, x, y, R, { alpha = 1, zoom = 1, rim = 0.75, rimW = 2.4,
   ctx.drawImage(img, x - s / 2, y - s / 2, s, s);
   ctx.filter = 'none';
   if (inner > 0) {
-    add(ctx); ctx.globalAlpha = alpha;
+    add(ctx); ctx.globalAlpha = alpha * reveal;
     const g = ctx.createRadialGradient(x, y, R * 0.62, x, y, R);
     g.addColorStop(0, rgba(GOLD, 0)); g.addColorStop(0.8, rgba(GOLD, 0.35 * inner)); g.addColorStop(1, rgba(GOLD, 0.8 * inner));
     ctx.fillStyle = g; ctx.fillRect(x - R, y - R, 2 * R, 2 * R);
@@ -315,15 +315,26 @@ HG.start({
     // ---- coastline drawn in light
     const coastA = t < TR1 ? 1 : lerp(1, 0.9, smooth(TR1 + 0.6, TR1 + 1.6, t)) + 0.12 * swell;
     const coastC = TURQ, coreC = ICE;                   // the coast stays turquoise / ice: the warmth lives in the land
-    // the ghost outline (and islands) under the trace, gone once the outline is closed
-    const ghA = GHOST * ghostIn * (1 - smooth(TR1 - 0.25, TR1 + 0.15, t));
-    if (ghA > 0.003) {
-      glowStroke(COAST, TURQ, ICE, { width: 9, blur: 8, coreW: 2.2, alpha: ghA, glowA: 0.9 });
-      for (const isl of ISL) glowStroke(isl.path, TURQ, ICE, { width: 6, blur: 5, coreW: 1.8, alpha: ghA * 0.8, glowA: 0.8 });
+    // the ghost outline (and islands): only the part the heads have not lit yet, so they
+    // turn ghost into light without doubling up
+    const ghA = GHOST * ghostIn;
+    if (ghA > 0.003 && !closed) {
+      glowStroke(d > 0.5 ? c => rangePath(c, S0 + d, S0 + L - d) : COAST, TURQ, ICE, { width: 9, blur: 8, coreW: 2.2, alpha: ghA, glowA: 0.9 });
+      for (const isl of ISL) { const a = ghA * 0.8 * (1 - clamp((d - isl.reach) / 60)); if (a > 0.003) glowStroke(isl.path, TURQ, ICE, { width: 6, blur: 5, coreW: 1.8, alpha: a, glowA: 0.8 }); }
     }
+    // the gold pulse that rings the closed outline (both ways from Cabo) takes the place of the
+    // ice line where it runs, so it reads gold rather than white
+    const pu = s => (L / 2) * (1 - Math.pow(1 - clamp((s - PU0) / (PU1 - PU0)), 1.6));
+    const pa = 1 - smooth(PU1 - 0.1, PU1 + 0.3, t), puOn = t > PU0 && t < PU1 + 0.35;
     if (d > 0.5) {
-      const build = closed ? COAST : c => rangePath(c, S0 - d, S0 + d);
-      glowStroke(build, coastC, coreC, { width: 8, blur: 8, coreW: 2.4, alpha: coastA, glowA: 0.62 });
+      const style = { width: 8, blur: 8, coreW: 2.4, glowA: 0.62 };
+      if (!closed) glowStroke(c => rangePath(c, S0 - d, S0 + d), coastC, coreC, { ...style, alpha: coastA });
+      else if (!puOn) glowStroke(COAST, coastC, coreC, { ...style, alpha: coastA });
+      else {
+        const ga = pu(t - 0.3), gb = pu(t);
+        glowStroke(c => { if (ga > 0.5) rangePath(c, S_MEET - ga, S_MEET + ga); if (L - 2 * gb > 0.5) rangePath(c, S_MEET + gb, S_MEET + L - gb); }, coastC, coreC, { ...style, alpha: coastA });
+        if (gb - ga > 0.5) glowStroke(c => { rangePath(c, S_MEET + ga, S_MEET + gb); rangePath(c, S_MEET - gb, S_MEET - ga); }, coastC, coreC, { ...style, alpha: coastA * (1 - pa) });
+      }
       for (const isl of ISL) {
         const a = clamp((d - isl.reach) / 60) * coastA;
         if (a > 0) glowStroke(isl.path, coastC, coreC, { width: 6, blur: 5, coreW: 1.8, alpha: a * 0.9, glowA: 0.5 });
@@ -334,14 +345,12 @@ HG.start({
       for (const [a, b, k] of [[0.42, 0.2, 0.22], [0.2, 0, 0.45]]) {
         const da = traceD(t - a), db = traceD(t - b);
         if (db - da < 0.5) continue;
-        glowStroke(c => { rangePath(c, S0 + da, S0 + db); rangePath(c, S0 - db, S0 - da); }, ICE, WHITE, { width: 10, blur: 9, coreW: 2.6, alpha: k, glowA: 0.7 });
+        glowStroke(c => { rangePath(c, S0 + da, S0 + db); rangePath(c, S0 - db, S0 - da); }, ICE, mix(ICE, WHITE, 0.5), { width: 10, blur: 9, coreW: 2.6, alpha: k, glowA: 0.7 });
       }
     }
     // the ring: one pulse runs round the finished outline in both directions from Cabo
-    if (t > PU0 && t < PU1 + 0.35) {
-      const pu = s => (L / 2) * (1 - Math.pow(1 - clamp((s - PU0) / (PU1 - PU0)), 1.6));
-      const pa = 1 - smooth(PU1 - 0.1, PU1 + 0.3, t);
-      for (const [a, b, k, col, core] of [[0.3, 0.07, 0.22, GOLD, GOLD], [0.07, 0, 0.75, GOLD, WARM]]) {
+    if (puOn) {
+      for (const [a, b, k, col, core] of [[0.3, 0.07, 0.75, GOLD, GOLD], [0.07, 0, 0.95, GOLD, mix(GOLD, WARM, 0.5)]]) {
         const da = pu(t - a), db2 = pu(t - b);
         if (db2 - da < 0.5) continue;
         glowStroke(c => { rangePath(c, S_MEET + da, S_MEET + db2); rangePath(c, S_MEET - db2, S_MEET - da); }, col, core, { width: 12, blur: 9, coreW: 2.8, alpha: k * pa, glowA: 0.75 });
@@ -388,7 +397,7 @@ HG.start({
     // the start: a big warm bloom at the tip of Yucatán that lasts until the portal's ring sweeps past it
     if (t < 1.25) { const k = HG.window(t, 0, 1.25, 0.3, 0.4); spark(START[0], START[1], WARM, 125, 0.42 * k); spark(START[0], START[1], GOLD, 46, 0.5 * k); }
     if (t > TR1 - 0.2 && t < TR1 + 0.8) {
-      spark(MEET[0], MEET[1], WARM, 130, 0.5 * HG.window(t, TR1 - 0.2, TR1 + 0.8, 0.25, 0.5));
+      spark(MEET[0], MEET[1], WARM, 130, 0.42 * HG.window(t, TR1 - 0.2, TR1 + 0.8, 0.25, 0.5));
     }
     ctx.restore();
     if (t > TR1 - 0.05 && t < TR1 + 1.4) {
@@ -469,8 +478,8 @@ HG.start({
       const flareOpen = gauss(t - p.T - 0.45, 0.22);
       const zoom = lerp(1.14, 1.0, w.open) + 0.035 * w.focus * smooth(p.T + 0.6, p.S, t);
       drawWindow(A[p.key], w.x, w.y, w.R, {
-        alpha: dim, zoom, reveal: smooth(0, 0.4, w.open),   // an iris that already holds the picture
-        rim: Math.min(1.3, 0.8 + 0.15 * w.focus + 0.6 * flareOpen + 0.5 * w.pop + 0.15 * swell) * lerp(0.3, 1, smooth(0, 0.35, w.open)),
+        alpha: dim, zoom, reveal: smooth(0, 0.35, w.open),  // an iris that already holds the picture: rim and image open together
+        rim: Math.min(1.3, 0.8 + 0.15 * w.focus + 0.6 * flareOpen + 0.5 * w.pop + 0.15 * swell) * smooth(0, 0.35, w.open),
         rimW: 2.2 + 0.6 * w.focus + 1.0 * w.pop, inner: 0.28 + 0.12 * w.focus + 0.45 * w.pop,
         lift: w.set * (1 - w.fold), gold: w.pop * (1 - w.fold),
       });

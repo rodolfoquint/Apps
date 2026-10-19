@@ -3,28 +3,330 @@
 <body><canvas id="c" width="1080" height="1080"></canvas>
 <script src="../engine.js"></script>
 <script>
-// Piedra del Sol: gold sparks gather into a halo, the engraving lights up from the
-// centre in gold, the real stone glows in and turns, then it all bursts back into sparks.
-const { C, ctx, smooth, ease, COLORS } = HG;
+// Piedra del Sol. Gold sparks swirl in and settle into a halo while the stone is drawn in golden
+// light from the centre out: the face of the sun, the four Ollin cartouches, the ring of twenty
+// day signs, the eight rays, the fire serpents and the rim, each stroke traced by a pen of light.
+// The stone itself then rises out of the dark, basalt with gold-lit carvings, turning until it
+// stands upright (13 Acatl at the top). A wave of light runs out ring by ring, the rays flare into
+// short beams, and then the carving lifts off as sparks and the stone dissolves into the dark.
+const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
+
+// ---------- palette (warm gold, red kept off the clip point; no white cores anywhere)
+const LINE = [242, 196, 114], HALO = [255, 186, 84], WARM = [255, 214, 150], AMBER = [255, 160, 64];
+
+// ---------- placement: asset px (1024 artwork, stone centre AX, AY) -> screen px
+const S0 = 0.80, AX = 511.3, AY = 510.5, RIM = 497.5;
+const scaleAt = t => S0 * (1 + 0.04 * smooth(4, 10.5, t));          // slow 4% push-in
+// a visible turn that decelerates into the upright view (13 Acatl on top) at t = 8, then keeps drifting
+const rotAt = t => 0.035 * (t - 8) - 0.55 * (1 - ease.out3(t / 8));
+const rimAt = t => RIM * scaleAt(t);
+
+// ---------- timeline
+const DRAW0 = 0.3;                         // first strokes (the face)
+const ST0 = 3.45, ST1 = 5.6;               // the stone rises from the centre out, following the drawing
+const LH0 = 3.6, LH1 = 5.5, LHOLD = 0.36;   // line overlay ramps down to its hold level
+const WV0 = 7.4, WV1 = 9.15;               // the wave of light
+const DS0 = 9.4, DS1 = 10.4;               // the stone fades back into its drawing of light
+const LUP0 = 9.3, LUP1 = 10.0, LUP = 0.72; // ...which brightens again as the stone goes
+const LF0 = 9.95, LF1 = 10.95;             // a front from the centre out where the drawing lifts off as sparks
+const END = 11.7;                          // black from here
+
+// ---------- the drawing (measured on the artwork; asset px from the stone centre, angles clockwise from the top)
+function buildGeom() {
+  const D = Math.PI / 180, E = [];
+  const P = (r, a, cx = 0, cy = 0) => [cx + r * Math.sin(a * D), cy - r * Math.cos(a * D)];
+  const add = (pts, g, w = 1, r = null) => E.push({ pts, g, w, r: r ?? Math.min(...pts.map(p => Math.hypot(p[0], p[1]))) });
+  const arc = (r, a1, a2, cx = 0, cy = 0, step = 1.5) => {
+    const n = Math.max(2, Math.ceil(Math.abs(a2 - a1) / step)), out = [];
+    for (let i = 0; i <= n; i++) out.push(P(r, a1 + (a2 - a1) * i / n, cx, cy));
+    return out;
+  };
+  const circle = (r, g, w, cx = 0, cy = 0, a0 = 0) => {        // two halves from a0, drawn symmetrically
+    const rr = Math.abs(r - Math.hypot(cx, cy));                // nearest point of the circle to the centre
+    add(arc(r, a0, a0 + 180, cx, cy), g, w, rr); add(arc(r, a0, a0 - 180, cx, cy), g, w, rr);
+  };
+  const poly = (pts, g, w = 1) => add([...pts, pts[0]], g, w);
+  const ellipse = (cx, cy, rx, ry, g, w = 1, n = 40) => {
+    const out = []; for (let i = 0; i <= n; i++) { const a = i / n * Math.PI * 2 - Math.PI / 2; out.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]); }
+    add(out, g, w, Math.hypot(cx, cy));
+  };
+  const bez = (p0, p1, p2, p3, n = 24) => {
+    const out = [];
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, a = (1 - t) ** 3, b = 3 * (1 - t) ** 2 * t, c = 3 * (1 - t) * t * t, d = t ** 3;
+      out.push([a * p0[0] + b * p1[0] + c * p2[0] + d * p3[0], a * p0[1] + b * p1[1] + c * p2[1] + d * p3[1]]);
+    }
+    return out;
+  };
+  const mx = p => [-p[0], p[1]];
+
+  // rings, fitted to the carved borders (the outer band and the ray ring open where the serpents cross)
+  circle(497.5, 'rim', 1.35, 0.7, 3.0);
+  add(arc(418, 19, 152, -1.2, -1.4), 'band', 1, 418); add(arc(418, -19, -152, -1.2, -1.4), 'band', 1, 418);
+  add(arc(314.5, 11.5, 149, 0.3, -1.4), 'rays', 0.85, 314); add(arc(314.5, -11.5, -149, 0.3, -1.4), 'rays', 0.85, 314);
+  circle(286.5, 'day', 1, -0.2, -5.0);
+  circle(239, 'day', 1, 0.7, -8.0);
+  circle(118, 'face', 1.15, -0.3, 0.0);
+
+  // the twenty day signs: their dividers
+  for (const a of [0.5, 17.2, 36.0, 53.5, 70.5, 87.5, 104.0, 121.5, 139.5, 160.2, 180.8, 198.5, 217.8, 238.2, 256.0, 272.5, 289.0, 307.0, 324.8, 342.8])
+    add([P(246, a), P(282, a)], 'day', 0.85, 246);
+
+  // the eight rays [angle, base radius, base half-width, tip radius]: both edges shoot out from the base
+  for (const [a, rb, hw, tip] of [[0.2, 292, 32, 405], [44.3, 305, 26, 413], [89.0, 294, 31, 411.5], [133.8, 305, 26, 412.6],
+                                   [180, 288, 33, 395], [227.0, 305, 26, 413], [271.6, 294, 31, 411.5], [316.3, 305, 26, 413]]) {
+    const b = P(rb, a), n = [Math.cos(a * D), Math.sin(a * D)];
+    add([[b[0] - n[0] * hw, b[1] - n[1] * hw], P(tip, a)], 'rays', 1.15, rb);
+    add([[b[0] + n[0] * hw, b[1] + n[1] * hw], P(tip, a)], 'rays', 1.15, rb);
+    add([b, P(tip - 18, a)], 'ridge', 0.75, rb + 20);
+  }
+
+  // Nahui Ollin: the point above the face and the four cartouches
+  add([[-33, -121], [2, -233]], 'ollin', 1, 121); add([[36, -121], [2, -233]], 'ollin', 1, 121);
+  const TR = [[41, -126], [70, -194], [189, -132], [134, -56]], BR = [[42, 102], [134, 31], [193, 119.5], [71.5, 174.5]];
+  poly(TR, 'ollin'); poly(TR.map(mx), 'ollin'); poly(BR, 'ollin'); poly(BR.map(mx), 'ollin');
+  circle(44, 'ollin', 0.95, -187, -10); circle(44, 'ollin', 0.95, 188, -10);
+  for (const [x, y] of [[-197, -85.5], [197, -85.5], [-192, 76], [194, 76]]) circle(19, 'ollin', 0.8, x, y);
+
+  // the face of the sun: frame, eyes, nose, mouth, tongue
+  const F = 'face';
+  add([[-73, 22], [-73, -66], [-71, -74], [-64, -78], [64, -78], [71, -74], [73, -66], [73, 22]], F, 0.9, 62);
+  ellipse(-35.7, -30, 22, 12.5, F, 0.95); ellipse(32.9, -30, 22, 12.5, F, 0.95);
+  ellipse(-35.7, -30, 6, 6, F, 0.8, 20); ellipse(32.9, -30, 6, 6, F, 0.8, 20);
+  add([[-6, -50], [-6, 0], [-24, 8], [-26, 14], [-14, 18], [0, 14], [14, 18], [26, 14], [24, 8], [6, 0], [6, -50]], F, 0.9, 8);
+  add(bez([0, 28], [-30, 28], [-46, 30], [-46, 50]), F, 0.9, 28); add(bez([0, 28], [30, 28], [46, 30], [46, 50]), F, 0.9, 28);
+  add([[-1.5, 119], [-20, 112], [-27, 100], [-27, 44]], F, 1, 46); add([[-1.5, 119], [17, 112], [24, 100], [24, 44]], F, 1, 46);
+  for (const x of [-87, 87]) { ellipse(x, 14, 15, 24, F, 0.9, 32); ellipse(x, 14, 6, 6, F, 0.75, 16); }   // ear spools
+
+  // 13 Acatl at the top, and the fire-serpent tails that flank it (drawn outward from the day ring)
+  poly([[-46, -401], [-46, -492], [58, -492], [58, -401]], 'top', 1.05);
+  poly([[-20, -449], [-20, -478], [29, -478], [29, -449]], 'top', 0.75);
+  poly([[-20, -418], [-20, -439], [29, -439], [29, -418]], 'top', 0.75);
+  const tailL = bez([-52, -292], [-90, -352], [-150, -412], [-185, -458]), tailR = bez([-32, -292], [-38, -330], [-50, -390], [-58, -438]);
+  for (const m of [p => p, mx]) { add(tailL.map(m), 'tail', 0.95, 296); add(tailR.map(m), 'tail', 0.95, 296); }
+
+  // the fire-serpent heads meeting at the bottom: each hook rises from the jaw, arcs over and curls in at the snout
+  const hookO = arc(63, 450, 282, -102, 340, 3), hookI = arc(36, 450, 300, -102, 340, 3);
+  const outer = bez([-44, 440], [-40, 410], [-38, 380], [-39, 340], 8).concat(hookO.slice(1), bez([-163.6, 326.9], [-150, 300], [-130, 304], [-125, 318], 8).slice(1));
+  const inner = bez([-76, 420], [-70, 395], [-66, 370], [-66, 340], 8).concat(hookI.slice(1));
+  for (const m of [p => p, mx]) {
+    add(outer.map(m), 'serp', 1.1, 300); add(inner.map(m), 'serp', 0.9, 310);
+    ellipse(m([-127, 333])[0], 333, 9, 9, 'serp', 0.8, 16);
+  }
+  return E;
+}
+
+// start time of a stroke from its distance to the centre (asset px): face first, rim last
+const TOR = [[0, DRAW0], [120, 0.82], [240, 1.45], [300, 1.9], [420, 2.45], [500, 2.75]];
+const tOfR = r => { for (let i = 1; i < TOR.length; i++) if (r <= TOR[i][0]) return lerp(TOR[i - 1][1], TOR[i][1], (r - TOR[i - 1][0]) / (TOR[i][0] - TOR[i - 1][0])); return TOR[TOR.length - 1][1]; };
+const rOfT = t => { for (let i = 1; i < TOR.length; i++) if (t <= TOR[i][1]) return lerp(TOR[i - 1][0], TOR[i][0], (t - TOR[i - 1][1]) / (TOR[i][1] - TOR[i - 1][1])); return 500; };
+const GROUP_DELAY = { ridge: 0.25, tail: 0.1 };
+
+const GEOM = buildGeom();
+for (const e of GEOM) {
+  e.cum = [0];
+  for (let i = 1; i < e.pts.length; i++) e.cum.push(e.cum[i - 1] + Math.hypot(e.pts[i][0] - e.pts[i - 1][0], e.pts[i][1] - e.pts[i - 1][1]));
+  e.len = e.cum[e.cum.length - 1];
+  e.t0 = tOfR(e.r) + (GROUP_DELAY[e.g] || 0);
+  e.dur = clamp(0.4 + e.len * S0 / 1250, 0.4, 1.05);
+}
+// the lift front: asset radius it has reached at time t, and the time it reaches radius r
+const liftR = t => (RIM + 50) * clamp((t - LF0) / (LF1 - LF0));
+const liftT = r => LF0 + (LF1 - LF0) * clamp(r / (RIM + 50));
+// points along the drawing that lift off as sparks in the closing
+const EMBERS = (() => {
+  const R = HG.rng(41), out = [];
+  for (const e of GEOM) for (let s = R() * 14; s < e.len; s += 14 + R() * 6) {
+    let i = 1; while (i < e.cum.length - 1 && e.cum[i] < s) i++;
+    const k = (s - e.cum[i - 1]) / Math.max(1e-6, e.cum[i] - e.cum[i - 1]), a = e.pts[i - 1], b = e.pts[i];
+    const u = lerp(a[0], b[0], k), v = lerp(a[1], b[1], k), r = Math.hypot(u, v);
+    const tr = liftT(r) + (R() - 0.5) * 0.12;
+    out.push({ u, v, r, tr, sp: 120 + R() * 200, sw: (R() - 0.5) * 0.9,
+               life: Math.min(0.65 + R() * 0.5, END - tr), s: 9 + R() * 8, col: R() < 0.55 ? HALO : WARM, tw: R() * 6.28 });
+  }
+  return out;
+})();
+
+// ---------- sprites and layers
+function glowSprite(col, n = 64) {                 // soft warm dot, cream centre (never pure white)
+  const s = document.createElement('canvas'); s.width = s.height = n; const g = s.getContext('2d'), h = n / 2;
+  const grd = g.createRadialGradient(h, h, 0, h, h, h);
+  grd.addColorStop(0, rgba([255, 236, 196], 1)); grd.addColorStop(0.22, rgba(col, 0.9)); grd.addColorStop(0.5, rgba(col, 0.3)); grd.addColorStop(1, rgba(col, 0));
+  g.fillStyle = grd; g.fillRect(0, 0, n, n); return s;
+}
+const SPR = new Map();
+const spr = col => { const k = col.join(); if (!SPR.has(k)) SPR.set(k, glowSprite(col)); return SPR.get(k); };
+function spark(col, x, y, size, a) {
+  if (a <= 0.004 || size <= 0) return;
+  ctx.globalAlpha = Math.min(1, a); ctx.drawImage(spr(col), x - size / 2, y - size / 2, size, size);
+}
+const SL = HG.layer(), WL = HG.layer(), BL = HG.layer();
+let T = null;
+function prepare(A) {
+  const tex = draw => { const c = document.createElement('canvas'); c.width = c.height = 1024; draw(c.getContext('2d')); return c; };
+  T = { stone: A.stone, bloom: tex(g => { g.filter = 'blur(12px)'; g.drawImage(A.stone, 0, 0); }) };
+}
+
+// soft radial band mask: opaque around radius rc (half-width hw), drawn with destination-in on a layer
+function bandMask(c, rc, hw, inside = false) {
+  const r0 = Math.max(0, rc - hw * 2), r1 = rc + hw * 2;
+  const g = c.createRadialGradient(C, C, r0, C, C, r1), at = r => clamp((r - r0) / (r1 - r0));
+  if (inside) { g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(at(rc), 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)'); }
+  else for (let i = 0; i <= 8; i++) { const r = r0 + (r1 - r0) * i / 8, x = (r - rc) / hw; g.addColorStop(i / 8, `rgba(0,0,0,${Math.exp(-x * x).toFixed(4)})`); }
+  c.globalCompositeOperation = 'destination-in'; c.fillStyle = g; c.fillRect(0, 0, W, W);
+}
+
+// trace the first p (0..1) of a stroke into c; returns the pen position
+function trace(c, e, p, M) {
+  const L = e.len * p; let q = M(e.pts[0]);
+  c.moveTo(q[0], q[1]);
+  for (let i = 1; i < e.pts.length; i++) {
+    if (e.cum[i] <= L) { q = M(e.pts[i]); c.lineTo(q[0], q[1]); continue; }
+    const k = (L - e.cum[i - 1]) / Math.max(1e-6, e.cum[i] - e.cum[i - 1]), a = e.pts[i - 1], b = e.pts[i];
+    q = M([lerp(a[0], b[0], k), lerp(a[1], b[1], k)]); c.lineTo(q[0], q[1]); break;
+  }
+  return q;
+}
+
 HG.start({
   duration: 12,
-  assets: { disc: '../assets/piedra-del-sol.png', lines: '../assets/piedra-del-sol_lines.png' },
+  assets: { stone: '../assets/03-piedra-del-sol_basalt.png' },
   render(t, A) {
-    const out = smooth(10.4, 12, t);
-    const rot = 0.06 * t + 0.25 * ease.inOut3((t - 6.5) / 4);
+    if (!T) prepare(A);
+    const sc = scaleAt(t), th = rotAt(t), cs = Math.cos(th), sn = Math.sin(th), rim = rimAt(t);
+    const M = p => [C + sc * (cs * p[0] - sn * p[1]), C + sc * (sn * p[0] + cs * p[1])];
     const pulse = 0.75 + 0.25 * Math.sin(t * 2.6);
-    const size = 900 * (1 + 0.04 * smooth(6, 9, t));
+    const wave = t > WV0 && t < WV1 + 0.6 ? (rim + 70) * ease.inOut3((t - WV0) / (WV1 - WV0)) : -1;   // wave front radius
+    const wEnv = smooth(WV0, WV0 + 0.25, t) * (1 - smooth(WV1 - 0.2, WV1 + 0.35, t));
+    const hit = r => wave < 0 ? 0 : wEnv * Math.exp(-Math.pow((wave - r) / 55, 2));                    // wave at radius r
+    const stoneA = smooth(ST0, ST0 + 0.9, t) * (1 - smooth(DS0, DS1, t));
+    const lineA = lerp(lerp(1, LHOLD, smooth(LH0, LH1, t)), LUP, smooth(LUP0, LUP1, t)) * (1 - smooth(LF1 - 0.2, LF1 + 0.25, t));
 
-    HG.converge(t, { r: 455, n: 650, dur: 2.2, colors: [COLORS.gold, COLORS.warm], scatter: out * 1.2, alpha: (t < 3 ? 1 : 0.7) * (1 - out * 0.6) });
+    // 1. the sun wakes: a soft gold glow behind the face while it is drawn
+    const wake = smooth(0.15, 0.6, t) * (1 - smooth(1.2, 2.4, t));
+    if (wake > 0) {
+      const g = ctx.createRadialGradient(C, C, 0, C, C, 190);
+      g.addColorStop(0, rgba(AMBER, 0.26 * wake)); g.addColorStop(0.5, rgba(AMBER, 0.09 * wake)); g.addColorStop(1, rgba(AMBER, 0));
+      ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(0, 0, W, W); HG.reset();
+    }
 
-    const discA = smooth(4.2, 6.4, t) * (1 - out);
-    if (discA > 0) HG.glowImage(ctx, A.disc, C, C, size, { alpha: discA * 0.95, bloom: 0.35 + 0.15 * pulse, rotation: rot });
+    // 2. the spark halo: sparks swirl in from both sides of the rim and settle into an orbit just outside
+    //    the stone's ring; quiet while the stone is lit, scattered outward when it dissolves
+    {
+      const R = HG.rng(7), Rh = rim + 32, out = smooth(DS0 - 0.1, DS1 + 0.3, t);
+      const haloA = lerp(1, 0.18, smooth(2.6, 4.8, t)) * (1 - smooth(DS1 - 0.3, LF1 + 0.2, t)) + 0.5 * hit(Rh);
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 420; i++) {
+        const a0 = R() * Math.PI * 2, r0 = Rh + (R() < 0.45 ? -(80 + R() * 200) : 40 + R() * 200), spin = (0.9 + R() * 1.4) * (R() < 0.5 ? 1 : -1) * 0.6 + 1.0;
+        const d = R() * 0.8, s = 0.6 + R() * 1.1, jit = (R() - 0.5) * 18, tw = R() * 6.28, col = R() < 0.6 ? HALO : WARM, vo = 0.6 + R() * 0.8;
+        const k = ease.out3((t - d) / 2.1);
+        if (k <= 0) continue;
+        const rad = lerp(r0, Rh + jit, k) + out * vo * 260;
+        const ang = a0 + spin * (1 - k) + 0.12 * t;
+        const twk = 0.55 + 0.45 * Math.sin(t * 5 + tw);
+        spark(col, C + Math.cos(ang) * rad, C + Math.sin(ang) * rad, 10 * s, clamp(k * 1.6) * twk * haloA * (1 - out * 0.5));
+      }
+      HG.reset();
+    }
 
-    const k = ease.out3((t - 1.0) / 3.2);
-    HG.lineReveal(A.lines, C, C, size, k, { rotation: rot, alpha: (t < 6.4 ? 1 : 0.45 + 0.25 * pulse) * (1 - out) });
+    // 3. the stone: basalt with gold-lit carvings, rising from the centre out
+    if (stoneA > 0) {
+      const L = WL.ctx; HG.reset(L); L.clearRect(0, 0, W, W);
+      L.translate(C, C); L.rotate(th); L.drawImage(T.stone, -AX * sc, -AY * sc, 1024 * sc, 1024 * sc); HG.reset(L);
+      const rise = 1 - Math.pow(1 - clamp((t - ST0) / (ST1 - ST0)), 1.7);
+      if (rise < 1) bandMask(L, (rim + 160) * rise, 70, true);
+      ctx.save(); ctx.translate(C, C); ctx.rotate(th);
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = stoneA * rise * (0.16 + 0.06 * pulse);
+      ctx.drawImage(T.bloom, -AX * sc, -AY * sc, 1024 * sc, 1024 * sc); ctx.restore();
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = stoneA; ctx.drawImage(WL.cv, 0, 0); HG.reset();
+    }
 
-    HG.ring(ctx, C, C, size / 2 + 16, COLORS.gold, { width: 8, blur: 14, alpha: smooth(3.4, 5, t) * (0.45 + 0.25 * pulse) * (1 - out) });
-    HG.dust(t, { n: 90, alpha: 0.35 * smooth(5, 7, t) * (1 - out) });
+    // 4. the line art, each stroke traced by a pen of light
+    const L = SL.ctx; HG.reset(L); L.clearRect(0, 0, W, W);
+    L.strokeStyle = rgba(LINE); L.lineCap = 'round'; L.lineJoin = 'round';
+    const pens = [];
+    for (const e of GEOM) {
+      const x = (t - e.t0) / e.dur;
+      if (x <= 0) continue;
+      const p = 1 - Math.pow(1 - clamp(x), 2.2);
+      L.lineWidth = 3.5 * e.w * sc / S0; L.beginPath();
+      const q = trace(L, e, p, M); L.stroke();
+      if (x < 1) pens.push([q, 1 - x]);
+    }
+    if (t > LF0) {                         // closing: the drawing is gone inside the lift front
+      const lr = liftR(t) * sc, g = L.createRadialGradient(C, C, Math.max(0, lr - 40), C, C, lr + 10);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)');
+      HG.reset(L); L.globalCompositeOperation = 'destination-in'; L.fillStyle = g; L.fillRect(0, 0, W, W); HG.reset(L);
+    }
+    if (lineA > 0) {
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = lineA * 0.75; ctx.filter = 'blur(6px)'; ctx.drawImage(SL.cv, 0, 0); ctx.filter = 'none';
+      ctx.globalAlpha = lineA; ctx.drawImage(SL.cv, 0, 0);
+      for (const [q, k] of pens) spark(WARM, q[0], q[1], 22 * sc / S0, 0.85 * Math.pow(k, 0.4));
+      HG.reset();
+    }
+
+    // 5. the wave of light: carving and line art brighten band by band as it passes
+    if (wave > 0 && wEnv > 0) {
+      const B = BL.ctx; HG.reset(B); B.clearRect(0, 0, W, W);
+      B.globalAlpha = 0.5 * stoneA; B.translate(C, C); B.rotate(th); B.drawImage(T.stone, -AX * sc, -AY * sc, 1024 * sc, 1024 * sc); HG.reset(B);
+      B.globalCompositeOperation = 'lighter'; B.globalAlpha = 1.6 * lineA; B.drawImage(SL.cv, 0, 0);
+      // the leading edge: a soft gold ring riding the front, only where there is stone
+      B.globalCompositeOperation = 'source-over'; B.globalAlpha = 1;
+      const lg = B.createRadialGradient(C, C, Math.max(0, wave - 20), C, C, wave + 12);
+      lg.addColorStop(0, rgba(HALO, 0)); lg.addColorStop(0.62, rgba(WARM, 0.55)); lg.addColorStop(1, rgba(HALO, 0));
+      const RL = WL.ctx; HG.reset(RL); RL.clearRect(0, 0, W, W); RL.fillStyle = lg; RL.fillRect(0, 0, W, W);
+      RL.globalCompositeOperation = 'destination-in'; RL.translate(C, C); RL.rotate(th); RL.drawImage(T.stone, -AX * sc, -AY * sc, 1024 * sc, 1024 * sc); HG.reset(RL);
+      B.globalCompositeOperation = 'lighter'; B.drawImage(WL.cv, 0, 0); HG.reset(B);
+      bandMask(B, wave, 50);
+      ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = wEnv; ctx.drawImage(BL.cv, 0, 0); HG.reset();
+
+      // the eight rays flare into short beams as the wave crosses them (kept inside r 462)
+      const fl = hit(360 * sc);
+      if (fl > 0.01) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.filter = 'blur(5px)';
+        for (const [a, rb, hw, tip] of [[0.2, 292, 32, 405], [44.3, 305, 26, 413], [89.0, 294, 31, 411.5], [133.8, 305, 26, 412.6],
+                                         [180, 288, 33, 395], [227.0, 305, 26, 413], [271.6, 294, 31, 411.5], [316.3, 305, 26, 413]]) {
+          const ang = a * Math.PI / 180 + th, ux = Math.sin(ang), uy = -Math.cos(ang), nx = -uy, ny = ux;
+          const b0 = rb * sc, b1 = 460, w0 = hw * sc * 0.75;
+          const g = ctx.createLinearGradient(C + ux * b0, C + uy * b0, C + ux * b1, C + uy * b1);
+          g.addColorStop(0, rgba(AMBER, 0)); g.addColorStop(0.35, rgba(HALO, 0.55 * fl)); g.addColorStop(0.7, rgba(WARM, 0.5 * fl)); g.addColorStop(1, rgba(AMBER, 0));
+          ctx.fillStyle = g; ctx.beginPath();
+          ctx.moveTo(C + ux * b0 + nx * w0, C + uy * b0 + ny * w0); ctx.lineTo(C + ux * b1, C + uy * b1); ctx.lineTo(C + ux * b0 - nx * w0, C + uy * b0 - ny * w0);
+          ctx.closePath(); ctx.fill();
+        }
+        ctx.restore(); HG.reset();
+      }
+    }
+
+    // 6. the ring of light around the stone (inner edge of the halo); glow stays inside r 455
+    const ringA = smooth(2.7, 4.0, t) * (0.38 + 0.12 * pulse + 0.45 * hit(rim + 14)) * (1 - smooth(DS0, DS1 - 0.1, t));
+    HG.ring(ctx, C, C, rim + 14, HALO, { width: 6, blur: 11, alpha: ringA });
+
+    // 7. the drawing front: a thin soft ring expanding from the centre while the strokes appear
+    const fr = rOfT(t) * sc, frA = 0.42 * smooth(DRAW0, DRAW0 + 0.3, t) * (1 - smooth(2.3, 3.0, t)) * (1 - fr / 520);
+    if (frA > 0.005 && fr > 4) {
+      const g = ctx.createRadialGradient(C, C, Math.max(0, fr - 16), C, C, fr + 5);
+      g.addColorStop(0, rgba(HALO, 0)); g.addColorStop(0.72, rgba(WARM, frA)); g.addColorStop(1, rgba(HALO, 0));
+      ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(0, 0, W, W); HG.reset();
+    }
+
+    // 8. the closing: the carving lifts off as sparks drifting outward
+    if (t > LF0 - 0.1 && t < END) {
+      ctx.globalCompositeOperation = 'lighter';
+      for (const m of EMBERS) {
+        const age = t - m.tr; if (age < 0 || age > m.life) continue;
+        const scr = scaleAt(m.tr), thr = rotAt(m.tr), c2 = Math.cos(thr), s2 = Math.sin(thr);
+        let x = scr * (c2 * m.u - s2 * m.v), y = scr * (s2 * m.u + c2 * m.v);
+        const r0 = Math.hypot(x, y) || 1, ux = x / r0, uy = y / r0;
+        const dr = m.sp * age * (1 - 0.25 * age), da = m.sw * age;
+        const rr = r0 + dr, a = Math.atan2(y, x) + da / Math.max(1, rr / 200);
+        x = C + Math.cos(a) * rr; y = C + Math.sin(a) * rr;
+        const k = age / m.life, tw = 0.65 + 0.35 * Math.sin(t * 7 + m.tw);
+        spark(m.col, x, y, m.s * (1 - 0.4 * k), smooth(0, 0.12, k) * (1 - smooth(0.3, 1, k)) * tw);
+      }
+      HG.reset();
+    }
   },
 });
 </script></body></html>

@@ -66,45 +66,68 @@ const armAngle = (arm, r) => ARM0 + arm * TAU / ARMS - TWIST * Math.log(Math.max
 const vis = (r, half) => 1 - smooth(412, 490, r + 0.5 * half);
 
 // ---------- sprites (built once from the asset; no time-dependent state)
+// The wings keep the asset's monarch orange and dark veins: nothing additive is drawn over
+// them except a faint deep-orange sheen (and a gold one only as the ring of light passes).
+// The extra light lives in a halo cut to the outside of the silhouette.
 const AX = 517 / 1024, BY = 500 / 1024;
+const HUES = [-2, 0, 2, 4, 6];             // per-monarch hue jitter (degrees), so the swarm is not cloned
+const HALO = [255, 138, 24];                 // halo colour: deep marigold, so the aura never reads yellow
 let SN = null, SF = null, SH = null, PTS = null;
-function makeSet(img, size, filter) {
+const cnv = n => { const c = document.createElement('canvas'); c.width = c.height = n; return c; };
+function hueShift(d, o, deg) {
+  if (!deg) return;
+  const r = d[o] / 255, g = d[o + 1] / 255, b = d[o + 2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), c = mx - mn;
+  if (c < 0.02) return;
+  let h = mx === r ? ((g - b) / c) % 6 : mx === g ? (b - r) / c + 2 : (r - g) / c + 4;
+  h = ((h * 60 + deg) % 360 + 360) % 360 / 60;
+  const x = c * (1 - Math.abs(h % 2 - 1)), m = mn;
+  const [rr, gg, bb] = h < 1 ? [c, x, 0] : h < 2 ? [x, c, 0] : h < 3 ? [0, c, x] : h < 4 ? [0, x, c] : h < 5 ? [x, 0, c] : [c, 0, x];
+  d[o] = (rr + m) * 255; d[o + 1] = (gg + m) * 255; d[o + 2] = (bb + m) * 255;
+}
+function makeSet(img, size, filter, hues = [0]) {
   let src = img, cur = img.width;
   while (cur / 2 >= size) {
-    const h = document.createElement('canvas'); h.width = h.height = cur / 2;
-    const hg = h.getContext('2d'); hg.imageSmoothingQuality = 'high'; hg.drawImage(src, 0, 0, cur / 2, cur / 2);
+    const h = cnv(cur / 2), hg = h.getContext('2d'); hg.imageSmoothingQuality = 'high'; hg.drawImage(src, 0, 0, cur / 2, cur / 2);
     src = h; cur /= 2;
   }
-  const s = document.createElement('canvas'); s.width = s.height = size;
-  const g = s.getContext('2d'); g.imageSmoothingQuality = 'high'; if (filter) g.filter = filter; g.drawImage(src, 0, 0, size, size);
-  // soften the white wing spots to warm cream, and make an orange-tinted copy for the additive
-  // sheen, so the highlights glow warm instead of clipping to white
-  const id = g.getImageData(0, 0, size, size), d = id.data;
-  const sh = document.createElement('canvas'); sh.width = sh.height = size;
-  const hd = sh.getContext('2d').createImageData(size, size), e = hd.data;
-  for (let o = 0; o < d.length; o += 4) {
-    const m = Math.min(d[o], d[o + 1], d[o + 2]);
-    if (m > 120) { const k = (m - 120) / 135; d[o] = Math.min(d[o], 250 - 12 * k); d[o + 1] = d[o + 1] * (1 - 0.1 * k); d[o + 2] = d[o + 2] * (1 - 0.24 * k); }
-    e[o] = d[o]; e[o + 1] = d[o + 1] * 0.72; e[o + 2] = d[o + 2] * 0.35; e[o + 3] = d[o + 3];
-  }
-  g.putImageData(id, 0, 0); sh.getContext('2d').putImageData(hd, 0, 0);
-  const pad = Math.round(size * 0.16);
-  const gl = document.createElement('canvas'); gl.width = gl.height = size + pad * 2;
-  const gg = gl.getContext('2d');
-  gg.filter = `blur(${size * 0.05}px)`; gg.drawImage(s, pad, pad);
-  gg.filter = `blur(${size * 0.016}px)`; gg.globalCompositeOperation = 'lighter'; gg.globalAlpha = 0.6; gg.drawImage(s, pad, pad);
-  return { img: s, sheen: sh, glow: gl, size, pad, ax: AX * size, by: BY * size };
+  const s0 = cnv(size), g0 = s0.getContext('2d'); g0.imageSmoothingQuality = 'high';
+  if (filter) g0.filter = filter; g0.drawImage(src, 0, 0, size, size);
+  const base = g0.getImageData(0, 0, size, size).data;
+  const pad = Math.round(size * 0.2);
+  return hues.map(deg => {
+    // soften the white wing spots to warm cream; build a deep-orange sheen copy and a gold copy
+    const s = cnv(size), g = s.getContext('2d'), id = g.createImageData(size, size), d = id.data; d.set(base);
+    const sh = cnv(size), hd = sh.getContext('2d').createImageData(size, size), e = hd.data;
+    const gd = cnv(size), od = gd.getContext('2d').createImageData(size, size), u = od.data;
+    for (let o = 0; o < d.length; o += 4) {
+      hueShift(d, o, deg);
+      const m = Math.min(d[o], d[o + 1], d[o + 2]);
+      if (m > 120) { const k = (m - 120) / 135; d[o] = Math.min(d[o], 250 - 12 * k); d[o + 1] = d[o + 1] * (1 - 0.1 * k); d[o + 2] = d[o + 2] * (1 - 0.24 * k); }
+      e[o] = d[o]; e[o + 1] = d[o + 1] * 0.9; e[o + 2] = d[o + 2] * 0.25; e[o + 3] = d[o + 3];
+      u[o] = d[o]; u[o + 1] = d[o + 1] * 0.86; u[o + 2] = d[o + 2] * 0.4; u[o + 3] = d[o + 3];
+    }
+    g.putImageData(id, 0, 0); sh.getContext('2d').putImageData(hd, 0, 0); gd.getContext('2d').putImageData(od, 0, 0);
+    // halo: the silhouette filled with marigold, blurred wide and tight, then cut to outside the wings
+    const sil = cnv(size), sg = sil.getContext('2d');
+    sg.drawImage(s, 0, 0); sg.globalCompositeOperation = 'source-in'; sg.fillStyle = rgba(HALO); sg.fillRect(0, 0, size, size);
+    const gl = cnv(size + pad * 2), gg = gl.getContext('2d');
+    gg.filter = `blur(${size * 0.065}px)`; gg.drawImage(sil, pad, pad);
+    gg.globalCompositeOperation = 'lighter';
+    gg.filter = `blur(${size * 0.022}px)`; gg.globalAlpha = 0.85; gg.drawImage(sil, pad, pad);
+    gg.filter = 'none'; gg.globalAlpha = 1; gg.globalCompositeOperation = 'destination-out'; gg.drawImage(s, pad, pad);
+    return { img: s, sheen: sh, gold: gd, glow: gl, size, pad, ax: AX * size, by: BY * size };
+  });
 }
 function build(img) {
-  SN = makeSet(img, 256, 'brightness(1.12)');
-  SF = makeSet(img, 128, 'saturate(0.8) brightness(0.94)');   // far monarchs: dimmer, a touch less saturated
-  SH = makeSet(img, 512, 'brightness(1.12)');
+  SN = makeSet(img, 256, null, HUES);
+  SF = makeSet(img, 128, 'brightness(0.9)', HUES);   // far monarchs: a little dimmer, same orange
+  SH = makeSet(img, 512, null)[0];
   // points on the bright parts of the wings, used when a monarch breaks into sparks
-  const d = SN.img.getContext('2d').getImageData(0, 0, 256, 256).data, R = HG.rng(404), pts = [];
+  const d = SN[2].img.getContext('2d').getImageData(0, 0, 256, 256).data, R = HG.rng(404), pts = [];
   for (let n = 0; pts.length < 140 && n < 50000; n++) {
     const x = Math.floor(R() * 256), y = Math.floor(R() * 256), o = (y * 256 + x) * 4;
     const l = (d[o] + d[o + 1] + d[o + 2]) / 3;
-    if (d[o + 3] > 200 && l > 75) pts.push({ x: x - SN.ax, y: y - SN.by, warm: l > 175 });
+    if (d[o + 3] > 200 && l > 75) pts.push({ x: x - SN[2].ax, y: y - SN[2].by, warm: l > 175 });
   }
   PTS = pts;
 }
@@ -113,23 +136,28 @@ function halves(c, S, wl, wr, img = S.img) {
   c.drawImage(img, 0, 0, ax + 0.5, n, -(ax + 0.5) * wl, -by, (ax + 0.5) * wl, n);
   c.drawImage(img, ax - 0.5, 0, n - ax + 0.5, n, -0.5 * wr, -by, (n - ax + 0.5) * wr, n);
 }
-// one monarch, each wing scaled about the body axis; bloom and sheen are additive
-function drawMonarch(c, S, x, y, rot, k, wl, wr, aBody, aSheen, aBloom) {
+// one monarch, each wing scaled about the body axis. The halo (outside the silhouette) and the
+// sheens are additive; the gold sheen is only used while the ring of light passes.
+function drawMonarch(c, S, x, y, rot, k, wl, wr, aBody, aSheen, aHalo, aGold = 0) {
   if (aBody <= 0.004) return;
   c.save(); c.translate(x, y); c.rotate(rot); c.scale(k, k);
-  if (aBloom > 0.004) {
-    const P = S.pad, gw = S.glow.width, ga = S.ax + P;
-    c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, aBloom);
+  const P = S.pad, gw = S.glow.width, ga = S.ax + P;
+  c.globalCompositeOperation = 'lighter';
+  for (let h = aHalo; h > 0.004; h -= 1) {
+    c.globalAlpha = Math.min(1, h);
     c.drawImage(S.glow, 0, 0, ga, gw, -ga * wl, -(S.by + P), ga * wl, gw);
     c.drawImage(S.glow, ga, 0, gw - ga, gw, 0, -(S.by + P), (gw - ga) * wr, gw);
   }
   c.globalCompositeOperation = 'source-over'; c.globalAlpha = Math.min(1, aBody); halves(c, S, wl, wr);
-  if (aSheen > 0.004) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, aSheen); halves(c, S, wl, wr, S.sheen); }
+  c.globalCompositeOperation = 'lighter';
+  if (aSheen > 0.004) { c.globalAlpha = Math.min(1, aSheen); halves(c, S, wl, wr, S.sheen); }
+  if (aGold > 0.004) { c.globalAlpha = Math.min(1, aGold); halves(c, S, wl, wr, S.gold); }
   c.restore();
 }
 
-// where the crosser enters (lower left)
-const XK0 = { t: 0.06, x: C + 535 * Math.cos(2.55), y: C + 535 * Math.sin(2.55) };
+// where the crosser enters (lower left): close enough in that it is already inside the
+// portal's opening disc (r < ~150) by 0.5-0.7 s, when the transition reveals the centre
+const XK0 = { t: 0.1, x: C + 320 * Math.cos(2.55), y: C + 320 * Math.sin(2.55) };
 
 // ---------- the swarm. Orbit slots lie along the three arms; a relaxation pass keeps a
 // minimum spacing, and the vortex turns rigidly so the arms hold their shape.
@@ -182,6 +210,13 @@ const BF = (() => {
     if (!best || sc < best.sc) best = { b, sc };
   }
   const X = best.b; X.span = 186; X.bright = 1; X.cross = true; X.d = -10; X.D = 1;
+  // per-monarch jitter (own seed, so the layout above is unchanged): hue variant, brightness, flap
+  const J = HG.rng(515);
+  for (const b of L) {
+    b.hv = Math.floor(J() * HUES.length); b.bright *= 0.92 + 0.12 * J();
+    b.fa = 0.66 + 0.3 * J(); b.fo = 0.5 + 0.12 * J();
+  }
+  X.hv = 2; X.bright = 1; X.fa = 0.85;
   // arrival order: roughly inner slots first, so the vortex fills from its heart outward
   const rest = L.filter(b => !b.cross).map(b => ({ b, key: b.rO / 420 + 0.35 * Q() })).sort((a, b) => a.key - b.key);
   // the first six are picked from the inner slots so that they come in from all round the circle
@@ -226,7 +261,7 @@ const XK = (() => {
   const X = BF.find(b => b.cross), t2 = 3.1;
   const q = orbitPath(X, t2), q0 = orbitPath(X, t2 - 0.02), q1 = orbitPath(X, t2 + 0.02);
   const k0 = { t: XK0.t, x: XK0.x, y: XK0.y };
-  const k1 = { t: 1.35, x: 552, y: 512, vx: 235, vy: -185 };
+  const k1 = { t: 0.8, x: 552, y: 512, vx: 210, vy: -165 };
   k0.vx = (k1.x - k0.x) / (k1.t - k0.t) * 1.05; k0.vy = (k1.y - k0.y) / (k1.t - k0.t) * 1.05;
   const k2 = { t: t2, x: q.x, y: q.y, vx: (q1.x - q0.x) / 0.04, vy: (q1.y - q0.y) / 0.04 };
   return [k0, k1, k2];
@@ -239,37 +274,38 @@ function path(b, t) {
   const y = h00 * A.y + h10 * h * A.vy + h01 * B.y + h11 * h * B.vy;
   return { x, y, r: Math.hypot(x - C, y - C), s: lerp(1.22, 1, smooth(1.0, XK[2].t, t)) };
 }
-const arrA = (b, t) => b.cross ? smooth(0.06, 0.5, t) : smooth(b.d, b.d + 0.45, t);
+const arrA = (b, t) => b.cross ? smooth(0.1, 0.42, t) : smooth(b.d, b.d + 0.45, t);
 const bodyFade = (b, t) => 1 - smooth(b.td, b.td + 0.5, t);
 
-// wing angle: flapping with glides; beats quicken at take-off; during the gathered vortex a
-// wave of synchronised downstrokes (with a soft lift of light) runs round the three arms
+// wing angle: flapping with glides; beats quicken at take-off. During the gathered vortex a
+// wave of light sweeps round the swarm: as it passes, each monarch spreads its wings wide and
+// its halo swells, so the wave reads as a bright sector travelling round the arms.
+const BEAM = t => TAU * (t - 4.9) / 2.2;
+function beam(p, t) {
+  const sw = HG.window(t, 4.9, 7.3, 0.5, 0.6);
+  if (sw <= 0) return 0;
+  const d = wrapA(Math.atan2(p.y - C, p.x - C) - ROT(t) - BEAM(t));
+  return sw * Math.exp(-d * d / 0.5);
+}
 function wing(b, t, p) {
   const take = intSmooth(b.e - 0.1, b.e + 0.5, t) * 0.8;
-  let ph = TAU * (b.f * t + take) + b.p;
+  const ph = TAU * (b.f * t + take) + b.p;
   const glide = smooth(-0.2, 0.7, Math.sin(TAU * b.gf * t + b.gq)) * (1 - smooth(b.e - 0.3, b.e + 0.2, t));
-  const sw = HG.window(t, 5.0, 7.3, 0.8, 0.7) * 0.85;
-  let lift = 1;
-  if (sw > 0) {
-    const ang = Math.atan2(p.y - C, p.x - C) - ROT(t);
-    const sph = TAU * 1.5 * t - 3 * ang + 1.2 * (p.r / 300);
-    ph = ph + sw * wrapA(sph - ph);
-    lift = 1 + 0.35 * sw * Math.max(0, Math.sin(ph));
-  }
-  const amp = lerp(1, 0.18, glide * (1 - sw));
-  return { al: 0.55 + 0.8 * amp * Math.sin(ph + 0.35 * Math.sin(ph)), ph, lift };
+  const amp = lerp(1, 0.18, glide), pulse = beam(p, t);
+  const al = lerp(b.fo + b.fa * amp * Math.sin(ph + 0.35 * Math.sin(ph)), -0.12, 0.8 * pulse);
+  return { al, ph, lift: 1 + 1.4 * pulse, pulse };
 }
 function pose(b, t) {
   const p = path(b, t), p0 = path(b, t - 0.04), p1 = path(b, t + 0.04), p2 = path(b, t + 0.14);
   const hd = Math.atan2(p1.y - p0.y, p1.x - p0.x), hd2 = Math.atan2(p2.y - p1.y, p2.x - p1.x);
   const bank = clamp(wrapA(hd2 - hd) * 2.2, -0.32, 0.32);
-  const w = wing(b, t, p), S = b.near ? SN : SF;
+  const w = wing(b, t, p), S = (b.near ? SN : SF)[b.hv];
   return {
     x: p.x, y: p.y, r: p.r, s: p.s, vx: (p1.x - p0.x) / 0.08, vy: (p1.y - p0.y) / 0.08,
     rot: hd + Math.PI / 2 + 0.05 * Math.sin(w.ph + 1),
     k: b.span * p.s / S.size * (1 + 0.035 * Math.sin(w.ph - 0.6)),
     wl: Math.max(0.14, Math.abs(Math.cos(w.al + bank))), wr: Math.max(0.14, Math.abs(Math.cos(w.al - bank))),
-    alpha: arrA(b, t) * vis(p.r, 0.3 * b.span * p.s), lift: w.lift,
+    alpha: arrA(b, t) * vis(p.r, 0.3 * b.span * p.s), lift: w.lift, pulse: w.pulse,
   };
 }
 // flare as the ring of light passes
@@ -278,15 +314,16 @@ function drawBF(c, b, t) {
   const q = pose(b, t), fl = flare(b, t);
   const light = (0.86 + 0.14 * (q.wl + q.wr) / 2) * b.bright * q.alpha * bodyFade(b, t);
   if (light <= 0.004) return;
-  const S = b.near ? SN : SF;
+  const S = (b.near ? SN : SF)[b.hv];
   drawMonarch(c, S, q.x, q.y, q.rot, q.k, q.wl, q.wr, light,
-    (b.near ? 0.5 : 0.4) * light * q.lift * (1 + 0.9 * fl), (b.near ? 1.0 : 0.95) * light * q.lift * (1 + 0.5 * fl));
+    0.2 * light * (1 + 0.3 * (q.lift - 1)), (b.near ? 1.0 : 0.9) * light * q.lift * (1 + 0.6 * fl), (0.6 * fl + 0.1 * q.pulse) * light);
 }
 
-// ---------- luminous wakes: gold at the head, marigold behind, only on a third of the far layer
+// ---------- luminous wakes: gold at the head, marigold behind, only on a third of the far layer.
+// They hold their brightness and taper in width, then end quickly, so no brown tail is left.
 const TL = HG.layer(), TDT = 1 / 30;
-const trailLen = t => 0.9 + 1.2 * HG.window(t, 2.8, 9.2, 1.6, 1.6);
-const WC = [[255, 212, 105], [255, 168, 40], [255, 122, 12], [210, 72, 0]];
+const trailLen = t => 0.7 + 0.85 * HG.window(t, 2.8, 9.2, 1.6, 1.6);
+const WC = [[255, 195, 90], [255, 170, 52], [255, 152, 32], [255, 140, 20]];
 const wakeCol = k => { const x = clamp(k) * 3, i = Math.min(2, Math.floor(x)); return mix(WC[i], WC[i + 1], x - i).map(Math.round); };
 function wakes(t) {
   const c = TL.ctx; HG.reset(c); c.clearRect(0, 0, W, W); c.globalCompositeOperation = 'lighter'; c.lineCap = 'butt';
@@ -295,14 +332,14 @@ function wakes(t) {
     if (!b.wake) continue;
     const fade = bodyFade(b, t);
     if (fade <= 0) continue;
-    const w0 = b.near ? 7 : 4.2, a0 = (b.near ? 0.95 : 0.78) * fade;
+    const w0 = b.near ? 7 : 4.6, a0 = (b.near ? 1 : 0.9) * fade;
     let prev = path(b, t);
     for (let j = 1; j <= M; j++) {
       const te = t - j * TDT, q = path(b, te), k = Math.min(1, j * TDT / L);
-      const a = Math.pow(1 - k, 1.3) * a0 * arrA(b, te) * vis(q.r, 0);
+      const a = (1 - smooth(0.7, 1, k)) * a0 * arrA(b, te) * vis(q.r, 0);
       if (a > 0.004) {
-        c.strokeStyle = rgba(wakeCol(k * 1.1), Math.min(1, a));
-        c.lineWidth = lerp(w0, 0.9, k) * q.s;
+        c.strokeStyle = rgba(wakeCol(k), Math.min(1, a));
+        c.lineWidth = lerp(w0, 2.2, Math.pow(k, 1.2)) * q.s;
         c.beginPath(); c.moveTo(prev.x, prev.y); c.lineTo(q.x, q.y); c.stroke();
       }
       prev = q;
@@ -338,9 +375,13 @@ function trailSparks(t) {
   ctx.restore();
 }
 
-// ---------- the heart: a small galaxy whose three arms continue the swarm's arms
-const HR = t => 82 + 56 * ss((t - 6.1) / 1.25);            // radius, ~138 px at the breath's peak
+// ---------- the heart: a small galaxy whose three arms continue the swarm's arms.
+// It begins as a warm seed of light (revealed first by the portal), then unwinds into its arms.
+const HR = t => 96 + 44 * ss((t - 6.1) / 1.25);            // radius, ~140 px at the breath's peak
 const HEART_OFF = t => 1 - smooth(7.45, 8.5, t);
+const SEED = t => ease.out3((t - 0.3) / 0.6);              // 0.3-0.9 s: the seed grows from a point
+const UNW = t => ease.inOut3((t - 1.4) / 1.7);             // 1.4-3.1 s: the arms unwind from the seed
+const armFront = t => 12 + (HR(t) * 1.2 - 12) * UNW(t);    // how far the arms have unwound
 const GAL = (() => {
   const R = HG.rng(77), out = [];
   for (let k = 0; k < 78; k++) {
@@ -349,48 +390,81 @@ const GAL = (() => {
   }
   for (let k = 0; k < 62; k++) {       // extra sparks thrown from the core at the release
     out.push({ core: true, a0: R() * TAU, r0: 6 + 34 * R(), sz: 11 + 9 * R(), col: R() < 0.5 ? WARM : GOLD, tw: R() * TAU,
-      v: 300 + 260 * R(), sw: 0.4 + 0.8 * R(), life: 1.2 + 0.7 * R() });
+      v: 300 + 260 * R(), sw: 0.4 + 0.8 * R(), life: 1.3 + 0.7 * R() });
   }
   return out;
 })();
-// galaxy position of an arm spark (the sparks drift slowly outward along the arms)
+// galaxy position of an arm spark (the sparks drift slowly outward along the arms); each one
+// lights up as the unwinding front passes it
 function galPos(s, t) {
-  const fl = (s.u + 0.05 * t) % 1, g = ease.out3((t - s.d) / 1.3);
+  const fl = (s.u + 0.05 * t) % 1;
   const rr = 16 + (HR(t) * 1.06 - 16) * Math.pow(fl, 0.85);
-  const r = rr * (1 + 1.6 * (1 - g)), a = armAngle(s.arm, rr) + s.off / Math.max(rr, 30) + ROT(t) + 1.3 * (1 - g);
-  return { r, a, al: smooth(0, 0.3, g) * smooth(0, 0.12, fl) * (1 - smooth(0.8, 1, fl)) };
+  const a = armAngle(s.arm, rr) + s.off / Math.max(rr, 30) + ROT(t);
+  return { r: rr, a, al: clamp((armFront(t) - rr) / 22) * smooth(0, 0.12, fl) * (1 - smooth(0.8, 1, fl)) };
 }
 const HL = HG.layer();
 function heart(t) {
-  const gather = smooth(1.5, 3.8, t), inh = smooth(6.1, 7.35, t), off = HEART_OFF(t);
-  const amp = gather * off * (0.84 + 0.16 * inh) * (0.94 + 0.06 * Math.sin(1.7 * t));
-  if (amp <= 0.004) return;
-  const Rh = HR(t), Rg = Rh * 1.4;
-  // clean warm core
-  const g = ctx.createRadialGradient(C, C, 0, C, C, Rg);
-  g.addColorStop(0, rgba([255, 220, 150], 0.82 * amp)); g.addColorStop(0.12, rgba([255, 196, 100], 0.7 * amp));
-  g.addColorStop(0.32, rgba([255, 158, 44], 0.32 * amp)); g.addColorStop(0.62, rgba([255, 118, 16], 0.1 * amp));
-  g.addColorStop(1, rgba([255, 100, 10], 0));
-  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(C - Rg, C - Rg, Rg * 2, Rg * 2); ctx.restore();
-  // three arms of light
+  const off = HEART_OFF(t), inh = smooth(6.1, 7.35, t), seed = SEED(t), U = UNW(t);
+  if (seed <= 0 || off <= 0) return;
+  const breath = off * (0.84 + 0.16 * inh) * (0.94 + 0.06 * Math.sin(1.7 * t));
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  // the seed: a small warm point that grows from nothing (not a fade from grey)
+  const sA = smooth(0.3, 0.45, t) * (1 - U) * breath;
+  if (sA > 0.004) {
+    const Rs = (86 + 6 * Math.sin(2.2 * t)) * seed;
+    const g = ctx.createRadialGradient(C, C, 0, C, C, Rs);
+    g.addColorStop(0, rgba([255, 226, 168], 0.95 * sA)); g.addColorStop(0.16, rgba([255, 200, 104], 0.82 * sA));
+    g.addColorStop(0.42, rgba([255, 156, 40], 0.4 * sA)); g.addColorStop(1, rgba([255, 124, 18], 0));
+    ctx.fillStyle = g; ctx.fillRect(C - Rs, C - Rs, Rs * 2, Rs * 2);
+  }
+  // clean warm core, opening with the arms
+  const amp = U * breath, Rh = HR(t), Rg = lerp(54, Rh * 1.4, U);
+  if (amp > 0.004) {
+    const g = ctx.createRadialGradient(C, C, 0, C, C, Rg);
+    g.addColorStop(0, rgba([255, 220, 150], 0.82 * amp)); g.addColorStop(0.12, rgba([255, 196, 100], 0.7 * amp));
+    g.addColorStop(0.32, rgba([255, 158, 44], 0.34 * amp)); g.addColorStop(0.62, rgba([255, 130, 22], 0.12 * amp));
+    g.addColorStop(1, rgba([255, 110, 12], 0));
+    ctx.fillStyle = g; ctx.fillRect(C - Rg, C - Rg, Rg * 2, Rg * 2);
+  }
+  ctx.restore();
+  if (U <= 0.002) return;
+  const ab = breath * (0.85 + 0.15 * U);    // the arms grow in length, not in opacity
+  // three arms of light, drawn out to the unwinding front, with a bright head while they grow
   const c = HL.ctx; HG.reset(c); c.clearRect(0, 0, W, W); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
-  const rot = ROT(t), Ra = Rh * 1.12;
+  const rot = ROT(t), Ra = Rh * 1.2, front = armFront(t);
   for (let arm = 0; arm < ARMS; arm++) {
     let px = null, py = null;
-    for (let n = 0; n <= 28; n++) {
-      const k = n / 28, r = 14 + (Ra - 14) * k, a = armAngle(arm, r) + rot;
+    for (let n = 0; n <= 30; n++) {
+      const k = n / 30, r = Math.min(front, 12 + (Ra - 12) * k), a = armAngle(arm, r) + rot;
       const x = C + Math.cos(a) * r, y = C + Math.sin(a) * r;
       if (px !== null) {
-        c.strokeStyle = rgba(mix([255, 205, 110], [255, 140, 30], k).map(Math.round), 0.75 * (1 - k * 0.85));
-        c.lineWidth = lerp(12, 3, k); c.beginPath(); c.moveTo(px, py); c.lineTo(x, y); c.stroke();
+        c.strokeStyle = rgba(mix([255, 205, 110], [255, 150, 36], k).map(Math.round), 0.8 * (1 - k * 0.62));
+        c.lineWidth = lerp(13, 4, k); c.beginPath(); c.moveTo(px, py); c.lineTo(x, y); c.stroke();
       }
       px = x; py = y;
+      if (r >= front) break;
     }
+    const head = Math.sin(Math.PI * clamp(U)) * off;
+    if (head > 0.01) { c.globalAlpha = 1; dot(c, WARM, px, py, 40, head); c.globalAlpha = 1; }
   }
   HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
-  ctx.filter = 'blur(7px)'; ctx.globalAlpha = 0.85 * amp; ctx.drawImage(HL.cv, 0, 0);
-  ctx.filter = 'none'; ctx.globalAlpha = 0.35 * amp; ctx.drawImage(HL.cv, 0, 0);
+  ctx.filter = 'blur(7px)'; ctx.globalAlpha = 0.85 * ab; ctx.drawImage(HL.cv, 0, 0);
+  ctx.filter = 'none'; ctx.globalAlpha = 0.38 * ab; ctx.drawImage(HL.cv, 0, 0);
   HG.reset(ctx);
+}
+// sparks streaming out of the arm tips into the swarm, so heart and arms read as one galaxy
+function armStreams(t) {
+  const amp = smooth(0.8, 1, UNW(t)) * HEART_OFF(t);
+  if (amp <= 0.004) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const rot = ROT(t), r0 = HR(t) * 1.05;
+  for (let arm = 0; arm < ARMS; arm++) for (let j = 0; j < 10; j++) {
+    const h = hash(arm * 17 + 3, j), ph = (0.42 * t + j / 10 + 0.31 * arm + 0.04 * h) % 1;
+    const r = r0 + 140 * ph, a = armAngle(arm, r) + rot + (h - 0.5) * 20 / r;
+    const al = 0.95 * amp * Math.pow(Math.sin(Math.PI * ph), 0.6) * (0.8 + 0.2 * Math.sin(7 * t + 40 * h));
+    dot(ctx, h < 0.4 ? WARM : GOLD, C + Math.cos(a) * r, C + Math.sin(a) * r, 19 - 6 * ph, al);
+  }
+  ctx.restore();
 }
 // galaxy sparks before the release; after it, the same sparks (plus a core spray) fly outward
 function heartSparks(t) {
@@ -416,24 +490,28 @@ function heartSparks(t) {
   ctx.restore();
 }
 // the release ring: a defined band of warm light with a soft halo
+const T_RING_OUT = waveTime(440);
 function releaseRing(t) {
   const k = (t - T_REL) / WAVE_D;
   if (k <= 0 || k >= 1) return;
-  const R = waveR(t), a = smooth(0, 0.05, k) * (1 - smooth(425, 500, R));
+  // once the ring passes r~440 it goes out quickly (halo first, the gold core last), so it ends
+  // as a gold line rather than a slow brown haze at the rim
+  const R = waveR(t), a0 = smooth(0, 0.05, k), tE = T_RING_OUT;
+  const ah = a0 * (1 - smooth(tE - 0.3, tE + 0.02, t)), a = a0 * (1 - smooth(tE - 0.06, tE + 0.09, t));
   if (a <= 0.004) return;
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const arc = () => { ctx.beginPath(); ctx.arc(C, C, R, 0, TAU); ctx.stroke(); };
-  ctx.strokeStyle = rgba([255, 140, 30], 1); ctx.lineWidth = 46; ctx.globalAlpha = 0.42 * a; ctx.filter = 'blur(16px)'; arc();
+  if (ah > 0.004) { ctx.strokeStyle = rgba([255, 140, 30], 1); ctx.lineWidth = 46; ctx.globalAlpha = 0.42 * ah; ctx.filter = 'blur(16px)'; arc(); }
   ctx.strokeStyle = rgba([255, 176, 64], 1); ctx.lineWidth = 14; ctx.globalAlpha = 0.8 * a; ctx.filter = 'blur(2.5px)'; arc();
-  ctx.strokeStyle = rgba([255, 205, 120], 1); ctx.lineWidth = 3; ctx.globalAlpha = 0.3 * a; ctx.filter = 'none'; arc();
+  ctx.strokeStyle = rgba([255, 210, 128], 1); ctx.lineWidth = 3.5; ctx.globalAlpha = 0.45 * a; ctx.filter = 'none'; arc();
   ctx.restore();
 }
 
 // ---------- the hero monarch: rises out of the light at the release, then glides away
 function heroPose(t) {
   const k = ease.out3((t - 7.4) / 1.5), g = ss((t - 8.6) / 2.4);
-  const x = 540 + 75 * g + 10 * Math.sin(1.1 * t) * k, y = lerp(548, 468, k) - 115 * g;
-  const span = lerp(60, 330, k) * lerp(1, 0.7, g);
+  const x = 540 + 42 * g + 10 * Math.sin(1.1 * t) * k, y = lerp(548, 468, k) - 58 * g;
+  const span = lerp(60, 330, k) * lerp(1, 0.82, g);
   const ph = TAU * (1.05 * t) + 0.4, glide = smooth(-0.1, 0.8, Math.sin(TAU * 0.23 * t + 1.0)) * smooth(8.4, 9.0, t);
   const amp = lerp(1, 0.2, glide), al = 0.55 + 0.82 * amp * Math.sin(ph + 0.35 * Math.sin(ph));
   const rot = 0.2 * g + 0.07 * Math.sin(0.9 * t), bank = 0.1 * Math.sin(0.9 * t + 1.2);
@@ -444,7 +522,9 @@ const HERO_TD = 10.95;
 function hero(t) {
   if (t < 7.35) return;
   const q = heroPose(t), light = (0.88 + 0.12 * (q.wl + q.wr) / 2) * q.alpha * (1 - smooth(HERO_TD, HERO_TD + 0.55, t));
-  drawMonarch(ctx, SH, q.x, q.y, q.rot, q.k, q.wl, q.wr, light, 0.32 * light, 0.55 * light);
+  // born gold out of the release, it cools to monarch orange as it glides
+  const gold = smooth(7.35, 7.7, t) * (1 - smooth(8.1, 8.9, t));
+  drawMonarch(ctx, SH, q.x, q.y, q.rot, q.k, q.wl, q.wr, light, 0.2 * light, (0.95 + 0.5 * gold) * light, 0.6 * gold * light);
 }
 
 // ---------- the end: each remaining monarch breaks into sparks where it is
@@ -459,7 +539,7 @@ function dissolve(t) {
       const h1 = hash(seed, j), h2 = hash(j + 77, seed), pt = PTS[Math.floor(h1 * PTS.length)];
       const life = 0.5 + 0.3 * h2 * (n > 60 ? 1.2 : 1);
       if (age > life) continue;
-      const lx = pt.x * (pt.x < 0 ? q.wl : q.wr) * q.k * (q.S / SN.size), ly = pt.y * q.k * (q.S / SN.size);
+      const lx = pt.x * (pt.x < 0 ? q.wl : q.wr) * q.k * (q.S / 256), ly = pt.y * q.k * (q.S / 256);
       const ox = lx * cs - ly * sn, oy = lx * sn + ly * cs, d = Math.hypot(ox, oy) || 1;
       const sp = 25 + 45 * h2, tau = 0.7, m = tau * (1 - Math.exp(-age / tau));
       const x = q.x + ox + (ox / d * sp + q.vx * 0.35) * m, y = q.y + oy + (oy / d * sp + q.vy * 0.35 - 30) * m;
@@ -469,7 +549,7 @@ function dissolve(t) {
   };
   for (const b of BF) {
     if (t < b.td) continue;
-    const q = pose(b, b.td); q.S = b.near ? SN.size : SF.size;
+    const q = pose(b, b.td); q.S = b.near ? 256 : 128;
     burst(q, b.td, b.near ? 46 : 22, b.i * 131 + 5, b.near ? 11 : 8, b.near ? 19 : 13, q.alpha * b.bright);
   }
   const h = heroPose(HERO_TD); h.S = SH.size;
@@ -484,6 +564,7 @@ HG.start({
   render(t, A) {
     if (!SN) build(A.mon);
     heart(t);
+    armStreams(t);
     wakes(t);
     trailSparks(t);
     releaseRing(t);

@@ -1,0 +1,477 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Danza de la Pluma (Guelaguetza, Oaxaca), at dusk. The great round feather crown of a danzante
+// is built in front of us: a glint in the last light becomes the embroidered centre with its round
+// mirrors, then, on every drum beat, a new ring of dyed feathers rises closed behind it and flicks
+// open like a peacock's display (turquoise, white, pink, yellow, green, red), each with a springy
+// overshoot, until white plumes pop out around the rim. The crown dances as if worn: it hops on the
+// beat, turns and nods in depth with the dancer's head, each landing sends a ripple of light through
+// the rings and its mirrors flash in turn; then the dancer leaps and spins in the air (the crown
+// turns a full circle in depth) and lands with the feathers flexing. At nightfall the feathers lift off
+// from the rim inward and fly up into the violet sky as coloured sparks; the mirrored centre folds
+// into a single star.
+// Feathers are drawn procedurally (sprites built once from HG.rng seeds); the centre is the
+// embroidered medallion of out-show2/images/penacho-pluma-1.png (prepare.py --circle).
+const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
+const TAU = Math.PI * 2;
+const mix = (a, b, k) => [0, 1, 2].map(i => Math.round(lerp(a[i], b[i], k)));
+const WHITE = [255, 255, 255], BLACK = [0, 0, 0];
+const MIRROR = [236, 228, 255], GOLD = [255, 196, 90], LILAC = [200, 150, 255];
+const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
+
+// ---------- crown geometry (crown-local coordinates, centre 0,0; on screen at CX, CY)
+const CX = 540, CY = 532;
+const RM = 150;                                  // medallion radius
+const MED_W = RM * 2 * 512 / 491.6;              // the asset's rim sits at 491.6 of 512 px
+const RINGS = [                                  // inner -> outer
+  { col: [40, 150, 255], base: 112, tip: 214, n: 36 },
+  { col: [250, 240, 228], base: 150, tip: 260, n: 44 },
+  { col: [255, 80, 170], base: 188, tip: 304, n: 52 },
+  { col: [255, 200, 45], base: 226, tip: 348, n: 60 },
+  { col: [40, 205, 100], base: 264, tip: 392, n: 68 },
+  { col: [245, 45, 55], base: 302, tip: 436, n: 76 },
+];
+const NT = 20, TUFT_R = 404, TUFT_L = 74;        // white plumes around the rim
+const TUFT_TIPS = [[255, 80, 170], [40, 205, 100], [40, 150, 255], [255, 200, 45]];
+// mirrors on the medallion (asset px, measured on penacho-pluma-1), clockwise from the top
+const MIRRORS = [[512, 119], [777, 192], [917, 481], [711, 934], [512, 965], [322, 938], [109, 481], [249, 190]]
+  .map(([u, v]) => [(u - 512) * RM / 491.6, (v - 512) * RM / 491.6]);
+const MIRROR_C = [0, (548 - 512) * RM / 491.6];
+
+// ---------- timeline
+const RING_T0 = 1.3, RING_DT = 0.5, OPEN_D = 1.3;   // ring k flicks open on beat RING_T0 + k * RING_DT
+const TUFT_T0 = 4.45;
+const SPIN0 = 7.05, SPIN_D = 1.25;                 // the leap and pirouette
+const LIFT0 = 9.3;                                 // feathers fly away
+const HOPS = [[5.25, 0.5, 17], [5.75, 0.5, 17], [6.25, 0.5, 17], [7.0, 1.35, 38], [8.45, 0.5, 14]];
+const LANDS = [[5.75, 0.6], [6.25, 0.6], [6.75, 0.6], [8.35, 1.4], [8.95, 0.55]];
+const LAND = 8.35;
+
+// ---------- feather sprites (procedural, built once at a resolution that suits ?size)
+const SPR_K = 1.6 * Math.max(1, HG.S);
+// a dyed plume pointing up, base at (ox, oy): long silky barbs angled to the tip, a fine shaft,
+// a soft fringe; colour deepens toward the base (where the next ring overlaps)
+function featherSprite(col, seed, { L = 150, HW = 22, barbs = 120, tip = null, dark = 0.55, shadow = false, wisp = 1 } = {}) {
+  const R = HG.rng(seed), PAD = 14, sw = 2 * HW + 2 * PAD, sh = L + 2 * PAD;
+  const cv = document.createElement('canvas');
+  cv.width = Math.ceil(sw * SPR_K); cv.height = Math.ceil(sh * SPR_K);
+  const g = cv.getContext('2d'); g.scale(SPR_K, SPR_K);
+  const ox = sw / 2, oy = L + PAD;
+  const w = s => { s = clamp(s); const a = Math.pow(Math.min(1, s / 0.26), 0.55), q = (s - 0.56) / 0.44; return HW * a * (s > 0.56 ? Math.pow(Math.max(0, 1 - q * q), 0.55) : 1); };
+  const Y = s => oy - s * L;
+  const outline = k => {
+    g.beginPath(); g.moveTo(ox, oy);
+    for (let i = 0; i <= 60; i++) { const s = i / 60; g.lineTo(ox + w(s) * k, Y(s)); }
+    for (let i = 60; i >= 0; i--) { const s = i / 60; g.lineTo(ox - w(s) * k, Y(s)); }
+    g.closePath();
+  };
+  if (shadow) {
+    g.filter = `blur(${(6 * SPR_K).toFixed(1)}px)`; outline(1.05); g.fillStyle = 'rgba(0,0,0,0.9)'; g.fill(); g.filter = 'none';
+    return { cv, sw, sh, ox, oy, L, HW };
+  }
+  const tipCol = tip || mix(col, WHITE, 0.14);
+  const lg = g.createLinearGradient(0, oy, 0, oy - L);
+  lg.addColorStop(0, rgba(mix(col, BLACK, dark), 0.95));
+  lg.addColorStop(0.5, rgba(mix(col, BLACK, 0.12), 0.92));
+  lg.addColorStop(0.85, rgba(mix(col, tipCol, 0.5), 0.9));
+  lg.addColorStop(1, rgba(tipCol, 0.85));
+  outline(0.86); g.fillStyle = lg; g.fill();
+  // roundness: the vane darkens toward its edges
+  const xg = g.createLinearGradient(ox - HW, 0, ox + HW, 0);
+  xg.addColorStop(0, 'rgba(0,0,0,0.45)'); xg.addColorStop(0.35, 'rgba(0,0,0,0)'); xg.addColorStop(0.65, 'rgba(0,0,0,0)'); xg.addColorStop(1, 'rgba(0,0,0,0.45)');
+  outline(0.86); g.fillStyle = xg; g.fill();
+  // barbs: silky strands from the shaft toward the tip, ending in a soft uneven fringe
+  g.lineCap = 'round';
+  const tanA = Math.tan(0.36);
+  for (const side of [-1, 1]) for (let i = 0; i < barbs; i++) {
+    const s0 = 0.02 + 0.96 * (i + R()) / barbs;
+    const se = Math.min(1, s0 + w(s0 + 0.06) / (tanA * L) * (0.85 + 0.3 * R()));
+    const reach = (0.92 + 0.14 * R()) * (1 + 0.12 * wisp * R() * R());
+    const x1 = ox + side * w(se) * reach, y1 = Y(Math.min(1.015, se + 0.01 * wisp * R()));
+    const v = R(), base = mix(mix(col, BLACK, dark * (1 - smooth(0.05, 0.55, s0))), tipCol, smooth(0.6, 1, s0));
+    const c = v < 0.5 ? mix(base, BLACK, 0.35 * (0.5 - v) / 0.5) : mix(base, mix(col, WHITE, 0.4), (v - 0.5) / 0.5 * 0.6);
+    g.strokeStyle = rgba(c, 0.32 + 0.4 * R());
+    g.lineWidth = 0.7 + 0.6 * R();
+    g.beginPath(); g.moveTo(ox + side * 0.5, Y(s0));
+    g.quadraticCurveTo(ox + side * w(s0) * 0.18, Y(s0 + (se - s0) * 0.62), x1, y1);
+    g.stroke();
+  }
+  // shaft
+  g.strokeStyle = rgba(mix(col, WHITE, 0.5), 0.75); g.lineWidth = 1.7;
+  g.beginPath(); g.moveTo(ox, oy); g.lineTo(ox, Y(0.5)); g.stroke();
+  g.lineWidth = 0.9; g.beginPath(); g.moveTo(ox, Y(0.49)); g.quadraticCurveTo(ox + 0.6, Y(0.75), ox, Y(0.9)); g.stroke();
+  return { cv, sw, sh, ox, oy, L, HW };
+}
+let SPR = null;
+function sprites() {
+  if (SPR) return SPR;
+  SPR = { rings: [], shadow: featherSprite(BLACK, 1, { shadow: true }), tufts: [] };
+  RINGS.forEach((rg, k) => {
+    const v = [];
+    for (let j = 0; j < 3; j++) {
+      const jit = [1, 0.9, 1.06][j];
+      const col = rg.col.map(x => Math.min(255, Math.round(x * jit)));
+      v.push(featherSprite(col, 31 + k * 7 + j, { dark: k === 1 ? 0.35 : 0.55 }));
+    }
+    SPR.rings.push(v);
+  });
+  TUFT_TIPS.forEach((tc, j) => SPR.tufts.push(featherSprite([248, 240, 232], 90 + j, { L: 130, HW: 9, barbs: 70, tip: tc, dark: 0.25, wisp: 2 })));
+  return SPR;
+}
+
+// ---------- static per-feather data (deterministic)
+const FEATHERS = RINGS.map((rg, k) => {
+  const R = HG.rng(100 + k), sp = TAU / rg.n, off = (k % 2) * sp / 2, list = [];
+  for (let i = 0; i < rg.n; i++) {
+    let d = -Math.PI + (i + 0.5) * sp + off + (R() - 0.5) * 0.3 * sp;
+    if (d > Math.PI) d -= TAU;
+    list.push({ k, d, v: Math.floor(R() * 3), lj: 1 + (R() - 0.5) * 0.08, ph: R() * TAU, spin: (R() - 0.5) * 5, r1: R(), r2: R(), r3: R() });
+  }
+  list.sort((a, b) => Math.abs(b.d) - Math.abs(a.d));   // the top feather lies on top
+  return list;
+});
+const TUFTS = (() => {
+  const R = HG.rng(77), list = [];
+  for (let j = 0; j < NT; j++) {
+    let d = -Math.PI + (j + 0.5) * TAU / NT;
+    for (const s of [-1, 0, 1]) list.push({ d: d + s * 0.075, s, j, tip: j % TUFT_TIPS.length, ph: R() * TAU, r1: R(), r2: R(), spin: (R() - 0.5) * 5 });
+  }
+  list.sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
+  return list;
+})();
+
+// ---------- motion
+// damped spring 0 -> 1 with zero start velocity (~7 % overshoot)
+const spring = u => u <= 0 ? 0 : u >= 1.6 ? 1 : 1 - Math.exp(-5 * u) * (Math.cos(6 * u) + (5 / 6) * Math.sin(6 * u));
+function hopY(t) {
+  let y = 0;
+  for (const [t0, d, h] of HOPS) { const u = (t - t0) / d; if (u > 0 && u < 1) y -= h * 4 * u * (1 - u); }
+  y += 11 * bump(t, 6.72, 6.95, 6.97, 7.12);                     // crouch before the leap
+  for (const [tl, a] of LANDS) { const s = t - tl; if (s > 0 && s < 0.8) y += 5 * a * Math.exp(-7 * s) * Math.sin(s * 20); }
+  return y;
+}
+function flex(t) {          // radial springiness of the feathers after each landing (and at take-off)
+  let f = 0;
+  for (const [tl, a] of LANDS) { const s = t - tl; if (s > 0 && s < 1.2) f += 0.045 * a * Math.exp(-5 * s) * Math.sin(s * 15); }
+  const s = t - 7.0; if (s > 0 && s < 1) f -= 0.03 * Math.exp(-5 * s) * Math.sin(s * 15);
+  return f;
+}
+function pose(t) {
+  const dance = smooth(5.0, 5.4, t) * (1 - smooth(9.0, 9.35, t)) * (1 - bump(t, 6.75, 7.0, 8.35, 8.6));
+  const tilt = 0.06 * Math.sin(Math.PI * (t - 5.25) / 0.5) * dance;
+  // the crown is worn: it drifts gently in depth, turns with the dancer's head on every hop,
+  // nods forward on each landing, and makes one full pirouette in the leap
+  const float = smooth(1.0, 3.0, t) * (1 - smooth(9.2, 10.4, t));
+  let psi = 0.06 * Math.sin(0.6 * t + 1.2) * float;
+  for (const [tl, a] of LANDS) { const s = t - tl; if (s > 0 && s < 1) psi += 0.07 * a * Math.exp(-5 * s) * Math.sin(13 * s); }
+  const phi = TAU * smooth(SPIN0, SPIN0 + SPIN_D, t) + 0.1 * Math.sin(0.8 * t + 0.5) * float
+    + 0.2 * Math.sin(Math.PI * (t - 5.25) / 0.5 - 0.7) * dance;
+  let sq = 0;
+  for (const [tl, a] of LANDS) { const s = t - tl; if (s > 0 && s < 0.6) sq += 0.012 * a * Math.exp(-8 * s) * Math.cos(s * 18); }
+  sq += 0.02 * bump(t, 6.72, 6.95, 6.97, 7.12);
+  const air = 1 - 0.07 * bump(t, 6.95, 7.4, 7.95, 8.4);
+  const beat = (t > RING_T0 - 0.1 && t < 5.2) ? 0.006 * Math.exp(-6 * (((t - RING_T0) % RING_DT + RING_DT) % RING_DT)) : 0;
+  return { x: CX, y: CY + hopY(t), tilt, phi, psi, sx: air * (1 + sq * 0.6 + beat), sy: air * (1 - sq + beat), flex: flex(t), rot: 0.03 * (t - 6) };
+}
+
+// ---------- perspective projection of the crown plane, turned by phi about its vertical axis and
+// psi about its horizontal axis; projJ adds the local Jacobian so sprites can be placed affinely
+const DIST = 3200;
+function proj(P, x, y) {
+  const cf = Math.cos(P.phi), sf = Math.sin(P.phi), cp = Math.cos(P.psi), sp = Math.sin(P.psi);
+  const z1 = x * sf, y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp, k = DIST / (DIST + z2);
+  return { x: x * cf * k, y: y2 * k };
+}
+function projJ(P, x, y) {
+  const p = proj(P, x, y), px = proj(P, x + 1, y), py = proj(P, x, y + 1);
+  return { x: p.x, y: p.y, j11: px.x - p.x, j21: px.y - p.y, j12: py.x - p.x, j22: py.y - p.y };
+}
+function crownSpace(g, P) { g.translate(P.x, P.y); g.rotate(P.tilt); g.scale(P.sx, P.sy); }
+
+// draw sprite spr with its base at (bx, by) pointing along ang, length len and width wid, in crown space
+function placeSprite(g, spr, P, bx, by, ang, len, wid, alpha) {
+  if (alpha <= 0.004 || len <= 0.5) return;
+  const a = ang + Math.PI / 2, ca = Math.cos(a), sa = Math.sin(a);
+  const sx = wid / (2 * spr.HW), sy = len / spr.L;
+  // local affine: q -> R(a) diag(sx, sy) (q - o) + b
+  const m11 = ca * sx, m12 = -sa * sy, m21 = sa * sx, m22 = ca * sy;
+  const tx = bx - (m11 * spr.ox + m12 * spr.oy), ty = by - (m21 * spr.ox + m22 * spr.oy);
+  const cxl = bx + Math.cos(ang) * len / 2, cyl = by + Math.sin(ang) * len / 2;
+  const p = projJ(P, cxl, cyl);
+  // screen = p + J (local - c)
+  const A = p.j11 * m11 + p.j12 * m21, B = p.j21 * m11 + p.j22 * m21, Cc = p.j11 * m12 + p.j12 * m22, D = p.j21 * m12 + p.j22 * m22;
+  const E = p.x + p.j11 * (tx - cxl) + p.j12 * (ty - cyl), F = p.y + p.j21 * (tx - cxl) + p.j22 * (ty - cyl);
+  g.save(); g.transform(A, B, Cc, D, E, F); g.globalAlpha = Math.min(1, alpha);
+  g.drawImage(spr.cv, 0, 0, spr.sw, spr.sh);
+  g.restore();
+}
+
+// four-point glint
+function glint(g, x, y, s, a, rot = 0, col = MIRROR) {
+  if (a <= 0.004 || s <= 0) return;
+  const sp = HG.sprite(col);
+  g.save(); g.globalCompositeOperation = 'lighter'; g.translate(x, y); g.rotate(rot); g.globalAlpha = Math.min(1, a);
+  g.drawImage(sp, -s / 2, -s * 0.04, s, s * 0.08); g.drawImage(sp, -s * 0.04, -s / 2, s * 0.08, s);
+  g.globalAlpha = Math.min(1, a * 0.75); g.drawImage(sp, -s * 0.15, -s * 0.15, s * 0.3, s * 0.3);
+  g.restore();
+}
+
+// ---------- feather states
+function featherState(f, t, P) {
+  const rg = RINGS[f.k], tk = RING_T0 + RING_DT * f.k;
+  const e = ease.out3((t - (tk - 0.32)) / 0.4);                        // rises closed from behind
+  if (e <= 0) return null;
+  const p = spring((t - tk) / OPEN_D);                                 // flicks open on the beat
+  const open = 0.03 + 0.97 * p;
+  let ang = -Math.PI / 2 + P.rot + f.d * open;
+  const lean = (f.k % 2 ? 0.06 : -0.06) * smooth(0.2, 1, p);
+  const settled = smooth(tk + 0.6, tk + 1.6, t);
+  ang += settled * 0.012 * (0.4 + f.k / 5) * Math.sin(2.1 * t + f.ph);           // breathing flutter
+  const fl = 1 + P.flex * (0.3 + 0.7 * f.k / 5);
+  const len = (rg.tip - rg.base) * f.lj * lerp(0.55, 1, e) * fl;
+  const rb = rg.base - (1 - e) * 46;
+  const sp = TAU * rg.tip / rg.n;
+  return { ang, lean, len, rb, wid: 1.32 * sp * lerp(0.75, 1, Math.min(1, p * 1.5)), alpha: smooth(0, 0.45, e) };
+}
+// feathers lift off and fly up and away (tau = seconds since lift-off): each one shrinks as it
+// flies and turns into a comet spark of its own colour
+function liftTime(f, ring) { return LIFT0 + 0.13 * (5 - ring) + 0.34 * Math.pow(Math.abs(f.d) / Math.PI, 1.5) + 0.05 * f.r1; }
+const FLY_END = 0.55, COMET0 = 0.3, COMET_END = 1.15;
+function traj(st, f, tau) {                      // centre of the flying feather, crown space
+  const ux = Math.cos(st.ang), uy = Math.sin(st.ang), c = st.rb + st.len * 0.5;
+  const r = c + 190 * tau + 50 * tau * tau, up = 80 * tau + 240 * tau * tau, sw = 18 * Math.sin(6 * tau + f.ph) * tau;
+  return { x: ux * r - uy * sw, y: uy * r + ux * sw - up };
+}
+function flight(st, f, tau) {
+  const q = traj(st, f, tau), k = 1 - 0.65 * smooth(0, FLY_END, tau), ang = st.ang + (st.lean || 0) + f.spin * 0.4 * tau;
+  const len = st.len * k;
+  return { bx: q.x - Math.cos(ang) * len / 2, by: q.y - Math.sin(ang) * len / 2, ang, len, wid: st.wid * k, alpha: st.alpha * (1 - smooth(0.32, FLY_END, tau)) };
+}
+function comet(list, st, f, tau, col) {
+  if (tau < COMET0 || tau > COMET_END) return;
+  list.push({ st, f, tau, col, a: smooth(COMET0, COMET0 + 0.15, tau) * (1 - smooth(0.7, COMET_END, tau)) * (0.8 + 0.2 * Math.sin(tau * 19 + f.ph)) });
+}
+
+const M = HG.layer(), SH = HG.layer(), CL = HG.layer();
+M.ctx.imageSmoothingQuality = 'high';
+
+HG.start({
+  duration: 12,
+  assets: { med: '../assets/12-danza-de-la-pluma-medallon.png' },
+  render(t, A) {
+    const SP = sprites();
+    const P = pose(t);
+    const G = 1 - smooth(10.75, 11.3, t);                              // final dissolve
+    const facing = Math.abs(Math.cos(P.phi) * Math.cos(P.psi)), lightK = 0.62 + 0.38 * facing;           // edge-on catches less light
+
+    // ---------- dusk sky: violet haze with a last magenta afterglow low down, deepening to night
+    const skyA = smooth(0.2, 2.2, t) * (1 - smooth(10.4, 11.2, t));
+    if (skyA > 0.003) {
+      const warm = 1 - 0.75 * smooth(3, 11, t);
+      const sg = ctx.createRadialGradient(C, 1180, 60, C, 1180, 1120);
+      sg.addColorStop(0, rgba([255, 90, 150], 0.34 * skyA * warm));
+      sg.addColorStop(0.32, rgba([170, 60, 210], 0.29 * skyA));
+      sg.addColorStop(0.62, rgba([95, 45, 190], 0.2 * skyA));
+      sg.addColorStop(1, rgba([25, 15, 80], 0.05 * skyA));
+      ctx.fillStyle = sg; ctx.fillRect(0, 0, W, W);
+    }
+
+    // ---------- build the crown into M
+    const g = M.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+    g.save(); crownSpace(g, P);
+    const sparks = [];
+    const drawRing = (k, withShadow) => {
+      const list = FEATHERS[k], sprs = SP.rings[k];
+      const states = [];
+      for (const f of list) {
+        const st = featherState(f, t, P); if (!st) { states.push(null); continue; }
+        const tl = liftTime(f, k), tau = t - tl;
+        let s = { bx: Math.cos(st.ang) * st.rb, by: Math.sin(st.ang) * st.rb, ang: st.ang + st.lean, len: st.len, wid: st.wid, alpha: st.alpha };
+        if (tau > 0) {
+          comet(sparks, st, f, tau, RINGS[k].col);
+          if (tau > FLY_END) { states.push(null); continue; }
+          s = flight(st, f, tau);
+        }
+        states.push(s);
+      }
+      if (withShadow) states.forEach(s => s && placeSprite(g, SP.shadow, P, s.bx + Math.cos(s.ang) * 6, s.by + Math.sin(s.ang) * 6, s.ang, s.len * 1.04, s.wid * 1.05, s.alpha * 0.6));
+      states.forEach((s, i) => s && placeSprite(g, sprs[list[i].v], P, s.bx, s.by, s.ang, s.len, s.wid, s.alpha));
+    };
+    const drawTufts = () => {
+      for (const f of TUFTS) {
+        const t0 = TUFT_T0 + 0.5 * Math.abs(f.d) / Math.PI;
+        const e = ease.outBack((t - t0) / 0.55); if (t < t0) continue;
+        let ang = -Math.PI / 2 + P.rot + f.d + f.s * 0.05 * (1 - smooth(t0, t0 + 0.5, t));
+        ang += (0.05 + 0.03 * f.r1) * Math.sin(3.1 * t + f.ph + f.j * 0.9) * smooth(t0 + 0.3, t0 + 1, t) + 0.6 * P.flex * Math.sign(f.d || 1);
+        const len = TUFT_L * (f.s ? 0.88 : 1) * (0.95 + 0.1 * f.r2) * Math.max(0, e) * (1 + 1.6 * P.flex);
+        let s = { bx: Math.cos(ang) * TUFT_R, by: Math.sin(ang) * TUFT_R, ang, len, wid: 20, alpha: smooth(t0, t0 + 0.2, t) };
+        const tau = t - (LIFT0 - 0.1 + 0.34 * Math.pow(Math.abs(f.d) / Math.PI, 1.5) + 0.05 * f.r1);
+        if (tau > 0) {
+          const st = { ang, rb: TUFT_R, len: s.len, wid: s.wid, alpha: s.alpha };
+          comet(sparks, st, f, tau, TUFT_TIPS[f.tip]);
+          if (tau > FLY_END) continue;
+          s = flight(st, f, tau);
+        }
+        placeSprite(g, SP.tufts[f.tip], P, s.bx, s.by, s.ang, s.len, s.wid, s.alpha);
+      }
+    };
+
+    // (seen from behind during the pirouette the crown simply shows mirrored: it passes in a blink)
+    drawTufts();
+    for (let k = RINGS.length - 1; k >= 0; k--) drawRing(k, k < RINGS.length - 1);
+
+    // medallion
+    const medIn = ease.outBack((t - 0.4) / 1.1);
+    const medOut = ease.in3((t - 10.4) / 0.55);
+    const medS = Math.max(0, medIn) * (1 - medOut);
+    const medRot = P.rot - 1.5 * (1 - ease.out3((t - 0.35) / 1.4)) + 1.2 * medOut;
+    const pc = projJ(P, 0, 0);
+    if (medS > 0.002) {
+      g.save(); g.transform(pc.j11, pc.j21, pc.j12, pc.j22, pc.x, pc.y);
+      g.rotate(medRot); g.scale(medS, medS);
+      // a soft dark collar so the medallion sits on the feathers
+      const cg = g.createRadialGradient(0, 0, RM * 0.9, 0, 0, RM * 1.22);
+      cg.addColorStop(0, 'rgba(0,0,0,0.55)'); cg.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = cg; g.beginPath(); g.arc(0, 0, RM * 1.22, 0, TAU); g.fill();
+      g.beginPath(); g.arc(0, 0, RM - 0.5, 0, TAU); g.clip();
+      g.globalAlpha = smooth(0.35, 0.75, t);
+      g.drawImage(A.med, -MED_W / 2, -MED_W / 2, MED_W, MED_W);
+      g.restore();
+    }
+    g.restore();
+
+    // ---------- composite the crown with a soft bloom
+    const crownA = G * lightK;
+    ctx.save(); HG.reset(ctx);
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.34 * crownA; ctx.filter = HG.blur(16); ctx.drawImage(M.cv, 0, 0, W, W);
+    ctx.restore();
+    HG.drawLayer(ctx, M, { alpha: crownA });
+
+    // sheen: light running over the feathers (radial wave when the crown completes, sweep while it spins)
+    const sheen = (grad, a) => {
+      if (a <= 0.004) return;
+      const s = SH.ctx; HG.reset(s); s.clearRect(0, 0, W, W);
+      HG.drawLayer(s, M); s.globalCompositeOperation = 'destination-in'; s.fillStyle = grad(s); s.fillRect(0, 0, W, W);
+      HG.reset(s); HG.drawLayer(ctx, SH, { alpha: Math.min(1, a), op: 'lighter' });
+    };
+    const wave = (t - 4.95) / 0.9;
+    if (wave > 0 && wave < 1) sheen(s => {
+      const r = lerp(120, 520, ease.inOut3(wave)), gr = s.createRadialGradient(P.x, P.y, Math.max(0, r - 90), P.x, P.y, r + 30);
+      gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.75, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); return gr;
+    }, 0.3 * Math.sin(Math.PI * wave) * G);
+    // the drum: every landing sends a soft ripple of light out through the rings
+    for (const [tl, a] of LANDS) {
+      const u = (t - tl) / 0.5; if (u <= 0 || u >= 1) continue;
+      sheen(s => {
+        const r = lerp(150, 500, ease.out3(u)), gr = s.createRadialGradient(P.x, P.y, Math.max(0, r - 70), P.x, P.y, r + 20);
+        gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.7, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); return gr;
+      }, 0.22 * Math.min(1, a) * Math.sin(Math.PI * u) * G);
+    }
+    const spinU = (t - SPIN0) / SPIN_D;
+    if (spinU > 0 && spinU < 1) sheen(s => {
+      const x = lerp(-300, W + 300, spinU), gr = s.createLinearGradient(x - 160, 0, x + 160, 0);
+      gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.5, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); return gr;
+    }, 0.45 * Math.sin(Math.PI * spinU));
+
+    // comet tails of the flying feathers: smooth tapering strokes, bloomed once as a layer
+    if (sparks.length) {
+      const cg = CL.ctx; HG.reset(cg); cg.clearRect(0, 0, W, W);
+      cg.save(); crownSpace(cg, P); cg.globalCompositeOperation = 'lighter'; cg.lineCap = 'round'; cg.lineJoin = 'round';
+      for (const c of sparks) {
+        const t0 = Math.max(COMET0 - 0.05, c.tau - 0.22); if (c.tau - t0 < 0.01) continue;
+        const pts = []; for (let m = 0; m <= 6; m++) pts.push(traj(c.st, c.f, lerp(c.tau, t0, m / 6)));
+        const gr = cg.createLinearGradient(pts[0].x, pts[0].y, pts[6].x, pts[6].y);
+        gr.addColorStop(0, rgba(c.col, 0.9 * c.a)); gr.addColorStop(1, rgba(c.col, 0));
+        cg.strokeStyle = gr; cg.lineWidth = 5;
+        cg.beginPath(); cg.moveTo(pts[0].x, pts[0].y); for (const q of pts) cg.lineTo(q.x, q.y); cg.stroke();
+      }
+      cg.restore();
+      ctx.save(); HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = G; ctx.filter = HG.blur(7); ctx.drawImage(CL.cv, 0, 0, W, W); ctx.restore();
+      HG.drawLayer(ctx, CL, { alpha: G, op: 'lighter' });
+    }
+
+    // ---------- mirrors: glints in the last light (in crown space)
+    ctx.save(); crownSpace(ctx, P);
+    const face = facing;
+    const flashAt = (u, w = 0.3) => (u > 0 && u < w) ? Math.pow(Math.sin(Math.PI * u / w), 1.5) : 0;
+    const mpos = ([mx, my]) => { const c = Math.cos(medRot), s = Math.sin(medRot); const q = proj(P, (mx * c - my * s) * medS, (mx * s + my * c) * medS); return q; };
+    for (let i = 0; i < MIRRORS.length; i++) {
+      let f = 0;
+      f = Math.max(f, flashAt(t - (0.62 + 0.85 * i / 8), 0.32));                 // as the gold rim draws round
+      f = Math.max(f, 0.8 * flashAt(t - (5.0 + 0.06 * i), 0.3));                  // the crown is complete
+      for (let m = 0; m < 12; m++) f = Math.max(f, 0.75 * flashAt(t - (5.25 + (i + 8 * m) / 8 * 0.5), 0.22) * (t < 6.8 ? 1 : 0));   // chase
+      f = Math.max(f, flashAt(t - LAND, 0.4));                                   // landing
+      for (let m = 0; m < 8; m++) f = Math.max(f, 0.7 * flashAt(t - (8.5 + ((8 - i) % 8 + 8 * m) / 8 * 0.5), 0.22) * (t < 9.35 ? 1 : 0));
+      f = Math.max(f, 0.9 * flashAt(t - (10.15 + 0.03 * i), 0.35));               // farewell
+      if (f <= 0.01) continue;
+      const q = mpos(MIRRORS[i]);
+      glint(ctx, q.x, q.y, 74 * f * Math.max(0.3, medS), f * face * G, 0.3 + 0.2 * i + 0.4 * t);
+    }
+    // centre mirror: the opening glint, a pulse on every beat of the build, the final star
+    {
+      const q = mpos(MIRROR_C);
+      let f = 1.0 * flashAt(t - 0.22, 0.75);
+      for (let k = 0; k < RINGS.length; k++) f = Math.max(f, 0.55 * flashAt(t - (RING_T0 + RING_DT * k), 0.3));
+      f = Math.max(f, flashAt(t - LAND, 0.4));
+      glint(ctx, q.x, q.y, 120 * f, f * (t < 1 ? 1 : face) * G, 0.25 * t);
+      // the gold rim of the medallion draws round, then stays as a fine glowing edge
+      const rimK = ease.inOut3((t - 0.6) / 0.85);
+      if (rimK > 0 && medS > 0.01) {
+        ctx.save(); ctx.transform(pc.j11, pc.j21, pc.j12, pc.j22, pc.x, pc.y); ctx.rotate(medRot);
+        ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(GOLD, 1); ctx.lineCap = 'round';
+        const a0 = -Math.PI / 2, a1 = a0 + TAU * rimK, rr = (RM + 2) * medS;
+        const ra = (rimK < 1 ? 1 : 0.55) * G * facing;
+        ctx.globalAlpha = 0.6 * ra; ctx.lineWidth = 9; ctx.filter = HG.blur(8); ctx.beginPath(); ctx.arc(0, 0, rr, a0, a1); ctx.stroke();
+        ctx.filter = 'none'; ctx.globalAlpha = ra; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(0, 0, rr, a0, a1); ctx.stroke();
+        if (rimK < 1) { HG.dot(ctx, GOLD, Math.cos(a1) * rr, Math.sin(a1) * rr, 40, 0.9); }
+        ctx.restore();
+      }
+    }
+    // a sparkle rides the leading feather on each side as a ring sweeps open
+    for (let k = 0; k < RINGS.length; k++) {
+      const u = (t - (RING_T0 + RING_DT * k)) / OPEN_D; if (u <= 0 || u > 0.7) continue;
+      const p = spring(u), a = 0.85 * smooth(0.0, 0.08, u) * (1 - smooth(0.5, 0.88, p)) * G;
+      if (a <= 0.01) continue;
+      const lead = Math.PI - Math.PI / RINGS[k].n, rr = RINGS[k].tip - 12;
+      for (const side of [-1, 1]) {
+        const ang = -Math.PI / 2 + P.rot + side * lead * (0.03 + 0.97 * p);
+        const q = proj(P, Math.cos(ang) * rr, Math.sin(ang) * rr);
+        glint(ctx, q.x, q.y, 64, a, ang, mix(RINGS[k].col, WHITE, 0.55));
+        HG.dot(ctx, RINGS[k].col, q.x, q.y, 34, 0.5 * a);
+      }
+    }
+    // landing burst: sparks thrown off the upper rim
+    {
+      const s = t - LAND;
+      if (s > 0 && s < 1.0) {
+        const R = HG.rng(808);
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 46; i++) {
+          const a = -Math.PI / 2 + (R() - 0.5) * 2.3, v = 160 + 160 * R(), col = RINGS[Math.floor(R() * 6)].col;
+          const dd = (1 - Math.exp(-3 * s)) / 3, r = 440 + v * dd;
+          HG.dot(ctx, col, Math.cos(a) * r, Math.sin(a) * r + 70 * s * s, 12 + 6 * R(), (1 - smooth(0.3, 1.0, s)) * 0.8 * G);
+        }
+        ctx.restore();
+      }
+    }
+    // sparks from the feathers flying away
+    ctx.globalCompositeOperation = 'lighter';
+    for (const c of sparks) { const q = traj(c.st, c.f, c.tau); HG.dot(ctx, c.col, q.x, q.y, 19, c.a * G); }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+
+    // ---------- the mirrored centre folds into a star of the evening, which rises and fades
+    {
+      const u = (t - 10.5) / 0.8;
+      if (u > 0 && u < 1) {
+        const y = P.y - 90 * ease.inOut3(u), a = smooth(0, 0.45, u) * (1 - smooth(0.6, 1, u));
+        glint(ctx, P.x, y, 190 * a + 40, a, 0.6 * t, [230, 220, 255]);
+        HG.dot(ctx, LILAC, P.x, y, 80, 0.4 * a);
+      }
+    }
+  },
+});
+</script></body></html>

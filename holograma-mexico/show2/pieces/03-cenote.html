@@ -1,0 +1,903 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// El cenote (morning). A sacred cenote of Yucatán, the Maya door to the underworld and source of life.
+// We begin deep in its clear turquoise water: a web of caustic light dances on the floor, shafts of
+// light slant down, bubbles rise. The serpent's turquoise drops plunge in from above and each one
+// bursts into a little star of silver fish, which gather into a school; the school sweeps and loops,
+// flashing silver in a wave as it turns. Meanwhile the camera rises: the floor slips away, the
+// bright skin of the surface comes down through the circle and we break through it into the cave:
+// a round opening of morning light in the dome, gold shafts falling through it to the water, long
+// curtains of roots hanging from the rim (as at Ik Kil and Samula) lit where the shafts cross them,
+// dust motes in the light. A drop gathers on a root tip, falls and rings the water with ripples.
+// At the end the shafts converge into one and fade, and the roots dissolve, tip first, into green
+// fireflies that rise out of the opening toward the jungle.
+// Signature motion: the continuous crane up from the depths through the water surface into the light.
+// Everything is procedural and a pure function of t.
+const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
+const TAU = Math.PI * 2;
+const DEBUG = new URLSearchParams(location.search).has('debug');
+
+// ---------- palette (morning: turquoise, emerald, shafts of gold sunlight)
+const DEEP = [10, 70, 95], TEAL = [20, 160, 170], TURQ = [40, 220, 230], AQUA = [130, 255, 235], FOAM = [225, 255, 248],
+  ROOTD = [24, 120, 70], ROOTC = [70, 210, 120], LEAF = [80, 230, 120], LEAFD = [8, 60, 34],
+  GOLD = [255, 196, 90], WARM = [255, 228, 170], SUN = [255, 214, 140], STONE = [225, 195, 140],
+  SILVER = [225, 242, 255], FIRE = [190, 255, 100], FIRE2 = [250, 240, 120];
+const mix = (a, b, k) => [lerp(a[0], b[0], k) | 0, lerp(a[1], b[1], k) | 0, lerp(a[2], b[2], k) | 0];
+
+// ---------- the camera: a slow crane up from the depths, through the surface, into the cave
+const RISE0 = 3.0, RISE1 = 8.4;
+const riseK = t => { const x = clamp((t - RISE0) / (RISE1 - RISE0)); return (1 - Math.cos(Math.PI * x)) / 2; };
+const off = t => lerp(-70, 860, riseK(t)) + 10 * (t - 6);    // + a slow drift so nothing is ever still
+const yW = t => off(t);                                       // the water surface on screen
+const yO = t => -600 + 0.86 * off(t);                         // the opening in the dome (farther: less parallax)
+const hToY = (h, t) => lerp(yW(t), yO(t), h);                 // height above the water: 0 water .. 1 opening
+const chord = y => Math.sqrt(Math.max(0, 540 * 540 - (y - C) * (y - C)));
+
+// ---------- the opening and the dome (the dome follows the fan's circle: the circle is the cenote)
+const OPX = 520, OPRX = 232, OPRY = 58;
+const rimR = th => 1 + 0.045 * Math.sin(3 * th + 0.7) + 0.03 * Math.sin(7 * th + 2.1) + 0.018 * Math.sin(11 * th + 0.3);
+const rimPt = (th, t) => { const r = rimR(th); return [OPX + Math.cos(th) * OPRX * r, yO(t) + Math.sin(th) * OPRY * r]; };
+const YW_F = 883, YO_F = -600 + 0.86 * 883;            // where the water and the opening settle
+const circleTop = x => C - Math.sqrt(Math.max(0, 540 * 540 - (x - C) * (x - C)));
+const smax = (a, b, k) => { const h = clamp(0.5 + 0.5 * (b - a) / k); return lerp(a, b, h) + k * h * (1 - h); };
+const lipN = x => 16 * Math.sin(0.021 * x + 0.6) + 10 * Math.sin(0.057 * x + 2.2) + 6 * Math.sin(0.13 * x + 1.1);
+const domeH = x => (YW_F - smax(YO_F + 8, circleTop(x) + 92 + lipN(x) * smooth(OPRX, OPRX + 90, Math.abs(x - OPX)), 40)) / (YW_F - YO_F);
+function anchorY(x, t) {
+  const u = (x - OPX) / OPRX;
+  if (Math.abs(u) < 0.97) return yO(t) + OPRY * rimR(Math.acos(clamp(u))) * Math.sqrt(1 - u * u) * 0.92;
+  return hToY(domeH(x), t);
+}
+
+// ---------- ending
+const END0 = 9.3;                                  // the roots start to turn into fireflies
+const gEnd = t => 1 - smooth(10.3, 11.2, t);         // global fade to black
+
+// ---------- light shafts
+// air shafts: from the opening down to the water; [x at the opening, x where it meets the water, w top, w bottom, strength, phase]
+const SHAFTS = [
+  [372, 560, 34, 66, 0.8, 0.0],
+  [462, 672, 50, 92, 1.0, 1.3],
+  [556, 772, 24, 48, 0.68, 2.1],
+  [630, 862, 36, 62, 0.72, 3.4],
+];
+const conv = t => ease.inOut3((t - END0) / 1.3);     // the shafts converge into one
+function airShafts(t) {
+  const k = conv(t), a0 = yO(t) + OPRY * 0.2, a1 = yW(t);
+  const fade = smooth(5.6, 7.0, t) * (1 - smooth(10.0, 10.9, t));
+  return SHAFTS.map(([xt, xh, wt, wb, s, ph], i) => {
+    const sway = 6 * Math.sin(0.5 * t + ph);
+    const flick = (0.78 + 0.22 * Math.sin(0.9 * t + ph)) * (0.9 + 0.1 * Math.sin(2.3 * t + ph * 1.7));
+    const lead = i === 1;                       // the shaft the others gather into
+    return {
+      x0: lerp(xt, 470, k) + sway * 0.4, y0: a0, x1: lerp(xh, 690, k) + sway, y1: a1,
+      w0: wt * lerp(1, lead ? 1.25 : 0.5, k), w1: wb * lerp(1, lead ? 1.1 : 0.4, k),
+      a: s * flick * fade * (lead ? 1 + 0.35 * Math.sin(Math.PI * k) : 1 - k),
+    };
+  });
+}
+// underwater shafts: the same light refracted steeper below the surface, turquoise, shimmering
+function waterShafts(t) {
+  const y0 = yW(t), fade = smooth(0.25, 1.5, t) * (1 - smooth(9.6, 10.6, t));
+  return SHAFTS.map(([xt, xh, wt, wb, s, ph]) => {
+    const x0 = xh + 10 * Math.sin(0.7 * t + ph);
+    const sh = 0.62 + 0.38 * (0.5 + 0.5 * Math.sin(2.6 * t + ph * 2.3)) * (0.7 + 0.3 * Math.sin(1.3 * t + ph));
+    return { x0, y0, x1: x0 + 0.2 * 900 + 30 * Math.sin(0.45 * t + ph), y1: y0 + 900, w0: wb * 0.95, w1: wb * 1.9, a: s * sh * fade };
+  });
+}
+// how much a shaft lights the point (x, y): 0..1
+function lightAt(shafts, x, y) {
+  let v = 0;
+  for (const b of shafts) {
+    if (b.a <= 0.01) continue;
+    const dx = b.x1 - b.x0, dy = b.y1 - b.y0, L2 = dx * dx + dy * dy;
+    const u = ((x - b.x0) * dx + (y - b.y0) * dy) / L2;
+    if (u < -0.05 || u > 1.05) continue;
+    const L = Math.sqrt(L2), d = Math.abs((x - b.x0) * dy - (y - b.y0) * dx) / L, hw = lerp(b.w0, b.w1, clamp(u)) / 2;
+    v += b.a * Math.exp(-1.6 * (d / hw) * (d / hw)) * smooth(-0.05, 0.08, u) * (1 - smooth(0.92, 1.05, u));
+  }
+  return Math.min(1, v);
+}
+function drawShaft(g, b, col, aTop, aBot, core = 0.45) {
+  if (b.a <= 0.01) return;
+  const dx = b.x1 - b.x0, dy = b.y1 - b.y0, L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L;
+  for (const [wk, ak] of [[1, 1], [core, 0.9]]) {
+    const gr = g.createLinearGradient(b.x0, b.y0, b.x1, b.y1);
+    gr.addColorStop(0, rgba(col, 0)); gr.addColorStop(0.06, rgba(col, aTop * b.a * ak));
+    gr.addColorStop(0.55, rgba(col, lerp(aTop, aBot, 0.6) * b.a * ak)); gr.addColorStop(1, rgba(col, aBot * b.a * ak));
+    g.fillStyle = gr; g.beginPath();
+    g.moveTo(b.x0 + nx * b.w0 * wk / 2, b.y0 + ny * b.w0 * wk / 2); g.lineTo(b.x1 + nx * b.w1 * wk / 2, b.y1 + ny * b.w1 * wk / 2);
+    g.lineTo(b.x1 - nx * b.w1 * wk / 2, b.y1 - ny * b.w1 * wk / 2); g.lineTo(b.x0 - nx * b.w0 * wk / 2, b.y0 - ny * b.w0 * wk / 2);
+    g.closePath(); g.fill();
+  }
+}
+
+// ---------- layers
+const LB = HG.layer(), LR = HG.layer(), LF = HG.layer(), LC = HG.layer();
+function bloom(c, L, px, alpha) {
+  if (alpha <= 0) return;
+  HG.reset(c); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, alpha); c.filter = HG.blur(px);
+  c.drawImage(L.cv, 0, 0, W, W); HG.reset(c);
+}
+function clearL(L) { HG.reset(L.ctx); L.ctx.clearRect(0, 0, W, W); return L.ctx; }
+
+// ---------- caustics on the cenote floor (a living Voronoi web, cut out of light)
+const FLOOR_D = 1000, FSQ = 0.3;
+// the floor plane in perspective: far side (v < 0) smaller and higher
+const fz = v => 1 + 0.32 * (-v / 340);
+const fmap = (u, v, fy) => { const k = 1 / fz(v); return [C + u * k * 1.15, fy + v * FSQ * k]; };
+const CSEEDS = (() => {
+  const R = HG.rng(5), out = [];
+  for (let j = 0; j < 10; j++) for (let i = 0; i < 19; i++) {
+    out.push({ x: -650 + i * 72 + (j % 2) * 36 + (R() - 0.5) * 52, y: -350 + j * 76 + (R() - 0.5) * 52,
+      a1: R() * TAU, a2: R() * TAU, f1: 0.8 + R() * 0.6, f2: 1.2 + R() * 0.8, r1: 16 + R() * 12, r2: 8 + R() * 7 });
+  }
+  return out;
+})();
+function clipHalf(poly, px, py, nx, ny, c) {           // keep the part where n.p <= c
+  const out = [];
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length];
+    const da = a[0] * nx + a[1] * ny - c, db = b[0] * nx + b[1] * ny - c;
+    if (da <= 0) out.push(a);
+    if ((da < 0) !== (db < 0)) { const k = da / (da - db); out.push([a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k]); }
+  }
+  return out;
+}
+function drawCaustics(t, alpha) {
+  if (alpha <= 0.01) return;
+  const fy = FLOOR_D + off(t);
+  if (fy - 360 * FSQ > 1080) return;
+  const P = CSEEDS.map(s => [s.x + s.r1 * Math.cos(s.f1 * t + s.a1) + s.r2 * Math.cos(s.f2 * t * 1.3 + s.a2),
+    s.y + s.r1 * Math.sin(s.f1 * t * 0.9 + s.a1) + s.r2 * Math.sin(s.f2 * t + s.a2)]);
+  const g = clearL(LC);
+  // light on the floor: a soft pool, brightest where the shafts land
+  g.globalCompositeOperation = 'lighter';
+  g.save(); g.translate(C, fy + 30); g.scale(1, 0.34);
+  const base = g.createRadialGradient(0, 0, 0, 0, 0, 640);
+  base.addColorStop(0, rgba(TURQ, 0.6)); base.addColorStop(0.55, rgba(TEAL, 0.38)); base.addColorStop(1, rgba(TEAL, 0));
+  g.fillStyle = base; g.fillRect(-700, -700, 1400, 1400);
+  g.restore();
+  for (const b of waterShafts(t)) {
+    const u = (fy - b.y0) / (b.y1 - b.y0), x = lerp(b.x0, b.x1, clamp(u));
+    g.save(); g.translate(x, fy + 10); g.scale(1, 0.4);
+    const sp = g.createRadialGradient(0, 0, 0, 0, 0, 220);
+    sp.addColorStop(0, rgba(AQUA, 0.85 * b.a)); sp.addColorStop(1, rgba(AQUA, 0));
+    g.fillStyle = sp; g.fillRect(-230, -230, 460, 460); g.restore();
+  }
+  // cut out the dark cells: rounded, so the web keeps bright knots where three cells meet
+  g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000';
+  for (let i = 0; i < P.length; i++) {
+    const [px, py] = P[i];
+    if (Math.abs(px) > 640 || Math.abs(py) > 340) continue;
+    let poly = [[px - 140, py - 140], [px + 140, py - 140], [px + 140, py + 140], [px - 140, py + 140]];
+    for (let j = 0; j < P.length && poly.length > 2; j++) {
+      if (j === i) continue;
+      const [qx, qy] = P[j], dx = qx - px, dy = qy - py;
+      if (dx * dx + dy * dy > 220 * 220) continue;
+      poly = clipHalf(poly, px, py, dx, dy, (qx * qx + qy * qy - px * px - py * py) / 2);
+    }
+    if (poly.length < 3) continue;
+    let cx = 0, cy = 0; for (const p of poly) { cx += p[0]; cy += p[1]; } cx /= poly.length; cy /= poly.length;
+    const sh = poly.map(([x, y]) => { const d = Math.hypot(x - cx, y - cy) || 1, k = Math.max(0, 1 - 2.8 / d); return fmap(cx + (x - cx) * k, cy + (y - cy) * k, fy); });
+    const n = sh.length, mid = k => [(sh[k][0] + sh[(k + 1) % n][0]) / 2, (sh[k][1] + sh[(k + 1) % n][1]) / 2];
+    g.beginPath(); let m = mid(n - 1); g.moveTo(m[0], m[1]);
+    for (let k = 0; k < n; k++) { m = mid(k); g.quadraticCurveTo(sh[k][0], sh[k][1], m[0], m[1]); }
+    g.closePath(); g.fill();
+  }
+  HG.reset(g);
+  bloom(ctx, LC, 9, alpha * 1.0);
+  bloom(ctx, LC, 0.8, alpha * 1.0);
+}
+
+// ---------- roots and vines hanging from the rim
+const ROOTS = (() => {
+  const R = HG.rng(31), out = [];
+  const clusters = [[150, 3], [212, 5], [278, 3], [340, 5], [412, 3], [480, 4], [548, 2], [622, 4], [692, 3], [760, 5], [830, 5], [900, 3], [950, 2]];
+  for (const [cx, n] of clusters) for (let k = 0; k < n; k++) {
+    const x = cx + (k - (n - 1) / 2) * (9 + R() * 7) + (R() - 0.5) * 8;
+    const reach = R();
+    const hTop = domeH(x);
+    const hEnd = reach < 0.42 ? -0.05 - R() * 0.07 : lerp(0.12, 0.62, R()) * hTop;
+    out.push({ x, hEnd, w: 2.6 + R() * 2.2, ph: R() * TAU, ph2: R() * TAU, amp: 5 + R() * 9, br: 0.65 + R() * 0.35,
+      dis: END0 + R() * 0.7 + (x < 540 ? 0.15 : 0), vine: false });
+  }
+  // a few leafy vines (lianas) among the roots
+  for (const [x, hEnd] of [[250, 0.36], [586, 0.22], [796, 0.42]]) {
+    out.push({ x, hEnd, w: 3.4, ph: R() * TAU, ph2: R() * TAU, amp: 10, br: 1, dis: END0 + 0.2 + R() * 0.5, vine: true });
+  }
+  return out;
+})();
+const NS = 18;
+function rootPt(r, s, t) {
+  const yA = anchorY(r.x, t), yE = hToY(r.hEnd, t);
+  const sw = r.amp * Math.pow(s, 1.5) * Math.sin(0.75 * t + r.ph - 1.5 * s) + 0.3 * r.amp * s * Math.sin(1.6 * t + r.ph2);
+  return [r.x + sw, lerp(yA, yE, s)];
+}
+// how much of a root is left while it dissolves into fireflies (1 = whole, from the anchor)
+const rootLeft = (r, t) => 1 - ease.inOut3((t - r.dis) / 1.1);
+
+function drawRoots(g, t, airB, alpha) {
+  if (alpha <= 0.01) return;
+  const ys = yW(t);
+  g.lineCap = 'butt'; g.lineJoin = 'round';
+  for (const r of ROOTS) {
+    const left = rootLeft(r, t);
+    if (left <= 0.005) continue;
+    const segs = Math.ceil(NS * left);
+    let prev = rootPt(r, 0, t);
+    for (let k = 1; k <= segs; k++) {
+      const s = Math.min(left, k / NS), p = rootPt(r, s, t);
+      const under = p[1] > ys;
+      const lit = under ? 0 : lightAt(airB, (p[0] + prev[0]) / 2, (p[1] + prev[1]) / 2);
+      let col = mix(ROOTD, ROOTC, Math.min(1, s * 1.4));
+      col = mix(col, WARM, lit * 0.85);
+      if (under) col = mix(TEAL, ROOTC, 0.25);
+      g.strokeStyle = rgba(col, alpha * r.br * (under ? 0.55 : 0.75 + 0.25 * lit));
+      g.lineWidth = r.w * (1 - 0.35 * s) * (r.vine ? 1.1 : 1);
+      g.beginPath(); g.moveTo(prev[0], prev[1] + (under ? 0 : 0)); g.lineTo(p[0] + (under ? 4 : 0), p[1]); g.stroke();
+      prev = p;
+    }
+    // the burning end of a dissolving root
+    if (left < 0.999) { const p = rootPt(r, left, t); HG.dot(g, FIRE2, p[0], p[1], 22, 0.9 * alpha); }
+    // leaves along the vines
+    if (r.vine) {
+      for (let j = 1; j < 9; j++) {
+        const s = j / 9 + 0.03; if (s > left) break;
+        const p = rootPt(r, s, t), q = rootPt(r, s + 0.02, t), side = j % 2 ? 1 : -1;
+        const a = Math.atan2(q[1] - p[1], q[0] - p[0]) + side * (0.95 + 0.12 * Math.sin(1.4 * t + j));
+        const lit = lightAt(airB, p[0], p[1]);
+        leaf(g, p[0], p[1], a, 34 - j * 1.4, 11 - j * 0.4, mix(LEAF, WARM, lit * 0.6), alpha * r.br);
+      }
+    }
+  }
+}
+// a pointed leaf: glowing body (or a dark silhouette against the sky), bright rim and midrib
+function leaf(g, x, y, ang, len, wid, col, alpha, dark = null) {
+  if (alpha <= 0.01) return;
+  g.save(); g.translate(x, y); g.rotate(ang); g.globalAlpha = Math.min(1, alpha);
+  g.beginPath(); g.moveTo(0, 0);
+  g.bezierCurveTo(len * 0.06, -wid * 1.15, len * 0.62, -wid * 1.0, len, 0);
+  g.bezierCurveTo(len * 0.62, wid * 1.0, len * 0.06, wid * 1.15, 0, 0); g.closePath();
+  if (dark) g.fillStyle = rgba(dark, 0.94);
+  else { const lg = g.createLinearGradient(0, 0, len, 0); lg.addColorStop(0, rgba(mix(col, [0, 0, 0], 0.65), 0.9)); lg.addColorStop(1, rgba(mix(col, [0, 0, 0], 0.35), 0.85)); g.fillStyle = lg; }
+  g.fill();
+  g.strokeStyle = rgba(col, 1); g.lineWidth = 2.4; g.stroke();
+  g.beginPath(); g.moveTo(2, 0); g.quadraticCurveTo(len * 0.5, -wid * 0.08, len * 0.86, 0); g.lineWidth = 1.7; g.stroke();
+  g.restore();
+}
+// a hanging fern frond: a curved midrib with leaflets that shorten toward the tip
+function frond(g, x, y, ang, len, bend, t, ph, col, alpha) {
+  if (alpha <= 0.01) return;
+  const M = 16, pts = [];
+  for (let i = 0; i <= M; i++) {
+    const v = i / M, a = ang + bend * v * v + 0.06 * Math.sin(1.2 * t + ph - v * 2);
+    const p = i ? pts[i - 1] : [x, y];
+    pts.push(i ? [p[0] + Math.cos(a) * len / M, p[1] + Math.sin(a) * len / M] : [x, y]);
+  }
+  g.save(); g.globalAlpha = Math.min(1, alpha); g.lineCap = 'round'; g.strokeStyle = rgba(col, 1);
+  g.lineWidth = 3; g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke();
+  for (let i = 1; i < M; i++) {
+    const v = i / M, p = pts[i], q = pts[i + 1], a = Math.atan2(q[1] - p[1], q[0] - p[0]);
+    const pl = len * 0.19 * Math.sin(Math.PI * Math.min(1, 0.15 + v * 0.95)) * (1 - 0.5 * v);
+    for (const sd of [-1, 1]) {
+      const b = a + sd * 1.05;
+      g.lineWidth = 3.4 * (1 - 0.4 * v);
+      g.beginPath(); g.moveTo(p[0], p[1]); g.quadraticCurveTo(p[0] + Math.cos(b) * pl * 0.6, p[1] + Math.sin(b) * pl * 0.6, p[0] + Math.cos(b + sd * 0.35) * pl + Math.cos(a) * pl * 0.25, p[1] + Math.sin(b + sd * 0.35) * pl + Math.sin(a) * pl * 0.25); g.stroke();
+    }
+  }
+  g.restore();
+}
+
+// ---------- the opening of light, the jungle at its rim and the dome
+const CLUMPS = [   // [angle on the rim, leaves, size]  far rim: angle in (pi, 2pi); near rim: (0, pi)
+  [3.4, 5, 1.2], [3.95, 2, 0.7], [4.4, 4, 1.0], [4.95, 3, 0.75], [5.45, 5, 1.15], [5.98, 3, 0.8],
+  [0.42, 3, 0.85], [1.25, 4, 1.0], [2.05, 3, 0.8], [2.75, 4, 0.95],
+];
+const CLUMP_LEAVES = (() => {
+  const R = HG.rng(77), out = [];
+  CLUMPS.forEach(([th, n, sz], ci) => {
+    for (let i = 0; i < n; i++) {
+      const spread = (i / Math.max(1, n - 1) - 0.5) * (th > Math.PI ? 1.3 : 1.7) + (R() - 0.5) * 0.35;
+      out.push({ th: th + (R() - 0.5) * 0.12, ang: Math.PI / 2 + spread + (th > Math.PI ? (R() - 0.5) * 0.3 : 0), len: (36 + R() * 50) * sz, wid: (12 + R() * 9) * sz, ph: R() * TAU, far: th > Math.PI });
+    }
+  });
+  return out;
+})();
+function drawOpening(t, alpha) {
+  if (alpha <= 0.01) return;
+  const oy = yO(t);
+  if (oy < -OPRY - 200) return;
+  const rimPath = c => { c.beginPath(); for (let i = 0; i <= 64; i++) { const p = rimPt(i / 64 * TAU, t); i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]); } c.closePath(); };
+  // the sky: warm where the sun is (east, left), paler to the west
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const breathe = 0.9 + 0.1 * Math.sin(0.8 * t);
+  ctx.save(); rimPath(ctx); ctx.clip();
+  ctx.translate(OPX - OPRX * 0.25, oy - OPRY * 0.15); ctx.scale(1, OPRY / OPRX * 1.3);
+  const sk = ctx.createRadialGradient(0, 0, 0, 0, 0, OPRX * 1.25);
+  sk.addColorStop(0, rgba(WARM, 0.62 * alpha * breathe)); sk.addColorStop(0.35, rgba(SUN, 0.38 * alpha * breathe));
+  sk.addColorStop(0.75, rgba([120, 215, 205], 0.16 * alpha)); sk.addColorStop(1, rgba([60, 150, 150], 0.08 * alpha));
+  ctx.fillStyle = sk; ctx.fillRect(-OPRX * 2, -OPRX * 2, OPRX * 4, OPRX * 4);
+  ctx.restore();
+  // light spilling past the rim
+  HG.dot(ctx, SUN, OPX - 60, oy, 640, 0.06 * alpha);
+  ctx.restore();
+  const g = LR.ctx;
+  // the dome of the cave: a band of limestone just inside the circle, lit from below by the water
+  for (const side of [-1, 1]) {
+    const xs = [];
+    for (let x = OPX + side * OPRX * 0.97; side < 0 ? x >= 30 : x <= 1050; x += side * 10) xs.push(x);
+    const edge = xs.map(x => [x, anchorY(x, t)]);
+    const fadeX = x => 0.25 + 0.75 * Math.pow(1 - clamp((Math.abs(x - OPX) - OPRX) / 440), 1.2);
+    // the lit lower lip with stalactites
+    for (let i = 1; i < edge.length; i++) {
+      const [x, y] = edge[i], [px, py] = edge[i - 1], a = alpha * fadeX(x);
+      if (a < 0.01) continue;
+      g.strokeStyle = rgba(mix(STONE, WARM, 0.3), 0.55 * a); g.lineWidth = 3.5; g.lineCap = 'butt';
+      g.beginPath(); g.moveTo(px, py); g.lineTo(x, y); g.stroke();
+      const hv = Math.sin(Math.round(x) * 12.9898 + side * 3.7) * 43758.5453, hr = hv - Math.floor(hv);
+      if (hr < 0.62) {
+        const len = 12 + Math.pow(hr / 0.62, 2) * 64, w = 4 + hr * 8;
+        const sg = g.createLinearGradient(x, y, x, y + len);
+        sg.addColorStop(0, rgba(STONE, 0.5 * a)); sg.addColorStop(1, rgba(STONE, 0));
+        g.fillStyle = sg; g.beginPath(); g.moveTo(x - w, y); g.quadraticCurveTo(x - w * 0.3, y + len * 0.5, x, y + len); g.quadraticCurveTo(x + w * 0.3, y + len * 0.5, x + w, y); g.closePath(); g.fill();
+      }
+    }
+    // reflections of the water's ripples dancing on the rock
+    g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'butt';
+    g.filter = HG.blur(1.5);
+    const sm = edge.map((e, i) => { let a = 0, n = 0; for (let j = Math.max(0, i - 4); j <= Math.min(edge.length - 1, i + 4); j++) { a += edge[j][1]; n++; } return [e[0], a / n]; });
+    for (let k = 0; k < 3; k++) {
+      const o = 18 + k * 20;
+      for (let i = 1; i < sm.length; i++) {
+        const [x, y] = sm[i], [px, py] = sm[i - 1];
+        const b = Math.pow(clamp(0.5 + 0.5 * Math.sin(0.03 * x - 2.1 * t + k * 1.9) * Math.sin(0.012 * x + 1.3 * t + k * 2.3)), 6);
+        const a = alpha * fadeX(x) * b * (1 - k * 0.2);
+        if (a < 0.02) continue;
+        const w1 = 5 * Math.sin(0.05 * x + 2.4 * t + k), w0 = 5 * Math.sin(0.05 * px + 2.4 * t + k);
+        g.strokeStyle = rgba(AQUA, a); g.lineWidth = 4.5;
+        g.beginPath(); g.moveTo(px, py - o + w0); g.lineTo(x, y - o + w1); g.stroke();
+      }
+    }
+    g.filter = 'none';
+    g.restore();
+  }
+  // the rim of the opening, lit by the sun
+  const rg = g.createLinearGradient(OPX - OPRX, 0, OPX + OPRX, 0);
+  rg.addColorStop(0, rgba(WARM, 0.95 * alpha)); rg.addColorStop(0.5, rgba(GOLD, 0.75 * alpha)); rg.addColorStop(1, rgba(STONE, 0.5 * alpha));
+  g.strokeStyle = rg; g.lineWidth = 5; g.lineJoin = 'round'; g.lineCap = 'round';
+  g.beginPath(); for (let i = 0; i <= 40; i++) { const p = rimPt(-0.12 + (i / 40) * (Math.PI + 0.24), t); i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); } g.stroke();
+  // far rim: a faint edge only
+  g.strokeStyle = rgba(SUN, 0.22 * alpha); g.lineWidth = 3;
+  g.beginPath(); for (let i = 0; i <= 40; i++) { const p = rimPt(Math.PI + 0.12 + (i / 40) * (Math.PI - 0.24), t); i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); } g.stroke();
+  // jungle at the rim: leaves droop over the edge (dark against the sky on the far side), ferns hang down
+  frond(g, rimPt(3.2, t)[0] + 6, rimPt(3.2, t)[1], 1.95, 190, 0.55, t, 0.4, mix(LEAF, WARM, 0.15), alpha);
+  frond(g, rimPt(0.1, t)[0] - 6, rimPt(0.1, t)[1], 1.25, 170, -0.5, t, 2.2, LEAF, alpha);
+  for (const L of CLUMP_LEAVES) {
+    const p = rimPt(L.th, t), sway = 0.07 * Math.sin(1.1 * t + L.ph);
+    if (L.far) leaf(g, p[0], p[1], L.ang + sway, L.len * 0.8, L.wid / 2 * 0.8, mix(LEAF, WARM, 0.45), alpha, LEAFD);
+  }
+  for (const L of CLUMP_LEAVES) {
+    const p = rimPt(L.th, t), sway = 0.07 * Math.sin(1.1 * t + L.ph);
+    if (!L.far) leaf(g, p[0], p[1], L.ang + sway, L.len, L.wid / 2, LEAF, alpha);
+  }
+}
+
+// ---------- the water surface
+function drawSurface(t, airB, alpha) {
+  const y0 = yW(t);
+  if (y0 < -80 || y0 > 1140 || alpha <= 0.01) return;
+  const half = chord(y0) + 40;
+  const wave = x => y0 + 3.2 * Math.sin(0.019 * x + 1.6 * t) + 2 * Math.sin(0.047 * x - 2.2 * t + 1);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  // the glow of the water just below its skin
+  const wg = ctx.createLinearGradient(0, y0, 0, y0 + 420);
+  wg.addColorStop(0, rgba(TEAL, 0.2 * alpha)); wg.addColorStop(0.25, rgba(DEEP, 0.12 * alpha)); wg.addColorStop(1, rgba(DEEP, 0));
+  ctx.fillStyle = wg; ctx.fillRect(0, y0, W, 420);
+  // the bright line of the surface (a glow and a core)
+  const xs = []; for (let x = C - half; x <= C + half; x += 12) xs.push(x);
+  for (const [w, b, a, col] of [[14, 8, 0.4, TURQ], [4, 1.5, 0.9, FOAM]]) {
+    const lg = ctx.createLinearGradient(C - half, 0, C + half, 0);
+    lg.addColorStop(0, rgba(col, 0)); lg.addColorStop(0.12, rgba(col, a * alpha)); lg.addColorStop(0.88, rgba(col, a * alpha)); lg.addColorStop(1, rgba(col, 0));
+    ctx.strokeStyle = lg; ctx.lineWidth = w; ctx.filter = HG.blur(b);
+    ctx.beginPath(); xs.forEach((x, i) => i ? ctx.lineTo(x, wave(x)) : ctx.moveTo(x, wave(x))); ctx.stroke();
+    ctx.filter = 'none';
+  }
+  // sun glitter where the shafts meet the water, and sparkles running along the line
+  const R = HG.rng(91);
+  for (let i = 0; i < 70; i++) {
+    const x0 = R() * 1300 - 110, v = 18 + R() * 30, ph = R() * TAU, s = 9 + R() * 12;
+    const x = ((x0 + v * t) % 1300 + 1300) % 1300 - 110;
+    if (Math.abs(x - C) > half - 30) continue;
+    const lit = lightAt(airB, x, y0 - 6);
+    const tw = Math.pow(0.5 + 0.5 * Math.sin(5.5 * t + ph), 3);
+    HG.dot(ctx, lit > 0.15 ? WARM : AQUA, x, wave(x) - 2, s * (1 + lit), alpha * tw * (0.35 + 0.65 * lit));
+  }
+  ctx.restore();
+}
+
+// ---------- drops of the serpent plunging in, each bursting into a little star of fish
+const DROPS = [[612, 1.15, 1.9], [478, 1.4, 2.12], [726, 1.68, 2.36], [560, 1.98, 2.62]];   // x, entry, burst
+const DROP_V0 = 1150, DROP_K = 2.1;
+function dropPos(d, t) {
+  const [x, te] = DROPS[d], dt = Math.max(0, t - te);
+  const depth = DROP_V0 / DROP_K * (1 - Math.exp(-DROP_K * dt));
+  return [x + 22 * Math.sin(dt * 2.4 + d) * (1 - Math.exp(-2 * dt)), yW(t) + depth - 40];
+}
+
+// ---------- the school of fish
+// the school's path in the water (it stays at its depth: as the camera rises, we leave it below)
+const SCHOOL = [
+  [1.8, 640, 390], [2.5, 610, 480], [3.1, 500, 550], [3.65, 360, 520], [4.15, 290, 395], [4.6, 350, 268],
+  [5.05, 492, 222], [5.5, 632, 282], [5.9, 682, 402], [6.35, 622, 522], [6.85, 500, 622], [7.35, 380, 702], [7.95, 260, 800],
+];
+const waterShift = t => off(t) - off(RISE0);
+function keyPath(keys) {
+  const n = keys.length;
+  return t => {
+    let i = 0;
+    if (t <= keys[0][0]) { const [t0, x0, y0] = keys[0], [t1, x1, y1] = keys[1]; return [x0 + (x1 - x0) / (t1 - t0) * (t - t0), y0 + (y1 - y0) / (t1 - t0) * (t - t0)]; }
+    if (t >= keys[n - 1][0]) { const [t0, x0, y0] = keys[n - 2], [t1, x1, y1] = keys[n - 1]; return [x1 + (x1 - x0) / (t1 - t0) * (t - t1), y1 + (y1 - y0) / (t1 - t0) * (t - t1)]; }
+    while (keys[i + 1][0] < t) i++;
+    const p0 = keys[Math.max(0, i - 1)], p1 = keys[i], p2 = keys[i + 1], p3 = keys[Math.min(n - 1, i + 2)];
+    const h = p2[0] - p1[0], u = (t - p1[0]) / h, u2 = u * u, u3 = u2 * u;
+    const out = [];
+    for (const c of [1, 2]) {
+      const m1 = (p2[c] - p0[c]) / (p2[0] - p0[0] || 1), m2 = (p3[c] - p1[c]) / (p3[0] - p1[0] || 1);
+      out.push((2 * u3 - 3 * u2 + 1) * p1[c] + (u3 - 2 * u2 + u) * h * m1 + (-2 * u3 + 3 * u2) * p2[c] + (u3 - u2) * h * m2);
+    }
+    return out;
+  };
+}
+const school = keyPath(SCHOOL);
+const FLASH_T = [3.55, 4.55, 5.5];
+const FISH = (() => {
+  const R = HG.rng(203), out = [];
+  for (let i = 0; i < 32; i++) {
+    const d = i % 4;
+    out.push({ d, lag: R() * 0.75, lat: (R() - 0.5) * 170, sc: 0.78 + R() * 0.38, ph: R() * TAU, wob: R() * TAU,
+      dir: (i / 32) * TAU * 3.1 + R() * 0.6, burst: 50 + R() * 50 });
+  }
+  return out;
+})();
+function fishPos(f, t) {
+  const tb = DROPS[f.d][2], dt = t - tb;
+  const tt = t - f.lag, p = school(tt), q = school(tt + 0.03);
+  let tx = q[0] - p[0], ty = q[1] - p[1]; const l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l;
+  const sx = p[0] - ty * f.lat + 10 * Math.sin(1.3 * t + f.wob), sy = p[1] + tx * f.lat + 8 * Math.sin(1.7 * t + f.wob * 1.3) + waterShift(t);
+  const bp = dropPos(f.d, tb);
+  const bx = bp[0] + Math.cos(f.dir) * f.burst * (1 - Math.exp(-4 * Math.max(0, dt))), by = bp[1] + Math.sin(f.dir) * f.burst * (1 - Math.exp(-4 * Math.max(0, dt)));
+  const k = ease.inOut3(dt / 1.5);
+  return [lerp(bx, sx, k), lerp(by, sy, k)];
+}
+function drawFish(g, x, y, ang, L, beat, alpha, flash) {
+  if (alpha <= 0.01) return;
+  g.save(); g.translate(x, y); g.rotate(ang); g.globalAlpha = Math.min(1, alpha);
+  const K = 8, top = [], bot = [];
+  let tailX = 0, tailY = 0, tailA = 0;
+  for (let k = 0; k <= K; k++) {
+    const u = k / K, sx = lerp(L * 0.5, -L * 0.34, u);
+    const sy = L * 0.08 * Math.sin(beat - u * 2.4) * u * u;
+    const hw = L * 0.13 * Math.pow(Math.sin(Math.PI * clamp(0.06 + u * 0.8)), 0.7) * (1 - 0.45 * u) + L * 0.012;
+    top.push([sx, sy - hw]); bot.push([sx, sy + hw]);
+    if (k === K) { tailX = sx; tailY = sy; tailA = Math.PI + 0.55 * Math.sin(beat - 2.4) * 0.6; }
+  }
+  // tail fin (forked)
+  const ca = Math.cos(tailA), sa = Math.sin(tailA), fl = L * 0.24;
+  const tp = (a, b) => [tailX + ca * a - sa * b, tailY + sa * a + ca * b];
+  const t1 = tp(fl, -fl * 0.62), t2 = tp(fl * 0.55, 0), t3 = tp(fl, fl * 0.62);
+  g.beginPath(); g.moveTo(tailX, tailY); g.lineTo(t1[0], t1[1]); g.quadraticCurveTo(t2[0] - ca * 2, t2[1], t3[0], t3[1]); g.closePath();
+  g.fillStyle = rgba(mix(TEAL, SILVER, 0.2 + 0.7 * flash), 0.9); g.fill();
+  // body
+  g.beginPath(); g.moveTo(top[0][0] + L * 0.03, (top[0][1] + bot[0][1]) / 2);
+  for (const p of top) g.lineTo(p[0], p[1]);
+  for (let k = K; k >= 0; k--) g.lineTo(bot[k][0], bot[k][1]);
+  g.closePath();
+  const bg = g.createLinearGradient(0, -L * 0.14, 0, L * 0.14);
+  bg.addColorStop(0, rgba(mix([10, 70, 92], SILVER, 0.8 * flash), 1));
+  bg.addColorStop(0.5, rgba(mix([95, 175, 195], FOAM, flash), 1));
+  bg.addColorStop(1, rgba(mix([150, 220, 225], FOAM, flash), 1));
+  g.fillStyle = bg; g.fill();
+  g.strokeStyle = rgba(AQUA, 0.9); g.lineWidth = 1.6; g.stroke();
+  // lateral line and eye
+  g.beginPath(); g.moveTo(L * 0.3, 0); g.quadraticCurveTo(0, top[4][1] * 0.2 + bot[4][1] * 0.2, -L * 0.3, (top[7][1] + bot[7][1]) / 2);
+  g.strokeStyle = rgba([255, 255, 255], 0.55 + 0.45 * flash); g.lineWidth = 1.4; g.stroke();
+  g.fillStyle = rgba([8, 40, 50], 1); g.beginPath(); g.arc(L * 0.33, -L * 0.02, L * 0.045, 0, TAU); g.fill();
+  g.restore();
+}
+function drawSchool(t) {
+  if (t < DROPS[0][2] - 0.1 || t > 7.2) return;
+  const g = clearL(LF);
+  const items = [];
+  for (const f of FISH) {
+    const tb = DROPS[f.d][2], dt = t - tb;
+    if (dt < 0) continue;
+    const p = fishPos(f, t), q = fishPos(f, t + 0.025), p0 = fishPos(f, t - 0.025);
+    const a1 = Math.atan2(q[1] - p[1], q[0] - p[0]), a0 = Math.atan2(p[1] - p0[1], p[0] - p0[0]);
+    let da = a1 - a0; da -= TAU * Math.round(da / TAU);
+    const turn = Math.abs(da) / 0.025, speed = Math.hypot(q[0] - p[0], q[1] - p[1]) / 0.025;
+    // waves of silver run through the school as it banks (front to back), plus a soft shimmer
+    let flash = 0.1 + 0.08 * Math.sin(6 * t + f.ph);
+    for (const te of FLASH_T) flash += Math.exp(-Math.pow((t - te - f.lag * 1.1) / 0.13, 2));
+    flash = clamp(flash + 0.3 * smooth(1.5, 3.5, turn));
+    const fade = smooth(0, 0.35, dt) * gEnd(t);
+    // fish stay below the surface: fade any that rise into it
+    const below = smooth(yW(t) + 10, yW(t) + 60, p[1]);
+    items.push({ x: p[0], y: p[1], a: a1, L: 58 * f.sc * (0.35 + 0.65 * ease.out3(dt / 0.6)), beat: t * (9 + speed * 0.012) + f.ph, al: fade * below * (0.62 + 0.38 * f.sc), flash });
+  }
+  items.sort((a, b) => a.L - b.L);
+  for (const it of items) drawFish(g, it.x, it.y, it.a, it.L, it.beat, it.al, it.flash);
+  HG.reset(g);
+  bloom(ctx, LF, 9, 0.38);
+  HG.drawLayer(ctx, LF);
+  // a glint on each fish as it turns
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const it of items) HG.dot(ctx, FOAM, it.x + Math.cos(it.a) * it.L * 0.1, it.y + Math.sin(it.a) * it.L * 0.1, it.L * 0.8, it.al * it.flash * 0.4);
+  ctx.restore();
+}
+
+// ---------- bubbles
+function bubble(x, y, r, a) {
+  if (a <= 0.01) return;
+  HG.dot(ctx, TURQ, x, y, r * 3.2, a * 0.22);
+  ctx.globalAlpha = Math.min(1, a * 0.85); ctx.strokeStyle = rgba(AQUA, 1); ctx.lineWidth = Math.max(1.8, r * 0.24);
+  ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
+  HG.dot(ctx, FOAM, x - r * 0.38, y - r * 0.38, r * 1.1, a * 0.85);
+}
+const VENTS = [[318, 0.9], [640, 1.25], [812, 1.0]];
+function drawBubbles(t) {
+  const ys = yW(t), env = smooth(0.2, 1.0, t) * gEnd(t);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  // little bursts of bubbles from cracks in the floor
+  VENTS.forEach(([vx, every], v) => {
+    const R = HG.rng(400 + v);
+    for (let k = 0; k < 20; k++) {
+      const tk = -6 + k * every + R() * 0.5, n = 2 + Math.floor(R() * 4);
+      for (let i = 0; i < n; i++) {
+        const tb = tk + i * (0.06 + R() * 0.08), dt = t - tb, sz = 3.5 + R() * 6, ph = R() * TAU, sp = 95 + R() * 75, wa = 5 + R() * 10, wf = 2.2 + R() * 2, x0 = vx + (R() - 0.5) * 30;
+        if (dt < 0) continue;
+        const d = FLOOR_D - 20 - (sp * dt + 7 * dt * dt);
+        if (d < 4) continue;
+        const x = x0 + wa * Math.sin(wf * dt + ph), y = d + off(t);
+        if (y < -30 || y > 1100) continue;
+        bubble(x, y, sz * (1 + 0.07 * dt), env * smooth(0, 0.3, dt) * smooth(4, 30, d));
+      }
+    }
+  });
+  // lone bubbles
+  {
+    const R = HG.rng(450);
+    for (let i = 0; i < 26; i++) {
+      const tb = -6 + R() * 15, x0 = 160 + R() * 760, d0 = 300 + R() * 650, sz = 4 + R() * 6, ph = R() * TAU, sp = 90 + R() * 60;
+      const dt = t - tb; if (dt < 0) continue;
+      const d = d0 - sp * dt; if (d < 4) continue;
+      const y = d + off(t); if (y < -30 || y > 1100) continue;
+      bubble(x0 + 8 * Math.sin(3 * dt + ph), y, sz, env * smooth(0, 0.5, dt) * smooth(4, 30, d));
+    }
+  }
+  // trails behind the plunging drops
+  DROPS.forEach(([x, te, tbst], d) => {
+    const R = HG.rng(500 + d);
+    for (let i = 0; i < 30; i++) {
+      const ts = te + Math.pow(i / 30, 1.6) * (tbst - te + 0.1) + R() * 0.02, dt = t - ts, ph = R() * TAU;
+      if (dt < 0) continue;
+      const p = dropPos(d, ts), sz = (3 + R() * 6) * (1.3 - 0.6 * i / 30);
+      const depth0 = p[1] - yW(ts), rise = (70 + R() * 70) * dt + 10 * dt * dt, depth = depth0 - rise;
+      if (depth < 4) continue;
+      bubble(p[0] + (R() - 0.5) * 26 + 10 * Math.sin(4 * dt + ph), depth + ys, sz, env * (1 - smooth(1.8, 3.2, dt)) * smooth(4, 40, depth));
+    }
+  });
+  // a few big bubbles close to us (they move faster: parallax)
+  const R = HG.rng(612);
+  for (let i = 0; i < 8; i++) {
+    const tb = 0.2 + i * 0.75 + R() * 0.4, x0 = 140 + R() * 800, sz = 11 + R() * 9, ph = R() * TAU;
+    const dt = t - tb; if (dt < 0) continue;
+    const y = 1180 - 150 * dt + 0.4 * off(t) - 0.4 * off(tb) * 0 + 0.35 * (off(t) - off(tb));
+    if (y < yW(t) + 20 || y < -40) continue;
+    bubble(x0 + 14 * Math.sin(2.1 * dt + ph), y, sz, env * 0.8 * smooth(yW(t) + 20, yW(t) + 120, y));
+  }
+  ctx.restore();
+}
+
+// ---------- the plunging drops
+function drawDrops(t) {
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  DROPS.forEach(([x, te, tb], d) => {
+    const dt = t - te; if (dt < -0.25 || t > tb + 0.6) return;
+    const p = dropPos(d, Math.max(te, t));
+    let px = p[0], py = p[1];
+    if (dt < 0) { py = yW(t) - 40 + dt * DROP_V0; }            // still falling in the air (above the frame)
+    const v = dt < 0 ? DROP_V0 : DROP_V0 * Math.exp(-DROP_K * dt);
+    const a = (1 - smooth(tb - 0.05, tb + 0.25, t));
+    const sl = Math.min(110, 20 + v * 0.09);
+    const gr = ctx.createLinearGradient(px, py - sl, px, py);
+    gr.addColorStop(0, rgba(TURQ, 0)); gr.addColorStop(1, rgba(AQUA, 0.8 * a));
+    ctx.strokeStyle = gr; ctx.lineWidth = 10; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(px, py - sl); ctx.lineTo(px, py); ctx.stroke();
+    HG.dot(ctx, TURQ, px, py, 120, 0.4 * a);
+    HG.dot(ctx, AQUA, px, py, 44, a);
+    HG.dot(ctx, FOAM, px, py, 16, a);
+    // the burst into fish: a ring of light
+    const bt = t - tb;
+    if (bt > 0 && bt < 0.6) {
+      const k = ease.out3(bt / 0.6);
+      HG.ring(ctx, px, py, 14 + 46 * k, AQUA, { width: 4, blur: 5, alpha: 0.45 * (1 - k) });
+      HG.dot(ctx, AQUA, px, py, 80 * (1 - k) + 20, 0.55 * (1 - k));
+    }
+  });
+  ctx.restore();
+}
+
+// ---------- motes in the light (dust in the air, plankton in the water)
+function drawMotes(t, airB, watB) {
+  const ys = yW(t), env = gEnd(t);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const R = HG.rng(808);
+  for (let i = 0; i < 200; i++) {
+    const x0 = 180 + R() * 760, h = R(), ph = R() * TAU, s = 5 + R() * 6;
+    const x = x0 + 14 * Math.sin(0.35 * t + ph), y = hToY(h, t) + 10 * Math.sin(0.5 * t + ph * 2);
+    if (y > ys - 6 || y < -20) continue;
+    const L = lightAt(airB, x, y); if (L < 0.04) continue;
+    HG.dot(ctx, WARM, x, y, s, env * L * (0.55 + 0.45 * Math.sin(2.4 * t + ph)));
+  }
+  for (let i = 0; i < 150; i++) {
+    const x0 = 100 + R() * 880, d0 = R() * 1050, ph = R() * TAU, s = 4 + R() * 5;
+    const x = x0 + 10 * Math.sin(0.4 * t + ph), y = d0 + 1.08 * off(t) - 6 * t;
+    if (y < ys + 8 || y > 1080) continue;
+    const L = lightAt(watB, x, y);
+    HG.dot(ctx, AQUA, x, y, s, env * smooth(0.3, 1.4, t) * (0.12 + 0.75 * L) * (0.55 + 0.45 * Math.sin(2 * t + ph)));
+  }
+  ctx.restore();
+}
+
+// ---------- the drip from a root tip and its ripples
+const DRIPS = [];
+function setupDrips() {
+  // pick roots that end in the air above the water, near the shafts
+  const want = [[640, 7.15, 1.0], [470, 8.45, 0.75]];
+  for (const [x, tForm, size] of want) {
+    let best = null, bd = 1e9;
+    for (const r of ROOTS) { if (r.vine || r.hEnd < 0.15 || r.hEnd > 0.4) continue; const d = Math.abs(r.x - x); if (d < bd) { bd = d; best = r; } }
+    // find when it lands: fall from the tip with gravity
+    const tFall = tForm + 0.6, g = 1500;
+    let tHit = tFall;
+    for (let tt = tFall; tt < tFall + 2; tt += 0.002) {
+      const tip = rootPt(best, 1, tFall); const y = tip[1] + 0.5 * g * (tt - tFall) * (tt - tFall);
+      if (y >= yW(tt)) { tHit = tt; break; }
+    }
+    DRIPS.push({ r: best, tForm, tFall, tHit, g, size, x: rootPt(best, 1, tFall)[0] });
+  }
+}
+setupDrips();
+function drawDrips(t) {
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const D of DRIPS) {
+    if (t < D.tForm || t > D.tHit + 3) continue;
+    if (t < D.tFall) {                                      // a bead swells at the tip
+      const k = ease.out3((t - D.tForm) / (D.tFall - D.tForm)), tip = rootPt(D.r, 1, t);
+      HG.dot(ctx, AQUA, tip[0], tip[1] + 4 + 6 * k, 22 * k * D.size + 4, 0.9 * k);
+      HG.dot(ctx, FOAM, tip[0], tip[1] + 4 + 6 * k, 9 * k * D.size, k);
+    } else if (t < D.tHit) {                               // falling
+      const tip = rootPt(D.r, 1, D.tFall), dt = t - D.tFall, y = tip[1] + 10 + 0.5 * D.g * dt * dt, v = D.g * dt;
+      const sl = Math.min(60, v * 0.05);
+      const gr = ctx.createLinearGradient(D.x, y - sl, D.x, y);
+      gr.addColorStop(0, rgba(AQUA, 0)); gr.addColorStop(1, rgba(FOAM, 0.85));
+      ctx.strokeStyle = gr; ctx.lineWidth = 5 * D.size; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(D.x, y - sl); ctx.lineTo(D.x, y); ctx.stroke();
+      HG.dot(ctx, AQUA, D.x, y, 26 * D.size, 0.9);
+    } else {                                                // splash and rings of ripples
+      const dt = t - D.tHit, y0 = yW(t);
+      const env = gEnd(t);
+      for (let k = 0; k < 4; k++) {
+        const tk = dt - k * 0.22; if (tk < 0) continue;
+        const r = (20 + 360 * (1 - Math.exp(-0.8 * tk))) * D.size * (1 - k * 0.12);
+        const a = (1 - smooth(0.2, 2.8, tk)) * smooth(0, 0.08, tk) * env * (1 - k * 0.18);
+        ctx.save(); ctx.translate(D.x, y0 + 4); ctx.scale(1, 0.17);
+        ctx.strokeStyle = rgba(mix(AQUA, WARM, 0.4), a * 0.8); ctx.lineWidth = 16;
+        ctx.filter = HG.blur(5); ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke(); ctx.filter = 'none';
+        ctx.strokeStyle = rgba(FOAM, a); ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
+        ctx.restore();
+      }
+      // the rebound droplet and a crown of spray
+      const jt = dt / 0.55;
+      if (jt < 1) HG.dot(ctx, FOAM, D.x, y0 - 70 * D.size * 4 * jt * (1 - jt), 16 * D.size, 0.9 * (1 - jt * 0.5));
+      const R = HG.rng(9 + (D.size * 10 | 0));
+      for (let i = 0; i < 12; i++) {
+        const a = -Math.PI / 2 + (R() - 0.5) * 2.2, v = 160 + R() * 160, life = 0.5 + R() * 0.3;
+        if (dt > life) continue;
+        const x = D.x + Math.cos(a) * v * dt, y = y0 + Math.sin(a) * v * dt + 0.5 * 1400 * dt * dt;
+        if (y > y0 + 4) continue;
+        HG.dot(ctx, i % 3 ? AQUA : WARM, x, y, 10 * D.size, (1 - dt / life));
+      }
+      HG.dot(ctx, WARM, D.x, y0, 120 * D.size, 0.4 * (1 - smooth(0, 0.5, dt)));
+    }
+  }
+  ctx.restore();
+}
+
+
+// ---------- the toh (turquoise-browed motmot): bird of the cenotes, guardian of the Maya underworld.
+// Perched on a root at the right, it swings its racket tail like a pendulum ("pájaro reloj").
+const TOH_X = 872, TOH_H = 0.6, TOH_K = 1.3;
+const BUFF = [214, 172, 112], RUFOUS = [232, 118, 56], OLIVE = [120, 168, 92], BLUE = [60, 150, 240], TQ = [70, 225, 240];
+const tohSwing = t => 0.5 * Math.sin(TAU * (t - 6.6) / 1.55) * smooth(6.6, 7.3, t);
+function drawPerch(g, t, alpha) {
+  if (alpha <= 0.01) return;
+  const y = hToY(TOH_H, t);
+  g.save(); g.globalAlpha = Math.min(1, alpha); g.lineCap = 'round'; g.lineJoin = 'round';
+  // a thick aerial root grows out of the wall, bends and hangs down; thin rootlets hang from it
+  const sw = 4 * Math.sin(0.7 * t + 1.2);
+  const pts = [[1070, y - 26], [1010, y - 8], [950, y + 1], [890, y + 4], [842, y + 2], [812, y + 12], [800, y + 44], [804, y + 92], [796 + sw * 0.5, y + 150], [792 + sw, y + 220]];
+  const wid = [15, 13, 12, 11, 10, 8.5, 7, 5.5, 4.2, 3];
+  for (let i = 1; i < pts.length; i++) {
+    g.beginPath(); g.moveTo(pts[i - 1][0], pts[i - 1][1]); g.lineTo(pts[i][0], pts[i][1]);
+    g.strokeStyle = rgba([34, 46, 30], 1); g.lineWidth = wid[i]; g.stroke();
+  }
+  g.beginPath(); pts.forEach(([x, yy], i) => i ? g.lineTo(x, yy) : g.moveTo(x, yy));
+  g.strokeStyle = rgba(mix(STONE, ROOTC, 0.45), 0.85); g.lineWidth = 2.6; g.stroke();
+  g.beginPath(); for (let i = 0; i < 6; i++) { const [x, yy] = pts[i]; i ? g.lineTo(x, yy - wid[i] * 0.45) : g.moveTo(x, yy - wid[i] * 0.45); }
+  g.strokeStyle = rgba(WARM, 0.6); g.lineWidth = 2.4; g.stroke();
+  for (const [x, len, ph] of [[1018, 120, 0.3], [978, 70, 1.7], [932, 160, 2.9], [858, 54, 4.1]]) {
+    const yy = y + (x > 950 ? -4 : 2), s2 = 5 * Math.sin(0.8 * t + ph);
+    g.beginPath(); g.moveTo(x, yy); g.quadraticCurveTo(x + s2 * 0.3, yy + len * 0.5, x + s2, yy + len);
+    g.strokeStyle = rgba(mix(ROOTD, ROOTC, 0.5), 0.8); g.lineWidth = 2.6; g.stroke();
+  }
+  g.restore();
+}
+function drawToh(g, t, alpha) {
+  if (alpha <= 0.01) return;
+  const y0 = hToY(TOH_H, t) - 1;
+  g.save(); g.globalAlpha = Math.min(1, alpha); g.lineCap = 'round'; g.lineJoin = 'round';
+  g.translate(TOH_X, y0); g.scale(TOH_K, TOH_K); g.rotate(-0.035 * tohSwing(t - 0.2));
+  const look = 0.07 * Math.sin(1.3 * t + 0.4) + 0.22 * Math.sin(Math.PI * clamp((t - 8.1) / 1.4)) * (t > 8.1 ? 1 : 0);
+  const breathe = 1 + 0.012 * Math.sin(3.1 * t);
+  // tail: pivots at the vent; the rackets follow a little behind the swing
+  const th = tohSwing(t), th2 = tohSwing(t - 0.13);
+  const P = [17, -8];
+  g.save(); g.translate(P[0], P[1]);
+  for (const sd of [-1, 1]) {       // the shorter outer tail feathers
+    g.save(); g.rotate(th * 0.9 + sd * 0.07);
+    g.beginPath(); g.moveTo(-4, 0); g.quadraticCurveTo(-6, 34, -1, 66); g.quadraticCurveTo(3, 70, 5, 64); g.quadraticCurveTo(7, 32, 4, 0); g.closePath();
+    g.fillStyle = rgba([30, 80, 170], 1); g.fill(); g.strokeStyle = rgba(BLUE, 1); g.lineWidth = 1.6; g.stroke();
+    g.restore();
+  }
+  for (const sd of [-1, 1]) {       // the long central feathers: vane, bare shaft, racket
+    const a1 = th + sd * 0.025, a2 = th2 + sd * 0.05;
+    const p1 = [-Math.sin(a1) * 70, Math.cos(a1) * 70], p2 = [p1[0] - Math.sin(a2) * 86, p1[1] + Math.cos(a2) * 86];
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(p1[0], p1[1]); g.strokeStyle = rgba([40, 110, 210], 1); g.lineWidth = 8; g.stroke();
+    g.beginPath(); g.moveTo(p1[0], p1[1]); g.quadraticCurveTo(p1[0] - Math.sin(a1) * 40, p1[1] + Math.cos(a1) * 40, p2[0], p2[1]);
+    g.strokeStyle = rgba([90, 150, 220], 1); g.lineWidth = 2.2; g.stroke();
+    g.save(); g.translate(p2[0], p2[1]); g.rotate(a2);
+    g.beginPath(); g.moveTo(0, -4); g.bezierCurveTo(-11, 4, -9, 22, 0, 30); g.bezierCurveTo(9, 22, 11, 4, 0, -4); g.closePath();
+    g.fillStyle = rgba(BLUE, 1); g.fill(); g.strokeStyle = rgba(TQ, 1); g.lineWidth = 2; g.stroke();
+    g.beginPath(); g.moveTo(-7, 20); g.bezierCurveTo(-5, 26, -2, 29, 0, 30); g.bezierCurveTo(2, 29, 5, 26, 7, 20); g.closePath();
+    g.fillStyle = rgba([10, 16, 30], 1); g.fill();
+    g.restore();
+  }
+  g.restore();
+  // body: buff breast to rufous belly
+  g.save(); g.scale(breathe, breathe);
+  g.beginPath(); g.moveTo(-14, -74); g.bezierCurveTo(-24, -54, -20, -26, -6, -12); g.bezierCurveTo(2, -4, 14, -4, 22, -8);
+  g.bezierCurveTo(30, -26, 30, -56, 14, -80); g.closePath();
+  const bg = g.createLinearGradient(0, -78, 0, -6);
+  bg.addColorStop(0, rgba(BUFF, 1)); bg.addColorStop(0.45, rgba(mix(BUFF, RUFOUS, 0.5), 1)); bg.addColorStop(1, rgba(RUFOUS, 1));
+  g.fillStyle = bg; g.fill(); g.strokeStyle = rgba(WARM, 0.8); g.lineWidth = 1.8; g.stroke();
+  // wing along the back: olive green with turquoise-blue flight feathers
+  g.beginPath(); g.moveTo(8, -74); g.bezierCurveTo(30, -62, 34, -30, 28, 2); g.bezierCurveTo(22, -10, 8, -40, 8, -74); g.closePath();
+  const wg = g.createLinearGradient(0, -74, 0, 2);
+  wg.addColorStop(0, rgba(OLIVE, 1)); wg.addColorStop(0.5, rgba(mix(OLIVE, TQ, 0.6), 1)); wg.addColorStop(1, rgba(BLUE, 1));
+  g.fillStyle = wg; g.fill(); g.strokeStyle = rgba(TQ, 1); g.lineWidth = 1.8; g.stroke();
+  g.strokeStyle = rgba([40, 90, 160], 0.8); g.lineWidth = 1.4;
+  for (const k of [0.45, 0.62, 0.8]) { g.beginPath(); g.moveTo(14 + k * 8, -74 + k * 70); g.lineTo(24 + k * 4, -60 + k * 62); g.stroke(); }
+  // feet on the root
+  g.strokeStyle = rgba([90, 90, 100], 1); g.lineWidth = 3;
+  for (const fx of [-2, 8]) { g.beginPath(); g.moveTo(fx, -10); g.lineTo(fx - 4, 1); g.lineTo(fx - 10, 2); g.stroke(); }
+  g.restore();
+  // head (turns slightly; looks down at the falling drop)
+  g.save(); g.translate(0, -74); g.rotate(look); g.translate(0, 74);
+  g.beginPath(); g.arc(-3, -90, 19, 0, TAU);
+  const hg = g.createLinearGradient(0, -110, 0, -72);
+  hg.addColorStop(0, rgba([150, 160, 110], 1)); hg.addColorStop(1, rgba(BUFF, 1));
+  g.fillStyle = hg; g.fill(); g.strokeStyle = rgba(WARM, 0.7); g.lineWidth = 1.6; g.stroke();
+  // rufous patch behind the eye
+  g.fillStyle = rgba(RUFOUS, 1); g.beginPath(); g.ellipse(9, -91, 6, 5, 0.3, 0, TAU); g.fill();
+  // heavy black bill, slightly curved
+  g.beginPath(); g.moveTo(-17, -97); g.quadraticCurveTo(-42, -99, -64, -88); g.quadraticCurveTo(-42, -88, -17, -83); g.closePath();
+  g.fillStyle = rgba([24, 26, 30], 1); g.fill(); g.strokeStyle = rgba([150, 160, 170], 0.9); g.lineWidth = 1.6; g.stroke();
+  // black mask through the eye, the bright turquoise brow above it
+  g.beginPath(); g.moveTo(-19, -95); g.quadraticCurveTo(-4, -98, 6, -92); g.lineTo(6, -86); g.quadraticCurveTo(-6, -84, -19, -85); g.closePath();
+  g.fillStyle = rgba([8, 10, 12], 1); g.fill();
+  g.beginPath(); g.moveTo(-17, -99); g.quadraticCurveTo(-4, -104, 10, -96);
+  g.strokeStyle = rgba(TQ, 1); g.lineWidth = 4.2; g.stroke();
+  g.fillStyle = rgba([255, 255, 255], 1); g.beginPath(); g.arc(-6, -91, 1.9, 0, TAU); g.fill();
+  // black throat stripe edged in turquoise
+  g.beginPath(); g.moveTo(-13, -79); g.quadraticCurveTo(-15, -70, -12, -63);
+  g.strokeStyle = rgba(TQ, 1); g.lineWidth = 6.5; g.stroke();
+  g.strokeStyle = rgba([8, 10, 12], 1); g.lineWidth = 3; g.stroke();
+  g.restore();
+  g.restore();
+}
+
+// ---------- fireflies: the roots dissolve into them and they rise toward the opening
+const FLIES = (() => {
+  const R = HG.rng(1234), out = [];
+  ROOTS.forEach(r => {
+    for (let j = 1; j <= 4; j++) {
+      if (R() < 0.42) continue;
+      const s = (j - 0.2 - R() * 0.6) / 4;
+      out.push({ r, s, vy: 70 + R() * 70, sway: 16 + R() * 26, ph: R() * TAU, f: 0.9 + R() * 0.9, sz: 12 + R() * 9, col: R() < 0.6 ? FIRE : FIRE2, pull: 0.25 + R() * 0.3 });
+    }
+  });
+  return out;
+})();
+function drawFireflies(t) {
+  if (t < END0) return;
+  const env = 1 - smooth(10.8, 11.3, t);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const F of FLIES) {
+    // released when the dissolving front passes it
+    const trel = releaseTime(F.r, F.s);
+    const dt = t - trel; if (dt < 0) continue;
+    const p0 = rootPt(F.r, F.s, trel);
+    const x = p0[0] + F.sway * Math.sin(F.f * dt + F.ph) - F.sway * Math.sin(F.ph) + (OPX - p0[0]) * F.pull * smooth(0, 1.8, dt);
+    const y = p0[1] - F.vy * dt - 40 * dt * dt + (hToY(0, t) - hToY(0, trel)) * 0.9;
+    const blink = 0.5 + 0.5 * Math.pow(0.5 + 0.5 * Math.sin(4.2 * dt + F.ph * 3), 2);
+    const a = smooth(0, 0.2, dt) * blink * env * (1 - smooth(yO(t) + 40, yO(t) - 120, y) * 0.85);
+    HG.dot(ctx, F.col, x, y, F.sz * 3, a * 0.3);
+    HG.dot(ctx, F.col, x, y, F.sz, a);
+  }
+  ctx.restore();
+}
+// the dissolving front reaches fraction s of a root at:
+function releaseTime(r, s) {
+  // rootLeft(r, t) = 1 - inOut3((t - dis)/1.1) == s  =>  inOut3(x) = 1 - s
+  const y = 1 - s;
+  const x = y < 0.5 ? Math.cbrt(y / 4) : 1 - Math.cbrt(2 * (1 - y)) / 2;
+  return r.dis + 1.1 * x;
+}
+
+// ---------- render
+HG.start({
+  duration: 12,
+  render(t) {
+    const airB = airShafts(t), watB = waterShafts(t);
+    const env = gEnd(t);
+
+    // the floor and its web of caustics (seen at the start, slipping away as we rise)
+    drawCaustics(t, smooth(0.2, 1.4, t) * env);
+
+    // shafts of light: in the air (gold) and refracted below the surface (turquoise)
+    const g = clearL(LB);
+    g.globalCompositeOperation = 'lighter';
+    for (const b of watB) drawShaft(g, b, TURQ, 0.42, 0);
+    for (const b of airB) drawShaft(g, b, SUN, 0.62, 0.3, 0.4);
+    HG.reset(g);
+    bloom(ctx, LB, 20, 0.6 * env);
+    bloom(ctx, LB, 5, 0.6 * env);
+
+    drawMotes(t, airB, watB);
+    drawSurface(t, airB, smooth(-60, 40, yW(t)) * env);
+    drawBubbles(t);
+    drawDrops(t);
+    drawSchool(t);
+
+    // the cave: the opening of light, its jungle rim, the dome, and the roots
+    const caveA = smooth(5.0, 6.6, t) * (1 - smooth(10.0, 11.1, t));
+    const rg = clearL(LR);
+    drawOpening(t, caveA);
+    drawRoots(rg, t, airB, smooth(5.0, 6.4, t) * env);
+    const tohA = smooth(5.6, 6.6, t) * (1 - smooth(10.0, 10.9, t));
+    drawPerch(rg, t, tohA);
+    drawToh(rg, t, tohA);
+    HG.reset(rg);
+    bloom(ctx, LR, 7, 0.75);
+    HG.drawLayer(ctx, LR);
+    drawDrips(t);
+    drawFireflies(t);
+
+    if (DEBUG) { HG.reset(ctx); ctx.strokeStyle = 'rgba(255,0,0,0.6)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(C, C, 470, 0, TAU); ctx.stroke(); }
+  },
+});
+</script></body></html>
