@@ -43,6 +43,14 @@ These are full scenes rather than objects on black. The fan step fades the outer
 
 If an AI clip comes out broken and the budget is spent, `video SCENE --kenburns` makes a free slow push-in and back on the still instead. Concheros and the ofrenda use it; the ofrenda adds a warm candle flicker (`"kenburns_flicker": true`).
 
+**Motion transfer from real footage.** AI-invented movement of people looked unnatural, so people scenes can copy the movement of a real, openly licensed reference video onto the approved still with Higgsfield's Genjutsu motion transfer:
+
+```bash
+python3 generate.py --set escenas motion jarabe-tapatio --seconds 8 --resolution 480p   # uses out-escenas/refs/jarabe-tapatio/ref.mp4
+```
+
+It costs per second of reference video: $0.32 at 480p, $0.68 at 720p, $1.63 at 1080p. Credits for the reference clips are in `REFERENCES.md`.
+
 Every command takes `--set escenas`. That set uses its own outputs and spend log in `out-escenas/`:
 
 ```bash

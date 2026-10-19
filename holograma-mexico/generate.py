@@ -50,6 +50,9 @@ VIDEO_MODELS = {
 }
 # Models whose estimate endpoint returns only a pricing description: cost from
 # their published token formula (720p square = 720x720, 24 fps, $0.0214 per 1k tokens).
+MOTION_MODEL = "higgsfield/genjutsu/motion-transfer/v1.0"
+# Genjutsu motion transfer bills each (rounded-up) second of the source video.
+MOTION_RATE = {"480p": 0.318, "720p": 0.681, "1080p": 1.632}
 TOKEN_PRICED = {"higgsfield/cinema-studio/4.0": lambda body: math.ceil(body["duration"] * 720 * 720 * 24 / 1024) * 0.0214 / 1000}
 VIDEO_MODE = "pro"
 VIDEO_SECONDS = 15
@@ -250,6 +253,17 @@ def finish(scene_id, kind, pending, entry):
     record_spend(scene_id, kind, pending["cost"], pending["request_id"])
 
 
+def upload_file(path, content_type="video/mp4"):
+    """Upload a local file through Higgsfield's presigned URL; returns its public URL."""
+    info = call("POST", "files/generate-upload-url", {"content_type": content_type})
+    req = urllib.request.Request(info["upload_url"], data=Path(path).read_bytes(), method="PUT",
+                                 headers=info.get("upload_headers") or {"Content-Type": content_type})
+    with urllib.request.urlopen(req, timeout=300) as resp:
+        if resp.status >= 300:
+            die(f"upload of {path} failed with HTTP {resp.status}")
+    return info["public_url"]
+
+
 def download(url, dest):
     dest.parent.mkdir(parents=True, exist_ok=True)
     for attempt in range(5):
@@ -382,6 +396,51 @@ def cmd_select_video(args):
     state["selected_video"] = args.n
     save_state(scene["id"], state)
     print(f"{scene['id']}: video {args.n} selected")
+
+
+def cmd_motion(args):
+    """Copy the movement of a real reference video onto the scene's approved still
+    (Higgsfield Genjutsu motion transfer)."""
+    cfg = load_scenes()
+    _, scene = find_scene(cfg, args.scene)
+    state = load_state(scene["id"])
+    if not state["selected_image"]:
+        die(f"{scene['id']} has no image yet")
+    image = next(img for img in state["images"] if img["n"] == state["selected_image"])
+    ref = Path(args.ref) if args.ref else OUT / "refs" / scene["id"] / "ref.mp4"
+    if not ref.exists():
+        die(f"no reference clip at {ref}")
+    if args.seconds:
+        cut = ref.with_name(f"{ref.stem}-{args.seconds}s.mp4")
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(ref), "-t", str(args.seconds),
+                        "-an", "-c:v", "libx264", "-crf", "18", "-movflags", "+faststart", str(cut)], check=True)
+        ref = cut
+    seconds = math.ceil(duration_of(ref))
+    if seconds < 4:
+        die(f"{ref} is {seconds}s; motion transfer needs at least 4 s")
+    cost = MOTION_RATE[args.resolution] * min(seconds, 30)
+    body = {"video_url": "<uploaded>", "image_urls": [image["url"]], "resolution": args.resolution,
+            "prompt": args.prompt or scene.get("motion_prompt", "")}
+    if args.dry_run:
+        print(json.dumps(body, indent=2, ensure_ascii=False))
+        print(f"{ref} ({seconds}s) at {args.resolution}: estimated ${cost:.2f}")
+        return
+    pending = state.get("pending", {}).get("video")
+    if not pending:
+        check_budget(cost)
+        print(f"{scene['id']}: uploading {ref.name}", flush=True)
+        body["video_url"] = upload_file(ref)
+    print(f"{scene['id']}: motion transfer from {ref.name} ({seconds}s, {args.resolution}, ${cost:.2f})", flush=True)
+    result, pending = run_request(scene["id"], "video", MOTION_MODEL, body, cost,
+                                  {"image": image["n"], "motion_ref": str(ref.relative_to(OUT)) if ref.is_relative_to(OUT) else str(ref),
+                                   "resolution": args.resolution}, poll_every=10)
+    n = len(load_state(scene["id"])["videos"]) + 1
+    url = result["video"]["url"]
+    dest = OUT / "videos" / f"{scene['id']}-{n}.mp4"
+    download(url, dest)
+    finish(scene["id"], "video", pending, {"n": n, "file": str(dest.relative_to(OUT)), "url": url,
+                                           "request_id": pending["request_id"], **pending["meta"]})
+    print(f"saved {dest} (attempt {n}, now selected)")
 
 
 def cmd_trim(args):
@@ -691,6 +750,15 @@ def main():
     s.add_argument("--duration", type=int, default=VIDEO_SECONDS, choices=range(3, 16), metavar="3-15")
     s.add_argument("--dry-run", action="store_true")
     s.set_defaults(fn=cmd_video)
+
+    s = sub.add_parser("motion", help="copy the movement of a real reference video onto the still")
+    s.add_argument("scene")
+    s.add_argument("--ref", help="reference video (default out-<set>/refs/<scene>/ref.mp4)")
+    s.add_argument("--seconds", type=int, help="use only the first N seconds of the reference (cost is per second)")
+    s.add_argument("--resolution", default="480p", choices=sorted(MOTION_RATE))
+    s.add_argument("--prompt", help="optional text guidance")
+    s.add_argument("--dry-run", action="store_true")
+    s.set_defaults(fn=cmd_motion)
 
     s = sub.add_parser("trim")
     s.add_argument("scene")
