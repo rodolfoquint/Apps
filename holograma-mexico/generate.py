@@ -367,6 +367,9 @@ def cmd_video(args):
     if scene.get("animate") == "spin":
         spin_video(scene["id"], image, args.duration)
         return
+    if args.kenburns:
+        kenburns_video(scene["id"], image, args.duration)
+        return
     body = video_body(cfg, scene, image["url"], args.extra, args.duration)
     cost = estimate_usd(VIDEO_MODEL, body)
     if args.dry_run:
@@ -434,6 +437,26 @@ def spin_video(scene_id, image, seconds):
     state["selected_video"] = n
     save_state(scene_id, state)
     print(f"saved {dest} ({turns} full turn(s) in {seconds}s, rendered locally at no cost; attempt {n}, now selected)")
+
+
+def kenburns_video(scene_id, image, seconds):
+    """Free fallback for full scenes: a slow push-in to 10% and back out, with a
+    gentle color pulse. Starts and ends on the still, so it loops seamlessly."""
+    src = OUT / image["file"]
+    n = len(load_state(scene_id)["videos"]) + 1
+    dest = OUT / "videos" / f"{scene_id}-{n}.mp4"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    frames = round(seconds * 30)
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-loop", "1", "-framerate", "30", "-i", str(src),
+                    "-vf", f"scale=1440:1440,zoompan=z='1+0.10*pow(sin(PI*on/{frames}),2)':d=1:s=1440x1440:fps=30"
+                           f":x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2',"
+                           f"hue=s='1+0.15*pow(sin(2*PI*t/{seconds}),2)',format=yuv420p",
+                    "-frames:v", str(frames), "-c:v", "libx264", "-crf", "16", "-r", "30", str(dest)], check=True)
+    state = load_state(scene_id)
+    state["videos"].append({"n": n, "file": str(dest.relative_to(OUT)), "image": image["n"], "kenburns": True})
+    state["selected_video"] = n
+    save_state(scene_id, state)
+    print(f"saved {dest} (slow push-in and back, rendered locally at no cost; attempt {n}, now selected)")
 
 
 def duration_of(path):
@@ -609,6 +632,8 @@ def main():
     s = sub.add_parser("video")
     s.add_argument("scene")
     s.add_argument("--extra", help="extra motion instructions")
+    s.add_argument("--kenburns", action="store_true",
+                   help="free local fallback: slow push-in and back on the still instead of AI video")
     s.add_argument("--duration", type=int, default=VIDEO_SECONDS, choices=range(3, 16), metavar="3-15")
     s.add_argument("--dry-run", action="store_true")
     s.set_defaults(fn=cmd_video)
