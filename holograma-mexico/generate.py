@@ -39,7 +39,12 @@ API = "https://api.higgsfield.ai"
 IMAGE_MODEL = "alibaba/qwen-image-3/text-to-image"
 # Kling O3 takes a required last frame; passing the still as both first and last
 # frame makes each clip loop seamlessly and pushes turntables to a full turn.
-VIDEO_MODEL = "kling-video/o3/first-last-frame"
+# Holding the end frame also keeps people almost in place, so scenes that need
+# big movement use Kling 3.0 Pro ("video_model": "kling3pro") with a free ending.
+VIDEO_MODELS = {
+    "o3": "kling-video/o3/first-last-frame",
+    "kling3pro": "kling-video/v3.0/pro/image-to-video",
+}
 VIDEO_MODE = "pro"
 VIDEO_SECONDS = 15
 FAN_SIZE = 1080
@@ -273,6 +278,10 @@ def image_body(cfg, scene, extra=None, seed=None):
     return body
 
 
+def video_model(cfg, scene):
+    return VIDEO_MODELS[scene.get("video_model") or cfg.get("video_model") or "o3"]
+
+
 def video_body(cfg, scene, image_url, extra=None, duration=VIDEO_SECONDS):
     # Scenes with one-way motion (a train crossing, boats gliding past) set
     # "loop": false and get no last frame; the fan fades hide the restart.
@@ -280,9 +289,14 @@ def video_body(cfg, scene, image_url, extra=None, duration=VIDEO_SECONDS):
     parts = [scene["motion"]]
     if extra:
         parts.append(extra)
-    parts.append(cfg["video_style"])
+    parts.append(cfg[scene.get("style_key", "video_style")])
     if loop and cfg.get("loop_style"):
         parts.append(cfg["loop_style"])
+    if video_model(cfg, scene) == VIDEO_MODELS["kling3pro"]:
+        body = {"prompt": " ".join(parts), "image_url": image_url, "duration": duration, "sound": "off"}
+        if loop:
+            body["last_image_url"] = image_url
+        return body
     body = {"prompt": " ".join(parts), "first_frame_url": image_url,
             "duration": duration, "mode": VIDEO_MODE, "aspect_ratio": "1:1", "sound": "off",
             "multi_shots": False}
@@ -297,7 +311,7 @@ def cmd_estimate(args):
     cfg = load_scenes()
     scene = cfg["scenes"][0]
     img = estimate_usd(IMAGE_MODEL, image_body(cfg, scene))
-    vid = estimate_usd(VIDEO_MODEL, video_body(cfg, scene, "https://example.com/frame.png"))
+    vid = estimate_usd(video_model(cfg, scene), video_body(cfg, scene, "https://example.com/frame.png"))
     n = len(cfg["scenes"])
     print(f"image ${img:.3f} · {VIDEO_SECONDS}s {VIDEO_MODE} video ${vid:.3f}")
     print(f"{n} scenes, one attempt each: ${n * (img + vid):.2f}")
@@ -371,13 +385,14 @@ def cmd_video(args):
         kenburns_video(scene["id"], image, args.duration, flicker=scene.get("kenburns_flicker", False))
         return
     body = video_body(cfg, scene, image["url"], args.extra, args.duration)
-    cost = estimate_usd(VIDEO_MODEL, body)
+    model = video_model(cfg, scene)
+    cost = estimate_usd(model, body)
     if args.dry_run:
         print(json.dumps(body, indent=2, ensure_ascii=False))
         print(f"estimated ${cost:.3f}")
         return
     print(f"{scene['id']}: animating image {image['n']} (${cost:.3f}); this takes a few minutes", flush=True)
-    result, pending = run_request(scene["id"], "video", VIDEO_MODEL, body, cost,
+    result, pending = run_request(scene["id"], "video", model, body, cost,
                                   {"image": image["n"], "extra": args.extra}, poll_every=10)
 
     n = len(load_state(scene["id"])["videos"]) + 1

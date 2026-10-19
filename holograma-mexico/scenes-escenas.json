@@ -10,13 +10,21 @@
       "id": "grito-zocalo",
       "title": "El Grito en el Zócalo",
       "subject": "Mexico City's Zócalo at night on September 15, Independence Day: the Metropolitan Cathedral with two matching grey stone bell towers crowned by bell-shaped cupolas and a central facade section with a clock topped by three small statues; the cathedral is floodlit in the colors of the flag in this exact order from left to right: the left tower glows green, the center of the facade glows white, the right tower glows red; a giant Mexican flag (green stripe at the pole, white with the eagle emblem, red) flies from a very tall, thin plain grey steel flagpole rising straight from a small low base in the middle of the plaza, with no stone obelisk; a cheerful crowd of Mexican families below in everyday clothes with patriotic touches: waving small Mexican flags with three vertical stripes green, white and red, green-white-red face paint on their cheeks, straw sombreros with green, white and red ribbon bands, green Mexico soccer jerseys, tricolor caps and bandanas, a woman wrapped in a striped rebozo shawl, a girl in a white embroidered Mexican blouse, a little boy in a black mariachi suit with a small sombrero; colorful fireworks bursting in the night sky above the cathedral",
-      "motion": "The giant flag waves proudly, red, white and green fireworks burst and sparkle above the cathedral, and the crowd cheers and waves their small flags."
+      "motion": "The giant flag ripples and waves strongly in the wind, red, white and green fireworks burst one after another above the cathedral, and the whole crowd jumps, cheers with raised arms, hugs and waves their small flags; the camera slowly rises and pushes in over the crowd toward the cathedral.",
+      "previous_motion": "The giant flag waves proudly, red, white and green fireworks burst and sparkle above the cathedral, and the crowd cheers and waves their small flags.",
+      "video_model": "kling3pro",
+      "style_key": "video_style_dynamic",
+      "loop": false
     },
     {
       "id": "mariachi",
       "title": "Mariachi en Garibaldi",
       "subject": "A mariachi band playing in Plaza Garibaldi, Mexico City, at night under warm plaza lights and papel picado. Five musicians in matching black gala charro suits: short fitted waist-length jacket with silver-thread embroidery on the lapels, chest and cuffs, tight black trousers with a row of round silver buttons down each outer leg, white shirt, a wide dark wine-red satin butterfly bow tie with two short hanging ends, embroidered belt, black boots. Each wears a black felt charro sombrero: smooth black felt, not straw and not woven palm, a very wide stiff brim with a rolled upturned edge, a tall pinched cone-shaped crown, and rich silver-thread floral embroidery all around the brim and the crown band. Instruments, one each: a clean straight brass trumpet, a violin with its bow, a guitar, a small five-string vihuela with a rounded back, and a guitarron, a huge deep-bodied fretless bass guitar with a very short neck, a small headstock and a V-shaped back, much bigger and deeper than the guitar. Joyful smiles.",
-      "motion": "The mariachis play with joy, trumpets raised and violin bows moving, swaying to the rhythm and smiling at each other."
+      "motion": "The mariachis play a lively son: the trumpeters lift their trumpets high, the violinists bow energetically, the guitarrón player plucks hard, and the band steps forward together, sways side to side and turns to each other with big smiles; the camera slowly orbits around the band.",
+      "previous_motion": "The mariachis play with joy, trumpets raised and violin bows moving, swaying to the rhythm and smiling at each other.",
+      "video_model": "kling3pro",
+      "style_key": "video_style_dynamic",
+      "loop": false
     },
     {
       "id": "tulum",
@@ -28,7 +36,11 @@
       "id": "guelaguetza",
       "title": "Guelaguetza — Flor de Piña",
       "subject": "The Guelaguetza festival in Oaxaca: young women of Tuxtepec dancing the Flor de Piña on an open-air stage with festive decorations, joyful mood. Each wears a different traditional Chinantec or Mazatec huipil as her dress: one loose, straight, boxy tunic hanging from the shoulders to the knee, with no waist sash or belt, short wide sleeves edged in white lace ruffles, densely embroidered over its whole length with big flowers, birds and geometric motifs in red, fuchsia, purple, yellow, blue and green, crossed by horizontal bands of colored satin ribbon and white lace; some huipiles are red with black and white geometric designs, others white with large red embroidered flowers. Below the knee-length huipil only a red striped wrap skirt with a white lace petticoat hem shows, reaching mid-calf. Long black hair braided and wound into a crown of braided multicolored ribbons on top of the head, with long satin ribbon streamers and bows hanging to the shoulders; several strands of red bead necklaces, earrings, many bright bangles on each wrist. They dance barefoot. Each holds one whole pineapple on her shoulder, tied with a red ribbon bow at its crown.",
-      "motion": "The barefoot dancers step and sway together in a joyful circle, lifting their ribbon-tied pineapples high, their long embroidered huipiles and hair ribbons swinging."
+      "motion": "The Flor de Piña dancers dance energetically across the stage in a moving line: quick stamping steps, full spins, swinging their huipiles and lifting their pineapples high above their heads as they weave past each other into a circle; the camera tracks alongside them.",
+      "previous_motion": "The barefoot dancers step and sway together in a joyful circle, lifting their ribbon-tied pineapples high, their long embroidered huipiles and hair ribbons swinging.",
+      "video_model": "kling3pro",
+      "style_key": "video_style_dynamic",
+      "loop": false
     },
     {
       "id": "palenque",
@@ -40,14 +52,21 @@
       "id": "xochimilco",
       "title": "Xochimilco",
       "subject": "A long brightly painted trajinera glides on a green Xochimilco canal lined with tall ahuejote trees on a sunny day. The boat is seen mostly from the side and slightly from the front, with the bow toward the left. The boat is narrow, flat-bottomed and wooden, with a squared bow, painted turquoise, red and yellow. One long painted roof on thin posts runs from bow to stern, covering the whole boat. At the very front of the boat stands the portada, fixed to the front end of the roof and spanning the full width of the bow from one side of the hull to the other: a single wide, flat, rectangular wooden signboard facing forward, a little taller than the roof, like a big painted gateway at the front of the boat. A large rounded arch opening is cut through the middle of the board, wide and tall, and you can see into the covered boat through the arch. The arch is framed by bands of rainbow colors, and the board is painted with big flowers and swirling scrolls in red, yellow, green and blue, with no lettering. Under the roof, a long red table runs lengthwise down the middle, with yellow wooden chairs with woven seats on both sides. A smiling family in casual clothes sits there and waves. Four mariachis stand in a row inside the boat under the roof, along the near side, just behind the portada, all fully visible and facing the camera. They wear matching black charro suits: short waist-length jackets, white shirts, big floppy solid red satin bow ties, fitted trousers with a neat row of small silver buttons down each outer leg, and wide tooled belts with silver buckles. Each wears a classic mariachi sombrero de charro of black felt. It has a tall tapered crown with a rounded, pinched and dented top, about as tall as his face, above a very wide stiff brim that curls up slightly at the edge and is trimmed with silver embroidery. Each mariachi holds exactly one instrument: the first a violin and bow, the second a single trumpet, the third a small round-backed vihuela, and the fourth a huge guitarron. The guitarron is an oversized bass guitar with a very deep bulging back and a short neck, held across his belly. At the stern a boatman in a straw hat stands on the back deck holding a long wooden pole with both hands, pushing it into the canal bottom. Colorful flowers decorate the boat.",
-      "motion": "The trajineras glide slowly along the canal, the mariachis play and sway, people wave and laugh, and flower petals float on the water.",
-      "loop": false
+      "motion": "The trajinera glides forward along the canal, the mariachis play and step to the rhythm, the families on board clap, dance in their seats and raise their drinks in a toast, and other colorful trajineras pass by; the camera follows alongside the boat.",
+      "loop": false,
+      "previous_motion": "The trajineras glide slowly along the canal, the mariachis play and sway, people wave and laugh, and flower petals float on the water.",
+      "video_model": "kling3pro",
+      "style_key": "video_style_dynamic"
     },
     {
       "id": "jarabe-tapatio",
       "title": "Jarabe Tapatío",
       "subject": "The Jarabe Tapatío on a festive stage: a charro and a china poblana dance joyfully around a single black charro sombrero lying on the floor, its tall dented crown and wide brim edged with silver embroidery. The charro is bareheaded with short black hair, nothing on his head; the sombrero on the floor is his, the only sombrero in the scene. He wears a black charro suit: short waist-length jacket and fitted trousers with silver-white scroll embroidery, a single row of round silver buttons down the outer seam of each trouser leg from waist to ankle, white shirt, wide red silk bow tie, black ankle boots. She wears a white short-sleeved blouse with a wide neckline embroidered with bright flowers, a narrow red-white-green striped sash, and a long full flowing skirt in one smooth piece without tiers or ruffles: shiny green satin from waist to hips, the lower part covered in glittering red and multicolor sequins, green hem band. On the front of the skirt, in sequins, the Mexican coat-of-arms eagle exactly as on the Mexican flag: a brown golden eagle seen in side profile, perched on a green nopal cactus, holding a serpent in its beak and talons. Hair in a bun with red flowers and tricolor ribbons, gold earrings",
-      "motion": "The couple dances the zapateado around the sombrero, her skirt swirling in wide colorful waves, his hands behind his back, both smiling."
+      "motion": "The couple dances the Jarabe Tapatío energetically across the stage: fast zapateado footwork, the china poblana spins around and around swirling her wide skirt in big waves, and the charro circles her with quick stamping steps and hands behind his back; the camera orbits around them.",
+      "previous_motion": "The couple dances the zapateado around the sombrero, her skirt swirling in wide colorful waves, his hands behind his back, both smiling.",
+      "video_model": "kling3pro",
+      "style_key": "video_style_dynamic",
+      "loop": false
     },
     {
       "id": "barrancas-cobre",
@@ -60,19 +79,31 @@
       "id": "parachicos",
       "title": "Parachicos de Chiapa de Corzo",
       "subject": "Adult parachicos dancers in the main plaza of Chiapa de Corzo, Chiapas, during the Fiesta Grande de Enero, with the red-brick crown-shaped colonial fountain La Pila behind them. Each parachico wears a large round dome-shaped montera of golden-tan ixtle fiber, short, dense and fluffy like a big round puffball fur cap sitting high on top of the head, with long multicolored satin ribbons hanging down from it; under the montera a dark scarf wraps the head and chin like a hood around the face; a carved lacquered wooden mask of a calm Spanish-style man's face with pale pink skin, light glass eyes and a thin painted black mustache and sideburns; a brightly striped multicolored Saltillo sarape over the shoulders; a black silk chalina embroidered with bright flowers at the waist; black trousers; and a round painted gourd rattle (chinchín) with a short handle in one hand. Life-size adult men in a lively crowd of many parachicos dressed alike, colorful confetti in the air",
-      "motion": "The parachicos dance in place with small stomping steps, shaking their gourd rattles in rhythm, their round ixtle monteras bobbing and long ribbons swinging, as confetti falls."
+      "motion": "The parachicos dance through the plaza in a lively procession, stomping and hopping forward, spinning around and shaking their chinchines high in the air, their round monteras and long ribbons bouncing, as confetti and streamers fly; the camera moves along with the procession.",
+      "previous_motion": "The parachicos dance in place with small stomping steps, shaking their gourd rattles in rhythm, their round ixtle monteras bobbing and long ribbons swinging, as confetti falls.",
+      "video_model": "kling3pro",
+      "style_key": "video_style_dynamic",
+      "loop": false
     },
     {
       "id": "guanajuato",
       "title": "Callejoneada en Guanajuato",
       "subject": "Guanajuato at dusk: hills covered with houses painted bright yellow, blue, pink and orange, church towers and the ochre basilica dome, and a narrow cobblestone alley lit by warm iron lanterns where a joyful estudiantina of five young Mexican university musicians plays and sings, each a clearly different person with his own face, build and hairstyle (one with a mustache, one with curly hair, one stocky, one tall and thin). They wear the traditional Guanajuato estudiantina costume: a black velvet Renaissance doublet with big round puffed shoulder sleeves made of alternating vertical black and gold satin stripes, a small white lace ruff collar and white lace cuffs, short puffed black trunk-hose breeches ending above the knee with vertical gold and red striped panels, black tights, black buckled shoes, a wide black leather belt with a round silver buckle, and a long plain black velvet cape hanging from the shoulders down to the calves, with only three thin colored ribbons pinned at one shoulder. Bareheaded. From left to right they play a classical guitar, a bowl-back mandolin, a tall upright double bass standing on the cobblestones, a classical guitar, and a round tambourine with ribbons held up in one hand",
-      "motion": "The estudiantina musicians stroll and play joyfully, their long black capes and puffed striped sleeves swaying and the tambourine shaking, as warm lights twinkle on in the colorful houses."
+      "motion": "The estudiantina parades up the cobblestone alley playing and singing, the tambourine player spins and leaps, the musicians swing their capes and ribbons and turn toward the viewer with a cheer; the camera moves backward ahead of them up the alley.",
+      "previous_motion": "The estudiantina musicians stroll and play joyfully, their long black capes and puffed striped sleeves swaying and the tambourine shaking, as warm lights twinkle on in the colorful houses.",
+      "video_model": "kling3pro",
+      "style_key": "video_style_dynamic",
+      "loop": false
     },
     {
       "id": "escaramuza",
       "title": "Escaramuza charra",
       "subject": "An escaramuza charra team of eight smiling Mexican women on eight complete horses, seen from a little distance in three-quarter view from the horses' left side so every horse shows its head, neck, body and four legs, cantering in a curved diagonal line across a dirt charro arena with grandstands in golden afternoon light. Each woman rides side-saddle facing forward toward her horse's head, both legs hanging on the horse's left side toward the viewer, her smiling face turned toward the camera. All eight wear identical Adelita dresses made of one solid bright fuchsia-pink matte cotton, blouse and skirt the same single color: high closed stand-up collar, short sleeves gathered into a round puff at the shoulder, fitted waist with a sash tied in a butterfly bow and a striped rebozo shawl knotted at the left side of the waist, long full skirt smooth from the waist to the thigh with pleated ruffles only near the hem, draped over the horse's left flank with white starched petticoat ruffles and white pantaloons peeking out above brown leather mid-calf boots. All eight wear the exact same ivory-white charro hat of smooth fine woven palm, like a mariachi hat: tall crown pinched with a deep dent in front and creases on the sides, stiff wide brim curling up at the edge, embroidered hatband, thin leather chin strap under the chin. Hair fully pulled back in a low bun at the nape with a pink ribbon bow, no braids. Each holds the reins in her left hand, connected to her horse's bridle and bit, and one long thin plain wooden stick upright in her right hand; matching tooled-leather charro saddles and bridles",
-      "motion": "The riders canter together in a graceful synchronized curve, their matching pink ruffled skirts flowing over the horses' flanks and their ivory charro hats held steady by chin straps, thin wooden sticks in hand, as dust sparkles in the sunlight."
+      "motion": "The escaramuza team gallops at full speed in a tight synchronized formation around the arena, the riders crossing paths in a dramatic figure, pink skirts flying and dust kicking up behind the horses; the camera tracks alongside the galloping horses.",
+      "previous_motion": "The riders canter together in a graceful synchronized curve, their matching pink ruffled skirts flowing over the horses' flanks and their ivory charro hats held steady by chin straps, thin wooden sticks in hand, as dust sparkles in the sunlight.",
+      "video_model": "kling3pro",
+      "style_key": "video_style_dynamic",
+      "loop": false
     },
     {
       "id": "cabo-arco",
@@ -84,25 +115,41 @@
       "id": "mercado",
       "title": "Mercado mexicano",
       "subject": "A lively traditional Mexican market under colorful canvas awnings: stalls piled with mangoes, oranges, limes, tomatoes, pineapples, strings of dried red chiles and bright flowers. Overhead hang traditional seven-point star piñatas: each has a round center body completely covered in fluffy ruffled fringed pink and purple tissue paper (no disc, no eye), seven cones wrapped in shiny metallic silver, magenta and gold foil, and long fringed tissue-paper streamers hanging from every tip. In front, a smiling tortillera with a dark braid, wearing a white blouse embroidered with colorful flowers and a cotton apron in red-and-white gingham check with a ruffled edge and a front pocket, flips a corn tortilla with her bare fingertips (no spatula, no tongs) on a wide flat thin round black comal griddle resting on a low brazier with glowing coals; beside her on the table a wooden tortilla press with a pressed tortilla in it and a clay bowl of yellow corn masa with masa balls. The corn tortillas on the comal are pale yellow with brown toasted spots, one puffing up. Cheerful shoppers in everyday clothes, warm light.",
-      "motion": "The tortillera pats and flips tortillas on the comal as steam rises, the piñatas sway gently, and shoppers chat and smile."
+      "motion": "The market bustles: the tortillera quickly pats, flips and stacks tortillas, vendors hand fruit to customers, shoppers walk past carrying bags and children run by laughing, and the piñatas swing overhead; the camera glides slowly through the market.",
+      "previous_motion": "The tortillera pats and flips tortillas on the comal as steam rises, the piñatas sway gently, and shoppers chat and smile.",
+      "video_model": "kling3pro",
+      "style_key": "video_style_dynamic",
+      "loop": false
     },
     {
       "id": "concheros",
       "title": "Concheros — danza azteca",
       "subject": "Concheros (Aztec-Chichimeca dancers) dancing joyfully in a circle in a sunny stone plaza in Mexico City: each wears a copilli headdress, a tall fan-shaped halo of long natural pheasant tail feathers (tan and brown with dark bars) with a few red and green plumes, rising from a fitted cloth headband with a small beaded sun-disc on the forehead, no metal crown; men are bare-chested with a beaded pectoral collar and a red loincloth (maxtlatl) with long front and back apron panels edged with black-and-gold Aztec step-fret borders and fringe, plus beaded armbands and shin guards; women wear sleeveless red-and-black tunics and knee-length skirts with Aztec step-fret borders, sequins and fringe; all wear dried brown seed-pod ankle rattles (ayoyotes) and leather huarache sandals; dancers hold a gourd rattle in one hand and a small round feather-edged shield in the other; a drummer beats a tall carved wooden huehuetl drum standing on carved feet with a wooden mallet; a seated elder plays a concha, a small mandolin whose rounded back is an armadillo shell; a woman carries a long-handled clay copal censer with swirling smoke",
-      "motion": "The dancers spin and stomp in rhythm, their tall feather headdresses swaying, the drummer beats the huehuetl and copal smoke swirls."
+      "motion": "The concheros dance in a fast circle: spinning turns, high kicks and deep stomps in rhythm, tall feather headdresses whipping around and ankle rattles shaking, the drummer pounding the huehuetl and the sahumadora swinging the copal censer so smoke swirls; the camera orbits the dancers.",
+      "previous_motion": "The dancers spin and stomp in rhythm, their tall feather headdresses swaying, the drummer beats the huehuetl and copal smoke swirls.",
+      "video_model": "kling3pro",
+      "style_key": "video_style_dynamic",
+      "loop": false
     },
     {
       "id": "posada",
       "title": "Las Posadas",
       "subject": "Las Posadas at night in a Mexican courtyard: smiling children in warm sweaters, jackets and jeans cheer around a traditional Mexican posada piñata with seven points. The piñata is a round ball covered in ruffled pink tissue-paper rosettes with exactly seven long, smooth, round cone-shaped points, an odd number: one cone points straight up to the rope, one cone points straight down, two cones point to the left, two cones point to the right, and one cone points toward the viewer. Each cone is covered in shiny metallic foil paper in silver, gold, magenta, blue and green, with stacked bands of ruffled multicolored tissue paper at its base and long tissue-paper streamers hanging from its tip. The piñata hangs by its top cone from the middle of a single rope stretched horizontally across the courtyard from wall to wall; one adult at the edge holds the rope's end; no ropes are tied to the side cones. One blindfolded child, a white cloth tied over the eyes, swings a long, straight, plain wooden broomstick of even thickness at it with both hands. Overhead hang strings of colorful papel picado banners and pleated tissue-paper farolito lanterns with warm string lights; red poinsettias in clay pots. Five cheering children stand well apart from each other and a step back from the piñata in a loose semicircle, nobody touching the piñata; in the background two children each hold one small lit candle with both hands in front of the chest and one child holds a single sparkler; the children in front raise both open empty hands. Every child has exactly two arms and two hands, no overlapping limbs, and a clear, natural face.",
-      "motion": "The piñata swings on its rope as the children laugh, cheer and jump, the blindfolded child swings playfully at it, and the lanterns sway."
+      "motion": "The blindfolded child swings the stick and hits the piñata, the piñata swings wildly on the rope as an adult pulls it up and down, and the children jump, laugh and dance around cheering until it breaks and candy and confetti shower down and they scramble to collect it; the camera moves around the group.",
+      "previous_motion": "The piñata swings on its rope as the children laugh, cheer and jump, the blindfolded child swings playfully at it, and the lanterns sway.",
+      "video_model": "kling3pro",
+      "style_key": "video_style_dynamic",
+      "loop": false
     },
     {
       "id": "rosca-reyes",
       "title": "Día de Reyes — Rosca",
       "subject": "Día de Reyes in Mexico, evening of January 6: a happy Mexican family (grandmother, a teenage girl, a little boy about seven and a small girl about five, all in ordinary everyday sweaters) around a kitchen table with a colorful embroidered tablecloth. In the center lies a large OVAL RING-shaped Rosca de Reyes. It is an oval bread wreath like a giant doughnut, with a wide empty hole in the middle where the wooden board shows through. The bread is glossy golden-brown and egg-glazed. On top, short crosswise bands of crackly white sugar-paste crust (like the topping of a concha bun) alternate with long thin strips of red, green and yellow fruit paste (ate), plus a few candied figs and red cherries. The teenage girl cuts her own small slice across the ring with a knife. The little boy grins with surprise and points at the slice of soft yellow bread on the small plate in front of him. Poking out of the crumb is a TINY plain white plastic baby figurine, a miniature newborn lying on its back with its arms open. It is no bigger than a peanut, much smaller than the boy's fingertip, and barely visible: not a doll, not a statue, not held up. The grandmother smiles holding a brown clay jarro mug. Brown clay jarro mugs of frothy Mexican hot chocolate and a round brown clay chocolate pot stand on the table. There are no other utensils or spoons on the table. The three children wear simple flat gold paper crowns. Behind them are a nativity scene with Mary, Joseph, the baby Jesus and the Three Kings figures, and strands of colorful papel picado. Warm cozy light.",
-      "motion": "The family laughs together and passes slices of the rosca, steam rises from the hot chocolate, and a child cheers."
+      "motion": "The family laughs and passes slices of rosca around the table, the boy finds the little muñeco in his slice and jumps up cheering, everyone claps and hugs, and steam rises from the hot chocolate; the camera slowly circles the table.",
+      "previous_motion": "The family laughs together and passes slices of the rosca, steam rises from the hot chocolate, and a child cheers.",
+      "video_model": "kling3pro",
+      "style_key": "video_style_dynamic",
+      "loop": false
     },
     {
       "id": "ofrenda",
@@ -115,7 +162,12 @@
       "id": "janitzio",
       "title": "Noche de Muertos en Janitzio",
       "subject": "Night of the Dead on Lake Pátzcuaro, Mexico. In the background the rounded hill island of Janitzio glows with hundreds of candles in its hillside cemetery among white houses with red-tiled roofs; on the summit stands a huge, blocky white stone statue of José María Morelos: a man with a cloth tied over his head and a long cape falling to his feet, his right arm raised straight up with a clenched fist, his left hand holding a sword hilt in front of his body. In the foreground, three Purépecha fishermen each stand upright in his own long, narrow, flat-bottomed wooden canoe with low sides and pointed ends, painted turquoise and green with a yellow rim, with a few candles and orange marigolds on the bow. Each man wears a white cotton long-sleeved shirt, loose white cotton trousers, a woven sash, huaraches and a wide flat-brimmed pale palm-straw hat. With both arms raised above his head he holds a long bamboo pole slanting diagonally; lashed to the pole is a wide semicircular hoop of bent wood about three meters across, and from it hangs one enormous sheer net of very fine pale golden thread that falls down to the canoe like a giant translucent funnel or veil, glowing in the candlelight, one huge wing-like net per man. The dark open water reflects the island's candlelight.",
-      "motion": "Candles flicker and their reflections shimmer on the lake, the fishermen gently dip and raise their butterfly nets like wings, and the canoes drift slowly."
+      "motion": "The fishermen stand and sweep their giant butterfly nets up and down in unison like wings beating, the canoes glide across the candlelit lake in a procession, candles flicker and their reflections ripple; the camera glides over the water toward the island.",
+      "previous_motion": "Candles flicker and their reflections shimmer on the lake, the fishermen gently dip and raise their butterfly nets like wings, and the canoes drift slowly.",
+      "video_model": "kling3pro",
+      "style_key": "video_style_dynamic",
+      "loop": false
     }
-  ]
+  ],
+  "video_style_dynamic": "Dynamic, energetic, joyful movement from the very first second to the last: people move their whole bodies, travel across the scene, turn all the way around and interact with each other; nobody stands still or just bobs in place. The camera moves smoothly with the action (tracking, orbiting or pushing in). Faces stay natural and happy, hands and bodies stay correct, and every costume, hat, instrument and prop stays exactly as in the first frame; costumes stay modest and in place. Bright festive colors, no cuts, no text, nothing scary."
 }
