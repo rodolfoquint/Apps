@@ -1,0 +1,606 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Amanecer en Teotihuacan: where, in the Aztec legend, the Fifth Sun was born.
+// A golden point of light (the castillo's crown from the night before) waits in the indigo
+// sky. It lets fall the stairway of the Pyramid of the Sun, the terraces grow out from the
+// stairway tier by tier and the profile climbs to the flat top; when the outline closes on
+// the point, the sun is born behind the pyramid. It rises, its rays fan open, the sky blooms
+// rose, peach and gold; when it crowns the flat top, light pours down the stairway and runs
+// out along the terraces, and the stone turns gold. Quetzal feathers wake on the steps; they
+// climb the stairway as one feathered stream, coil around the new sun and fly up out of the
+// circle (to Quetzalcoatl) as the morning dissolves.
+// Assets: prepare.py --size 1536 on out-show2/images/piramide-sol-6.png, then scratchpad derive.py:
+// -night (cool pre-dawn grade) and -day (sunlit grade), both with a solid silhouette alpha.
+const { W, C, ctx, clamp, lerp, smooth, ease, rgba, COLORS } = HG;
+const TAU = Math.PI * 2;
+const PALE = [255, 218, 160], GOLD = [255, 190, 80], WARM = COLORS.warm, AMBER = [255, 160, 60];
+const INDIGO = [40, 36, 150], VIOLET = [110, 50, 190], ROSE = [255, 70, 130], PEACH = [255, 140, 100];
+const Q_GREEN = [[190, 235, 80], [40, 215, 115], [30, 195, 215]];   // quetzal: base, vane, iridescent tip
+const Q_GOLD = [[255, 140, 40], [255, 190, 70], [255, 228, 150]];
+const Q_TEAL = [[120, 235, 110], [30, 200, 150], [40, 170, 240]];
+
+// ---------- placement: the 1024 px assets drawn SZ wide, centred at (AX, AY)
+const SZ = 982, F = SZ / 1024, AX = 545, AY = 759;
+const P = (u, v) => [AX + (u - 512) * F, AY + (v - 512) * F];
+const PY = v => AY + (v - 512) * F;
+const APEX = P(507, 299);                      // centre of the flat top (540, 555)
+const RS = 100;                                 // sun radius
+const SUN_X = APEX[0], SUN_Y1 = APEX[1] - 0.86 * RS, SUN_Y0 = APEX[1] + RS + 10;
+
+// ---------- timeline
+const T_ST0 = 0.7, T_ST1 = 1.9;       // the stairway falls from the point
+const T_CL0 = 2.35, T_CL1 = 3.95;     // the profile climbs from the rim to the top corners
+const T_TOP0 = 3.9, T_TOP1 = 4.3;     // the top edge closes on the point
+const T_BIRTH = 4.3;                  // the sun is born
+const T_CROWN = 7.4;                  // the sun crowns the pyramid
+const T_F0 = 7.45, T_F1 = 8.7;        // light pours down the stairway
+const T_GO = 8.8;                     // the feathered stream starts to climb
+
+// ---------- geometry (asset coordinates, traced on the photo)
+// profiles from the rim (bottom) up to the top corners, with the terrace lips
+const LEFT = [[-40, 581], [31, 571], [98, 502], [137, 492], [205, 427], [247, 414], [362, 341], [384, 336], [414, 300]].map(p => P(...p));
+const RIGHT = [[1064, 581], [1005, 571], [925, 503], [893, 492], [810, 429], [781, 414], [686, 351], [662, 342], [657, 336], [611, 303], [600, 300]].map(p => P(...p));
+// stairway rails (outer, inner) on each side, top y 336 -> bottom y 716
+const railX = (side, inner, v) => {
+  const k = (v - 336) / (716 - 336);
+  if (side < 0) return inner ? lerp(482, 438, k) : lerp(465, 420, k);
+  return inner ? lerp(542, 554, k) : lerp(559, 572, k);
+};
+const ST_TOP = 336, ST_BOT = 716;
+// terraces: y, outer x left and right (asset); upper ones end at the profile corners
+const LEDGES = [
+  { v: 717, l: -60, r: 1080 }, { v: 699, l: -60, r: 1080 }, { v: 659, l: -60, r: 1080 }, { v: 577, l: -40, r: 1064 },
+  { v: 497, l: 98, r: 925 }, { v: 418, l: 220, r: 800 }, { v: 339, l: 362, r: 662 },
+];
+const RUNGS = []; for (let v = ST_TOP + 22; v < ST_BOT - 4; v += 26) RUNGS.push(v);
+
+// ---------- small helpers
+function polyInfo(pts) {
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  return { pts, cum, len: cum[cum.length - 1] };
+}
+// path of the first k (0..1) of a polyline; returns the head point
+function partialPath(info, k, path) {
+  const { pts, cum, len } = info, L = clamp(k) * len;
+  path.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) {
+    if (cum[i] <= L) { path.lineTo(pts[i][0], pts[i][1]); continue; }
+    const f = (L - cum[i - 1]) / (cum[i] - cum[i - 1]);
+    const x = lerp(pts[i - 1][0], pts[i][0], f), y = lerp(pts[i - 1][1], pts[i][1], f);
+    path.lineTo(x, y); return [x, y];
+  }
+  return pts[pts.length - 1];
+}
+const fracAt = (info, i) => info.cum[i] / info.len;
+// time at which an eased 0..1 progress over [a, b] reaches f
+function timeAt(f, a, b, fn = ease.inOut3) {
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (fn(m) < f) lo = m; else hi = m; }
+  return a + (b - a) * (lo + hi) / 2;
+}
+function glowStroke(c, path, col, width, alpha, blur = 7, wide = 3.2) {
+  if (alpha <= 0.003) return;
+  c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; c.lineJoin = 'round';
+  c.strokeStyle = rgba(col, 1);
+  c.globalAlpha = Math.min(1, alpha * 0.55); c.lineWidth = width * wide; c.filter = HG.blur(blur); c.stroke(path);
+  c.filter = 'none'; c.globalAlpha = Math.min(1, alpha); c.lineWidth = width; c.stroke(path);
+  c.restore();
+}
+function radial(g, x, y, r, stops, a, sx = 1, sy = 1) {
+  if (a <= 0.003) return;
+  g.save(); g.globalCompositeOperation = 'lighter'; g.translate(x, y); g.scale(sx, sy);
+  const gr = g.createRadialGradient(0, 0, 0, 0, 0, r);
+  for (const [o, col, al] of stops) gr.addColorStop(o, rgba(col, al * a));
+  g.fillStyle = gr; g.fillRect(-r, -r, 2 * r, 2 * r); g.restore();
+}
+// four-point glint
+function glint(g, x, y, s, a, col = WARM, rot = 0, thin = 0.07) {
+  if (a <= 0.003 || s <= 0) return;
+  const sp = HG.sprite(col);
+  g.save(); g.globalCompositeOperation = 'lighter'; g.translate(x, y); g.rotate(rot); g.globalAlpha = Math.min(1, a);
+  g.drawImage(sp, -s / 2, -s * thin / 2, s, s * thin);
+  g.drawImage(sp, -s * thin / 2, -s / 2, s * thin, s);
+  g.globalAlpha = Math.min(1, a * 0.85); g.drawImage(sp, -s * 0.15, -s * 0.15, s * 0.3, s * 0.3);
+  g.restore();
+}
+const circleFade = (x, y, r0 = 440, r1 = 520) => 1 - smooth(r0, r1, Math.hypot(x - C, y - C));
+
+// ---------- precomputed (independent of t)
+const LI = polyInfo(LEFT), RI = polyInfo(RIGHT);
+const climbK = t => ease.inOut3((t - T_CL0) / (T_CL1 - T_CL0));
+// when the climbing head reaches each upper terrace corner
+const CORNER = { 497: [2, 2], 418: [4, 5], 339: [6, 7] };            // polyline index of the corner (left, right)
+const ledgeArrive = (v, side) => {
+  if (!CORNER[v]) return null;
+  const info = side < 0 ? LI : RI, idx = CORNER[v][side < 0 ? 0 : 1];
+  return timeAt(fracAt(info, idx), T_CL0, T_CL1);
+};
+// lower terraces spread from the stair foot before the climb starts
+const LOWER_T = { 717: 1.72, 699: 1.84, 659: 1.96, 577: 2.08 };
+const ledgeTime = (v, side) => (LOWER_T[v] !== undefined ? LOWER_T[v] : ledgeArrive(v, side) - 0.55);
+const ledgeDur = v => (LOWER_T[v] !== undefined ? 0.75 : 0.55);
+
+// the light front pouring down (asset v) and when it passes a given v
+const fallV = t => lerp(296, 740, ease.inOut3((t - T_F0) / (T_F1 - T_F0)));
+const fallAt = v => timeAt((v - 296) / (740 - 296), T_F0, T_F1);
+
+// sun height
+const sunY = t => { const x = clamp((t - (T_BIRTH - 0.2)) / (T_CROWN - T_BIRTH + 0.2)); return lerp(SUN_Y0, SUN_Y1, 0.5 - 0.5 * Math.cos(Math.PI * Math.pow(x, 0.85))); };
+
+// ---------- the feathered stream: one path, stairway (s < 0) then a coil around the sun (s > 0)
+const STAIR_PATH = [APEX, P(512, 336), P(496, 726)];         // from the apex down the stairway
+const SP = polyInfo(STAIR_PATH);
+const COIL = (() => {
+  const N = 700, pts = [], cum = [0];
+  for (let i = 0; i <= N; i++) {
+    const p = i / N * 1.15, th = TAU * 1.3 * p;
+    const r = 205 * ease.out3(p / 0.22) + 90 * p, tilt = 0.3;
+    const h = 40 * p + 900 * Math.pow(p, 2.6);
+    pts.push({ x: APEX[0] + r * Math.sin(th), y: APEX[1] - h - r * tilt + r * tilt * Math.cos(th), z: Math.cos(th) });
+    if (i) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+  }
+  return { pts, cum, len: cum[N] };
+})();
+function pathAt(s) {
+  if (s <= 0) {
+    const L = clamp(-s / SP.len) * SP.len, { pts, cum } = SP;
+    let i = 1; while (i < pts.length - 1 && cum[i] < L) i++;
+    const f = clamp((L - cum[i - 1]) / (cum[i] - cum[i - 1]));
+    const x = lerp(pts[i - 1][0], pts[i][0], f), y = lerp(pts[i - 1][1], pts[i][1], f);
+    return { x, y, ang: Math.atan2(pts[i - 1][1] - pts[i][1], pts[i - 1][0] - pts[i][0]), z: 1 };
+  }
+  const { pts, cum, len } = COIL, L = Math.min(s, len - 1);
+  let lo = 0, hi = cum.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (cum[m] < L) lo = m; else hi = m; }
+  const f = (L - cum[lo]) / (cum[hi] - cum[lo] || 1), a = pts[lo], b = pts[hi];
+  return { x: lerp(a.x, b.x, f), y: lerp(a.y, b.y, f), ang: Math.atan2(b.y - a.y, b.x - a.x), z: lerp(a.z, b.z, f) };
+}
+// distance travelled by the stream: eases in, then glides at a steady pace
+const travel = t => { const x = Math.max(0, t - T_GO); return x < 1.2 ? 260 * x * x : 260 * 1.44 + 624 * (x - 1.2); };
+const NP = 30, GAP = 13;                  // feathers strewn along the stream, loosely, like a plume
+const FEATHERS = (() => {
+  const R = HG.rng(812), out = [];
+  for (let i = 0; i < NP; i++) {
+    const s0 = -(10 + i * GAP + (R() - 0.5) * 8);
+    const p = pathAt(s0), v = 512 + (p.y - AY) / F;
+    const side = R() < 0.5 ? -1 : 1;
+    out.push({
+      s0, side, gold: i % 4 === 1 || i === 0, tone: R(),
+      lat: (R() - 0.5) * 64, splay: side * (0.2 + 0.75 * R()),
+      len: lerp(132, 88, i / (NP - 1)) * (0.85 + 0.3 * R()),
+      ph: R() * TAU, ph2: R() * TAU, spin: 0.8 + 1.4 * R(),
+      appear: fallAt(clamp(v, 300, 735)) + 0.12 + 0.12 * R(),
+    });
+  }
+  return out;
+})();
+const NF = FEATHERS.length;
+
+// ---------- sprites built once
+const SPR_K = Math.max(1, HG.S);
+function featherSprite(cols, len = 160, wid = 46) {
+  const c = document.createElement('canvas'); c.width = Math.ceil(wid * SPR_K); c.height = Math.ceil(len * SPR_K);
+  const g = c.getContext('2d'); g.scale(SPR_K, SPR_K);
+  const cx = wid * 0.46, vEnd = len * 0.8;
+  // shaft curves gently; vane narrow on the left, broad on the right (a real flight/tail feather)
+  const shaft = y => cx + 3.5 * Math.pow(1 - y / len, 2);
+  const vane = () => {
+    g.beginPath(); g.moveTo(shaft(6), 6);
+    g.bezierCurveTo(wid * 0.98, len * 0.16, wid * 0.97, len * 0.6, shaft(vEnd) + 2, vEnd);
+    g.lineTo(shaft(vEnd) - 2, vEnd);
+    g.bezierCurveTo(wid * 0.16, len * 0.62, wid * 0.12, len * 0.2, shaft(6), 6);
+    g.closePath();
+  };
+  g.filter = `blur(${6 * SPR_K}px)`; g.fillStyle = rgba(cols[1], 0.55); vane(); g.fill(); g.filter = 'none';
+  const lg = g.createLinearGradient(0, 6, 0, vEnd);
+  lg.addColorStop(0, rgba(cols[2], 1)); lg.addColorStop(0.35, rgba(cols[1], 0.97)); lg.addColorStop(0.8, rgba(cols[1], 0.9)); lg.addColorStop(1, rgba(cols[0], 0.8));
+  g.fillStyle = lg; vane(); g.fill();
+  // iridescent sheen down the broad vane
+  const sh = g.createLinearGradient(cx, 0, wid, 0);
+  sh.addColorStop(0, 'rgba(255,255,255,0)'); sh.addColorStop(0.5, rgba(cols[2], 0.35)); sh.addColorStop(1, 'rgba(255,255,255,0)');
+  g.save(); vane(); g.clip(); g.globalCompositeOperation = 'lighter'; g.fillStyle = sh; g.fillRect(0, len * 0.1, wid, len * 0.55); g.restore();
+  // split barbs: V partings in the vane edges make it read as a feather, not a leaf
+  g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000';
+  for (const [y, side, depth] of [[0.3, 1, 0.62], [0.5, 1, 0.5], [0.42, -1, 0.55], [0.64, -1, 0.4]]) {
+    const yy = len * y, x0 = side > 0 ? wid + 2 : -2, xi = lerp(x0, shaft(yy), depth);
+    g.beginPath(); g.moveTo(x0, yy - 15); g.lineTo(xi, yy + 3); g.lineTo(x0, yy - 6); g.closePath(); g.fill();
+  }
+  g.globalCompositeOperation = 'source-over';
+  // downy barbs at the base of the vane
+  g.strokeStyle = rgba(cols[0], 0.55); g.lineWidth = 1.3; g.lineCap = 'round';
+  for (let i = 0; i < 6; i++) {
+    const y = vEnd - 16 + i * 4, sd = i % 2 ? 1 : -1, x = shaft(y);
+    g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + sd * 10, y - 3, x + sd * (14 + i), y + 8); g.stroke();
+  }
+  // shaft: rachis through the vane, bare quill below
+  g.strokeStyle = 'rgba(255,246,215,0.9)'; g.lineWidth = 1.6;
+  g.beginPath(); g.moveTo(shaft(10), 10); for (let y = 20; y <= len - 4; y += 10) g.lineTo(shaft(y), y); g.stroke();
+  g.lineWidth = 2.6; g.beginPath(); g.moveTo(shaft(vEnd), vEnd); g.lineTo(shaft(len - 4), len - 4); g.stroke();
+  return c;
+}
+let SPR = null;
+
+const LS = HG.layer(), LN = HG.layer(), LD = HG.layer();
+
+// ---------- sky: night glow, dawn horizon, stars, the sun and its rays (occluded by the pyramid)
+const STARS = [[300, 170, 30], [430, 95, 22], [655, 118, 26], [775, 205, 34], [205, 318, 24], [880, 330, 22],
+  [380, 265, 18], [700, 290, 20], [150, 470, 20], [940, 470, 18], [560, 60, 18], [520, 225, 16], [265, 120, 16], [835, 120, 18]];
+
+function rays(g, t, x, y, open, a) {
+  if (a <= 0.003 || open <= 0.003) return;
+  const R = HG.rng(5), sway = 0.035 * Math.sin(t * 0.45) + 0.018 * (t - T_CROWN);
+  g.save(); g.globalCompositeOperation = 'lighter'; g.filter = HG.blur(7);
+  for (const set of [{ n: 14, w: 0.07, L: 520, al: 0.42, off: 0 }, { n: 14, w: 0.035, L: 400, al: 0.32, off: 0.5 }]) {
+    for (let i = 0; i < set.n; i++) {
+      const base = ((i + set.off) / set.n) * TAU, rel = Math.atan2(Math.sin(base), Math.cos(base)); // -pi..pi around "up"
+      const ang = -Math.PI / 2 + rel * open + sway;
+      const L = set.L * (0.75 + 0.25 * Math.sin(t * 0.7 + i * 2.1 + set.off * 3)) * (0.45 + 0.55 * open) * (0.85 + 0.3 * R());
+      const hw = set.w * (0.7 + 0.6 * R());
+      const breathe = 0.7 + 0.3 * Math.sin(t * 0.9 + i * 1.7);
+      const gr = g.createRadialGradient(x, y, RS * 0.9, x, y, L);
+      gr.addColorStop(0, rgba(WARM, set.al * a * breathe)); gr.addColorStop(0.35, rgba(GOLD, set.al * 0.6 * a * breathe));
+      gr.addColorStop(1, rgba(PEACH, 0));
+      g.fillStyle = gr; g.beginPath(); g.moveTo(x, y);
+      g.arc(x, y, L, ang - hw, ang + hw); g.closePath(); g.fill();
+    }
+  }
+  g.restore();
+}
+
+function sky(g, t, A, sx, sy, fadeSky, fadeSun) {
+  HG.reset(g); g.clearRect(0, 0, W, W);
+  const dA = smooth(0.25, 2.6, t), wm = smooth(3.7, 7.8, t), hz = smooth(2.4, 5.6, t);
+  // pre-dawn indigo dome behind the pyramid
+  radial(g, C, 760, 640, [[0, INDIGO, 0.34], [0.45, VIOLET, 0.13], [1, INDIGO, 0]], dA * (1 - 0.55 * wm) * fadeSky, 1.2, 1);
+  // the horizon blooms rose and peach
+  radial(g, C, 690, 560, [[0, PEACH, 0.38], [0.32, ROSE, 0.24], [0.7, VIOLET, 0.08], [1, VIOLET, 0]], hz * fadeSky, 1.3, 0.85);
+  // once the sun is up, the whole eastern sky glows rose and peach around it
+  const glory = smooth(5.8, 8.4, t);
+  radial(g, sx, sy + 40, 560, [[0, PEACH, 0.2], [0.4, ROSE, 0.13], [0.8, VIOLET, 0.04], [1, VIOLET, 0]], glory * fadeSky, 1.15, 0.9);
+  // the sun's own light (it starts as an ember behind the flat top)
+  const ember = smooth(3.3, 4.4, t);
+  radial(g, sx, Math.max(sy, APEX[1] - 20), 460, [[0, WARM, 0.5], [0.16, GOLD, 0.34], [0.42, PEACH, 0.13], [0.75, ROSE, 0.04], [1, ROSE, 0]],
+    (0.35 * ember + 0.65 * wm) * fadeSky);
+  // stars fade as the sky warms
+  const starA = smooth(0.35, 1.6, t) * (1 - smooth(4.2, 6.6, t));
+  for (let i = 0; i < STARS.length; i++) {
+    const [x, y, s] = STARS[i], tw = 0.6 + 0.4 * Math.sin(t * (1.3 + 0.37 * (i % 5)) + i * 2.3);
+    const a = starA * tw * smooth(0.2 + 0.09 * i, 0.9 + 0.09 * i, t) * circleFade(x, y, 430, 500);
+    glint(g, x, y, s * 2.1, a * 0.85, i % 3 ? [200, 210, 255] : WARM, 0, 0.09);
+  }
+  // the newborn sun: rays fanning open, corona, disc
+  const open = ease.inOut3((t - (T_BIRTH + 0.1)) / 3.4);
+  rays(g, t, sx, sy, open, smooth(T_BIRTH, T_BIRTH + 1.2, t) * fadeSun);
+  feathersPass(g, t, 'back');
+  if (sy < SUN_Y0 - 2 && fadeSun > 0.003) {
+    const breathe = 0.5 + 0.5 * Math.sin(t * 1.6);
+    radial(g, sx, sy, RS * 2.6, [[0.3, WARM, 0.5], [0.4, GOLD, 0.3], [0.7, AMBER, 0.08], [1, AMBER, 0]], (0.8 + 0.2 * breathe) * fadeSun);
+    g.save(); g.globalAlpha = fadeSun;
+    const dg = g.createRadialGradient(sx - RS * 0.15, sy - RS * 0.25, 0, sx, sy, RS);
+    dg.addColorStop(0, 'rgb(255,236,180)'); dg.addColorStop(0.5, 'rgb(255,212,118)'); dg.addColorStop(0.88, 'rgb(255,174,66)'); dg.addColorStop(1, 'rgb(255,150,52)');
+    g.fillStyle = dg; g.beginPath(); g.arc(sx, sy, RS, 0, TAU); g.fill();
+    g.restore();
+    // a bright limb and a slow inner shimmer keep the disc alive
+    HG.ring(g, sx, sy, RS - 2, WARM, { width: 5, blur: 7, alpha: 0.35 * fadeSun });
+    radial(g, sx + 18 * Math.sin(t * 0.7), sy - 14 + 10 * Math.cos(t * 0.55), RS * 0.75, [[0, WARM, 0.22], [1, WARM, 0]], fadeSun);
+    // halo rings when it crowns the pyramid
+    for (const [d, k] of [[0, 1], [0.28, 0.7]]) {
+      const u = (t - T_CROWN - d) / 1.5;
+      if (u <= 0 || u >= 1) continue;
+      HG.ring(g, sx, sy, RS * (1.08 + 2.6 * ease.out3(u)), GOLD, { width: 7 * (1 - u) + 2, blur: 10, alpha: k * 0.8 * Math.pow(1 - u, 1.4) * fadeSun });
+    }
+  }
+  // nothing in the sky shows through the stone; the sky fades before the rim
+  HG.reset(g);
+  g.globalCompositeOperation = 'destination-out';
+  g.drawImage(A.night, AX - SZ / 2, AY - SZ / 2, SZ, SZ);
+  g.globalCompositeOperation = 'destination-in';
+  const vg = g.createRadialGradient(C, C, 420, C, C, 540);
+  vg.addColorStop(0, '#000'); vg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = vg; g.fillRect(0, 0, W, W);
+  HG.reset(g);
+}
+
+// ---------- the stone: cool pre-dawn shape rising with the drawing, warmed from the top by the light
+function stone(t, A, end) {
+  // night grade, revealed bottom-up behind the rising drawing
+  const yS = lerp(1000, 470, ease.inOut3((t - 1.9) / 2.6));
+  const nA = 0.85 * end;
+  if (nA > 0.003 && t > 1.9) {
+    const g = LD.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+    g.drawImage(A.night, AX - SZ / 2, AY - SZ / 2, SZ, SZ);
+    g.globalCompositeOperation = 'destination-in';
+    const lg = g.createLinearGradient(0, yS - 160, 0, yS);
+    lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(1, '#000');
+    g.fillStyle = lg; g.fillRect(0, 0, W, W);
+    HG.reset(g);
+    HG.drawLayer(ctx, LD, { alpha: nA });
+  }
+  // sunlit grade: a little warmth as the sun rises, then the light pours down from the top
+  const w0 = 0.22 * smooth(4.6, T_CROWN, t);
+  const yF = PY(fallV(t));
+  if (end > 0.003 && t > 4.6) {
+    const g = LD.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+    g.drawImage(A.day, AX - SZ / 2, AY - SZ / 2, SZ, SZ);
+    g.globalCompositeOperation = 'destination-in';
+    const lg = g.createLinearGradient(0, yF - 30, 0, yF + 120);
+    lg.addColorStop(0, '#000'); lg.addColorStop(1, `rgba(0,0,0,${w0})`);
+    g.fillStyle = t > T_F0 ? lg : `rgba(0,0,0,${w0})`; g.fillRect(0, 0, W, W);
+    HG.reset(g);
+    HG.drawLayer(ctx, LD, { alpha: 0.92 * end });
+  }
+  // the warm sheen riding down the stone with the light front
+  const fA = smooth(T_F0, T_F0 + 0.25, t) * (1 - smooth(T_F1 - 0.35, T_F1 + 0.1, t)) * end;
+  if (fA > 0.003) {
+    const g = LD.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+    const lg = g.createLinearGradient(0, yF - 120, 0, yF + 40);
+    lg.addColorStop(0, rgba(GOLD, 0)); lg.addColorStop(0.75, rgba(WARM, 0.55)); lg.addColorStop(1, rgba(GOLD, 0));
+    g.fillStyle = lg; g.fillRect(0, yF - 120, W, 160);
+    g.globalCompositeOperation = 'destination-in';
+    g.drawImage(A.night, AX - SZ / 2, AY - SZ / 2, SZ, SZ);
+    HG.reset(g);
+    HG.drawLayer(ctx, LD, { alpha: fA * 0.8, op: 'lighter' });
+  }
+}
+
+// ---------- line drawing: stairway, terraces growing out from it, profile climbing, top closing
+function lines(t, end) {
+  const build = 1 - 0.8 * smooth(4.4, 6.6, t);          // the drawing gives way to the stone
+  const rim = smooth(4.4, T_CROWN, t);                     // backlit edges catch the sun
+  const sparks = [];
+  // stairway rails fall from the point
+  const kS = ease.inOut3((t - T_ST0) / (T_ST1 - T_ST0));
+  if (kS > 0) {
+    const vHead = lerp(ST_TOP, ST_BOT, kS), path = new Path2D(), inner = new Path2D();
+    for (const side of [-1, 1]) {
+      path.moveTo(...P(railX(side, false, ST_TOP), ST_TOP)); path.lineTo(...P(railX(side, false, vHead), vHead));
+      inner.moveTo(...P(railX(side, true, ST_TOP), ST_TOP)); inner.lineTo(...P(railX(side, true, vHead), vHead));
+      if (kS < 1) sparks.push([...P(railX(side, false, vHead), vHead), 1]);
+    }
+    const foot = smooth(T_ST1 - 0.15, T_ST1 + 0.2, t);
+    if (foot > 0) { path.moveTo(...P(420, 716)); path.lineTo(...P(lerp(420, 572, foot), 716)); }
+    glowStroke(ctx, path, PALE, 3.2, 0.95 * build * end + 0.1 * rim * end);
+    glowStroke(ctx, inner, PALE, 1.8, 0.55 * build * end, 5);
+    // steps light as the rails pass them
+    const rungs = new Path2D();
+    let any = false;
+    for (const v of RUNGS) {
+      const a = smooth(0, 0.08, kS - (v - ST_TOP) / (ST_BOT - ST_TOP));
+      if (a <= 0) continue; any = true;
+      rungs.moveTo(...P(railX(-1, true, v) + 2, v)); rungs.lineTo(...P(railX(1, true, v) - 2, v));
+    }
+    if (any) glowStroke(ctx, rungs, PALE, 1.8, 0.38 * build * end, 4, 2.5);
+  }
+  // terraces grow out from the stairway, bottom to top
+  const ledges = new Path2D(), ledgeSparks = [];
+  for (const L of LEDGES) {
+    for (const side of [-1, 1]) {
+      const t0 = ledgeTime(L.v, side), k = ease.inOut3((t - t0) / ledgeDur(L.v));
+      if (k <= 0) continue;
+      const x0 = P(railX(side, false, L.v), L.v)[0], x1 = P(side < 0 ? L.l : L.r, L.v)[0], y = PY(L.v);
+      const xe = lerp(x0, x1, k);
+      ledges.moveTo(x0, y); ledges.lineTo(xe, y);
+      if (k < 1) ledgeSparks.push([xe, y, 0.8]);
+    }
+  }
+  glowStroke(ctx, ledges, PALE, 2.6, 0.85 * build * end);
+  // the profile climbs from the rim, the top edge closes on the point
+  const kC = climbK(t);
+  if (kC > 0) {
+    const prof = new Path2D();
+    const hl = partialPath(LI, kC, prof), hr = partialPath(RI, kC, prof);
+    const kT = ease.inOut3((t - T_TOP0) / (T_TOP1 - T_TOP0));
+    if (kT > 0) {
+      const tl = P(414, 300), tr = P(600, 300);
+      prof.moveTo(...tl); prof.lineTo(lerp(tl[0], APEX[0], kT), tl[1]);
+      prof.moveTo(...tr); prof.lineTo(lerp(tr[0], APEX[0], kT), tr[1]);
+      if (kT < 1) { sparks.push([lerp(tl[0], APEX[0], kT), tl[1], 1]); sparks.push([lerp(tr[0], APEX[0], kT), tr[1], 1]); }
+    }
+    if (kC < 1) { sparks.push([...hl, 1]); sparks.push([...hr, 1]); }
+    glowStroke(ctx, prof, PALE, 3.4, (0.95 * build + 0.2 * (1 - rim)) * end);
+    // backlit rim: the upper edges glow gold as the sun climbs behind them
+    if (rim > 0) glowStroke(ctx, prof, GOLD, 4, rim * 0.8 * end, 10, 3.5);
+  }
+  // bright heads on the drawing
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const [x, y, s] of sparks.concat(ledgeSparks)) {
+    const cf = circleFade(x, y, 470, 530);
+    HG.dot(ctx, WARM, x, y, 30 * s, 0.95 * cf * end);
+    HG.dot(ctx, GOLD, x, y, 80 * s, 0.22 * cf * end);
+  }
+  ctx.restore();
+}
+
+// ---------- the light pours down the stairway and runs out along the terraces
+function cascade(t, end) {
+  if (t < T_F0 - 0.1 || end <= 0.003) return;
+  const v = fallV(t), yF = PY(v);
+  const live = smooth(T_F0, T_F0 + 0.2, t) * (1 - smooth(T_F1 - 0.2, T_F1 + 0.15, t));
+  // the stairway glows gold above the front
+  const stair = new Path2D();
+  stair.moveTo(...P(railX(-1, false, ST_TOP), ST_TOP)); stair.lineTo(...P(railX(1, false, ST_TOP), ST_TOP));
+  stair.lineTo(...P(railX(1, false, ST_BOT), ST_BOT)); stair.lineTo(...P(railX(-1, false, ST_BOT), ST_BOT)); stair.closePath();
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.clip(stair);
+  const settle = 0.2 + 0.06 * Math.sin(t * 2.2);
+  const lg = ctx.createLinearGradient(0, PY(ST_TOP), 0, yF + 30);
+  lg.addColorStop(0, rgba(GOLD, settle * end)); lg.addColorStop(clamp(1 - 160 / Math.max(160, yF + 30 - PY(ST_TOP))), rgba(GOLD, settle * end));
+  lg.addColorStop(0.97, rgba(WARM, (settle + 0.5 * live) * end)); lg.addColorStop(1, rgba(WARM, 0));
+  ctx.fillStyle = lg; ctx.fillRect(0, PY(ST_TOP), W, yF + 30 - PY(ST_TOP));
+  ctx.restore();
+  // the front itself: a bright bar across the steps
+  if (live > 0.003 && v < ST_BOT + 10) {
+    const bar = new Path2D(), vv = Math.min(v, ST_BOT);
+    bar.moveTo(...P(railX(-1, false, vv), vv)); bar.lineTo(...P(railX(1, false, vv), vv));
+    glowStroke(ctx, bar, WARM, 4, live * end, 9, 4);
+  }
+  // terraces: light runs out from the stairway to the edges as the front passes them
+  const lit = new Path2D(), heads = [];
+  for (const L of LEDGES) {
+    const t0 = fallAt(clamp(L.v, 296, 740));
+    for (const side of [-1, 1]) {
+      const k = ease.out3((t - t0) / 0.75);
+      if (k <= 0) continue;
+      const x0 = P(railX(side, false, L.v), L.v)[0], x1 = P(side < 0 ? L.l : L.r, L.v)[0], y = PY(L.v);
+      const xe = lerp(x0, x1, k);
+      lit.moveTo(x0, y); lit.lineTo(xe, y);
+      if (k < 1) heads.push([xe, y, 1 - k]);
+    }
+  }
+  glowStroke(ctx, lit, GOLD, 3, (0.5 + 0.1 * Math.sin(t * 1.7)) * end, 8, 3.5);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const [x, y, k] of heads) {
+    const cf = circleFade(x, y, 460, 520);
+    HG.dot(ctx, WARM, x, y, 34, cf * end * smooth(0, 0.15, k));
+    HG.dot(ctx, GOLD, x, y, 110, 0.25 * cf * end * smooth(0, 0.15, k));
+  }
+  // glints sparkling on the steps behind the front
+  const R = HG.rng(91);
+  for (let i = 0; i < 40; i++) {
+    const vv = lerp(ST_TOP + 6, ST_BOT - 4, R()), side = R(), f = 1.5 + 2.5 * R(), ph = R() * TAU, s = 12 + 12 * R();
+    const x = lerp(P(railX(-1, true, vv), vv)[0], P(railX(1, true, vv), vv)[0], side), y = PY(vv);
+    const on = smooth(fallAt(vv), fallAt(vv) + 0.2, t);
+    const tw = Math.pow(Math.max(0, Math.sin(t * f + ph)), 8);
+    HG.dot(ctx, WARM, x, y, s, on * tw * end * 0.9);
+  }
+  ctx.restore();
+}
+
+// ---------- quetzal feathers: they wake on the steps, climb as one stream and coil around the sun
+function feathersPass(g, t, pass) {
+  if (!SPR || t < T_F0) return;
+  const out = 1 - smooth(10.75, 11.45, t), D = travel(t);
+  if (out <= 0.003) return;
+  g.save();
+  for (let i = NF - 1; i >= 0; i--) {
+    const f = FEATHERS[i], s = f.s0 + D;
+    if (s > COIL.len - 40) continue;
+    const a0 = smooth(f.appear, f.appear + 0.45, t) * out;
+    if (a0 <= 0.003) continue;
+    const p = pathAt(s);
+    const wFront = smooth(-0.25, 0.15, p.z);
+    const w = pass === 'front' ? wFront : 1 - wFront;
+    if (w <= 0.003) continue;
+    const depth = 0.78 + 0.22 * p.z, cf = circleFade(p.x, p.y, 470, 545);
+    const pop = 0.55 + 0.45 * ease.outBack(clamp((t - f.appear) / 0.5));
+    const fly = smooth(T_GO, T_GO + 0.9, t);
+    const flut = Math.sin(t * 4.2 + f.ph) * (0.06 + 0.22 * fly);
+    const rot = p.ang + Math.PI + f.splay * (1 - 0.35 * fly) + flut + Math.PI / 2;
+    // lateral place in the stream: it widens as the stream rises
+    const lat = f.lat * (1 + 0.9 * smooth(0, 500, s)) * (1 + 0.2 * Math.sin(t * 1.7 + f.ph2));
+    const nx = -Math.sin(p.ang), ny = Math.cos(p.ang);
+    const len = f.len * pop * depth, spr = f.gold ? SPR.gold : (f.tone < 0.5 ? SPR.green : SPR.teal), wd = len * spr.width / spr.height;
+    const turn = lerp(0.9, Math.cos(f.ph2 + f.spin * (t - T_GO)), fly);   // feathers tumble as they fly
+    g.save(); g.translate(p.x + nx * lat, p.y + ny * lat); g.rotate(rot); g.scale(Math.sign(turn) * Math.max(0.28, Math.abs(turn)), 1);
+    g.globalCompositeOperation = 'source-over';
+    g.globalAlpha = Math.min(1, a0 * w * cf * (0.55 + 0.45 * depth));
+    g.drawImage(spr, -wd * 0.46, -len * 0.97, wd, len);
+    g.restore();
+  }
+  // the head of the stream: a golden glint leading the way, sparks left in its wake
+  const head = pathAt(FEATHERS[0].s0 + D + 12);
+  const hw = pass === 'front' ? smooth(-0.25, 0.15, head.z) : 1 - smooth(-0.25, 0.15, head.z);
+  const hA = smooth(T_GO - 0.2, T_GO + 0.4, t) * out * hw * circleFade(head.x, head.y, 460, 540);
+  glint(g, head.x, head.y, 70, hA * 0.9, WARM, t * 0.8);
+  if (pass === 'front') {
+    const R = HG.rng(55);
+    g.globalCompositeOperation = 'lighter';
+    for (let j = 0; j < 70; j++) {
+      const te = T_GO + 0.15 + j * 0.03, life = 0.7 + 0.5 * R(), dx = (R() - 0.5) * 50, dy = 20 + 40 * R(), ph = R() * TAU;
+      const tau = t - te; if (tau < 0 || tau > life) continue;
+      const q = pathAt(FEATHERS[0].s0 + travel(te) - 6 - 30 * R());
+      const x = q.x + dx * tau, y = q.y + dy * tau * tau;
+      const al = Math.sin(Math.PI * tau / life) * out * circleFade(x, y, 450, 520) * (0.6 + 0.4 * Math.sin(t * 9 + ph));
+      HG.dot(g, R() < 0.6 ? GOLD : [120, 240, 160], x, y, 9 + 6 * R(), al * 0.85);
+    }
+  }
+  g.restore();
+}
+
+// ---------- the golden point: the castillo's crown from the night before, waiting where the sun will be born
+function seed(t) {
+  const a = smooth(0.15, 0.75, t) * (1 - smooth(T_BIRTH + 0.05, T_BIRTH + 0.9, t));
+  if (a <= 0.003) return;
+  const [x, y] = APEX, pulse = 0.5 + 0.5 * Math.sin(t * 2.4);
+  const flare = Math.exp(-(((t - T_BIRTH) / 0.28) ** 2));   // the outline closes on it
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  radial(ctx, x, y, 190, [[0, GOLD, 0.25], [0.4, AMBER, 0.08], [1, AMBER, 0]], a * (0.8 + 0.2 * pulse + 0.8 * flare));
+  HG.dot(ctx, WARM, x, y, 34 + 6 * pulse + 40 * flare, a);
+  glint(ctx, x, y, 110 + 20 * pulse + 260 * flare, a * (0.65 + 0.3 * flare), GOLD, 0.25 * Math.sin(t * 0.6), 0.06);
+  ctx.restore();
+}
+
+// first light: the sun's upper limb breaks over the flat top
+function firstLight(t) {
+  const k = (t - (T_BIRTH + 0.12)) / 1.3;
+  if (k <= 0 || k >= 1) return;
+  const a = smooth(0, 0.12, k) * Math.pow(1 - k, 1.6);
+  const [x, y] = APEX;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const sp = HG.sprite(GOLD);
+  ctx.globalAlpha = a * 0.75; ctx.drawImage(sp, x - 380, y - 9, 760, 18);       // a horizontal streak along the top
+  ctx.globalAlpha = a * 0.5; ctx.drawImage(sp, x - 200, y - 30, 400, 60);
+  ctx.restore();
+  glint(ctx, x, y - 4, 150, a * 0.8, WARM, 0, 0.07);
+}
+
+// the crowning: light pools on the flat top, then pours down (see cascade)
+function crown(t, end) {
+  const hit = Math.exp(-(((t - T_CROWN - 0.05) / 0.32) ** 2));
+  const hold = smooth(T_CROWN - 0.2, T_CROWN + 0.4, t) * (0.85 + 0.15 * Math.sin(t * 1.9));
+  const a = (0.85 * hit + 0.3 * hold) * end;
+  if (a <= 0.003) return;
+  const [x, y] = APEX;
+  radial(ctx, x, y + 6, 230, [[0, WARM, 0.55], [0.35, GOLD, 0.2], [1, GOLD, 0]], a, 1.5, 0.32);
+  const top = new Path2D(); top.moveTo(...P(414, 300)); top.lineTo(...P(600, 300));
+  glowStroke(ctx, top, WARM, 3.5, a * 0.9, 8, 4);
+}
+
+// warm motes drifting up through the sunrise
+function motes(t, a) {
+  if (a <= 0.003) return;
+  const R = HG.rng(23);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 36; i++) {
+    const x0 = lerp(170, 910, R()), y0 = lerp(300, 720, R()), sp = 12 + 18 * R(), ph = R() * TAU, s = 6 + 6 * R();
+    const life = 3.2 + 1.5 * R(), t0 = 4.5 + 5 * R(), tau = t - t0;
+    if (tau < 0 || tau > life) continue;
+    const x = x0 + 14 * Math.sin(tau * 0.9 + ph), y = y0 - sp * tau;
+    HG.dot(ctx, R() < 0.5 ? GOLD : PEACH, x, y, s, a * Math.sin(Math.PI * tau / life) * 0.5 * circleFade(x, y, 420, 500));
+  }
+  ctx.restore();
+}
+
+HG.start({
+  duration: 12,
+  assets: {
+    night: '../assets/01-amanecer-teotihuacan-night.png',
+    day: '../assets/01-amanecer-teotihuacan-day.png',
+  },
+  render(t, A) {
+    if (!SPR) SPR = { green: featherSprite(Q_GREEN), teal: featherSprite(Q_TEAL), gold: featherSprite(Q_GOLD) };
+    const end = 1 - smooth(9.8, 10.9, t);                 // pyramid, drawing and light
+    const fadeSky = 1 - smooth(9.9, 11.0, t), fadeSun = 1 - ease.inOut3((t - 10.0) / 1.0);
+    const sx = SUN_X, sy = sunY(t);
+
+    sky(LS.ctx, t, A, sx, sy, fadeSky, fadeSun);
+    HG.drawLayer(ctx, LS, { op: 'lighter' });
+    HG.reset(ctx);
+
+    stone(t, A, end);
+    HG.reset(ctx);
+    lines(t, end);
+    cascade(t, end);
+    crown(t, end);
+    HG.reset(ctx);
+    seed(t);
+    firstLight(t);
+    motes(t, smooth(4.8, 6.5, t) * (1 - smooth(9.6, 10.6, t)));
+    feathersPass(ctx, t, 'front');
+    HG.reset(ctx);
+  },
+});
+</script></body></html>

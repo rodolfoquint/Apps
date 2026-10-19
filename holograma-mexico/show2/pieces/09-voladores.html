@@ -1,0 +1,474 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// Los Voladores de Papantla at sunset (Totonac ritual, Veracruz; UNESCO intangible heritage).
+// A line of light shoots up into a tall pole in front of a huge setting sun; the square frame opens
+// at its top and the caporal stands on the tip playing flute and drum. Three drum beats ring out
+// and the four flyers throw themselves backwards off the frame. Hanging head down by the waist,
+// arms open, they spiral down around the pole in slowly widening circles while the camera pulls
+// back and tilts down with them: a real 3D scene (perspective camera, flyers in front larger and
+// brighter, those behind dimmer and hidden by the pole). The ribbons of their hats leave rainbow
+// trails that wind into a four-fold helix around the pole; flower petals drift off the hats.
+// The sun sinks as they descend; as the ropes run out they swing upright and touch down on the
+// ground in a ring of light and petals, the sun is gone and the sky turns violet, and the glowing
+// spirals linger while the camera keeps circling, then fade.
+const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
+const TAU = Math.PI * 2;
+
+// ---------- world (stylised proportions: the flyers are drawn larger than life, like a poster)
+const HP = 20;          // pole tip (the "manzana" the caporal stands on)
+const HF = 18.9;        // the turning square frame
+const RF = 0.95;        // frame half-diagonal: the ropes hang from its corners
+const R1 = 7.0;         // radius of the last circle
+const YEND = 1.55;      // waist height when the ropes run out
+const TURNS = 4;        // turns shown (the ritual makes 13 per flyer; here the descent is condensed)
+const T0 = 1.95, T1 = 9.75;   // descent: backward fall .. touch-down
+const SW = 4.1;         // flyer sprite width in world units
+const KNOT = [474, 219], HAT = [585, 700];   // in the 1024 flyer asset: rope knot (waist) and hat
+const PH0 = 0.55;       // starting angle of flyer 0
+
+// sunset palette
+const SUN_HI = [255, 196, 92], SUN_LO = [255, 84, 120], MAGENTA = [235, 50, 150], VIOLET = [140, 70, 235];
+const ROPE = [255, 214, 150], RIM = [255, 170, 90], GOLD = [255, 196, 90];
+const RIBBONS = [[255, 52, 78], [255, 148, 30], [255, 226, 50], [50, 222, 112], [45, 150, 255], [176, 82, 255]];
+const PETALS = [[255, 70, 120], [255, 210, 60], [255, 140, 40], [255, 245, 220], [190, 90, 255], [255, 60, 60]];
+
+// ---------- descent progress: angular speed ramps up after the fall, cruises, slows a little at the end
+const NPROG = 2048, PROG = new Float32Array(NPROG + 1);
+(() => {
+  const speed = u => smooth(0, 0.14, u) * (1 - 0.42 * smooth(0.78, 1, u)) + 0.04;
+  let acc = 0; PROG[0] = 0;
+  for (let i = 1; i <= NPROG; i++) { const u = (i - 0.5) / NPROG; acc += speed(u) / NPROG; PROG[i] = acc; }
+  for (let i = 0; i <= NPROG; i++) PROG[i] /= acc;
+})();
+function prog(u) {
+  if (u <= 0) return 0; if (u >= 1) return 1;
+  const x = u * NPROG, i = Math.floor(x), f = x - i;
+  return PROG[i] + (PROG[i + 1] - PROG[i]) * f;
+}
+
+// state of flyer i at time s: waist position, rope attach point on the frame, angle
+function flyer(i, s) {
+  const u = (s - T0) / (T1 - T0);
+  const kf = ease.out3((s - T0) / 0.75);                    // the backward fall off the frame
+  const P = prog(u);
+  const thF = PH0 + i * TAU / 4 + TURNS * TAU * P;           // frame corner angle
+  const th = thF - 0.16 * smooth(0, 0.25, u);                // the flyer trails its rope's corner a little
+  const r = RF + 0.6 * kf + (R1 - RF - 0.6) * Math.pow(P, 0.6);
+  const y = HF + 0.25 - 1.75 * kf - (HF + 0.25 - 1.75 - YEND) * P;
+  return {
+    th, r, y, x: r * Math.cos(th), z: -r * Math.sin(th),
+    ax: RF * Math.cos(thF), ay: HF, az: -RF * Math.sin(thF), kf, u,
+  };
+}
+// hat position in 3D: from the waist, continuing the rope's direction downward
+function hat3(f) {
+  let dx = f.x - f.ax, dy = f.y - f.ay, dz = f.z - f.az;
+  const L = Math.hypot(dx, dy, dz) || 1, lh = SW * 0.48;
+  if (L < 0.2) { dx = 0; dy = -1; dz = 0; } else { dx /= L; dy /= L; dz /= L; }
+  return [f.x + dx * lh, f.y + dy * lh, f.z + dz * lh];
+}
+
+// ---------- camera: close on the top of the pole, pulls back and tilts down with the descent, keeps circling
+function camera(t) {
+  const k = ease.inOut3((t - 1.7) / 8.3);
+  const yaw = -0.32 + 0.62 * (t / 12) + 0.08 * ease.inOut3((t - 2) / 8);
+  const D = 40, E = 2.2;
+  const Ty = lerp(15.6, 9.7, k);
+  const f = lerp(2150, 1480, k) * (1 - 0.035 * smooth(9.5, 12, t));
+  const cam = [Math.sin(yaw) * D, E, Math.cos(yaw) * D];
+  let fw = [-cam[0], Ty - E, -cam[2]]; const fl = Math.hypot(...fw); fw = fw.map(v => v / fl);
+  let rt = [-fw[2], 0, fw[0]]; const rl = Math.hypot(...rt); rt = rt.map(v => v / rl);   // fw x worldUp
+  const up = [rt[1] * fw[2] - rt[2] * fw[1], rt[2] * fw[0] - rt[0] * fw[2], rt[0] * fw[1] - rt[1] * fw[0]];
+  return { cam, fw, rt, up, f, yaw, dir: [Math.sin(yaw), Math.cos(yaw)], E };
+}
+function proj(cm, x, y, z) {
+  const vx = x - cm.cam[0], vy = y - cm.cam[1], vz = z - cm.cam[2];
+  const zc = vx * cm.fw[0] + vy * cm.fw[1] + vz * cm.fw[2];
+  const xc = vx * cm.rt[0] + vy * cm.rt[1] + vz * cm.rt[2];
+  const yc = vx * cm.up[0] + vy * cm.up[1] + vz * cm.up[2];
+  const s = cm.f / zc;
+  return { x: C + xc * s, y: C - yc * s, s, d: zc };
+}
+// > 0 in front of the pole (towards the camera), < 0 behind it
+const side = (cm, x, z) => x * cm.dir[0] + z * cm.dir[1];
+
+// ---------- layers
+const LB = HG.layer(), LF = HG.layer(), LS = HG.layer(), LK = HG.layer();
+for (const l of [LB, LF, LS, LK]) l.ctx.imageSmoothingQuality = 'high';
+ctx.imageSmoothingQuality = 'high';
+function clearL(L) { HG.reset(L.ctx); L.ctx.clearRect(0, 0, W, W); }
+// composite a layer with a blurred bloom copy (resolution-independent: HG.reset + HG.blur, layer mapped onto 0..W)
+function bloomLayer(L, { blur = 10, bloom = 0.8, alpha = 1 } = {}) {
+  ctx.save(); HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
+  if (bloom > 0) { ctx.globalAlpha = bloom * alpha; ctx.filter = HG.blur(blur); ctx.drawImage(L.cv, 0, 0, W, W); ctx.filter = 'none'; }
+  ctx.restore();
+  HG.drawLayer(ctx, L, { alpha, op: 'lighter' });
+  HG.reset(ctx);
+}
+const mul = (c, b) => `rgb(${Math.round(c[0] * b)},${Math.round(c[1] * b)},${Math.round(c[2] * b)})`;
+const mix = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)];
+
+// at the end the pole burns away from the ground up like a fuse, shedding embers (the opening in reverse)
+const fuseAt = t => HP * ease.inOut3((t - 10.0) / 1.1);
+const EMBERS = [];
+{ const R = HG.rng(808); for (let n = 0; n < 70; n++) EMBERS.push({ tb: 10.0 + 1.1 * (n + R()) / 70, a: R() * TAU, v: 1.4 + R() * 2.2, o: 0.4 + R() * 1.2, l: 0.6 + R() * 0.5, c: R() }); }
+function embers(t, cm) {
+  if (t < 10.0 || t > 12) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const e of EMBERS) {
+    const age = t - e.tb; if (age < 0 || age > e.l) continue;
+    const y0 = fuseAt(e.tb), k = age / e.l;
+    const r = 0.35 + e.o * ease.out3(k), y = y0 + e.v * age - 0.6 * age * age;
+    const p = proj(cm, r * Math.cos(e.a + age), y, r * Math.sin(e.a + age));
+    const col = e.c < 0.45 ? [255, 190, 90] : e.c < 0.75 ? [255, 110, 150] : [180, 110, 255];
+    HG.dot(ctx, col, p.x, p.y, 0.42 * p.s * (1 - 0.5 * k), 0.95 * Math.sin(Math.PI * Math.min(1, k * 1.6 + 0.1)) * (1 - k));
+  }
+  // the burning front itself
+  const f = fuseAt(t);
+  if (f > 0.05 && f < HP - 0.1) { const p = proj(cm, 0, f, 0); HG.dot(ctx, [255, 200, 130], p.x, p.y, 1.6 * p.s, 0.75); HG.dot(ctx, [255, 120, 160], p.x, p.y, 3.2 * p.s, 0.3); }
+  ctx.restore();
+}
+const LASH = [];   // heights of the rope lashings on the pole
+{ const R = HG.rng(41); for (let y = 1.4; y < HF - 0.8; y += 1.6 + R() * 1.4) LASH.push(y); }
+// ---------- the sun: a big disc in the sky layer, sinking behind the horizon, with drifting cloud bars
+function sky(t, cm) {
+  const hz = proj(cm, cm.cam[0] - cm.dir[0] * 1e5, cm.E, cm.cam[2] - cm.dir[1] * 1e5).y;   // horizon on screen
+  const sink = Math.pow(clamp((t - 0.4) / 9.5), 1.4) * smooth(0.2, 1.4, t);   // slow at first, setting as they land
+  const R = lerp(178, 160, sink);
+  const sy = lerp(300, hz + 1.1 * R, sink), sx = C + 70 - 40 * sink;
+  const born = smooth(0.15, 1.5, t);
+  const red = smooth(4, 10, t);                              // the sun reddens as it sinks
+  const g = LS.ctx; clearL(LS);
+  const aSun = born * (1 - smooth(9.8, 10.9, t));
+  if (aSun > 0.003) {
+    // halo
+    const hg = g.createRadialGradient(sx, sy, R * 0.7, sx, sy, R * 2.3);
+    hg.addColorStop(0, rgba(mix(MAGENTA, [255, 110, 60], 0.5 - 0.4 * red), 0.32));
+    hg.addColorStop(0.45, rgba(MAGENTA, 0.12)); hg.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = hg; g.fillRect(0, 0, W, W);
+    // disc: gold at the top melting into rose at the bottom
+    const r0 = R * lerp(0.6, 1, born);
+    const dg = g.createLinearGradient(0, sy - r0, 0, sy + r0);
+    dg.addColorStop(0, rgba(mix(SUN_HI, [255, 140, 70], red), 0.95));
+    dg.addColorStop(0.55, rgba(mix([255, 140, 80], [255, 90, 90], red), 0.92));
+    dg.addColorStop(1, rgba(mix(SUN_LO, [220, 50, 150], red), 0.9));
+    g.fillStyle = dg; g.beginPath(); g.arc(sx, sy, r0, 0, TAU); g.fill();
+    // soft inner glow edge
+    const eg = g.createRadialGradient(sx, sy, r0 * 0.82, sx, sy, r0 * 1.06);
+    eg.addColorStop(0, 'rgba(0,0,0,0)'); eg.addColorStop(0.75, rgba([255, 200, 160], 0.18)); eg.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = eg; g.fillRect(sx - r0 * 1.2, sy - r0 * 1.2, r0 * 2.4, r0 * 2.4);
+    // a few soft cloud wisps drifting across the lower disc
+    g.globalCompositeOperation = 'destination-out';
+    const wisps = [[0.6, 1.6, 0.04, 0.6, 2.1], [0.8, 1.15, 0.045, 0.7, 4.2]];
+    for (const [p, len, th, a, ph] of wisps) {
+      const wy = sy - r0 + 2 * r0 * p, wx = sx + r0 * (0.25 * Math.sin(ph) + 0.05 * t * (ph > 1 ? -1 : 1));
+      g.save(); g.filter = HG.blur(r0 * th * 0.9); g.globalAlpha = a; g.fillStyle = '#000';
+      g.beginPath(); g.ellipse(wx, wy, r0 * len / 2, r0 * th, 0, 0, TAU); g.fill(); g.restore();
+    }
+    // below the horizon there is only ground: cut the sun there
+    const cg = g.createLinearGradient(0, hz - 14, 0, hz + 30);
+    cg.addColorStop(0, 'rgba(0,0,0,0)'); cg.addColorStop(0.35, 'rgba(0,0,0,0.92)'); cg.addColorStop(1, 'rgba(0,0,0,1)');
+    g.fillStyle = cg; g.fillRect(0, hz - 14, W, W);
+    g.globalCompositeOperation = 'source-over';
+  }
+  // the afterglow along the horizon: magenta turning violet once the sun has set
+  const ag = smooth(5, 9, t) * (1 - smooth(10.2, 11.15, t));
+  if (ag > 0.003) {
+    const col = mix(MAGENTA, VIOLET, smooth(8.5, 10.8, t));
+    g.save(); g.translate(sx, hz - 10); g.scale(2.6, 0.75);
+    const rg = g.createRadialGradient(0, 0, 0, 0, 0, 230);
+    rg.addColorStop(0, rgba(col, 0.42 * ag)); rg.addColorStop(0.5, rgba(col, 0.14 * ag)); rg.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = rg; g.fillRect(-240, -240, 480, 480);
+    g.restore();
+  }
+  // the ribbons pass in front of the sun: knock the sun back under them so they keep their colours
+  HG.drawLayer(g, LB, { alpha: 0.5, op: 'destination-out' });
+  HG.drawLayer(g, LF, { alpha: 0.6, op: 'destination-out' });
+  HG.drawLayer(ctx, LS, { alpha: 0.92 * born });
+  return { hz, sx, sy, R };
+}
+
+// ---------- sprites
+// draw img anchored at asset point (au, av) at screen (x, y): width w, rotation rot, horizontal scale sx (mirror < 0)
+function sprite(img, x, y, w, rot, sx, au, av, alpha, bloom = 0.35, blur = 10, ctx = HG.ctx) {
+  if (alpha <= 0.003) return;
+  const k = w / img.width;
+  const draw = () => { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(sx, 1); ctx.drawImage(img, -au * k, -av * k, img.width * k, img.height * k); ctx.restore(); };
+  ctx.save();
+  if (bloom > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha * bloom; ctx.filter = HG.blur(blur); draw(); ctx.filter = 'none'; }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = alpha; draw();
+  ctx.restore();
+}
+
+// a glowing line (two passes)
+function glowLine(pts, col, width, alpha, blur = 6) {
+  if (alpha <= 0.003) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba(col, 1); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const path = () => { ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y); };
+  ctx.globalAlpha = alpha * 0.55; ctx.lineWidth = width * 2.6; ctx.filter = HG.blur(blur); path(); ctx.stroke();
+  ctx.filter = 'none'; ctx.globalAlpha = alpha; ctx.lineWidth = width; path(); ctx.stroke();
+  ctx.restore();
+}
+
+// ---------- ribbon trails: the path of each hat, as a rainbow band twisting like a ribbon
+const DT = 1 / 48, BW = 0.62, NS = RIBBONS.length;
+function trails(t, cm, flyers, fade, unwind) {
+  const gB = LB.ctx, gF = LF.ctx; clearL(LB); clearL(LF);
+  if (t <= T0 + 0.25) return;
+  const M = Math.floor((Math.min(t, T1 + 0.2) - T0 - 0.25) / DT);
+  // sample every flyer's hat path once (newest first), with the screen offset that ties the head to the drawn hat
+  const paths = flyers.map(F => {
+    const pts = [];
+    const tEnd = Math.min(t, T1 + 0.2);
+    for (let j = 0; j <= M; j++) {
+      const s = tEnd - j * DT;
+      const h = hat3(flyer(F.i, s));
+      const p = proj(cm, h[0], h[1], h[2]);
+      const age = t - s, tie = Math.exp(-age / 0.3);
+      p.x += F.hatOff[0] * tie; p.y += F.hatOff[1] * tie;
+      p.age = age; p.sd = side(cm, h[0], h[2]); p.wy = h[1];
+      // stripe spacing at this point: the band twists as it flies and tapers along the tail
+      const tw = 0.5 + 0.5 * Math.cos(age * 2.4 + F.i * 1.7);
+      p.step = BW / NS * p.s * (0.42 + 0.58 * tw) * (0.62 + 0.38 * Math.exp(-age / 1.1));
+      pts.push(p);
+    }
+    return pts;
+  });
+  // additive butt-capped stripes: where the band turns edge-on its stripes sum into a soft highlight
+  for (const g of [gB, gF]) { g.lineCap = 'butt'; g.globalCompositeOperation = 'lighter'; }
+  // oldest first so the bright heads lie on top
+  for (let j = M - 1; j >= 0; j--) {
+    for (let i = 0; i < paths.length; i++) {
+      const a = paths[i][j + 1], b = paths[i][j];
+      const age = (a.age + b.age) / 2;
+      const sMid = t - age, uw = smooth(unwind - 0.05, unwind + 0.35, sMid);
+      if (uw <= 0.003) continue;
+      const front = a.sd + b.sd > 0;
+      const g = front ? gF : gB;
+      const head = Math.exp(-age / 1.1);
+      let br = (0.1 + 0.2 * Math.exp(-age / 4) + 0.62 * head + 0.9 * (1 - uw) * uw * 4 * 0.5) * uw * (front ? 1 : 0.6) * fade;
+      br *= smooth(0, 0.12, age + 0.02);
+      if (br <= 0.01) continue;
+      g.lineWidth = Math.max(1.2, (a.step + b.step) / 2 * 1.02);
+      for (let k = 0; k < NS; k++) {
+        const c = k - (NS - 1) / 2;
+        g.strokeStyle = mul(RIBBONS[k], Math.min(1, br * (k === 2 ? 0.9 : 1)));
+        g.beginPath(); g.moveTo(a.x, a.y + c * a.step); g.lineTo(b.x, b.y + c * b.step); g.stroke();
+      }
+    }
+  }
+}
+
+// ---------- petals shed from the hats (stateless: each petal is born at a fixed time and drifts)
+function petals(t, cm, which, alphaAll) {
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const EVERY = 0.075, LIFE = 1.7;
+  const n0 = Math.max(0, Math.floor((t - LIFE - T0 - 0.4) / EVERY)), n1 = Math.floor((Math.min(t, T1 - 0.1) - T0 - 0.4) / EVERY);
+  for (let i = 0; i < 4; i++) {
+    for (let n = n0; n <= n1; n++) {
+      const tb = T0 + 0.4 + n * EVERY, age = t - tb;
+      if (age < 0 || age > LIFE) continue;
+      const R = HG.rng(1000 + i * 977 + n * 31);
+      const F = flyer(i, tb), h = hat3(F);
+      const vx = (R() - 0.5) * 1.6, vz = (R() - 0.5) * 1.6, vy = 0.2 + R() * 0.8;
+      const x = h[0] + vx * age, z = h[2] + vz * age, y = h[1] + vy * age - 0.9 * age * age;
+      const fr = side(cm, x, z) > 0;
+      if (fr !== which) continue;
+      const p = proj(cm, x, y, z);
+      const col = PETALS[Math.floor(R() * PETALS.length)];
+      const tw = 0.65 + 0.35 * Math.sin(t * 9 + n);
+      const a = alphaAll * (1 - smooth(LIFE * 0.45, LIFE, age)) * smooth(0, 0.15, age) * tw * (fr ? 1 : 0.6);
+      HG.dot(ctx, col, p.x, p.y, (0.32 + 0.2 * R()) * p.s, a);
+    }
+  }
+  ctx.restore();
+}
+
+// ---------- the pole: a tapered trunk, dark against the sun, rim-lit, with rope lashings
+function pole(t, cm, grow, alpha, from = 0) {
+  if (grow <= 0 || alpha <= 0.003 || from >= HP - 0.05) return;
+  const top = HP * grow;
+  const rtp = lerp(0.5, 0.3, grow), rb = lerp(0.5, rtp, from / top);
+  const b = proj(cm, 0, from, 0), tp = proj(cm, 0, top, 0);
+  const wb = rb * b.s, wt = rtp * tp.s;
+  // body (occludes the sun and everything behind)
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(b.x - wb, b.y); ctx.lineTo(tp.x - wt, tp.y); ctx.lineTo(tp.x + wt, tp.y); ctx.lineTo(b.x + wb, b.y); ctx.closePath();
+  const bg = ctx.createLinearGradient(b.x - wb, 0, b.x + wb, 0);
+  bg.addColorStop(0, 'rgb(150,78,44)'); bg.addColorStop(0.18, 'rgb(84,40,28)'); bg.addColorStop(0.55, 'rgb(48,22,24)'); bg.addColorStop(0.85, 'rgb(62,26,40)'); bg.addColorStop(1, 'rgb(130,56,80)');
+  ctx.globalAlpha = alpha; ctx.fillStyle = bg; ctx.fill();
+  ctx.restore();
+  // rim light on both edges (the sun is behind)
+  const rimA = 0.85 * alpha;
+  glowLine([{ x: b.x - wb, y: b.y }, { x: tp.x - wt, y: tp.y }], RIM, 2.6, rimA, 6);
+  glowLine([{ x: b.x + wb, y: b.y }, { x: tp.x + wt, y: tp.y }], [255, 120, 150], 2.2, rimA * 0.8, 6);
+  // rope lashings round the trunk, irregularly spaced (front half of each ring)
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.strokeStyle = rgba(ROPE, 0.32 * alpha);
+  const fc = Math.atan2(cm.dir[1], cm.dir[0]);
+  for (const y of LASH) {
+    if (y > top - 0.5) break;
+    if (y < from + 0.15) continue;
+    const rr = lerp(rb, rtp, y / HP) * 1.05, pts = [];
+    for (let k = 0; k <= 10; k++) { const a = fc - Math.PI / 2 + Math.PI * k / 10; pts.push(proj(cm, rr * Math.cos(a), y, rr * Math.sin(a))); }
+    ctx.lineWidth = Math.max(1.8, 0.1 * pts[5].s);
+    ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (const p of pts) ctx.lineTo(p.x, p.y); ctx.stroke();
+  }
+  ctx.restore();
+  // growing tip spark
+  if (grow < 1) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; HG.dot(ctx, [255, 220, 150], tp.x, tp.y, 80, 0.9 * (1 - grow * grow)); ctx.restore(); }
+}
+
+// ---------- the turning square frame at the top and the small capstan above it
+function frame(t, cm, open, thF, part) {
+  if (open <= 0.003) return;
+  const s = lerp(0.2, 1, ease.outBack(open));
+  const P = [];
+  for (let k = 0; k < 4; k++) { const a = thF + k * TAU / 4; P.push({ x: RF * s * Math.cos(a), z: -RF * s * Math.sin(a) }); }
+  for (let k = 0; k < 4; k++) {
+    const p = P[k], q = P[(k + 1) % 4];
+    const mid = side(cm, (p.x + q.x) / 2, (p.z + q.z) / 2) > 0;
+    if (mid !== (part === 'front')) continue;
+    const a = proj(cm, p.x, HF, p.z), b = proj(cm, q.x, HF, q.z);
+    glowLine([a, b], GOLD, 0.12 * a.s, open * (mid ? 0.85 : 0.55), 5);
+  }
+  if (part === 'front') {
+    // the capstan ("manzana") at the tip
+    const a = proj(cm, 0, HP - 0.05, 0), b = proj(cm, 0, HF + 0.05, 0);
+    glowLine([a, b], [255, 160, 100], 0.36 * a.s, open * 0.45, 4);
+  }
+}
+
+// ---------- ground rings where the flyers touch down
+function groundRing(cm, x, z, r, col, alpha) {
+  if (alpha <= 0.003) return;
+  const pts = [];
+  for (let k = 0; k <= 40; k++) { const a = k / 40 * TAU; pts.push(proj(cm, x + r * Math.cos(a), 0.02, z + r * Math.sin(a))); }
+  glowLine(pts, col, 2.4, alpha, 6);
+}
+
+HG.start({
+  duration: 12,
+  assets: { flyer: '../assets/09-voladores-flyer.png', cap: '../assets/09-voladores-caporal.png' },
+  render(t, A) {
+    const cm = camera(t);
+    const end = smooth(10.85, 11.22, t);                   // frame and caporal go out as the fuse reaches the top
+    const fuse = fuseAt(t);
+    const grow = ease.out3((t - 0.12) / 1.05);
+    const open = smooth(0.95, 1.45, t);
+    const thF = PH0 + TURNS * TAU * prog((t - T0) / (T1 - T0));
+
+
+    // ---- flyers' current state (sprite placement and the hat offset that ties the trail to the drawn hat)
+    const flyers = [];
+    for (let i = 0; i < 4; i++) {
+      const F = flyer(i, t); F.i = i;
+      const w = proj(cm, F.x, F.y, F.z), at = proj(cm, F.ax, F.ay, F.az);
+      const land = ease.inOut3((t - (T1 - 0.45)) / 0.6);    // swing upright to land on their feet
+      const fly = 0.05 * Math.sin(t * 2.3 + i * 1.9) + Math.atan2(at.x - w.x, -(at.y - w.y)) + Math.PI * (1 - ease.inOut3(F.kf));
+      F.rot = t < T0 ? Math.PI : fly - Math.PI * land * (i % 2 ? -1 : 1);
+      const ph = F.th + cm.yaw;                              // angle round the pole seen from the camera
+      F.front = side(cm, F.x, F.z) > 0;
+      F.mir = (i % 2 ? -1 : 1) * (0.72 + 0.28 * Math.pow(Math.cos(ph), 2));
+      F.w = SW * w.s; F.sp = w; F.at = at;
+      F.alpha = smooth(0.05, 0.4, (t - T0) / 0.75) * (1 - smooth(T1 - 0.3, T1 + 0.12, t));
+      // where the hat is drawn on screen vs. where the 3D hat projects
+      const k = F.w / 1024, hx = (HAT[0] - KNOT[0]) * k * F.mir, hy = (HAT[1] - KNOT[1]) * k;
+      const cr = Math.cos(fly), sr = Math.sin(fly);
+      const drawn = [w.x + hx * cr - hy * sr, w.y + hx * sr + hy * cr];
+      const h = hat3(F), hp = proj(cm, h[0], h[1], h[2]);
+      F.hatOff = [drawn[0] - hp.x, drawn[1] - hp.y];
+      flyers.push(F);
+    }
+
+    // ---- trails (back / front layers), fading at the end from the top down
+    // after touch-down the spirals unwind from the top, the light running down them into the ground
+    const unwind = T0 - 0.6 + (T1 + 0.8 - T0 + 0.6) * smooth(9.45, 10.75, t);
+    trails(t, cm, flyers, 1 - smooth(10.55, 11.0, t), unwind);
+    sky(t, cm);
+    bloomLayer(LB, { blur: 9, bloom: 0.75 });
+
+    // ---- behind the pole
+    const rope = (F) => {
+      const a = (1 - smooth(T1 - 0.3, T1 + 0.3, t)) * smooth(T0, T0 + 0.3, t) * (F.front ? 0.75 : 0.45);
+      glowLine([F.at, F.sp], ROPE, 1.8, a, 4);
+    };
+    for (const F of flyers) if (!F.front) { rope(F); }
+    petals(t, cm, false, 1);
+    // flyers behind the pole: solid figures, dimmed and tinted towards the dusk (depth), in their own layer
+    if (flyers.some(F => !F.front && F.alpha > 0.003)) {
+      const g = LK.ctx; clearL(LK);
+      for (const F of flyers) if (!F.front) sprite(A.flyer, F.sp.x, F.sp.y, F.w, F.rot, F.mir, KNOT[0], KNOT[1], F.alpha, 0, 0, g);
+      g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(40,10,60,0.42)'; g.fillRect(0, 0, W, W); HG.reset(g);
+      HG.drawLayer(ctx, LK);
+    }
+    frame(t, cm, open * (1 - end), thF, 'back');
+
+    // ---- pole, frame, caporal
+    pole(t, cm, grow, 1 - smooth(11.0, 11.25, t), fuse);
+    embers(t, cm);
+    frame(t, cm, open * (1 - end), thF, 'front');
+    const capA = smooth(1.05, 1.6, t) * (1 - end);
+    if (capA > 0) {
+      const tip = proj(cm, 0, HP, 0);
+      const sway = 0.035 * Math.sin(t * 3.1) , bob = 1 + 0.012 * Math.sin(t * 6.2);
+      const cw = 2.5 * tip.s;
+      sprite(A.cap, tip.x, tip.y + 2, cw * bob, sway, 1, 262, 500, capA, 0.3, 8);
+      // the caporal goes out in a last soft glint
+      const gl = smooth(10.75, 10.95, t) * (1 - smooth(10.95, 11.35, t));
+      if (gl > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; HG.dot(ctx, [255, 200, 140], tip.x, tip.y - 1.2 * tip.s, 2.4 * tip.s, 0.55 * gl); ctx.restore(); }
+      // flute notes: small warm sparks drifting from the flute
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (let n = 0; n < 9; n++) {
+        const age = ((t * 0.9 + n / 9) % 1), R = HG.rng(77 + n);
+        const fx = tip.x + (-0.45 - age * 1.5 + (R() - 0.5) * 0.3) * tip.s, fy = tip.y - (1.95 + age * 1.1 + Math.sin(age * 6 + n) * 0.15) * tip.s;
+        HG.dot(ctx, [255, 215, 140], fx, fy, 0.3 * tip.s, capA * 0.75 * Math.sin(Math.PI * age));
+      }
+      ctx.restore();
+    }
+    // three drum beats ring out from the top before the flyers jump
+    for (const tb of [1.2, 1.5, 1.8]) {
+      const u = (t - tb) / 0.9; if (u <= 0 || u >= 1) continue;
+      const pts = [], rr = lerp(0.6, 3.6, ease.out3(u));
+      for (let k = 0; k <= 48; k++) { const a = k / 48 * TAU; pts.push(proj(cm, rr * Math.cos(a), HF + 0.3, rr * Math.sin(a))); }
+      glowLine(pts, GOLD, 2.4, 0.7 * (1 - u), 6);
+    }
+    // the four flyers' places on the frame twinkle with the beats, then they throw themselves off
+    {
+      const gA = smooth(1.15, 1.35, t) * (1 - smooth(1.95, 2.1, t));
+      if (gA > 0) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 4; i++) {
+          const a = thF + i * TAU / 4, p = proj(cm, RF * Math.cos(a), HF + 0.25, -RF * Math.sin(a));
+          const beat = Math.max(...[1.2, 1.5, 1.8].map(b => Math.exp(-Math.pow((t - b - 0.03) / 0.08, 2))));
+          HG.dot(ctx, [255, 220, 160], p.x, p.y, (0.5 + 0.5 * beat) * 0.9 * p.s, gA * (0.45 + 0.5 * beat) * (side(cm, Math.cos(a), -Math.sin(a)) > 0 ? 1 : 0.6));
+        }
+        ctx.restore();
+      }
+    }
+
+    // ---- in front of the pole
+    bloomLayer(LF, { blur: 9, bloom: 0.75 });
+    for (const F of flyers) if (F.front) rope(F);
+    petals(t, cm, true, 1);
+    for (const F of flyers) if (F.front) sprite(A.flyer, F.sp.x, F.sp.y, F.w, F.rot, F.mir, KNOT[0], KNOT[1], F.alpha, 0.3, 10);
+
+    // ---- touch-down: rings of light on the ground and a puff of petals
+    for (const F of flyers) {
+      const u = (t - (T1 - 0.05)) / 1.4; if (u <= 0 || u >= 1) continue;
+      groundRing(cm, F.x, F.z, lerp(0.3, 2.6, ease.out3(u)), [255, 200, 140], 0.75 * (1 - u) * (F.front ? 1 : 0.6));
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const R = HG.rng(500 + F.i);
+      for (let n = 0; n < 22; n++) {
+        const a = R() * TAU, v = 1.2 + R() * 2.2, up = 1.5 + R() * 2.5, col = PETALS[Math.floor(R() * PETALS.length)];
+        const e = ease.out3(u);
+        const p = proj(cm, F.x + Math.cos(a) * v * e, 0.4 + up * e - 2.2 * u * u, F.z + Math.sin(a) * v * e);
+        HG.dot(ctx, col, p.x, p.y, 0.4 * p.s, (1 - smooth(0.4, 1, u)) * 0.9);
+      }
+      ctx.restore();
+    }
+  },
+});
+</script></body></html>

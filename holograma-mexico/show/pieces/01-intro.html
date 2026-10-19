@@ -13,11 +13,13 @@
 const { W, C, ctx, clamp, lerp, smooth, ease, rng, COLORS, rgba } = HG;
 const TAU = Math.PI * 2;
 
-const GREEN = [25, 215, 110], WHITE = [250, 244, 230], RED = [255, 48, 72];
+const GREEN = [25, 215, 110], WHITE = [255, 240, 212], RED = [255, 48, 72];   // a warm white, so it never reads grey
 const GOLD = COLORS.gold, WARM = COLORS.warm, AMBER = [255, 158, 48];
 const TRI = [GREEN, WHITE, RED];
 const FC = { pink: [255, 55, 165], orange: [255, 135, 25], turq: [35, 212, 235], yellow: [255, 208, 40], green: [55, 222, 105], purple: [165, 92, 255] };
 const TB = 3.6;            // the bloom
+const HOLD = 0.45;         // extra time the sun medallion holds the stage alone before the garlands fall
+const RING_A = 0.42;
 
 // ---------- small helpers (kept local to this piece)
 const canvas = (w, h) => { const c = document.createElement('canvas'); c.width = Math.ceil(w); c.height = Math.ceil(h); return c; };
@@ -90,6 +92,17 @@ function thinRing(r, col, a, w = 1.6) {
   ctx.restore();
 }
 
+// broad soft band of light (a bright core a few px wide inside a wide sheath): reads on the fan, never as a HUD hairline
+function bandRing(r, col, a, core = 8, sheath = 5) {
+  if (a <= 0.004 || r <= 1) return;
+  const r0 = Math.max(0, r - core * sheath), r1 = r + core * sheath, at = x => clamp((x - r0) / (r1 - r0));
+  const g = ctx.createRadialGradient(C, C, r0, C, C, r1);
+  g.addColorStop(0, rgba(col, 0));
+  for (const [d, k] of [[-2.4, 0.07], [-1.3, 0.3], [-0.55, 0.85], [0, 1], [0.55, 0.85], [1.3, 0.3], [2.4, 0.07]]) g.addColorStop(at(r + d * core), rgba(col, a * k));
+  g.addColorStop(1, rgba(col, 0));
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(C - r1, C - r1, 2 * r1, 2 * r1); ctx.restore();
+}
+
 // =====================================================================
 // 1. The vortex: three tricolour spiral arms streaming in from the rim
 // =====================================================================
@@ -110,15 +123,17 @@ const VORTEX = (() => {
   for (let a = 0; a < 3; a++) for (let i = 0; i < 600; i++) {
     const spine = R() < 0.6, ts = emitAt(R());
     // the white arm is drawn a little softer: it is the brightest colour and would burn out where sparks overlap
-    const lum = a === 1 ? 0.68 : 1;
+    const lum = a === 1 ? 0.85 : 1;
     list.push({ arm: a * TAU / 3, col: TRI[a], r0: 585 + R() * 80, rc: 36 + R() * 26, ts, dur: 1.0 + R() * 0.3 + 0.18 * ts / 3.3,
       j: spine ? (R() + R() + R() - 1.5) * 0.075 : (R() - 0.5) * 0.62, s: spine ? 0.8 + R() * 0.6 : 0.45 + R() * 0.45, b: (spine ? 1 : 0.5) * lum, tw: R() * TAU });
   }
   return list;
 })();
 const spin = t => 0.5 * t + 3.0 * intSmooth(1.3, TB, t);
-const implode = t => 1 - 0.58 * ease.in3((t - 3.1) / (TB - 3.1));
-const vortexOff = t => 1 - smooth(TB - 0.02, TB + 0.09, t);
+// the vortex is pulled right into the heart on the beat (to about a tenth of its size), and is swallowed as it goes
+const implode = t => 1 - 0.88 * ease.in3((t - 3.1) / (TB - 3.1));
+const swallow = t => smooth(0.1, 0.42, implode(t));
+const vortexOff = t => 1 - smooth(TB - 0.03, TB + 0.08, t);
 function vortexAt(P, t) {
   const q = (t - P.ts) / P.dur;
   if (q <= 0) return null;
@@ -130,7 +145,7 @@ function vortexAt(P, t) {
 // a soft luminous body under each arm, so the galaxy reads from the first second
 const RIB = HG.layer();
 function drawArmBodies(t) {
-  const ramp = smooth(0.15, 1.0, t) * vortexOff(t) * (0.8 + 0.4 * smooth(2.0, 3.3, t));
+  const ramp = smooth(0.15, 1.0, t) * vortexOff(t) * swallow(t) * (0.8 + 0.4 * smooth(2.0, 3.3, t));
   if (ramp <= 0.003) return;
   const qf = clamp((t - 0.1) / 1.0), front = 45 + 570 * Math.pow(1 - qf, 1.5);
   const g = RIB.ctx; HG.reset(g); g.clearRect(0, 0, W, W); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
@@ -144,27 +159,34 @@ function drawArmBodies(t) {
       const rr = r * imp, th = a * TAU / 3 + K * Math.log(RREF / Math.max(rr, 6)) + sp;
       const pt = [C + Math.cos(th) * rr, C + Math.sin(th) * rr];
       if (prev) {
-        g.globalAlpha = smooth(front, front + 150, r) * (1 - smooth(500, 620, r)) * (0.35 + 0.65 * smooth(50, 260, r));
+        g.globalAlpha = (a === 1 ? 0.85 * (1 - 0.3 * smooth(2.0, 3.0, t)) : 1) * smooth(front, front + 150, r) * (1 - smooth(500, 620, r)) * (0.35 + 0.65 * smooth(50, 260, r));
         g.lineWidth = (8 + 26 * r / 600) * (0.6 + 0.4 * imp);
         g.beginPath(); g.moveTo(prev[0], prev[1]); g.lineTo(pt[0], pt[1]); g.stroke();
       }
       prev = pt;
     }
   }
-  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.16 * ramp; ctx.filter = 'blur(16px)'; ctx.drawImage(RIB.cv, 0, 0); ctx.restore();
+  // a wide luminous body, then a tighter brighter pass so each arm reads as a ribbon of light
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = RIB_WIDE * ramp; ctx.filter = 'blur(16px)'; ctx.drawImage(RIB.cv, 0, 0);
+  ctx.globalAlpha = RIB_TIGHT * ramp; ctx.filter = 'blur(5px)'; ctx.drawImage(RIB.cv, 0, 0);
+  ctx.restore();
 }
+const RIB_WIDE = 0.4, RIB_TIGHT = 0.25;
 function drawVortex(t) {
   if (t > TB + 0.05) return;
-  const ramp = smooth(0.1, 0.8, t), off = vortexOff(t), climb = 0.9 + 0.3 * smooth(1.8, 3.4, t);
+  const ramp = smooth(0.1, 0.8, t), off = vortexOff(t) * swallow(t), climb = 0.9 + 0.3 * smooth(1.8, 3.4, t);
+  // the white arm thickens fastest into the climax; ease it back there so overlaps never burn to pure white
+  const whiteK = (1 - 0.5 * smooth(1.9, 3.0, t)) * Math.pow(implode(t), 1.3);
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
   for (const P of VORTEX) {
     const h = vortexAt(P, t);
     if (!h || h[2] > 575) continue;
     const arr = P.ts + P.dur, post = t > arr ? Math.exp(-3 * (t - arr)) : 1;
     const core = 0.5 + 0.5 * smooth(20, 100, h[2]);   // partly swallowed into the heart
-    const a = ramp * off * climb * post * P.b * core * (0.75 + 0.25 * Math.sin(t * 7 + P.tw)) * smooth(0, 0.06, h[3]);
+    const a = ramp * off * climb * post * P.b * (P.col === WHITE ? whiteK : 1) * core * (0.75 + 0.25 * Math.sin(t * 7 + P.tw)) * smooth(0, 0.06, h[3]);
     if (a <= 0.01) continue;
-    const size = 12 * P.s * (0.45 + 0.55 * Math.min(1, h[2] / 380));
+    const size = 18 * P.s * (0.45 + 0.55 * Math.min(1, h[2] / 380));
     let prev = h; ctx.strokeStyle = rgba(P.col, 1);
     for (let j = 1; j <= 6; j++) {
       const b = vortexAt(P, t - j * 0.024);
@@ -178,19 +200,21 @@ function drawVortex(t) {
 }
 // the heart: grows and heats toward gold as the vortex pinches; thin rings of light are drawn in
 function drawHeart(t) {
-  if (t < TB + 0.6) {
-    const g = smooth(0.8, TB, t), k = Math.pow(clamp((t - 2.8) / (TB - 2.8)), 2.2), off = 1 - smooth(TB + 0.04, TB + 0.5, t);
+  const on = smooth(0.3, 1.0, t);           // frame 0 is pure black
+  if (t < TB + 0.6 && on > 0) {
+    const g = smooth(0.8, TB, t), k = Math.pow(clamp((t - 2.8) / (TB - 2.8)), 2.2), off = on * (1 - smooth(TB + 0.04, TB + 0.5, t));
     softGlow(C, C, 90 + 60 * g + 180 * k, AMBER, (0.08 + 0.2 * g + 0.34 * k) * off, 0.5);
     softGlow(C, C, 50 + 26 * k, mix(GOLD, WARM, q8(k)), (0.1 * g + 0.36 * k) * off, 0.7);
     // the last breath before the bloom: a wide gold swell gathers round the heart
     const s2 = ease.in3((t - 3.3) / (TB - 3.3)) * (1 - smooth(TB + 0.02, TB + 0.3, t));
-    softGlow(C, C, 220 + 140 * s2, GOLD, 0.24 * s2, 0.45);
+    softGlow(C, C, 220 + 160 * s2, GOLD, 0.34 * s2, 0.45);
   }
-  // thin rings of light drawn inward: the vortex inhales before the bloom
+  // soft bands of light drawn inward: the vortex inhales before the bloom
   for (let i = 0; i < 4; i++) {
     const t0 = 2.7 + i * 0.15, p = clamp((t - t0) / (TB - 0.02 - t0));
     if (p <= 0 || p >= 1) continue;
-    thinRing(lerp(470, 56, Math.pow(p, 1.7)), i % 2 ? WARM : GOLD, 0.75 * smooth(0, 0.2, p) * (0.45 + 0.55 * p), 1.4);
+    const r = lerp(470, 56, Math.pow(p, 1.7));
+    bandRing(r, i % 2 ? WARM : GOLD, RING_A * smooth(0, 0.2, p) * (0.45 + 0.55 * p) * (1 - smooth(0.9, 1, p)), 3.5 + 5.5 * r / 470, 4);
   }
 }
 
@@ -208,24 +232,39 @@ function drawBloom(t) {
     g.addColorStop(0, rgba(GOLD, a)); g.addColorStop(0.3, rgba(GOLD, a * 0.55)); g.addColorStop(0.65, rgba(AMBER, a * 0.15)); g.addColorStop(1, rgba(AMBER, 0));
     ctx.fillStyle = g; ctx.fillRect(C - r, C - r, 2 * r, 2 * r); ctx.restore();
   }
+  // three tricolour shock rings, each a ring of sparks riding a soft band
+  const shockR = tt => 110 + 355 * ease.out3(tt / 1.3);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
   for (let i = 0; i < 3; i++) {
     const tt = bt - 0.04 - i * 0.1;
     if (tt <= 0 || tt > 1.3) continue;
-    thinRing(110 + 355 * ease.out3(tt / 1.3), TRI[i], 0.75 * Math.pow(1 - tt / 1.3, 1.4) * smooth(0, 0.06, tt), 2);
+    const env = Math.pow(1 - tt / 1.3, 1.4) * smooth(0, 0.06, tt), r = shockR(tt);
+    bandRing(r, TRI[i], 0.2 * env * (i === 1 ? 0.8 : 1), 6, 3.5);
+    const R = rng(303 + i * 17), N = 64;
+    ctx.strokeStyle = rgba(TRI[i], 1);
+    for (let k = 0; k < N; k++) {
+      const ang = (k + 0.5 * R()) * TAU / N + i * 0.37 + 0.35 * tt, jr = 1 + (R() - 0.5) * 0.06, sz = 13 + 8 * R(), tw = R() * TAU;
+      const a = env * (0.7 + 0.3 * Math.sin(t * 11 + tw)) * (i === 1 ? 0.8 : 1);
+      const rr = r * jr, rb = shockR(Math.max(0, tt - 0.07)) * jr, ca = Math.cos(ang), sa = Math.sin(ang);
+      ctx.globalAlpha = 0.45 * a; ctx.lineWidth = 3.2;
+      ctx.beginPath(); ctx.moveTo(C + ca * rr, C + sa * rr); ctx.lineTo(C + ca * rb, C + sa * rb); ctx.stroke();
+      spark(TRI[i], C + ca * rr, C + sa * rr, sz, a);
+    }
   }
+  ctx.restore();
 }
 const RAYS = HG.layer();
-const sunFold = t => smooth(TB + 0.8, 5.3, t);         // the rays fold away into the backlight
+const sunFold = t => smooth(TB + 0.8 + HOLD, 5.3 + HOLD, t);         // the rays fold away into the backlight
 function drawSun(t) {
   const bt = t - TB;
-  if (bt <= 0 || t > 6) return;
+  if (bt <= 0 || t > 6 + HOLD) return;
   const fold = sunFold(t);
   const ringR = 104 * outBackSoft(clamp(bt / 0.5), 1.4) + 46 * fold;
-  const ringA = smooth(0, 0.08, bt) * (1 - smooth(TB + 0.9, 5.3, t));
+  const ringA = smooth(0, 0.08, bt) * (1 - smooth(TB + 0.9 + HOLD, 5.3 + HOLD, t));
   if (ringA > 0.003) {
     softGlow(C, C, ringR * 1.1, GOLD, 0.2 * ringA, 0.5);
-    thinRing(ringR, GOLD, 0.95 * ringA, 2.2);
-    thinRing(ringR * 0.84, AMBER, 0.4 * ringA, 1.1);
+    thinRing(ringR, GOLD, 0.95 * ringA, 3.2);
+    bandRing(ringR * 0.84, AMBER, 0.32 * ringA, 3, 3);
   }
   const strength = 1 - fold;
   if (strength <= 0.003) return;
@@ -237,12 +276,14 @@ function drawSun(t) {
   g.globalCompositeOperation = 'lighter'; g.translate(C, C);
   const N = 24, w0 = 5.2;
   for (let i = 0; i < N; i++) {
-    const tip = TRI[i % 3];
+    const tip = TRI[i % 3], hl = Math.pow(0.5 + 0.5 * Math.cos(2 * i * TAU / N - 3.4 * bt), 6);
+    g.globalAlpha = 0.74 + 0.26 * hl;
     g.save(); g.rotate(rot + i * TAU / N);
     const lg = g.createLinearGradient(r0, 0, r0 + len, 0);
     lg.addColorStop(0, rgba(GOLD, 0.35)); lg.addColorStop(0.04, rgba(GOLD, 0.95)); lg.addColorStop(0.45, rgba(GOLD, 0.62));
     lg.addColorStop(0.8, rgba(mix(GOLD, tip, 0.6), 0.25)); lg.addColorStop(1, rgba(tip, 0));
-    g.fillStyle = lg; g.beginPath(); g.moveTo(r0, -w0); g.lineTo(r0 + len, 0); g.lineTo(r0, w0); g.closePath(); g.fill();
+    const li = len * (1 + 0.07 * hl);
+    g.fillStyle = lg; g.beginPath(); g.moveTo(r0, -w0); g.lineTo(r0 + li, 0); g.lineTo(r0, w0); g.closePath(); g.fill();
     g.restore();
   }
   HG.reset(g);
@@ -285,9 +326,10 @@ function drawBurst(t) {
   }
   ctx.restore();
 }
-// warm backlight behind the garlands: a smooth radial glow, no spikes
+// the sun's warm afterglow: a smooth radial glow that lingers behind the falling garlands, then clears to black
+// (a dim veil between the rows would be crushed to muddy brown by the LEDs)
 function drawBacklight(t) {
-  const a = smooth(TB + 0.3, TB + 1.8, t) * (0.18 + 0.03 * Math.sin(t * 1.2)) * (1 - smooth(10.0, 11.2, t));
+  const a = smooth(TB + 0.3, TB + 1.8, t) * 0.2 * (1 - smooth(5.1 + HOLD, 6.2 + HOLD, t));
   if (a <= 0.003) return;
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const g = ctx.createRadialGradient(C, C, 0, C, C, 470);
@@ -299,20 +341,36 @@ function drawBacklight(t) {
 // 3. Papel picado garlands
 // =====================================================================
 // four cut designs (crop rectangles in the 1024px assets, and the drawn width/height ratio)
+// top: where the cord runs, as a fraction of the drawn height above the image top edge
 const DESIGNS = {
-  A: { img: 'fa', lines: 'la', crop: [0, 96, 1024, 832], aspect: 1.23 },
-  B: { img: 'fb', lines: 'lb', crop: [13, 188, 1000, 647], aspect: 1.38 },
-  C: { img: 'fc', lines: 'lc', crop: [14, 155, 998, 710], aspect: 1.33 },
-  D: { img: 'fd', lines: 'ld', crop: [14, 112, 998, 802], aspect: 1.25 },
+  A: { img: 'fa', lines: 'la', crop: [0, 96, 1024, 832], aspect: 1.23, top: -0.035 },
+  B: { img: 'fb', lines: 'lb', crop: [13, 224, 1000, 611], aspect: 1.461, top: -0.012 },
+  C: { img: 'fc', lines: 'lc', crop: [14, 214, 998, 651], aspect: 1.45, top: -0.012 },
+  D: { img: 'fd', lines: 'ld', crop: [14, 158, 998, 756], aspect: 1.326, top: -0.012 },
 };
 // cy: lowest point of the cord at rest, sag: dip below its chord, tilt: right end lower (+) or higher (-)
 // drop: when the row starts falling from above the circle, T: fall time, D: fall distance
 const ROWS = [
-  { cy: 296, sag: 116, tilt: -16, n: 4, spacing: 180, drop: 4.95, T: 1.05, D: 446, ph: 0.0, designs: 'ACBD', cols: ['pink', 'turq', 'orange', 'purple'] },
-  { cy: 508, sag: 126, tilt: 14, n: 5, spacing: 172, drop: 4.62, T: 1.25, D: 658, ph: 1.9, designs: 'BADCA', cols: ['yellow', 'green', 'pink', 'turq', 'orange'] },
-  { cy: 714, sag: 110, tilt: -12, n: 4, spacing: 176, drop: 4.3, T: 1.45, D: 864, ph: 3.7, designs: 'DBAC', cols: ['purple', 'orange', 'yellow', 'green'] },
+  { cy: 296, sag: 116, tilt: -16, n: 4, spacing: 180, drop: 4.95 + HOLD, T: 1.05, D: 446, ph: 0.0, designs: 'ACBD', cols: ['pink', 'turq', 'orange', 'purple'] },
+  { cy: 508, sag: 126, tilt: 14, n: 5, spacing: 172, drop: 4.62 + HOLD, T: 1.25, D: 658, ph: 1.9, designs: 'BDACA', cols: ['yellow', 'green', 'pink', 'turq', 'orange'] },
+  { cy: 714, sag: 110, tilt: -12, n: 4, spacing: 176, drop: 4.3 + HOLD, T: 1.45, D: 864, ph: 3.7, designs: 'DBAC', cols: ['purple', 'orange', 'yellow', 'green'] },
 ];
+ROWS.forEach((R, ri) => { R.ri = ri; });
 const HW = 600, BASEW = 158, SS = 1.4;
+
+// the gust: one breath of wind runs left to right along every row, the clear beat of the hold
+const GUST_T = 6.5, GUST_V = 820, GUST_ROW = 0.08;
+const gustTau = (x, ri, t) => t - GUST_T - (x + 120) / GUST_V - ri * GUST_ROW;
+// damped swing: pushed downwind in ~0.27 s, swings back past rest, settles within about 1.3 s (peak 1)
+const gustSwing = u => u <= 0 ? 0 : smooth(0, 0.08, u) * Math.sin(4.2 * u) * Math.exp(-1.9 * u) / 0.5425;
+// how stirred up the paper and the cord are
+const gustStir = u => u <= 0 ? 0 : smooth(0, 0.16, u) * Math.exp(-1.7 * Math.max(0, u - 0.16));
+
+// the chase: a spark of light runs back along each cord, right to left, lighting every flag it passes
+const CH_FLASH = 0.45;
+const CH_T = 8.3, CH_V = 960, CH_ROW = 0.14, CH_X0 = 1160;
+const chaseX = (ri, t) => CH_X0 - CH_V * (t - CH_T - ri * CH_ROW);
+const chaseAt = (x, ri, t) => { const xc = chaseX(ri, t); return xc > CH_X0 || xc < -160 ? 0 : Math.exp(-Math.pow((x - xc) / 75, 2)); };
 // per-flag character: width, resting hang angle, mirror, phases
 const SPEC = ROWS.map((R, ri) => R.designs.split('').map((d, i) => {
   const r = rng(ri * 97 + i * 13 + 5);
@@ -345,7 +403,7 @@ function sprites(A) {
     lg.globalCompositeOperation = 'source-in'; lg.fillStyle = rgba(mix(col, WARM, 0.35), 1); lg.fillRect(0, 0, sw, sh);
     const laceHalo = canvas(sw + pad * 2, sh + pad * 2), lh = laceHalo.getContext('2d');
     lh.filter = `blur(${Math.round(6 * SS)}px)`; lh.drawImage(lace, pad, pad); lh.drawImage(lace, pad, pad); lh.filter = 'none';
-    return { paper, halo, lace, laceHalo, pad, col, w: F.w, h: F.w / D.aspect };
+    return { paper, halo, lace, laceHalo, pad, col, top: D.top, w: F.w, h: F.w / D.aspect };
   }));
   return SPR;
 }
@@ -362,8 +420,10 @@ function rowState(R, t) {
 // the cord, with a gentle wave travelling along it (the breeze), pinned at both ends
 function cordY(R, S, x, t) {
   const u = (x - C) / HW;
-  const wave = 9 * S.live * (1 - u * u) * Math.sin(1.85 * t - 0.0057 * x + R.ph);
-  return R.cy - S.sag + S.dy + S.sag * (1 - u * u) + R.tilt * u + wave;
+  const gu = gustTau(x, R.ri, t), land = smooth(-0.3, 0.5, S.land);
+  const wave = (9 * S.live + 11 * land * gustStir(gu)) * (1 - u * u) * Math.sin(1.85 * t - 0.0057 * x + R.ph);
+  const billow = -17 * land * gustSwing(gu) * (1 - u * u);
+  return R.cy - S.sag + S.dy + S.sag * (1 - u * u) + R.tilt * u + wave + billow;
 }
 
 // closing dissolve: a soft front of light expands from the centre; each flag burns into lace when it arrives
@@ -384,16 +444,20 @@ function flagPoses(t) {
       // landing kick, then a slow pendulum whose phase travels along the cord
       const kick = 0.16 * smooth(-0.1, 0.12, S.land) * Math.exp(-2.0 * Math.max(0, S.land)) * Math.sin(5.2 * S.land + i * 0.9);
       const pend = 0.108 * (0.85 + 0.15 * Math.sin(0.5 * t + ri)) * Math.sin(2.1 * t - 0.0066 * x + R.ph + 0.6);
-      const rot = 0.75 * Math.atan(slope) + F.hang + pend * S.live + kick;
-      // 3D flutter: the paper turns about its hanging axis and tips on the cord
-      const psi = (0.6 + 0.3 * (1 - S.live)) * Math.sin(2.6 * t - 0.0078 * x + F.ph);
-      const sx = Math.cos(psi), sy = 1 - 0.07 * (0.5 + 0.5 * Math.sin(1.9 * t - 0.006 * x + F.ph2));
+      const gu = gustTau(x, ri, t), landed = smooth(-0.3, 0.5, S.land), gs = landed * gustStir(gu);
+      const gust = -0.225 * landed * gustSwing(gu);         // up to ~13 degrees downwind, then back past rest
+      // the top edge stays hinged along the cord; the swing shears the paper below it (no corner pokes above the cord)
+      const rot = Math.atan(slope), swing = F.hang + pend * S.live + kick + gust, shear = -Math.tan(swing);
+      // 3D flutter: the paper turns about its hanging axis and tips on the cord (harder in the gust)
+      const psi = Math.min(0.95, 0.6 + 0.3 * (1 - S.live) + 0.32 * gs) * Math.sin(2.6 * t - 0.0078 * x + F.ph);
+      const sx = Math.cos(psi), sy = Math.cos(swing) * (1 - 0.07 * (0.5 + 0.5 * Math.sin(1.9 * t - 0.006 * x + F.ph2)));
       const b = 0.8 + 0.28 * clamp((sx - 0.8) / 0.2);
-      const caught = 0.3 * Math.exp(-Math.pow((psi + 0.3) / 0.12, 2));      // light catching the turning paper
+      const ch = chaseAt(x, ri, t);                                         // the spark running along the cord
+      const caught = 0.3 * Math.exp(-Math.pow((psi + 0.3) / 0.12, 2)) + CH_FLASH * ch;   // light catching the turning paper
       const w = F.w, h = F.w / DESIGNS[F.d].aspect;
-      const mx = x - Math.sin(rot) * h * 0.5, my = y + Math.cos(rot) * h * 0.5;   // flag centre
+      const mx = x - Math.sin(rot + swing) * h * 0.5, my = y + Math.cos(rot + swing) * h * 0.5;   // flag centre
       const td = rhoInv(Math.hypot(mx - C, my - C)), u = (t - td) / BURN;
-      out.push({ ri, i, x, y, rot, sx, sy, b, caught, w, h, mx, my, td, mir: F.mir, col: F.col, seed: F.seed,
+      out.push({ ri, i, x, y, rot, shear, sx, sy, b, caught, w, h, mx, my, td, sh: sheenAt(mx, my, t), ch, mir: F.mir, col: F.col, seed: F.seed,
         paper: 1 - smooth(0.1, 0.42, u), lift: 0.85 * Math.sin(Math.PI * clamp(u / 0.4)), lace: smooth(0.02, 0.2, u) * (1 - smooth(0.38, 0.8, u)),
         grow: 1 + 0.07 * smooth(0.1, 0.9, u), rise: -12 * smooth(0.15, 0.9, u) });
     }
@@ -402,9 +466,8 @@ function flagPoses(t) {
 }
 
 function place(g, P, scale = 1) {
-  g.save(); g.translate(P.x, P.y + P.rise); g.rotate(P.rot); g.scale(P.sx * P.mir * P.grow * scale, P.sy * P.grow * scale);
+  g.save(); g.translate(P.x, P.y + P.rise); g.rotate(P.rot); g.transform(1, 0, P.shear, 1, 0, 0); g.scale(P.sx * P.mir * P.grow * scale, P.sy * P.grow * scale);
 }
-const TOP = -0.035;   // the cord runs through the hem near the top edge
 
 function drawCords(g, t, poses) {
   ROWS.forEach((R, ri) => {
@@ -418,30 +481,31 @@ function drawCords(g, t, poses) {
     g.save(); g.globalCompositeOperation = 'source-over'; g.lineCap = 'round'; g.lineJoin = 'round';
     g.beginPath();
     for (let x = -30; x <= W + 30; x += 15) { const y = cordY(R, S, x, t); x < 0 ? g.moveTo(x, y) : g.lineTo(x, y); }
-    g.globalAlpha = a * (0.1 + 0.15 * burn); g.lineWidth = 8; g.strokeStyle = rgba(WARM, 1); g.stroke();
-    g.globalAlpha = a * 0.8; g.lineWidth = 2.3; g.strokeStyle = rgba(mix([205, 160, 110], WARM, burn), 1); g.stroke();
-    // twisted string: a fine broken highlight along the cord
-    g.globalAlpha = a * (0.65 + 0.3 * burn); g.lineWidth = 1.1; g.strokeStyle = 'rgb(255,238,205)'; g.setLineDash([4, 5]); g.stroke();
+    g.globalAlpha = a * (0.11 + 0.15 * burn); g.lineWidth = 10; g.strokeStyle = rgba(WARM, 1); g.stroke();
+    g.globalAlpha = a * 0.92; g.lineWidth = 4.2; g.strokeStyle = rgba(mix([238, 194, 130], WARM, burn), 1); g.stroke();
+    // twisted string: a broken highlight along the cord
+    g.globalAlpha = a * (0.7 + 0.3 * burn); g.lineWidth = 1.9; g.strokeStyle = 'rgb(255,238,205)'; g.setLineDash([6, 6]); g.stroke();
     g.restore();
   });
 }
 
 // the sheen: a broad band of warm light that sweeps across the garlands during the hold
-const SHEEN_T = 6.8, SHEEN_D = 2.8, SHEEN_ANG = 0.38;
-const sheenPos = t => lerp(-420, 1560, sineInOut((t - SHEEN_T) / SHEEN_D));
+// it rides just behind the gust front (the paper turning in the wind catches the light), tilted like the front
+const SHEEN_T = GUST_T - 0.4, SHEEN_D = 2.6, SHEEN_ANG = 0.38;
+const sheenPos = t => (-120 + GUST_V * (t - GUST_T - 0.25)) * Math.cos(SHEEN_ANG) + C * Math.sin(SHEEN_ANG);
 const sheenAt = (x, y, t) => {
   if (t < SHEEN_T || t > SHEEN_T + SHEEN_D) return 0;
   const s = x * Math.cos(SHEEN_ANG) + y * Math.sin(SHEEN_ANG);
   return Math.exp(-Math.pow((s - sheenPos(t)) / 120, 2));
 };
-const SH = HG.layer();
+const SH = HG.layer(), SHEEN_LIFT = 0.7, SHEEN_HALO = 0.6, SHEEN_PEAK = 0.3;
 function drawSheen(t) {
   if (t <= SHEEN_T || t >= SHEEN_T + SHEEN_D) return;
   const pos = sheenPos(t), dx = Math.cos(SHEEN_ANG), dy = Math.sin(SHEEN_ANG), hw = 320;
   const g = SH.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
   const gr = g.createLinearGradient(dx * (pos - hw), dy * (pos - hw), dx * (pos + hw), dy * (pos + hw));
-  gr.addColorStop(0, 'rgba(255,228,170,0)'); gr.addColorStop(0.28, 'rgba(255,228,170,0.11)'); gr.addColorStop(0.5, 'rgba(255,232,180,0.46)');
-  gr.addColorStop(0.72, 'rgba(255,228,170,0.11)'); gr.addColorStop(1, 'rgba(255,228,170,0)');
+  gr.addColorStop(0, 'rgba(255,228,170,0)'); gr.addColorStop(0.28, `rgba(255,228,170,${0.24 * SHEEN_PEAK})`); gr.addColorStop(0.5, `rgba(255,232,180,${SHEEN_PEAK})`);
+  gr.addColorStop(0.72, `rgba(255,228,170,${0.24 * SHEEN_PEAK})`); gr.addColorStop(1, 'rgba(255,228,170,0)');
   g.fillStyle = gr; g.fillRect(0, 0, W, W);
   g.globalCompositeOperation = 'destination-in'; g.drawImage(GP.cv, 0, 0);     // only where there is paper or cord
   HG.reset(g);
@@ -456,10 +520,10 @@ function drawGarlands(t, poses, A) {
   // halos: backlight bleeding round the paper and through the cuts
   h.globalCompositeOperation = 'lighter';
   for (const P of poses) {
-    const s = S[P.ri][P.i], a = (0.8 + 0.2 * P.lift) * Math.max(P.paper, P.lift) * P.b;
+    const s = S[P.ri][P.i], a = (0.8 + 0.2 * P.lift + SHEEN_HALO * P.sh + 0.6 * P.ch) * Math.max(P.paper, P.lift) * P.b;
     if (a <= 0.003) continue;
     place(h, P, 1 / SS); h.globalAlpha = Math.min(1, a);
-    h.drawImage(s.halo, -s.paper.width / 2 - s.pad, TOP * s.paper.height - s.pad); h.restore();
+    h.drawImage(s.halo, -s.paper.width / 2 - s.pad, s.top * s.paper.height - s.pad); h.restore();
   }
   // paper: opaque from the first frame it appears; brightness follows the turn
   for (const P of poses) {
@@ -467,9 +531,9 @@ function drawGarlands(t, poses, A) {
     if (P.paper <= 0.003) continue;
     place(p, P, 1 / SS);
     p.globalAlpha = P.paper; p.filter = `brightness(${P.b.toFixed(3)})`;
-    p.drawImage(s.paper, -s.paper.width / 2, TOP * s.paper.height); p.filter = 'none';
-    const lift = P.caught + P.lift;
-    if (lift > 0.01) { p.globalCompositeOperation = 'lighter'; p.globalAlpha = Math.min(1, lift) * P.paper; p.drawImage(s.paper, -s.paper.width / 2, TOP * s.paper.height); }
+    p.drawImage(s.paper, -s.paper.width / 2, s.top * s.paper.height); p.filter = 'none';
+    const lift = P.caught + P.lift + SHEEN_LIFT * P.sh;
+    if (lift > 0.01) { p.globalCompositeOperation = 'lighter'; p.globalAlpha = Math.min(1, lift) * P.paper; p.drawImage(s.paper, -s.paper.width / 2, s.top * s.paper.height); }
     p.restore();
   }
   drawCords(p, t, poses);
@@ -484,11 +548,54 @@ function drawGarlands(t, poses, A) {
     if (P.lace <= 0.003) continue;
     const s = S[P.ri][P.i];
     place(ctx, P, 1 / SS);
-    ctx.globalAlpha = P.lace; ctx.drawImage(s.laceHalo, -s.paper.width / 2 - s.pad, TOP * s.paper.height - s.pad);
-    ctx.drawImage(s.lace, -s.paper.width / 2, TOP * s.paper.height);
-    ctx.globalAlpha = 0.7 * P.lace; ctx.drawImage(s.lace, -s.paper.width / 2, TOP * s.paper.height);
+    ctx.globalAlpha = P.lace; ctx.drawImage(s.laceHalo, -s.paper.width / 2 - s.pad, s.top * s.paper.height - s.pad);
+    ctx.drawImage(s.lace, -s.paper.width / 2, s.top * s.paper.height);
+    ctx.globalAlpha = 0.7 * P.lace; ctx.drawImage(s.lace, -s.paper.width / 2, s.top * s.paper.height);
     ctx.restore();
   }
+  ctx.restore();
+}
+
+// light on the cords: a glint where the sheen band crosses each cord, then the spark that runs back along it
+function drawCordLights(t) {
+  const out = 1 - smooth(9.85, 10.25, t);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  ROWS.forEach((R, ri) => {
+    const S = rowState(R, t);
+    if (S.tau <= 0 || S.land < 0) return;
+    const rim = (x, y) => 1 - smooth(430, 510, Math.hypot(x - C, y - C));
+    // the sheen crossing the cord
+    if (t > SHEEN_T && t < SHEEN_T + SHEEN_D) {
+      const pos = sheenPos(t), ca = Math.cos(SHEEN_ANG), sa = Math.sin(SHEEN_ANG);
+      let x = (pos - cordY(R, S, C, t) * sa) / ca;
+      x = (pos - cordY(R, S, x, t) * sa) / ca;
+      const y = cordY(R, S, x, t), k = rim(x, y);
+      if (k > 0.01) { spark(GOLD, x, y, 36, 0.5 * k); glint(WARM, x, y, 58, 0.75 * k, 0.3); }
+    }
+    // the chase: a comet of light with a short tail, shedding sparkles that drift down off the cord
+    const xc = chaseX(ri, t);
+    if (xc < CH_X0 + 200 && xc > -400) {
+      if (xc < CH_X0 && xc > -160) {
+        for (let j = 12; j >= 1; j--) {
+          const xj = xc + j * 21, yj = cordY(R, S, xj, t), k = rim(xj, yj) * out;
+          spark(mix(GOLD, WARM, 0.5), xj, yj, 36 * (1 - j / 14), 0.8 * Math.pow(1 - j / 13, 1.3) * k);
+        }
+        const yc = cordY(R, S, xc, t), k = rim(xc, yc) * out;
+        softGlow(xc, yc, 90, GOLD, 0.22 * k, 0.4);
+        spark(WARM, xc, yc, 50, 0.95 * k); glint(GOLD, xc, yc, 104, 0.9 * k, 0.6 * t);
+      }
+      const Rn = rng(404 + ri * 31);
+      for (let n = 0; n < 16; n++) {
+        const xk = -30 + (n + 0.5) * 1140 / 16 + (Rn() - 0.5) * 34, life = 0.6 + 0.4 * Rn(), sz = 11 + 7 * Rn(), tw = Rn() * TAU, isStar = Rn() < 0.35;
+        const col = mix(SPEC[ri][Math.floor(Rn() * R.n)].col, GOLD, 0.3);
+        const q = (t - (CH_T + ri * CH_ROW + (CH_X0 - xk) / CH_V)) / life;
+        if (q <= 0 || q >= 1) continue;
+        const y = cordY(R, S, xk, t) + 5 + 36 * ease.out3(q), k = rim(xk, y) * out;
+        const env = Math.sin(Math.PI * Math.pow(q, 0.6)) * (0.75 + 0.25 * Math.sin(t * 9 + tw)) * k;
+        if (isStar) glint(col, xk, y, sz * 2.4, 0.85 * env, tw); else spark(col, xk, y, sz * 1.3, 0.85 * env);
+      }
+    }
+  });
   ctx.restore();
 }
 
@@ -508,7 +615,7 @@ function drawGlints(t, poses) {
     for (let k = 0; k < 18; k++) {
       const lx = (R() - 0.5) * P.w * 0.9, ly = (0.06 + R() * 0.86) * P.h, sz = 12 + R() * 20, own = R() < 0.8, life = 0.9 + R() * 0.7,
         lag = 0.08 + R() * 0.45, drift = 75 + R() * 75, sway = (R() - 0.5) * 50, tw = R() * TAU, isStar = R() < 0.3, rot = R() * 0.8;
-      const ex = lx * P.sx * P.mir, x = P.x + ex * cs - ly * sn, y = P.y + ex * sn + ly * cs;
+      const ey = ly * P.sy, ex = lx * P.sx * P.mir + P.shear * ey, x = P.x + ex * cs - ey * sn, y = P.y + ex * sn + ey * cs;
       if (k < 5) {   // sheen glints
         const b = sheenAt(x, y, t);
         if (b > 0.05) glint(mix(P.col, WARM, 0.6), x, y, (18 + sz) * (0.5 + 0.6 * b), b * 0.8 * P.paper, rot);
@@ -542,9 +649,10 @@ HG.start({
     drawBloom(t);
     drawSun(t);
     drawBurst(t);
-    HG.dust(t, { n: 60, colors: [WARM, FC.pink, FC.turq, FC.yellow], alpha: 0.3 * smooth(5.6, 7, t) * (1 - smooth(10.0, 11.0, t)), size: 7, r: 470 });
+    HG.dust(t, { n: 60, colors: [WARM, FC.pink, FC.turq, FC.yellow], alpha: 0.3 * smooth(6.0, 7.2, t) * (1 - smooth(10.0, 11.0, t)), size: 7, r: 470 });
     drawGarlands(t, poses, A);
     drawWave(t);
+    drawCordLights(t);
     drawGlints(t, poses);
   },
 });
