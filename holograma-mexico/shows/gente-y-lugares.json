@@ -22,91 +22,91 @@
       "src": "show2/pieces/01-amanecer-teotihuacan.html",
       "name": "Teotihuacan",
       "place": "Estado de México",
-      "transition": "body=sun&sx=-0.72&tint=255,165,115"
+      "transition": "body=sun&sx=-0.70&tint=255,165,115"
     },
     {
       "src": "show/pieces/13-aguila-nopal.html",
       "name": "Tenochtitlan",
       "place": "Ciudad de México",
-      "transition": "body=sun&sx=-0.58&tint=255,190,125"
+      "transition": "body=sun&sx=-0.56&tint=255,190,125"
     },
     {
       "src": "show/pieces/06-ajolote.html",
       "name": "Ajolote",
       "place": "Xochimilco, Ciudad de México",
-      "transition": "body=sun&sx=-0.31&tint=255,228,155"
+      "transition": "body=sun&sx=-0.41&tint=255,215,145"
     },
     {
       "src": "show/pieces/05-mariposas.html",
       "name": "Mariposa Monarca",
       "place": "Michoacán",
-      "transition": "body=sun&sx=-0.18&tint=255,238,175"
+      "transition": "body=sun&sx=-0.27&tint=255,228,155"
     },
     {
       "src": "show2/pieces/10-mariachi.html",
       "name": "Mariachi",
       "place": "Jalisco",
-      "transition": "body=sun&sx=-0.04&tint=255,240,180"
+      "transition": "body=sun&sx=-0.12&tint=255,238,175"
     },
     {
       "src": "show2/pieces/11-jarabe-tapatio.html",
       "name": "Jarabe Tapatío",
       "place": "Jalisco",
-      "transition": "body=sun&sx=0.09&tint=255,228,160"
+      "transition": "body=sun&sx=0.03&tint=255,240,180"
     },
     {
       "src": "show2/pieces/12-danza-de-la-pluma.html",
       "name": "Danza de la Pluma",
       "place": "Guelaguetza, Oaxaca",
-      "transition": "body=sun&sx=0.23&tint=255,205,130"
+      "transition": "body=sun&sx=0.17&tint=255,228,160"
     },
     {
       "src": "show2/pieces/09-voladores.html",
       "name": "Voladores de Papantla",
       "place": "Veracruz",
-      "transition": "body=sun&sx=0.36&tint=255,175,100"
+      "transition": "body=sun&sx=0.32&tint=255,205,130"
     },
     {
       "src": "show/pieces/04-chichen-itza.html",
       "name": "Chichén Itzá",
       "place": "Yucatán",
-      "transition": "body=sun&sx=0.50&tint=255,145,85"
+      "transition": "body=sun&sx=0.46&tint=255,175,100"
     },
     {
       "src": "show2/pieces/03-cenote.html",
       "name": "Cenote",
       "place": "Yucatán",
-      "transition": "body=sun&sx=0.63&tint=255,118,95"
+      "transition": "body=sun&sx=0.61&tint=255,145,85"
     },
     {
       "src": "show2/pieces/04-jaguar.html",
       "name": "Jaguar",
       "place": "Selva Lacandona, Chiapas",
-      "transition": "body=sun&sx=0.77&tint=255,95,125"
+      "transition": "body=sun&sx=0.75&tint=255,112,100"
     },
     {
       "src": "show2/pieces/08-taqueria.html",
       "name": "Tacos al Pastor",
       "place": "Ciudad de México",
-      "transition": "body=sun&sx=0.90&tint=215,105,240"
+      "transition": "body=sun&sx=0.90&tint=220,105,220"
     },
     {
       "src": "show2/pieces/13-cdmx-noche.html",
       "name": "Ciudad de México",
       "place": "Ángel de la Independencia · Bellas Artes",
-      "transition": "body=moon&sx=-0.72&tint=135,155,255"
+      "transition": "body=moon&sx=-0.55&tint=135,155,255"
     },
     {
       "src": "show2/pieces/14-posadas.html",
       "name": "Las Posadas",
       "place": "Navidad mexicana",
-      "transition": "body=moon&sx=-0.4&tint=145,165,255"
+      "transition": "body=moon&sx=0.0&tint=150,160,255"
     },
     {
       "src": "show/pieces/12-finale.html",
       "name": "¡Viva México!",
       "place": "",
-      "transition": "body=moon&sx=0.35&tint=175,145,255"
+      "transition": "body=moon&sx=0.5&tint=175,145,255"
     }
   ]
 }
