@@ -70,7 +70,7 @@ const vis = (r, half) => 1 - smooth(412, 490, r + 0.5 * half);
 // them except a faint deep-orange sheen (and a gold one only as the ring of light passes).
 // The extra light lives in a halo cut to the outside of the silhouette.
 const AX = 517 / 1024, BY = 500 / 1024;
-const HUES = [-2, 0, 2, 4, 6];             // per-monarch hue jitter (degrees), so the swarm is not cloned
+const HUES = [-5, -3, -1, 1, 3];             // per-monarch hue jitter (degrees), so the swarm is not cloned
 const HALO = [255, 138, 24];                 // halo colour: deep marigold, so the aura never reads yellow
 let SN = null, SF = null, SH = null, PTS = null;
 const cnv = n => { const c = document.createElement('canvas'); c.width = c.height = n; return c; };
@@ -157,7 +157,9 @@ function drawMonarch(c, S, x, y, rot, k, wl, wr, aBody, aSheen, aHalo, aGold = 0
 
 // where the crosser enters (lower left): close enough in that it is already inside the
 // portal's opening disc (r < ~150) by 0.5-0.7 s, when the transition reveals the centre
-const XK0 = { t: 0.1, x: C + 320 * Math.cos(2.55), y: C + 320 * Math.sin(2.55) };
+// It now rises from low in the frame (y~920 at 0.3-0.8 s), where the 'horizonte' transition
+// uncovers the picture first.
+const XK0 = { t: 0.3, x: C + 400 * Math.cos(1.86), y: C + 400 * Math.sin(1.86) };
 
 // ---------- the swarm. Orbit slots lie along the three arms; a relaxation pass keeps a
 // minimum spacing, and the vortex turns rigidly so the arms hold their shape.
@@ -220,7 +222,7 @@ const BF = (() => {
   // arrival order: roughly inner slots first, so the vortex fills from its heart outward
   const rest = L.filter(b => !b.cross).map(b => ({ b, key: b.rO / 420 + 0.35 * Q() })).sort((a, b) => a.key - b.key);
   // the first six are picked from the inner slots so that they come in from all round the circle
-  const early = [], angAt = b => b.thO + ROT(1.1) - b.dth * 0.4, xa = Math.atan2(XK0.y - C, XK0.x - C);
+  const early = [], angAt = b => b.thO + ROT(1.1) - b.dth * 0.4, xa = 2.55;
   for (let n = 0; n < 6; n++) {
     let pick = -1, bestSep = -1;
     for (let j = 0; j < Math.min(16, rest.length); j++) {
@@ -261,8 +263,8 @@ const XK = (() => {
   const X = BF.find(b => b.cross), t2 = 3.1;
   const q = orbitPath(X, t2), q0 = orbitPath(X, t2 - 0.02), q1 = orbitPath(X, t2 + 0.02);
   const k0 = { t: XK0.t, x: XK0.x, y: XK0.y };
-  const k1 = { t: 0.8, x: 552, y: 512, vx: 210, vy: -165 };
-  k0.vx = (k1.x - k0.x) / (k1.t - k0.t) * 1.05; k0.vy = (k1.y - k0.y) / (k1.t - k0.t) * 1.05;
+  const k1 = { t: 1.55, x: 552, y: 512, vx: 190, vy: -150 };
+  k0.vx = (k1.x - k0.x) / (k1.t - k0.t) * 0.7; k0.vy = (k1.y - k0.y) / (k1.t - k0.t) * 0.7;
   const k2 = { t: t2, x: q.x, y: q.y, vx: (q1.x - q0.x) / 0.04, vy: (q1.y - q0.y) / 0.04 };
   return [k0, k1, k2];
 })();
@@ -274,7 +276,7 @@ function path(b, t) {
   const y = h00 * A.y + h10 * h * A.vy + h01 * B.y + h11 * h * B.vy;
   return { x, y, r: Math.hypot(x - C, y - C), s: lerp(1.22, 1, smooth(1.0, XK[2].t, t)) };
 }
-const arrA = (b, t) => b.cross ? smooth(0.1, 0.42, t) : smooth(b.d, b.d + 0.45, t);
+const arrA = (b, t) => b.cross ? smooth(0.2, 0.55, t) : smooth(b.d, b.d + 0.45, t);
 const bodyFade = (b, t) => 1 - smooth(b.td, b.td + 0.5, t);
 
 // wing angle: flapping with glides; beats quicken at take-off. During the gathered vortex a
@@ -293,7 +295,7 @@ function wing(b, t, p) {
   const glide = smooth(-0.2, 0.7, Math.sin(TAU * b.gf * t + b.gq)) * (1 - smooth(b.e - 0.3, b.e + 0.2, t));
   const amp = lerp(1, 0.18, glide), pulse = beam(p, t);
   const al = lerp(b.fo + b.fa * amp * Math.sin(ph + 0.35 * Math.sin(ph)), -0.12, 0.8 * pulse);
-  return { al, ph, lift: 1 + 1.4 * pulse, pulse };
+  return { al, ph, lift: 1 + 0.6 * pulse, pulse };
 }
 function pose(b, t) {
   const p = path(b, t), p0 = path(b, t - 0.04), p1 = path(b, t + 0.04), p2 = path(b, t + 0.14);
@@ -316,7 +318,7 @@ function drawBF(c, b, t) {
   if (light <= 0.004) return;
   const S = (b.near ? SN : SF)[b.hv];
   drawMonarch(c, S, q.x, q.y, q.rot, q.k, q.wl, q.wr, light,
-    0.2 * light * (1 + 0.3 * (q.lift - 1)), (b.near ? 1.0 : 0.9) * light * q.lift * (1 + 0.6 * fl), (0.6 * fl + 0.1 * q.pulse) * light);
+    0.2 * light * (1 + 0.3 * (q.lift - 1)), (b.near ? 1.0 : 0.9) * light * q.lift * (1 + 0.6 * fl), 0.6 * fl * light);
 }
 
 // ---------- luminous wakes: gold at the head, marigold behind, only on a third of the far layer.
@@ -557,6 +559,19 @@ function dissolve(t) {
   ctx.restore();
 }
 
+// keep the title band calm: while the title is up (~2.2 s to ~9.8 s) everything below
+// y~780 is dimmed (soft ramp over y 780-880), so no bright subject or ring sweeps behind it
+function calmBand(t) {
+  const k = 0.58 * HG.window(t, 1.5, 10.4, 0.8, 0.7);
+  if (k <= 0.004) return;
+  HG.reset(ctx); ctx.globalCompositeOperation = 'multiply';
+  const g = ctx.createLinearGradient(0, 780, 0, 880);
+  const v = Math.round(255 * (1 - k));
+  g.addColorStop(0, 'rgb(255,255,255)'); g.addColorStop(0.5, `rgb(${Math.round(255 * (1 - 0.6 * k))},${Math.round(255 * (1 - 0.6 * k))},${Math.round(255 * (1 - 0.6 * k))})`);
+  g.addColorStop(1, `rgb(${v},${v},${v})`);
+  ctx.fillStyle = g; ctx.fillRect(0, 780, W, W - 780);
+  HG.reset(ctx);
+}
 const FL = HG.layer();
 HG.start({
   duration: 12,
@@ -576,6 +591,7 @@ HG.start({
     for (const b of BF) if (b.near) drawBF(ctx, b, t);
     hero(t);
     dissolve(t);
+    calmBand(t);
   },
 });
 </script></body></html>

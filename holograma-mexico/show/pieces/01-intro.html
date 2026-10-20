@@ -277,8 +277,8 @@ function drawSun(t) {
   const strength = 1 - fold;
   if (strength <= 0.003) return;
   const grow = ease.out3(bt / 0.7);
-  const rot = spin(TB) + 0.55 * (1 - Math.exp(-1.8 * bt)) + 0.035 * bt;
-  const r0 = ringR + 12, len = 285 * grow * (1 - 0.45 * fold);
+  const rot = spin(TB) + 0.55 * (1 - Math.exp(-1.8 * bt)) + 0.035 * bt + 0.16 * intSmooth(0.5, 1.0, bt);   // keeps turning through the hold
+  const r0 = ringR + 12, len = 285 * grow * (1 - 0.45 * fold) * (1 + 0.05 * smooth(0.6, 1.0, bt) * Math.sin(4.2 * bt));   // the sun breathes
   if (len < 3) return;
   const g = RAYS.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
   g.globalCompositeOperation = 'lighter'; g.translate(C, C);
@@ -302,7 +302,7 @@ function drawSun(t) {
   // the chase made visible: a spark rides out to the tip of each ray as the highlight passes
   for (let i = 0; i < N; i++) {
     const hl = Math.pow(0.5 + 0.5 * Math.cos(2 * i * TAU / N - 3.4 * bt), 4), an = rot + i * TAU / N, rr = r0 + len * 0.72;
-    spark(mix(GOLD, TRI[i % 3], 0.4), C + Math.cos(an) * rr, C + Math.sin(an) * rr, 22, 0.75 * hl * strength * smooth(0.4, 0.8, bt));
+    spark(mix(GOLD, TRI[i % 3], 0.4), C + Math.cos(an) * rr, C + Math.sin(an) * rr, 30, 0.95 * hl * strength * smooth(0.4, 0.8, bt));
   }
 }
 // burst sparks: thrown outward from just outside the heart, still carrying the vortex's spin
@@ -374,9 +374,9 @@ const DESIGNS = {
 // cy: lowest point of the cord at rest, sag: dip below its chord, tilt: right end lower (+) or higher (-)
 // drop: when the row starts falling from above the circle, T: fall time, D: fall distance
 const ROWS = [
-  { cy: 251, sag: 116, tilt: -16, n: 4, spacing: 180, drop: 4.95 + HOLD, T: 1.05, D: 446, ph: 0.0, designs: 'ACBD', cols: ['pink', 'turq', 'orange', 'purple'] },
-  { cy: 463, sag: 126, tilt: 14, n: 5, spacing: 172, drop: 4.62 + HOLD, T: 1.25, D: 658, ph: 1.9, designs: 'BDACA', cols: ['yellow', 'green', 'pink', 'turq', 'orange'] },
-  { cy: 669, sag: 110, tilt: -12, n: 4, spacing: 176, drop: 4.3 + HOLD, T: 1.45, D: 864, ph: 3.7, designs: 'DBAC', cols: ['purple', 'orange', 'yellow', 'green'] },
+  { cy: 237, sag: 116, tilt: -16, n: 4, spacing: 180, drop: 4.95 + HOLD, T: 1.05, D: 446, ph: 0.0, designs: 'ACBD', cols: ['pink', 'turq', 'orange', 'purple'] },
+  { cy: 449, sag: 126, tilt: 14, n: 5, spacing: 172, drop: 4.62 + HOLD, T: 1.25, D: 658, ph: 1.9, designs: 'BDACA', cols: ['yellow', 'green', 'pink', 'turq', 'orange'] },
+  { cy: 655, sag: 110, tilt: -12, n: 4, spacing: 176, drop: 4.3 + HOLD, T: 1.45, D: 864, ph: 3.7, designs: 'DBAC', cols: ['purple', 'orange', 'yellow', 'green'] },
 ];
 ROWS.forEach((R, ri) => { R.ri = ri; });
 const HW = 600, BASEW = 158, SS = 1.4;

@@ -390,7 +390,7 @@ function water(t, amb) {
     const EMIT = 0.42, now = Math.floor(t / EMIT);
     for (let j = now - 22; j <= now; j++) {
       const age = t - j * EMIT; if (age < 0) continue;
-      const h = hash(j, 77), y = 960 - age * (95 + 25 * h);
+      const h = hash(j, 77), y = 785 - age * (95 + 25 * h);  // born above the title band
       if (y < 80) continue;
       const x = 760 - age * 7 + (4 + age * 3.5) * Math.sin(age * 3.1 + h * 6);
       bubble(c, x, y, 8 + 5 * h + age * 0.8, 0.5 * smooth(0, 0.5, age), t, h * 9);
@@ -494,10 +494,12 @@ function trio(t) {
 }
 // one rises behind the axolotl (so its rim never turns white over the skin), one passes in front
 function bigBubbles(t, front) {
-  for (const [t0, dur, x0, x1, size, a, ph, fr] of [[4.1, 5.4, 716, 650, 128, 0.9, 0.7, false], [5.8, 4.8, 222, 186, 104, 0.9, 2.9, true]]) {
+  // [t0, dur, x0, x1, y0, size, alpha, phase, front]; the back bubble is born above the title band (y<800) and swells in
+  for (const [t0, dur, x0, x1, y0, size, a, ph, fr] of [[4.6, 4.0, 706, 650, 740, 128, 0.9, 0.7, false], [5.8, 4.8, 222, 186, 990, 104, 0.9, 2.9, true]]) {
     const k = (t - t0) / dur; if (fr !== front || k <= 0 || k >= 1) continue;
-    const x = lerp(x0, x1, k) + 14 * Math.sin(t * 0.9 + ph), y = lerp(990, 130, k);
-    bubble(ctx, x, y, size, a * smooth(0, 0.1, k), t, ph, BIG);
+    const x = lerp(x0, x1, k) + 14 * Math.sin(t * 0.9 + ph), y = lerp(y0, 130, k);
+    const grow = y0 < 900 ? 0.55 + 0.45 * ease.out3(Math.min(1, k / 0.18)) : 1;
+    bubble(ctx, x, y, size * grow, a * smooth(0, y0 < 900 ? 0.16 : 0.1, k), t, ph, BIG);
   }
 }
 

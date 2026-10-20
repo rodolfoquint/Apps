@@ -184,7 +184,8 @@ function brushSectors(g, sw0, sw1, rot, R, blur) {
     const a0 = rot + k * Q + sw0 * Q, a1 = rot + k * Q + sw1 * Q;
     g.moveTo(C, C);
     for (let j = 1; j <= N; j++) { const u = j / N, r = R * u, a = a0 - CURL * u * u; g.lineTo(C + Math.cos(a) * r, C + Math.sin(a) * r); }
-    for (let j = N; j >= 1; j--) { const u = j / N, r = R * u, a = a1 - CURL * u * u; g.lineTo(C + Math.cos(a) * r, C + Math.sin(a) * r); }
+    g.arc(C, C, R, a0 - CURL, a1 - CURL);           // outer boundary on the circle, so the tile corners get painted too
+    for (let j = N - 1; j >= 1; j--) { const u = j / N, r = R * u, a = a1 - CURL * u * u; g.lineTo(C + Math.cos(a) * r, C + Math.sin(a) * r); }
     g.closePath();
   }
   g.fillStyle = '#000'; g.filter = `blur(${blur}px)`; g.fill(); g.filter = 'none';
@@ -318,11 +319,11 @@ HG.start({
     const seedOn = round < 0.999 && melt <= 0.001;
     const gIn = ease.out3((t - 0.15) / 1.0);                                // the bare glaze pools out from the centre
     const sw = ease.inOut3((t - 0.75) / 1.4);                              // the brushes
-    const gOut = smooth(9.7, 10.15, t);                                     // the glaze dissolves, the painting stays
+    const gOut = smooth(9.62, 10.25, t);                                     // the glaze dissolves, the painting stays
     if (seedOn && gIn > 0 && end < 0.999) {
       const s = S.ctx; HG.reset(s); s.clearRect(0, 0, HG.W, HG.W);
       if (sw < 0.999) {
-        const Sg = S1 * lerp(0.94, 1, gIn), R = S1 * 0.78;
+        const Sg = S1 * lerp(0.94, 1, gIn), R = S1 * 0.84;
         // painted part
         brushSectors(P.ctx, 0, sw, rc + Math.PI / 4, R, 16);
         if (sw > 0.0005) {
@@ -344,14 +345,31 @@ HG.start({
           HG.reset(pc);
           s.globalCompositeOperation = 'lighter'; s.globalAlpha = 0.55 * wet; s.drawImage(P.cv, 0, 0); HG.reset(s);
         }
+        // hand over to the plain tile over the last frames of the sweep, so the branch switch is seamless
+        const fin = smooth(0.95, 0.999, sw);
+        if (fin > 0.001) {
+          s.save(); s.globalCompositeOperation = 'destination-out'; s.globalAlpha = fin; s.fillStyle = '#000'; s.fillRect(0, 0, HG.W, HG.W); s.restore();
+          s.globalCompositeOperation = 'lighter'; tile(s, W8.tile, Sg, rc, { round, alpha: fin }); HG.reset(s);
+        }
       } else if (gOut < 0.001) {
         tile(s, W8.tile, S1, rc, { round });
       } else {
-        // linear crossfade (in premultiplied light) from the glazed tile to the painting alone
-        tile(s, W8.tile, S1, rc, { round, alpha: 1 - gOut });
-        s.globalCompositeOperation = 'lighter';
-        tile(s, A.ink, S1, rc, { round, alpha: gOut });
+        // the glaze dissolves from the centre outwards and the painting stays (never a uniform grey tile)
+        const DW = S1 * 0.22, rd = gOut * (S1 * 0.72 + DW / 2 + 6);
+        tile(s, W8.tile, S1, rc, { round });
+        hole(s, rd, DW);
+        s.globalCompositeOperation = 'destination-over';
+        tile(s, A.ink, S1, rc, { round });
         HG.reset(s);
+        const ringA = 0.35 * Math.sin(Math.PI * gOut) * (1 - smooth(0.3 * S1, 0.48 * S1, rd));
+        arcGlow(s, Math.max(1, rd - DW * 0.25), 0, TAU, GLAZE, { width: 4, blur: 9, alpha: ringA });
+      }
+      // the bare glaze is lit warm from within (ivory heart, amber edge) so it reads as glossy tin glaze, not a card
+      const wv = 1 - smooth(1.0, 2.3, t);
+      if (wv > 0.003) {
+        const R2 = S1 * 0.72, wgr = s.createRadialGradient(C - 0.12 * S1, C - 0.16 * S1, 0, C, C, R2);
+        wgr.addColorStop(0, 'rgba(255,248,222,0.30)'); wgr.addColorStop(0.45, 'rgba(255,232,180,0.16)'); wgr.addColorStop(1, 'rgba(245,190,110,0.22)');
+        s.save(); s.globalCompositeOperation = 'source-atop'; s.globalAlpha = wv; s.fillStyle = wgr; s.fillRect(0, 0, HG.W, HG.W); s.restore();
       }
       // the blank glaze is held a little below full so the bare tile is never the brightest thing in the piece
       const lit = lerp(0.86, 1, smooth(0.5, 2.0, t));
@@ -440,7 +458,9 @@ HG.start({
       const a = Math.sin(Math.PI * u), s = size * Math.sin(Math.PI * Math.pow(u, 0.7));
       for (let i = 0; i < n; i++) {
         const th = (i + off) * TAU / n + (wh === 'ring' ? rr : wh === 'band' ? brot : rc);
-        star(ctx, C + Math.cos(th) * r * Z, C + Math.sin(th) * r * Z, s * 0.8, a * 0.9, u * 0.6, GLAZE, 0.125);
+        const sx = C + Math.cos(th) * r * Z, sy = C + Math.sin(th) * r * Z;
+        const keep = 1 - smooth(745, 795, sy);                       // nothing bright behind the title band
+        star(ctx, sx, sy, s * 0.8, a * 0.9 * keep, u * 0.6, GLAZE, 0.125);
       }
     }
   },

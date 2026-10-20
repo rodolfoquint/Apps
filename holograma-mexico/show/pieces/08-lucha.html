@@ -227,6 +227,10 @@ function drawMotes(t) {
 }
 
 // ---------- camera flashes in the dark stands (never on the mask); a crowd wave runs once around the arena
+const WAVE_A0 = Math.PI * 5 / 6, WAVE_SPAN = Math.PI * 4 / 3, WAVE_DUR = 0.95;
+// the title band (lower part of the circle) stays calm while the title is up
+const titleOn = t => bump(t, 1.9, 2.3, 9.7, 10.1);
+const bandFade = (t, y, y0 = 760, y1 = 840) => 1 - titleOn(t) * smooth(y0, y1, y);
 const outsideMask = (x, y) => ((x - MX) / 300) ** 2 + ((y - MY) / 448) ** 2 > 1;
 const FLASHES = (() => {
   const R = HG.rng(808), out = [];
@@ -236,12 +240,13 @@ const FLASHES = (() => {
     const f = { t, x, y, s: 16 + R() * 16, rot: (R() - 0.5) * 0.5, a: a * (0.6 + 0.4 * R()) }; out.push(f);
     if (R() < 0.25) out.push({ ...f, t: t + 0.13, a: f.a * 0.7 }); } };
   add(T_LAND + 0.03, T_LAND + 0.8, 14); add(2.0, 3.3, 4, 0.7); add(5.4, 6.8, 5, 0.75); add(T_CONF + 0.05, T_CONF + 0.9, 10); add(7.9, 8.6, 3, 0.7);
-  // the wave: starts at the left, runs clockwise over the top and round (1.25 s per lap), two rows deep
-  for (let i = 0; i < 84; i++) {
-    const k = i / 84, a = Math.PI + TAU * k + (R() - 0.5) * 0.09;
+  // the wave: starts low on the left (8 o'clock), runs clockwise over the top and down to 4 o'clock,
+  // two rows deep; it never runs along the bottom arc, where the title sits
+  for (let i = 0; i < 60; i++) {
+    const k = i / 60, a = WAVE_A0 + WAVE_SPAN * k + (R() - 0.5) * 0.09;
     for (let tries = 0; tries < 20; tries++) {
       const r = 395 + R() * 120, x = C + Math.cos(a) * r, y = C + Math.sin(a) * r;
-      if (outsideMask(x, y) && r < 515) { out.push({ t: T_WAVE + 1.25 * k + (R() - 0.5) * 0.06, x, y, s: 22 + R() * 18, rot: (R() - 0.5) * 0.5, a: 0.8 + 0.2 * R() }); break; }
+      if (outsideMask(x, y) && r < 515) { out.push({ t: T_WAVE + WAVE_DUR * k + (R() - 0.5) * 0.06, x, y, s: 22 + R() * 18, rot: (R() - 0.5) * 0.5, a: 0.8 + 0.2 * R() }); break; }
     }
   }
   return out;
@@ -249,14 +254,15 @@ const FLASHES = (() => {
 function drawFlashes(t) {
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   // the crowd wave's front: a soft cool glow running round the stands
-  const wk = (t - T_WAVE) / 1.25, we = bump(wk, -0.04, 0.06, 0.9, 1.04);
+  const wk = (t - T_WAVE) / WAVE_DUR, we = bump(wk, -0.06, 0.08, 0.86, 1.02);
   if (we > 0.003) for (let j = 0; j < 4; j++) {
-    const a = Math.PI + TAU * (wk - j * 0.025), r = 462;
-    HG.dot(ctx, COOL, C + Math.cos(a) * r, C + Math.sin(a) * r, 230, 0.07 * we * (1 - j / 4));
+    const a = WAVE_A0 + WAVE_SPAN * (wk - j * 0.035), r = 462, x = C + Math.cos(a) * r, y = C + Math.sin(a) * r;
+    HG.dot(ctx, COOL, x, y, 230, 0.07 * we * (1 - j / 4) * bandFade(t, y, 600, 760));
   }
   for (const f of FLASHES) {
     const dt = t - f.t; if (dt < 0 || dt > 0.8) continue;
-    const e = f.a * (dt < 0.035 ? dt / 0.035 : Math.exp(-(dt - 0.035) / 0.12));
+    const e = f.a * (dt < 0.035 ? dt / 0.035 : Math.exp(-(dt - 0.035) / 0.12)) * bandFade(t, f.y);
+    if (e < 0.003) continue;
     HG.dot(ctx, COOL, f.x, f.y, f.s * 3.4, e * 0.18);
     HG.dot(ctx, COOL, f.x, f.y, f.s, e * 0.8);
     const sz = f.s * (4.2 + 1.2 * e);
@@ -529,7 +535,10 @@ function drawConfetti(t, front) {
     const x = p.x0 + (p.vx * e + p.sw * Math.sin(p.swf * dt + p.ph) * smooth(0.25, 1.2, dt)) * par;
     const y = p.y0 + ((p.vy - p.vt) * e + p.vt * dt) * par;
     if (Math.hypot(x - C, y - C) > 600) continue;
-    const g = (front ? CF : p.z < 0.85 ? CFAR : CB).ctx, grow = ease.out3(dt / 0.1), sc = p.z * grow;
+    const bf = bandFade(t, y, front ? 640 : 680, front ? 760 : 790);       // pieces fade and shrink as they sink into the title band
+    if (bf < 0.01) continue;
+    const g = (front ? CF : p.z < 0.85 ? CFAR : CB).ctx, grow = ease.out3(dt / 0.1), sc = p.z * grow * (0.55 + 0.45 * bf);
+    g.globalAlpha = bf;
     const f = p.f0 + p.wf * dt;
     g.setTransform(1, 0, 0, 1, x, y); g.rotate(p.r0 + p.wr * dt);
     if (p.type === 'ribbon') {
@@ -556,7 +565,7 @@ function drawConfetti(t, front) {
       g.fillStyle = `rgb(${r},${gg},${b})`;
       g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
       const sp = Math.pow(Math.abs(Math.cos(f - LIGHT)), p.gold ? 40 : 70);
-      if (sp > 0.25) glints.push([x, y, p.z, sp * (p.gold ? 1 : 0.55)]);
+      if (sp > 0.25) glints.push([x, y, p.z, sp * (p.gold ? 1 : 0.55) * bf * bf]);
     }
   }
   HG.reset(ctx);
@@ -601,10 +610,12 @@ function drawIris(t) {
   const wk = t - 9.66, we = wk < 0 ? 0 : wk < 0.06 ? wk / 0.06 : Math.exp(-(wk - 0.06) / 0.16);
   if (we > 0.005) { const [x, y] = xf(700, 382, pose(t)); star(STAR_H, x, y, 220 * (0.7 + 0.3 * we), 0.95 * we, 0.62 + 0.8 * wk); }
   // the point it closes to: a warm star that winks out where the next portal opens
+  // after the wink-out flare a small ember of it stays alive and fades slowly, bridging into the portal
   const d = t - (T_SHUT - 0.06), e = d < 0 ? 0 : d < 0.06 ? d / 0.06 : Math.exp(-(d - 0.06) / 0.11) * (1 - smooth(0.32, 0.42, d));
-  if (e > 0.004) {
-    HG.reset(ctx); glow(C, C, 150, AMBER, 0.5 * e);
-    star(STAR_H, C, C, 250 * (0.6 + 0.4 * e), 0.9 * e, 0.4 + 1.2 * d);
+  const em = 0.32 * smooth(0.04, 0.12, d) * (1 - smooth(0.18, 0.6, d));
+  if (e > 0.004 || em > 0.004) {
+    HG.reset(ctx); glow(C, C, 150, AMBER, 0.5 * e + 0.35 * em);
+    star(STAR_H, C, C, 250 * (0.6 + 0.4 * Math.max(e, em)), 0.9 * Math.max(e, em), 0.4 + 1.2 * d);
   }
   HG.reset(ctx);
 }
@@ -614,7 +625,7 @@ HG.start({
   assets: { mask: '../assets/08-lucha_grade.png', glint: '../assets/08-lucha_glint2.png', lift: '../assets/08-lucha_glint.png', solid: '../assets/08-lucha_solid.png',
     holes: '../assets/08-lucha_holes.png', rim: '../assets/08-lucha_rim.png' },
   render(t, A) {
-    if (t >= T_SHUT + 0.45) return;                                  // dissolved to black
+    if (t >= T_SHUT + 0.6) return;                                  // dissolved to black
     if (t < T_SHUT) {
       drawBeams(t);
       drawMotes(t);

@@ -72,8 +72,11 @@ const tWipe = (x, y) => WIPE0 + (WIPE1 - WIPE0) * (qOf(x, y) - Q0) / (Q1 - Q0);
 // ---------- places: pin, hero window in open sea/sky, parked window at the rim
 const ORDER = ['cabos', 'cobre', 'monarca', 'cdmx', 'palenque', 'chichen'];
 const TPIN = [2.4, 3.8, 5.05, 6.3, 7.55, 8.8];            // a longer first beat, then 1.25 s per place
-const HERO = { cabos: [300, 742], cobre: [585, 252], monarca: [445, 822], cdmx: [795, 452], palenque: [570, 870], chichen: [812, 428] };
-const PARK = { cabos: [178, 566], cobre: [392, 180], monarca: [385, 900], cdmx: [738, 598], palenque: [772, 872], chichen: [905, 452] };
+// heroes alternate between three open spots (Pacific west of Cabo, the sky above the north,
+// the Gulf) so the lower band, where the title sits, stays calm; every window stays above y≈780
+const HERO = { cabos: [215, 655], cobre: [585, 252], monarca: [795, 405], cdmx: [585, 252], palenque: [795, 405], chichen: [640, 255] };
+const PARK = { cabos: [178, 566], cobre: [392, 180], monarca: [430, 735], cdmx: [738, 598], palenque: [850, 560], chichen: [905, 452] };
+const LIFT = 40;                                           // the whole map sits a little high, clear of the title
 const RH = 116, RP = 54, SETTLE = 0.55;
 const NP = ORDER.length;
 const PL = ORDER.map((k, i) => {
@@ -228,7 +231,7 @@ HG.start({
   assets: Object.fromEntries(ORDER.map(k => [k, `../assets/02-mapa-${k}.png`])),
   render(t, A) {
     const z = 1 + 0.03 * sine(t / END);                 // slow push-in
-    ctx.setTransform(z, 0, 0, z, C - C * z, C - C * z - 10 * sine(t / END));
+    ctx.setTransform(z, 0, 0, z, C - C * z, C - C * z - 10 * sine(t / END) - LIFT);
     add(ctx);                                            // everything is light: additive by default
     const swell = gauss(t - SWELL, 0.32);               // gold swell after the last run
     const fillR = FILLV * (t - FILL0);
@@ -292,7 +295,7 @@ HG.start({
       for (const d of DOTS) {
         const on = smooth(d.ta - 0.02, d.ta + 0.16, t);
         if (on <= 0) continue;
-        let a = on * (0.5 + 0.08 * Math.sin(d.x * 0.011 + d.y * 0.017 - t * 1.5 + d.ph * 0.3));
+        let a = on * (0.57 + 0.08 * Math.sin(d.x * 0.011 + d.y * 0.017 - t * 1.5 + d.ph * 0.3));
         a += 0.18 * wvOn * gauss(d.q - qw, 120);
         for (const q of lit) { const dd = (d.x - q.x) ** 2 + (d.y - q.y) ** 2; if (dd < 16000) a += 0.32 * q.w * Math.exp(-dd / 4500); }
         const gk = Math.min(1, gOn * gauss(d.q - gq, 170) + 0.75 * swell);                  // how gold this point is
