@@ -544,11 +544,11 @@ HG.start({
     // ---------- midday sun: a faint warm halo behind the crown while the tree grows; when the crown flower opens
     // it swells (about 70/255 around the crown, settling to about 45) and the Metepec sun blooms behind the crown
     const sunOut = 1 - smooth(T_END, 9.9, t);
-    const halo = (0.06 * smooth(3.0, 5.2, t) + 0.16 * smooth(T_CROWN, T_CROWN + 0.45, t) + 0.1 * bump(t, T_CROWN, T_CROWN + 0.45, T_CROWN + 0.7, T_CROWN + 2.2)) * sunOut;
+    const halo = (0.07 * smooth(3.0, 5.2, t) + 0.23 * smooth(T_CROWN, T_CROWN + 0.45, t) + 0.12 * bump(t, T_CROWN, T_CROWN + 0.45, T_CROWN + 0.7, T_CROWN + 2.2)) * sunOut;
     if (halo > 0.002) {
       const hg = ctx.createRadialGradient(SUN_X, SUN_Y, 0, SUN_X, SUN_Y, 350);
-      hg.addColorStop(0, rgba(SUN, halo)); hg.addColorStop(0.22, rgba(SUN, halo * 0.85)); hg.addColorStop(0.5, rgba(SUN, halo * 0.36));
-      hg.addColorStop(0.8, rgba(SUN, halo * 0.08)); hg.addColorStop(1, rgba(SUN, 0));
+      hg.addColorStop(0, rgba(SUN, halo)); hg.addColorStop(0.3, rgba(SUN, halo * 0.78)); hg.addColorStop(0.55, rgba(SUN, halo * 0.42));
+      hg.addColorStop(0.8, rgba(SUN, halo * 0.12)); hg.addColorStop(1, rgba(SUN, 0));
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = hg; ctx.fillRect(SUN_X - 350, SUN_Y - 350, 700, 700); ctx.restore();
     }
     {

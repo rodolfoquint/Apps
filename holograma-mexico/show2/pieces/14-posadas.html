@@ -46,8 +46,8 @@ const travel = t => {                                // distance walked by time 
   return a * h / 3;
 };
 // the road, from the hill top down to the plaza and across it to the door (Catmull-Rom, tabulated by arc length)
-const JP = [[30, 420, 1800], [-60, 320, 1480], [40, 220, 1180], [-60, 130, 900], [-110, 60, 640], [-200, 10, 430],
-  [-330, 0, 250], [-320, 0, 60], [-180, 0, -70], [10, 0, -60], [170, 0, 20], [300, 0, 30], [R + 20, 0, 0], [560, 0, -40], [800, 0, -80]];
+const JP = [[40, 430, 1900], [-70, 330, 1560], [50, 230, 1250], [-70, 140, 960], [10, 60, 680], [-60, 8, 430],
+  [-170, 0, 240], [-200, 0, 60], [-90, 0, -60], [90, 0, -50], [240, 0, 20], [R + 20, 0, 0], [560, 0, -40], [800, 0, -80]];
 const PATH = (() => {
   const pts = []; let len = 0, prev = null;
   for (let i = 0; i < JP.length - 1; i++) {
@@ -62,7 +62,7 @@ const PATH = (() => {
   return pts;
 })();
 const arcNear = (x, z) => { let best = 0, bd = 1e9; for (const p of PATH) { const d = Math.hypot(p[0] - x, p[2] - z); if (d < bd) { bd = d; best = p[3]; } } return best; };
-const A_DOOR = arcNear(R + 20, 0), A_FOOT = arcNear(-200, 430);
+const A_DOOR = arcNear(R + 20, 0), A_FOOT = arcNear(-60, 430);
 function pathAt(a) {                                 // point and unit tangent at arc length a
   const p = PATH; let lo = 0, hi = p.length - 1;
   a = clamp(a, 0, p[hi][3] - 0.01);
@@ -109,7 +109,7 @@ const RANK = (() => {
 
 // farolitos: small paper-bag lights on both edges of the road, from the plaza up the hill
 const FAROL = (() => {
-  const out = [], a0 = A_FOOT + 160, step = 78, R_ = HG.rng(23);
+  const out = [], a0 = A_FOOT + 60, step = 78, R_ = HG.rng(23);
   for (let i = 0; a0 - i * step > 90; i++) {
     for (const side of [-1, 1]) {
       const a = a0 - i * step + (R_() - 0.5) * 34, [q, tx, tz] = pathAt(a), w = 108 + (R_() - 0.5) * 22;
