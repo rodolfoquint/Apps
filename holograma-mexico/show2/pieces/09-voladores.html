@@ -311,8 +311,11 @@ function trails(t, cm, flyers, fade, unwind) {
     }
     return pts;
   });
-  for (const g of [gB, gF, oB, oF]) { g.lineCap = 'butt'; g.globalCompositeOperation = 'lighter'; }
-  for (const g of [xB, xF]) { g.lineCap = 'round'; g.lineJoin = 'round'; }
+  for (const g of [gB, gF, oB, oF, xB, xF]) { g.lineCap = 'butt'; g.globalCompositeOperation = 'lighter'; }
+  // the newest TZ seconds of each ribbon taper continuously to a point: drawn as one polygon per stripe
+  const JZ = Math.min(M, Math.round(0.15 / DT)), TZ = JZ * DT;
+  const flashIn = smooth(9.68, 10.0, t);                     // the running light fades in, never pops
+  const k0At = (p, front) => smooth(unwind - 0.05, unwind + 0.35, t - p.age) * (front ? 1 : 0.6) * fade * lerp(0.15, 1, smooth(0, TZ, p.aH));
   // oldest first so the bright heads lie on top
   for (let j = M - 1; j >= 0; j--) {
     for (let i = 0; i < paths.length; i++) {
@@ -321,20 +324,19 @@ function trails(t, cm, flyers, fade, unwind) {
       const uw = smooth(unwind - 0.05, unwind + 0.35, sMid);
       if (uw <= 0.003) continue;
       const front = a.sd + b.sd > 0, g = front ? gF : gB, o = front ? oF : oB, x = front ? xF : xB;
-      const taper = smooth(0, 0.15, aH);                       // the newest end tapers to a point
+      const taper = smooth(0, TZ, aH);                         // the newest end tapers to a point
       const k0 = uw * (front ? 1 : 0.6) * fade * lerp(0.15, 1, taper);
       const flash = 2 * (1 - uw) * uw;                         // the light running down at the end
       const wS = 1 - smooth(0.9, 1.9, age);                    // striped ribbon -> single soft band
       const old = 1 - 0.94 * smooth(2.0, 4.0, age);
-      // stripes
+      // stripes (the tapered head zone is drawn below as continuous polygons)
       const brS = (0.12 + 0.8 * Math.exp(-age / 1.1)) * wS * k0 * (a.dim + b.dim) / 2;
-      if (brS > 0.01) {
-        const wf = lerp(0.3, 1, taper);
-        g.lineWidth = (a.step + b.step) / 2 * 1.02 * wf;
+      if (brS > 0.01 && j >= JZ) {
+        g.lineWidth = (a.step + b.step) / 2 * 1.02;
         for (let k = 0; k < NS; k++) {
           const c = k - (NS - 1) / 2;
           g.strokeStyle = mulA(RIBBONS[k], brS * (k === 2 ? 0.9 : 1));
-          g.beginPath(); g.moveTo(a.x + c * a.step * wf * a.ox, a.y + c * a.step * wf * a.oy); g.lineTo(b.x + c * b.step * wf * b.ox, b.y + c * b.step * wf * b.oy); g.stroke();
+          g.beginPath(); g.moveTo(a.x + c * a.step * a.ox, a.y + c * a.step * a.oy); g.lineTo(b.x + c * b.step * b.ox, b.y + c * b.step * b.oy); g.stroke();
         }
       }
       // the soft veil (old coils), hue flowing down the spiral
@@ -344,12 +346,37 @@ function trails(t, cm, flyers, fade, unwind) {
         o.lineWidth = (a.vw + b.vw) / 2; o.strokeStyle = mulA(col, brV);
         o.beginPath(); o.moveTo(a.x, a.y); o.lineTo(b.x, b.y); o.stroke();
       }
-      // the light running down the spirals at the end: a smooth bright band (own layer, round joins)
-      const brF = 1.6 * flash * k0 / uw;
+      // the light running down the spirals at the end: warm gold with a slow tint of the ribbon colours,
+      // alpha = brightness (so it never knocks dark holes into the sun / afterglow), added with 'lighter'
+      const brF = 0.85 * flash * k0 / uw * flashIn;
       if (brF > 0.01) {
-        x.lineWidth = (a.bw + b.bw) / 2 * 1.3; x.strokeStyle = mul(col, Math.min(1, brF));
+        const colF = mix([255, 170, 80], hue(sMid * 0.084 + i * 0.06 + 0.15), 0.35);
+        x.lineWidth = (a.bw + b.bw) / 2 * 1.3; x.strokeStyle = mulA(colF, Math.min(1, brF));
         x.beginPath(); x.moveTo(a.x, a.y); x.lineTo(b.x, b.y); x.stroke();
       }
+    }
+  }
+  // the tapered heads: per stripe one polygon whose width runs smoothly to a point, its brightness a
+  // gradient along the head (no per-segment steps)
+  if (JZ >= 2) for (let i = 0; i < paths.length; i++) {
+    const Z = paths[i].slice(0, JZ + 1);
+    let sd = 0; for (const p of Z) sd += p.sd;
+    const front = sd > 0, g = front ? gF : gB;
+    const br = Z.map(p => (0.12 + 0.8 * Math.exp(-p.age / 1.1)) * (1 - smooth(0.9, 1.9, p.age)) * k0At(p, front) * p.dim);
+    if (Math.max(...br) <= 0.01) continue;
+    const wf = Z.map(p => lerp(0.06, 1, smooth(0, TZ, p.aH)));
+    const h0 = Z[0], h1 = Z[JZ], gl = Math.hypot(h1.x - h0.x, h1.y - h0.y);
+    for (let k = 0; k < NS; k++) {
+      const c = k - (NS - 1) / 2, m = k === 2 ? 0.9 : 1;
+      let fill;
+      if (gl > 1) {
+        fill = g.createLinearGradient(h0.x, h0.y, h1.x, h1.y);
+        for (let q = 0; q <= JZ; q++) fill.addColorStop(q / JZ, mulA(RIBBONS[k], br[q] * m));
+      } else fill = mulA(RIBBONS[k], br[JZ] * m);
+      g.fillStyle = fill; g.beginPath();
+      for (let q = 0; q <= JZ; q++) { const p = Z[q], d = (c - 0.5) * p.step * wf[q]; g.lineTo(p.x + d * p.ox, p.y + d * p.oy); }
+      for (let q = JZ; q >= 0; q--) { const p = Z[q], d = (c + 0.5) * p.step * wf[q]; g.lineTo(p.x + d * p.ox, p.y + d * p.oy); }
+      g.closePath(); g.fill();
     }
   }
   // melt the veil into the trail layers through a blur; add the light band (with its own glow)
@@ -528,7 +555,7 @@ function drawFlyer(F, A, g, back) {
   // the dissolve scales the figure down into its hat point (where the glint is)
   const ds = 1 - 0.6 * F.dis, hx = F.dh[0], hy = F.dh[1];
   const x = hx + (P.w.x - hx) * ds, y = hy + (P.w.y - hy) * ds, wd = P.wd * ds;
-  const pk = smooth(0.2, 0.65, F.fa);                       // perched figure (no hanging ribbons) -> full figure
+  const pk = Math.max(smooth(0.5, 0.82, -F.by), smooth(0.85, 1, F.fa));   // perched -> full figure only once the head is below the waist (~120°)
   const opt = back ? { bloom: 0, g } : { bloom: 0.3, blur: 10, g };
   if (pk < 1) {
     // backlit by the sun: a warm rim, flashing on the drum beats
@@ -664,8 +691,8 @@ HG.start({
       if (gu > 0 && gu < 1) {
         const h = F.dh, s = F.P.w.s, bell = Math.sin(Math.PI * Math.pow(gu, 0.6));
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
-        HG.dot(ctx, [255, 220, 170], h[0], h[1], 1.5 * s, 0.8 * bell * fk);
-        HG.dot(ctx, [255, 150, 110], h[0], h[1], 4.2 * s, 0.3 * bell * fk);
+        HG.dot(ctx, [255, 186, 120], h[0], h[1], 1.5 * s, 0.32 * bell * fk);
+        HG.dot(ctx, [255, 150, 110], h[0], h[1], 4.2 * s, 0.22 * bell * fk);
         ctx.restore();
       }
       const u = (t - (T1 - 0.08)) / 1.7; if (u <= 0 || u >= 1) continue;

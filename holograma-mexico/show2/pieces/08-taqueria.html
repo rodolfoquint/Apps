@@ -240,7 +240,7 @@ function drawSpit(c, P, alpha, t, fireLit) {
 
 // ---------- fire: a vertical side burner (its ceramic face glowing) a little off the meat's left
 // side, with distinct flickering tongues whose tips lick toward the meat
-const BURN = { gap: 36, v0: NP + 34, v1: TEX_H - 64, NS: 10 };
+const BURN = { gap: 36, v0: NP + 34, v1: TEX_H - 64, NS: 7 };
 const burnerX = P => P.ax - (295 + BURN.gap) * P.k;
 const edgeL = (P, v) => P.ax - prof(v) * P.k;
 function tongue(f, p0, p1, p2, s0, width, al, wob, t, seed, core) {
@@ -295,17 +295,17 @@ function drawFlames(t, P, power, ign, flareK) {
       const vb = lerp(BURN.v1, BURN.v0, (j + 0.1 + 0.8 * r1) / BURN.NS);
       const by0 = ty + vb * k, bx = xb + 2 * sc;
       const grow = ease.out3(a / 0.28);
-      const h = (64 + 52 * r2) * sc * (0.5 + 0.5 * Math.min(power, 1)) * on * (1 + 0.62 * flareK) * (0.6 + 0.4 * grow)
+      const h = (80 + 60 * r2) * sc * (0.5 + 0.5 * Math.min(power, 1)) * on * (1 + 1.25 * flareK) * (0.6 + 0.4 * grow)
         * (0.85 + 0.3 * fbm(t * 3.1 + id * 1.7, 66));
       const lift = h * 0.5 * a * a;                                         // the tongue drifts up as it burns out
       const s0 = smooth(0.45, 1, a) * 0.8;                                  // and parts from the burner
       const by = by0 - lift;
       const vt = clamp((by - h * 0.7 - ty) / k, NP, TEX_H);                  // the meat beside the tongue's tip
       const G = Math.max(8 * sc, edgeL(P, vt) - bx);
-      const lean = Math.min(G * (0.75 + 0.3 * r3), 0.6 * h) + 4 * sc;
-      const p0 = [bx, by], p1 = [bx + lean * 0.35, by - h * 0.5], p2 = [bx + lean, by - h];
+      const lean = G * (0.85 + 0.25 * r3) + 6 * sc;
+      const p0 = [bx, by], p1 = [bx + lean * 0.62, by - h * 0.3], p2 = [bx + lean, by - h];
       const al = Math.min(1, power) * on * smooth(0, 0.07, a) * (1 - smooth(0.6, 1, a)) * (0.7 + 0.3 * r1);
-      const width = (22 + 12 * r2) * sc * (0.7 + 0.3 * grow) * (1 + 0.15 * flareK);
+      const width = (30 + 14 * r2) * sc * (0.7 + 0.3 * grow) * (1 + 0.3 * flareK);
       list.push({ p0, p1, p2, s0, width, al, seed: r1 * 9 + id, wob: (5 + 4 * r3) * sc });
     }
   }
@@ -438,32 +438,35 @@ const SHAV = [], SPARK = [];
     SPARK.push({ ts, dur: 0.4 + R() * 0.35, vx: 120 + R() * 280, vy: -(100 + R() * 240), col: R() < 0.5 ? FIRE_Y : EMBER, s: 7 + R() * 7 });
   }
 }
-// a curl of shaved meat: a crescent band that tapers at both ends, textured with the adobo
+// a shaving of al pastor: a thin, flat, ragged sliver sliced off the cone, slightly bent, the adobo
+// texture on it, darker charred edges (no glowing rim: it reads as meat, not as a petal)
 function drawCurl(c, TEX, s, x, y, rot, sy, alpha) {
   if (alpha <= 0.003) return;
   c.save(); c.translate(x, y); c.rotate(rot);
   c.globalCompositeOperation = 'lighter';
-  HG.dot(c, FIRE_O, 0, 0, s.w * 2.2, 0.3 * alpha);
+  HG.dot(c, FIRE_O, 0, 0, s.w * 1.5, 0.1 * alpha);
   c.globalCompositeOperation = 'source-over'; c.scale(1, sy);
-  const R0 = s.w * 0.5, span = 1.2 * Math.PI, N = 18, out = [], inn = [];
+  const L = s.w * 1.15, T = s.w * 0.26, N = 12, top = [], bot = [];
   for (let i = 0; i <= N; i++) {
-    const q = i / N, th = s.a0 + q * span, r = R0 * (1 - 0.18 * q) * (1 + 0.07 * Math.sin(q * 11 + s.a0 * 3));
-    const thick = R0 * 0.62 * Math.pow(Math.sin(Math.PI * q), 0.5);
-    out.push([Math.cos(th) * r, Math.sin(th) * r]); inn.push([Math.cos(th) * (r - thick), Math.sin(th) * (r - thick)]);
+    const q = i / N, xx = (q - 0.5) * L;
+    const bend = -0.16 * L * Math.pow(2 * q - 1, 2) + 0.05 * L * Math.sin(q * 4 + s.a0);
+    const th = T * Math.pow(Math.sin(Math.PI * (0.06 + 0.88 * q)), 0.45);
+    const jt = 1 + 0.32 * (hash(i + 17 * Math.floor(s.a0 * 10), 41) - 0.5), jb = 1 + 0.32 * (hash(i + 17 * Math.floor(s.a0 * 10), 42) - 0.5);
+    top.push([xx, bend - th * 0.5 * jt]); bot.push([xx, bend + th * 0.5 * jb]);
   }
-  c.beginPath(); c.moveTo(out[0][0], out[0][1]);
-  for (let i = 1; i <= N; i++) c.lineTo(out[i][0], out[i][1]);
-  for (let i = N; i >= 0; i--) c.lineTo(inn[i][0], inn[i][1]);
+  c.beginPath(); c.moveTo(top[0][0], top[0][1]);
+  for (let i = 1; i <= N; i++) c.lineTo(top[i][0], top[i][1]);
+  for (let i = N; i >= 0; i--) c.lineTo(bot[i][0], bot[i][1]);
   c.closePath();
   c.save(); c.clip();
-  c.globalAlpha = alpha; c.drawImage(TEX, s.sx, s.sy, 110, 110, -R0, -R0, 2 * R0, 2 * R0);
-  c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.28 * alpha;
-  c.drawImage(TEX, s.sx, s.sy, 110, 110, -R0, -R0, 2 * R0, 2 * R0);
+  c.globalAlpha = alpha; c.drawImage(TEX, s.sx, s.sy, 110, 48, -L * 0.55, -L * 0.3, L * 1.1, L * 0.5);
+  // the cut face is a touch paler and moister, the outer face darker with char
+  const g = c.createLinearGradient(0, -T, 0, T);
+  g.addColorStop(0, 'rgba(70,14,4,0.55)'); g.addColorStop(0.45, 'rgba(70,14,4,0)'); g.addColorStop(1, 'rgba(255,170,120,0.12)');
+  c.fillStyle = g; c.globalAlpha = alpha; c.fillRect(-L, -L, 2 * L, 2 * L);
   c.restore();
-  c.strokeStyle = rgba([110, 22, 6], 0.55 * alpha); c.lineWidth = 2;                 // a charred rim
-  c.beginPath(); c.moveTo(out[0][0], out[0][1]); for (let i = 1; i <= N; i++) c.lineTo(out[i][0], out[i][1]); c.stroke();
-  c.strokeStyle = rgba([255, 190, 120], 0.45 * alpha); c.lineWidth = 1.1;            // and a glossy inner edge
-  c.beginPath(); c.moveTo(inn[2][0], inn[2][1]); for (let i = 3; i <= N - 2; i++) c.lineTo(inn[i][0], inn[i][1]); c.stroke();
+  c.strokeStyle = rgba([60, 12, 4], 0.7 * alpha); c.lineWidth = 1.6; c.lineJoin = 'round';     // charred, ragged edge
+  c.beginPath(); c.moveTo(top[0][0], top[0][1]); for (let i = 1; i <= N; i++) c.lineTo(top[i][0], top[i][1]); c.stroke();
   c.restore();
 }
 // a chunk of pineapple: a little cube, the top face catching the light, textured with the fruit
@@ -498,7 +501,7 @@ function tacoSlide(t, i) {
 // at the foot, wider and fainter as it climbs. Smooth noise drifting upward with the steam bends them
 // gently (the wisps visibly rise). lift: the plume's foot (rises at the end, so the steam lets go);
 // topFade: the plume dissolves from the top down. Drawn into STM, blurred when composited.
-function plume(g, x0, y0, t, seed, { H = 300, amp = 1, w0 = 5, w1 = 36, alpha = 0.2, speed = 1, lift = 0, topFade = 0, lean = 0 } = {}) {
+function plume(g, x0, y0, t, seed, { H = 300, amp = 1, w0 = 5, w1 = 36, alpha = 0.2, speed = 1, lift = 0, topFade = 0, lean = 0, collapse = 0 } = {}) {
   const top = H - (H - lift) * clamp(topFade);
   if (top - lift < 8 || alpha <= 0.003) return;
   const rise = 55 * speed;
@@ -507,17 +510,19 @@ function plume(g, x0, y0, t, seed, { H = 300, amp = 1, w0 = 5, w1 = 36, alpha = 
   const lum = h => smooth(0, 16, h) * (0.28 + 0.72 * Math.exp(-h / 190)) * (lift > 0 ? smooth(lift, lift + 60, h) : 1)
     * (1 - smooth(top - Math.max(30, 0.4 * (top - lift)), top, h));
   for (let r = 0; r < 3; r++) {
+    if (r !== 1 && collapse > 0.995) continue;          // once it lets go, a plume is a single soft wisp
     const N = 20, L = [], R = [];
     for (let j = 0; j <= N; j++) {
       const h = lerp(lift, top, j / N), q = (h - rise * t) * 0.0062;
       const A = amp * (5 + 0.15 * h);
-      const x = x0 + A * fbm(q + seed * 3.1, 70) + lean * h + (r - 1) * (2 + 0.14 * h) + 0.45 * A * vnoise(q * 1.9 + r * 4.3 + seed, 71);
+      const x = x0 + A * fbm(q + seed * 3.1, 70) + lean * h + (r - 1) * (2 + 0.14 * h) * (1 - 0.8 * collapse)
+        + 0.15 * A * (1 - collapse) * vnoise(q * 1.9 + r * 4.3 + seed, 71);     // small, so filaments never cross
       const hw = 0.5 * lerp(w0, w1, clamp(h / 420)) * (r === 1 ? 1 : 0.6);
       L.push([x - hw, y0 - h]); R.push([x + hw, y0 - h]);
     }
     const yA = y0 - lift, yB = y0 - top;
     const gr = g.createLinearGradient(0, yA, 0, yB);
-    const al = alpha * (r === 1 ? 1 : 0.6);
+    const al = alpha * (r === 1 ? 1 : 0.6 * (1 - collapse));
     for (let i = 0; i <= 10; i++) gr.addColorStop(i / 10, rgba(STEAM, al * lum(lerp(lift, top, i / 10))));
     g.fillStyle = gr;
     g.beginPath(); g.moveTo(L[0][0], L[0][1]);
@@ -565,7 +570,7 @@ HG.start({
     const P = { ax: axZ, ty: tyZ, k: P0.k * Z };
     const sc = P.k / 0.5;
     const ign = smooth(0.1, 1.25, t);                                // burner lights bottom to top
-    const flareK = bump(t, T_FLARE, T_FLARE + 0.07, T_FLARE + 0.4, T_FLARE + 0.65);
+    const flareK = bump(t, T_FLARE - 0.02, T_FLARE + 0.08, T_FLARE + 0.42, T_FLARE + 0.75);
     const fireDie = 1 - smooth(T_END - 0.35, T_END + 0.45, t);       // the fire dies down first
     const fireP = (0.88 + 0.12 * fbm(t * 6.5, 21)) * smooth(0.05, 0.5, t) * fireDie;
     const xb = burnerX(P);
@@ -605,7 +610,7 @@ HG.start({
 
     // ---- fire glow round the burner (an eased falloff that melts into black)
     if (fireP > 0.003) {
-      const gA = fireP * ign * (1 + 0.5 * flareK);
+      const gA = fireP * ign * (1 + 1.1 * flareK);
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       ctx.translate(xb + 20 * sc, midY); ctx.scale(0.8, 1.25);
       const R = 330 * sc, g = ctx.createRadialGradient(0, 0, 0, 0, 0, R);
@@ -641,7 +646,7 @@ HG.start({
     // ---- the trompo, the spit through it, the flames licking at its side
     const key = 0.8 * smooth(0.75, 2.1, t), amb = 0.1 + 0.2 * smooth(0.5, 1.9, t);
     const phi = -0.5 * t + 0.6;
-    drawSpit(ctx, P, show * (0.45 + 0.55 * key), t, 0.6 * fireP * ign);
+    drawSpit(ctx, P, show * (0.2 + 0.8 * key), t, 0.6 * fireP * ign);
     drawTrompo(ctx, TEX, { ...P, phi, alpha: show, amb, key, rim: (0.42 + 0.2 * fireP + 0.3 * flareK) * smooth(0.15, 0.8, t) * (0.35 + 0.65 * fireDie), spec: key,
       heat: fireP, t, front: ign * 1.15, dark: 0.85 * (1 - smooth(1.1, 1.9, t)) });
     if (hasFire) {
@@ -682,18 +687,19 @@ HG.start({
     {
       const fa = t - T_FLARE - 0.05;
       if (fa > 0 && fa < 1.5) {
-        for (let i = 0; i < 13; i++) {
-          const d = hash(i, 101) * 0.14, a = fa - d, life = 0.9 + 0.45 * hash(i, 107); if (a <= 0 || a > life) continue;
+        for (let i = 0; i < 16; i++) {
+          const d = hash(i, 101) * 0.16, a = fa - d, life = 1.0 + 0.45 * hash(i, 107); if (a <= 0 || a > life) continue;
           const vv = lerp(BURN.v1 - 120, BURN.v0 + 60, hash(i, 102));
           const bx = lerp(xb, edgeL(P, vv), 0.4), by = P.ty + vv * P.k;
-          const an = -Math.PI / 2 - 0.55 + hash(i, 103) * 0.95, v = 260 + 260 * hash(i, 104);
+          const an = -Math.PI / 2 - 0.6 + hash(i, 103) * 1.05, v = 380 + 320 * hash(i, 104);
           const pos = aa => { const dr = (1 - Math.exp(-1.6 * aa)) / 1.6; return [bx + Math.cos(an) * v * dr, by + Math.sin(an) * v * dr + 130 * aa * aa]; };
           const fade = Math.pow(1 - a / life, 1.2) * (0.8 + 0.2 * Math.sin(t * 23 + i));
-          const tr = []; for (let j = 0; j <= 6; j++) tr.push(pos(Math.max(0, a - j * 0.022)));
+          const tr = []; for (let j = 0; j <= 9; j++) tr.push(pos(Math.max(0, a - j * 0.03)));
           const col = hash(i, 105) < 0.5 ? FIRE_Y : EMBER;
-          streak(ctx, tr, col, 3.2, 0.75 * fade);
+          streak(ctx, tr, col, 5.5, 0.95 * fade);
           ctx.save(); ctx.globalCompositeOperation = 'lighter';
-          HG.dot(ctx, col, tr[0][0], tr[0][1], 20 + 10 * hash(i, 106), 0.85 * fade);
+          HG.dot(ctx, FIRE_O, tr[0][0], tr[0][1], 70 + 26 * hash(i, 106), 0.4 * fade);     // a warm halo
+          HG.dot(ctx, col, tr[0][0], tr[0][1], 30 + 12 * hash(i, 106), 0.95 * fade);      // the ember
           ctx.restore();
         }
       }
@@ -790,10 +796,13 @@ HG.start({
           const Kg = knifeAt(t - j * (1.4 / 30) / M), [gx, gy] = cam(Z, Kg.x, Kg.y), bl = KL * KS * Z;
           tips.push([gx, gy]); ends.push([gx + Math.cos(Kg.ang) * bl, gy + Math.sin(Kg.ang) * bl]);
         }
-        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.filter = HG.blur(4);
-        for (let j = 0; j < M; j++) {
-          ctx.fillStyle = rgba(STEEL, 0.2 * smear * (1 - j / M));
-          ctx.beginPath(); ctx.moveTo(...tips[j]); ctx.lineTo(...ends[j]); ctx.lineTo(...ends[j + 1]); ctx.lineTo(...tips[j + 1]); ctx.closePath(); ctx.fill();
+        // a few thin ghost edges, fading along each line and with age (motion blur, not a shape)
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.filter = HG.blur(1.5); ctx.lineCap = 'round';
+        for (let j = 1; j <= M; j += 2) {
+          const g = ctx.createLinearGradient(...tips[j], ...ends[j]), a = 0.16 * smear * (1 - j / (M + 1));
+          g.addColorStop(0, rgba(STEEL, 0)); g.addColorStop(0.35, rgba(STEEL, a)); g.addColorStop(0.8, rgba(STEEL, a * 0.6)); g.addColorStop(1, rgba(STEEL, 0));
+          ctx.strokeStyle = g; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(...tips[j]); ctx.lineTo(...ends[j]); ctx.stroke();
         }
         ctx.restore();
         for (let j = 2; j >= 1; j--) {
@@ -832,7 +841,7 @@ HG.start({
         if (u < 1) {
           const tr = [];
           for (let j = 0; j <= 7; j++) tr.push(pos(Math.max(0, u - j * 0.022)));
-          streak(ctx, tr, FIRE_O, 3, 0.45);
+          streak(ctx, tr, [200, 70, 20], 2, 0.22);
           const [x, y] = pos(u);
           drawCurl(ctx, TEX, s, x, y, s.spin * u + 0.4, 0.45 + 0.55 * Math.abs(Math.cos(s.flip * u)), smooth(0, 0.08, u) * (1 - smooth(0.86, 1, u)));
         } else {
@@ -917,7 +926,10 @@ HG.start({
       const fin = ease.inOut3((t - T_END + 0.5) / 1.4);              // 0..1 during the finale
       const letGo = ease.in3((t - T_END - 0.3) / 1.0);               // the foot lets go of the table
       const drift = 240 * ease.in3((t - T_END - 0.2) / 1.1);         // and the whole plume floats up
-      const topFade = smooth(T_END + 0.5, T_END + 1.25, t);          // dissolving from the top down
+      const topFade = smooth(T_END + 0.2, T_END + 0.85, t);          // dissolving from the top down
+      const collapse = smooth(T_END - 0.1, T_END + 0.35, t);         // the filaments merge into one wisp
+      const wispA = 1 - smooth(T_END + 0.3, T_END + 0.8, t);         // and the wisps are gone by ~10.7 s
+      const calm = 1 - 0.65 * fin;                                    // the swing settles as it rises
       let any = false;
       for (let i = 0; i < 3; i++) {
         const tb = T_TACO + 0.95 + 0.1 * i;
@@ -927,16 +939,26 @@ HG.start({
         const breathe = 0.8 + 0.2 * Math.sin(t * 1.3 + i * 2.1);
         const H = lerp(40, 340, grow) + 170 * fin;
         plume(sg, x0, y0 - drift, t, i + 1, {
-          H, amp: 1, w0: 5, w1: 36 + 14 * fin, alpha: 0.42 * breathe * (1 + 0.2 * fin),
-          speed: 1 + 0.6 * fin, lift: Math.min(H - 10, 420 * letGo), topFade, lean: (0.04 - 0.1 * i),
+          H, amp: calm, w0: 5, w1: 36 + 30 * fin, alpha: 0.42 * breathe * wispA,
+          speed: 1 + 0.3 * fin, lift: Math.min(H - 10, 420 * letGo), topFade, lean: (0.04 - 0.1 * i) * calm, collapse,
         });
+        // what is left: a soft, featureless haze that drifts up and thins out
+        const hz = Math.sin(Math.PI * clamp((t - T_END - 0.05) / 1.25)) * grow;
+        if (hz > 0.003) {
+          sg.save(); sg.globalCompositeOperation = 'lighter';
+          for (let j = 0; j < 3; j++) {
+            const hy = y0 - 120 - 70 * j - 160 * ease.out3(clamp((t - T_END) / 1.4)) - drift * 0.4;
+            HG.dot(sg, STEAM, x0 + (j - 1) * 14 + 30 * (0.04 - 0.1 * i) * j, hy, 230 + 60 * j, 0.11 * hz * (1 - 0.25 * j));
+          }
+          sg.restore();
+        }
         any = true;
       }
       // a last breath of steam off the trompo as it evaporates
       if (fin > 0) {
         const [x0, y0] = cam(Z, P0.ax + 10, P0.ty + 330);
         const H = 120 + 330 * fin;
-        plume(sg, x0, y0 - drift, t, 4, { H, amp: 0.9, w0: 6, w1: 44, alpha: 0.34 * Math.sin(Math.PI * clamp(fin * 1.1)), speed: 1.5, lift: Math.min(H - 10, 420 * letGo), topFade, lean: 0.05 });
+        plume(sg, x0, y0 - drift, t, 4, { H, amp: 0.5 * calm, w0: 6, w1: 60, alpha: 0.3 * Math.sin(Math.PI * clamp(fin * 1.1)) * wispA, speed: 1.2, lift: Math.min(H - 10, 420 * letGo), topFade, lean: 0.03, collapse });
         any = true;
       }
       if (any) {

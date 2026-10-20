@@ -136,9 +136,10 @@ function star(g, x, y, s, a, rot = 0, col = WARM) {
 const PEND = DATA.paths.map(p => p.d[p.d.length - 1]);
 // the light of the two outer arches grows faster, so they rise like the arms of a candelabra ahead of the trunk
 const warpK = (p, k) => p.n.endsWith('1') ? p.d[0] + Math.max(0, k - p.d[0]) * 1.45 : k;
-// at the end the light withdraws into a shrinking ellipse around the seed, wider than tall, so the crown goes
-// first and the low horizontal arms fold in tip first. seedDist: a screen point's 'distance' in that ellipse.
-const seedDist = (x, y) => Math.hypot((x - ROOT[0]) / 2.4, ROOT[1] - y);
+// at the end the light withdraws into a shrinking ellipse around the seed, a little taller than wide, so the
+// crown goes first and the outer arches are drawn in lower than the trunk: the light keeps a tree's pointed
+// outline as it sinks (never a row of upright prongs). seedDist: a screen point's 'distance' in that ellipse.
+const seedDist = (x, y) => Math.hypot((x - ROOT[0]) / 0.85, ROOT[1] - y);
 // growth distance along path p where it first leaves the ellipse of size `cut`
 function kAtCut(p, cut) {
   let e0 = 0;
@@ -701,7 +702,7 @@ HG.start({
         DATA.paths.forEach((p, i) => {
           const kc = kAtCut(p, cut); if (kc >= PEND[i] - 0.004 || kc <= p.d[0] + 0.01) return;
           const s = branchShape(p, 9, 1, PEND[i], 99, cut); if (!s) return;
-          HG.dot(ctx, WARM, s.tip[0], s.tip[1], 30, 0.55 * smooth(p.d[0] + 0.01, p.d[0] + 0.04, kc));
+          HG.dot(ctx, WARM, s.tip[0], s.tip[1], 26, 0.45 * smooth(p.d[0] + 0.01, p.d[0] + 0.04, kc));
         });
         ctx.restore();
       }

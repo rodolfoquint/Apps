@@ -166,43 +166,40 @@ const yFront = t => lerp(Y_F0, Y_F1, roll((t - T_F0) / T_FD));
 const frontAt = y => T_F0 + T_FD * (1.2 - Math.sqrt(1.44 - 0.8 * clamp((y - Y_F0) / (Y_F1 - Y_F0)))) / 0.4;
 const litIn = t => smooth(T_F0 - 0.05, T_F0 + 0.5, t);     // the summit warms in under the crowning flare
 // the sunlit grade fades out toward the base: the lower band stays in warm shadow
-const botFade = y => 1 - 0.6 * smooth(640, 800, y);
+// (a long soft falloff, so the lower bodies read as the same stone in warm shadow)
+const botFade = y => 1 - 0.62 * smooth(610, 905, y);
 
 // sun height
 const sunY = t => { const x = clamp((t - (T_BIRTH - 0.2)) / (T_CROWN - T_BIRTH + 0.2)); return lerp(SUN_Y0, SUN_Y1, 0.5 - 0.5 * Math.cos(Math.PI * Math.pow(x, 0.85))); };
 
-// ---------- quetzal plumes: long streamers pulled out of the light on the steps, then lifted by a gust
-// travel of a plume's head along its path
+// ---------- quetzal plumes: each is pulled out of the light on its own step, lifts at once, and
+// the group floats in the air above the steps, spread like the plumes of a headdress around the
+// new sun; then a gust carries it up and out of the circle.
 // (small feathers: a gust that eases in, then carries them steadily)
 const VC = 400, TA = 0.75;
 const travel = tau => (tau <= 0 ? 0 : tau < TA ? 0.5 * VC / TA * tau * tau : 0.5 * VC * TA + VC * (tau - TA));
-// (streamers: whip out of the light, hover as a crown around the sun, then sail out of the circle)
-const sTravel = tau => (tau <= 0 ? 0 : 270 * (1 - Math.exp(-tau / 0.26)) + 140 * tau + 130 * Math.pow(Math.max(0, tau - 1.1), 2));
-// head paths (screen space): from an anchor on the lit stairway, they part around the sun and
-// open as a fan, like the quetzal plumes of a headdress; a gentle S-wave is laid along each path
-function plumePath(cp, amp, ph) {
-  const base = spline(cp), pts = base.pts.map((p, i) => {
-    const a = base.pts[Math.max(0, i - 1)], b = base.pts[Math.min(base.pts.length - 1, i + 1)];
-    let tx = b[0] - a[0], ty = b[1] - a[1]; const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
-    const o = amp * Math.sin(base.cum[i] / 105 + ph) * smooth(0, 160, base.cum[i]);
-    return [p[0] - ty * o, p[1] + tx * o];
-  });
-  return polyInfo(pts);
-}
+const T_GUST = 9.3;                                   // the upward gust that takes the floating plumes away
+const gustK = t => smooth(T_GUST - 0.1, T_GUST + 0.5, t);
+// a: birth point on a lit step; h: where its quill end floats (clear of the steps, spread out);
+// th: lean of the plume from vertical (outward = side); L: length; W: vane width
 const STREAM = [
-  { tb: 8.55, L: 360, W: 17, spd: 1.0, amp: 8, wave: 16, ph: 0.4,
-    cp: [[528, 712], [524, 640], [505, 580], [466, 530], [432, 470], [418, 400], [410, 320], [404, 230], [398, 140], [392, 50], [386, -50]] },
-  { tb: 8.63, L: 350, W: 17, spd: 1.02, amp: 8, wave: 16, ph: 3.3,
-    cp: [[556, 690], [560, 625], [578, 575], [614, 528], [648, 470], [662, 400], [670, 320], [676, 230], [682, 140], [688, 50], [694, -50]] },
-  { tb: 8.72, L: 340, W: 16, spd: 0.97, amp: 7, wave: 20, ph: 1.9,
-    cp: [[512, 668], [508, 610], [488, 565], [445, 525], [395, 480], [355, 420], [322, 345], [295, 265], [272, 180], [252, 95], [235, 10]] },
-  { tb: 8.8, L: 345, W: 16, spd: 1.0, amp: 7, wave: 20, ph: 5.0,
-    cp: [[570, 646], [574, 592], [596, 552], [638, 515], [688, 475], [728, 415], [760, 342], [787, 262], [810, 178], [830, 92], [848, 8]] },
-  { tb: 8.88, L: 320, W: 15, spd: 0.95, amp: 7, wave: 18, ph: 0.9,
-    cp: [[520, 628], [514, 585], [488, 556], [440, 532], [380, 505], [318, 462], [262, 405], [214, 340], [172, 270], [136, 195], [105, 120]] },
-  { tb: 8.96, L: 320, W: 15, spd: 0.97, amp: 7, wave: 18, ph: 4.1,
-    cp: [[562, 612], [568, 575], [594, 552], [645, 530], [705, 505], [765, 462], [820, 405], [868, 340], [910, 270], [946, 195], [978, 120]] },
-].map(o => ({ ...o, tb: frontAt(o.cp[0][1]) + 0.2, path: plumePath(o.cp, o.wave, o.ph) }));   // each springs out as the light reaches its step
+  { a: [508, 690], h: [420, 522], side: -1, th: 0.50, L: 320, W: 22, ph: 0.4 },
+  { a: [578, 682], h: [668, 516], side: 1, th: 0.52, L: 315, W: 22, ph: 3.3 },
+  { a: [522, 646], h: [490, 490], side: -1, th: 0.16, L: 300, W: 21, ph: 1.9 },
+  { a: [566, 640], h: [596, 486], side: 1, th: 0.18, L: 305, W: 21, ph: 5.0 },
+  { a: [462, 662], h: [338, 550], side: -1, th: 0.86, L: 290, W: 20, ph: 0.9 },
+  { a: [622, 656], h: [750, 544], side: 1, th: 0.84, L: 290, W: 20, ph: 4.1 },
+].map((o, j) => ({ ...o, tb: Math.max(8.3, frontAt(o.a[1]) + 0.12) + 0.06 * j }));
+// quill end of a plume: lifts off its step as it unfurls, floats and bobs, then rides the gust
+function plumeBase(S, t) {
+  const k = ease.out3((t - S.tb) / 0.75);
+  let x = lerp(S.a[0], S.h[0], k), y = lerp(S.a[1], S.h[1], k);
+  x += 5 * Math.sin(1.1 * t + S.ph) * k; y += 6 * Math.sin(1.4 * t + 2 * S.ph) * k;
+  const g = Math.max(0, t - T_GUST + 0.15);
+  y -= 70 * g + 150 * g * g;                         // the gust: eases in, keeps carrying
+  x += S.side * (25 * g + 45 * g * g) * (0.6 + 0.6 * Math.abs(S.th));
+  return [x, y];
+}
 
 // small covert feathers: they wake on the lit steps, stir, then the gust lifts them tumbling
 const FEATH = (() => {
@@ -210,19 +207,19 @@ const FEATH = (() => {
   const N = 15;
   for (let i = 0; i < N; i++) {
     const y = lerp(614, 740, (i + R()) / N);                       // quill end, always above the title band
-    const v = VY(y), side = R() < 0.5 ? -1 : 1;
-    const xl = P(railX(-1, false, v), v)[0] - 10, xr = P(railX(1, false, v), v)[0] + 10;
-    const x = lerp(xl, xr, 0.5 + side * (0.12 + 0.36 * R()));
+    const side = i % 2 ? 1 : -1;
+    const x = 540 + side * (30 + 230 * R());                       // spread over the lit terraces, not in a tuft
+
     out.push({
       x, y, side, pal: (i === 3 || i === 8 || i === 13) ? 'gold' : (R() < 0.55 ? 'em' : 'jade'),
       len: 58 + 20 * R(), tilt: side * (0.3 + 0.9 * R()), ph: R() * TAU, ph2: R() * TAU,
-      appear: Math.max(8.25, frontAt(y) + 0.1) + 0.25 * R(),
+      appear: Math.max(8.4, frontAt(y) + 0.1) + 0.55 * R(),
       lift: 0,
       spd: 0.55 + 0.4 * R(), drift: (R() < 0.25 ? -0.4 : 1) * (20 + 45 * R()), sway: 14 + 26 * R(), flip: 2.0 + 2.4 * R(), swing: 0.25 + 0.3 * R(),
       front: i % 2 === 0,
     });
     const o = out[out.length - 1];
-    o.lift = o.appear + 0.35 + 0.3 * R();                          // each wakes in the light, then the air takes it
+    o.lift = o.appear + 0.12 + 0.2 * R();                          // each wakes in the light, then the air takes it
   }
   return out;
 })();
@@ -399,6 +396,18 @@ function stone(t, A, end) {
     HG.reset(g);
     HG.drawLayer(ctx, LD, { alpha: 0.95 * end });
   }
+  // warm bounce light under the v=497 terrace: the sunlit stone above warms the shadowed bodies,
+  // so lit and shadowed stone join softly instead of switching to a different material
+  const bA = smooth(frontAt(740) - 0.2, frontAt(740) + 0.8, t) * end;
+  if (bA > 0.003) {
+    const g = LD.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
+    g.fillStyle = vGrad(g, 680, 860, 18, y => Math.exp(-(((y - 762) / 46) ** 2)), AMBER);
+    g.fillRect(0, 680, W, 180);
+    g.globalCompositeOperation = 'destination-in';
+    drawPyr(g, A.night);
+    HG.reset(g);
+    HG.drawLayer(ctx, LD, { alpha: bA * 0.2, op: 'lighter' });
+  }
   // a broad warm sheen riding on the front while it rolls over the upper tiers
   const fA = smooth(T_F0, T_F0 + 0.35, t) * (1 - smooth(640, 760, yF)) * end;
   if (fA > 0.003) {
@@ -554,32 +563,36 @@ function cascade(t, end) {
 }
 
 // ---------- quetzal plumes
-// one long streamer: its spine follows the head's path back over its length (the tail stays in
-// the light on the step until the plume is fully out), with a ripple travelling down to the tip.
-// Feather cues: a bright rachis with a short quill at the leading end, a two-tone vane, and
-// barbed edges whose split teeth point toward the tip.
+// one long tail covert: from its quill end it rises in a gentle S (a slight inward bow, then
+// sweeping outward) and its soft rounded tip droops over, as a quetzal's plume falls.
+// Feather cues: a rachis with a short quill at the base, a two-tone vane, and barbed edges.
 function streamer(g, S, t, a) {
-  const D = sTravel(t - S.tb) * S.spd;
-  if (D < 3 || a <= 0.003) return;
-  const Lv = Math.min(S.L, D), wg = 0.35 + 0.65 * smooth(0, 0.7 * S.L, Lv);
-  const N = 110, sp = [], sg = [];
+  const tau = t - S.tb;
+  if (tau <= 0 || a <= 0.003) return;
+  const un = ease.out3(tau / 0.8);                                  // it unfurls as it lifts
+  const Lv = S.L * (0.08 + 0.92 * un), wg = 0.45 + 0.55 * un;
+  const gk = gustK(t);
+  const N = 96, sp = [], sg = [];
+  let [x, y] = plumeBase(S, t);
   for (let i = 0; i <= N; i++) {
-    const u = i / N, sig = u * Lv, s = D - sig;
-    const [x, y] = along(S.path, s);
-    const [xa, ya] = along(S.path, s + 5), [xb, yb] = along(S.path, s - 5);
-    let tx = xa - xb, ty = ya - yb; const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
-    const free = smooth(0, 70, s);                                    // pinned where it leaves the step
-    const rip = S.amp * smooth(0.04, 0.5, u) * Math.sin(TAU * sig / 300 - TAU * 0.85 * t + S.ph) * smooth(0, 160, Lv) * free;
-    const sw = 12 * Math.sin(1.2 * t + y / 170 + S.ph) * smooth(S.tb, S.tb + 0.9, t) * free;   // the air sways the plume
-    sp.push([x - ty * rip + sw, y + tx * rip]); sg.push(sig);
+    const u = i / N;
+    sp.push([x, y]); sg.push(u * S.L);
+    // heading from vertical: S-curve (inward bow, then outward), drooping tip; still curled while
+    // it unfurls; the air sways it with a wave running to the tip; in the gust the tip trails more
+    const bend = -0.6 * u + 1.25 * u * u * u + 0.42 * smooth(0.68, 1, u);
+    const sway = 0.13 * Math.sin(1.3 * t - 2.2 * u + S.ph) * u;
+    const curl = 0.7 * (1 - un) * u;
+    const phi = S.side * (S.th + bend + curl + 0.22 * gk * u * u) + sway;
+    const ds = Lv / N;
+    x += Math.sin(phi) * ds; y -= Math.cos(phi) * ds;
   }
-  // vane width: narrow at the quill end, long even body, long taper to a soft tip
-  const wd = u => S.W * wg * (0.4 + 0.6 * smooth(0, 0.22, u)) * Math.pow(1 - smooth(0.5, 1, u), 0.85);
-  // barbed edge: a sawtooth along the vane (each tooth leans toward the tip), irregular and deeper toward the tip
+  // vane width: narrow at the quill, long even body, a soft rounded tip (no needle point)
+  const wd = u => S.W * wg * (0.35 + 0.65 * smooth(0, 0.2, u)) * (u < 0.74 ? 1 : Math.sqrt(Math.max(0, 1 - ((u - 0.74) / 0.27) ** 2)));
+  // barbed edge: a sawtooth along the vane, irregular, a little deeper toward the tip
   const tooth = (sig, off) => {
     const q = (sig + 7 * Math.sin(sig / 41 + S.ph + off)) / 24 + off, k = Math.floor(q), f = q - k;
-    const depth = 0.16 + 0.22 * (0.5 + 0.5 * Math.sin(k * 12.9898 + S.ph * 7 + off * 3));
-    return 1 - depth * (1 - f) * smooth(0.12, 0.4, sig / S.L);
+    const depth = 0.14 + 0.2 * (0.5 + 0.5 * Math.sin(k * 12.9898 + S.ph * 7 + off * 3));
+    return 1 - depth * (1 - f) * smooth(0.12, 0.4, sig / S.L) * (1 - smooth(0.85, 0.97, sig / S.L));
   };
   const left = [], right = [];
   for (let i = 0; i <= N; i++) {
@@ -598,25 +611,26 @@ function streamer(g, S, t, a) {
   g.save();
   // glow
   g.globalCompositeOperation = 'lighter'; g.filter = HG.blur(9);
-  g.fillStyle = chord([[0, Q_EM, 0.45 * a], [0.6, Q_JADE, 0.4 * a], [1, Q_TURQ, 0]]); g.fill(body);
+  g.fillStyle = chord([[0, Q_EM, 0.4 * a], [0.6, Q_JADE, 0.38 * a], [1, Q_TURQ, 0.12 * a]]); g.fill(body);
   g.filter = 'none';
-  // two-tone vane: the outer side catches the light (emerald to jade), the inner side is deeper (jade to blue)
+  // two-tone vane: the outer side catches the light (emerald to jade), the inner side is deeper
+  // (jade to blue); the tip softens rather than ending in a hard point
   g.globalCompositeOperation = 'source-over';
-  g.fillStyle = chord([[0, Q_EM, 0.85 * a], [0.12, [40, 214, 120], 0.95 * a], [0.55, [30, 214, 165], 0.95 * a], [0.86, [50, 186, 238], 0.85 * a], [1, Q_TURQ, 0]]);
+  g.fillStyle = chord([[0, Q_EM, 0.85 * a], [0.12, [40, 214, 120], 0.95 * a], [0.55, [30, 214, 165], 0.95 * a], [0.86, [50, 186, 238], 0.85 * a], [0.95, Q_TURQ, 0.6 * a], [1, Q_TURQ, 0.2 * a]]);
   g.fill(half(left));
-  g.fillStyle = chord([[0, [16, 160, 100], 0.85 * a], [0.12, [14, 168, 108], 0.95 * a], [0.55, [16, 156, 150], 0.95 * a], [0.86, [30, 120, 210], 0.85 * a], [1, [30, 120, 210], 0]]);
+  g.fillStyle = chord([[0, [16, 160, 100], 0.85 * a], [0.12, [14, 168, 108], 0.95 * a], [0.55, [16, 156, 150], 0.95 * a], [0.86, [30, 120, 210], 0.85 * a], [1, [30, 120, 210], 0.18 * a]]);
   g.fill(half(right));
-  // iridescent sheen travelling down the plume
-  const c = 0.12 + 0.76 * ((0.5 * (t - S.tb) + S.ph / TAU) % 1);
+  // iridescent sheen travelling along the body (never on the tip)
+  const c = 0.12 + 0.5 * ((0.5 * tau + S.ph / TAU) % 1);
   g.globalCompositeOperation = 'lighter';
-  g.fillStyle = chord([[c - 0.18, [170, 255, 215], 0], [c, [170, 255, 215], 0.38 * a], [c + 0.18, [170, 255, 215], 0]]);
+  g.fillStyle = chord([[c - 0.16, [170, 255, 215], 0], [c, [170, 255, 215], 0.32 * a], [c + 0.16, [170, 255, 215], 0]]);
   g.fill(body);
-  // rachis down the vane, and a short tinted quill ahead of it
-  const rach = new Path2D(); rach.moveTo(...sp[0]); for (let i = 1; i <= Math.round(N * 0.88); i++) rach.lineTo(...sp[i]);
+  // rachis up the vane, fading out before the tip, and a short tinted quill below the base
+  const rach = new Path2D(); rach.moveTo(...sp[0]); for (let i = 1; i <= Math.round(N * 0.82); i++) rach.lineTo(...sp[i]);
   g.lineCap = 'round';
-  g.strokeStyle = chord([[0, [200, 255, 225], 0.8 * a], [0.7, [190, 250, 235], 0.6 * a], [0.88, [190, 250, 235], 0]]); g.lineWidth = 2.2; g.stroke(rach);
+  g.strokeStyle = chord([[0, [200, 255, 225], 0.75 * a], [0.55, [190, 250, 235], 0.5 * a], [0.82, [190, 250, 235], 0]]); g.lineWidth = 2; g.stroke(rach);
   const qd = [sp[0][0] - sp[3][0], sp[0][1] - sp[3][1]], ql = Math.hypot(...qd) || 1;
-  const qq = 9 * wg / ql;
+  const qq = 10 * wg / ql;
   g.strokeStyle = rgba([110, 225, 160], 0.6 * a); g.lineWidth = 2.6;
   g.beginPath(); g.moveTo(...sp[0]); g.lineTo(sp[0][0] + qd[0] * qq, sp[0][1] + qd[1] * qq); g.stroke();
   g.restore();
@@ -650,9 +664,9 @@ function plumes(t) {
   const out = 1 - smooth(10.6, 11.35, t);
   if (out <= 0.003) return;
   // the gust: a soft column of warm air rising off the steps
-  const gu = (t - 8.5) / 1.3;
+  const gu = (t - (T_GUST - 0.35)) / 1.4;
   if (gu > 0 && gu < 1) {
-    const gy = lerp(650, 330, ease.out3(gu));
+    const gy = lerp(640, 300, ease.inOut3(gu));
     radial(ctx, 540, gy, 150, [[0, WARM, 0.22], [0.5, GOLD, 0.1], [1, GOLD, 0]], Math.sin(Math.PI * gu) * out, 0.6, 1.25);
   }
   const g = LF.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
@@ -665,11 +679,15 @@ function plumes(t) {
   vg.addColorStop(0, '#000'); vg.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = vg; g.fillRect(0, 0, W, W);
   HG.reset(g);
-  HG.drawLayer(ctx, LF);
+  // as the piece dissolves the plumes and feathers turn from paint into light, so they dim as
+  // glow over the darkening stone instead of going grey-green and brown
+  const asLight = smooth(9.85, 10.4, t);
+  HG.drawLayer(ctx, LF, { alpha: 1 - asLight });
+  HG.drawLayer(ctx, LF, { alpha: asLight, op: 'lighter' });
   // light on the steps where each plume is pulled out, and sparks shed from the heads
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   STREAM.forEach((S, j) => {
-    const anchor = S.cp[0], tau = t - S.tb;
+    const anchor = S.a, tau = t - S.tb;
     const ga = smooth(-0.25, 0.05, tau) * (1 - smooth(0.9, 1.5, tau)) * out;
     glint(ctx, anchor[0], anchor[1], 64 + 14 * Math.sin(t * 6 + j), ga * 0.85, WARM, 0.3 * j);
     HG.dot(ctx, GOLD, anchor[0], anchor[1], 70, ga * 0.35);
@@ -678,7 +696,7 @@ function plumes(t) {
       const te = S.tb + 0.15 + k * 0.11, life = 0.7 + 0.5 * R(), dx = (R() - 0.5) * 60, dy = -10 - 30 * R(), ph = R() * TAU, s = 8 + 6 * R();
       const col = R() < 0.55 ? GOLD : [140, 245, 190];
       const e = t - te; if (e < 0 || e > life) continue;
-      const [qx, qy] = along(S.path, sTravel(te - S.tb) * S.spd - 10);
+      const [qx, qy] = plumeBase(S, te);
       const x = qx + dx * e, y = qy + dy * e;
       HG.dot(ctx, col, x, y, s, Math.sin(Math.PI * e / life) * out * circleFade(x, y, 440, 520) * (0.6 + 0.4 * Math.sin(t * 9 + ph)) * 0.8);
     }

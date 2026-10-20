@@ -99,14 +99,14 @@ const omega = t => (spin(t + 0.005) - spin(t - 0.005)) / 0.01;
 const HOFF = ((Math.PI / 2 - 0.9 * spin(2.35)) % Math.PI + Math.PI) % Math.PI;
 const headRot = t => 0.9 * spin(t) + HOFF + turnOf(t);
 // the hem tiers lag behind and turn against the upper skirt in each bar of the faldeo
-const hemRel = t => -0.5 * Math.cos(TAU * (t - 2.55) / 2.4) * bump(t, 2.0, 2.7, 4.5, 5.0);
+const hemRel = t => -0.32 * Math.cos(TAU * (t - 2.55) / 2.4) * bump(t, 2.0, 2.7, 4.5, 5.0);
 // the faldeo: she holds the hem in both hands, at her sides (screen angles hb and hb + PI), and swings the
 // skirt: m = how far it is swung (0..1), psw = to which side. 6/8 bar: to one side (2.35 s) then straight
 // across to the other (3.55 s); 3/4 bar: the swing travels round over the top while she turns half round
 // with it (turn), back to the first side (4.75 s). Her hands stay top and bottom in the 6/8 bar, so the
 // lowest hem is gathered up, clear of the title.
 const turnOf = t => Math.PI * smooth(3.55, 4.75, t);
-const HV = 0.5;                                           // her hands a little in front of her: the arms make a shallow V
+const HV = 0.22;                                          // her hands a little in front of her: the arms make a shallow V
 function swing(t) {
   const fald = bump(t, 2.0, 2.55, 4.75, 5.15), turn = turnOf(t);
   if (fald <= 0) return { m: 0, psw: 0, fald: 0, hb: Math.PI / 2 + turn };
@@ -128,8 +128,8 @@ function params(t) {
   return {
     t, w, wh, rw: RW, spin: spin(t), twist: -0.15 * wl, hem,
     R: (lerp(62, R0, open) + 6 * vu + 8 * e) * (1 + 0.28 * fin),
-    fald: S.fald, m: S.m, psw: S.psw, A1: 0.22 * S.m, G: S.fald * (0.17 + 0.07 * S.m), h1: S.hb + HV, h2: S.hb + Math.PI - HV,
-    g1: 1 + 0.6 * Math.max(0, Math.sin(S.hb + HV)), g2: 1 + 0.6 * Math.max(0, Math.sin(S.hb + Math.PI - HV)),
+    fald: S.fald, m: S.m, psw: S.psw, A1: S.m, G: S.fald * 0.3, h1: S.hb + HV, h2: S.hb + Math.PI - HV,
+    g1: 1 + 0.55 * Math.max(0, Math.sin(S.hb + HV)), g2: 1 + 0.55 * Math.max(0, Math.sin(S.hb + Math.PI - HV)),
     Af: lerp(0.09, 0.045, open) * (1 - 0.4 * vu) * (1 + 0.25 * Math.sin(1.7 * t)) * (1 + 0.2 * S.m), phf: 0.5 * t,
     A2: 0.03 * actE, psi: actE * 1.1 * (t - 6.6),
     A3: 0.018 * (1 - 0.7 * S.fald) + 0.012 * actE, psi3: -1.3 * t,
@@ -139,14 +139,16 @@ function params(t) {
     e,
   };
 }
+// the faldeo flare: one lobe on the swung side, a gentle pull-in on the far side, zero at her hands
+// (not a cosine, which would only shift the disc and read as two overlapping plates)
+function flareF(d) { const c = Math.cos(d); return 0.23 * Math.pow(Math.max(0, c), 1.3) - 0.12 * Math.pow(Math.max(0, -c), 1.6); }
 function fab(P, u, th0) {
   const th = th0 + P.spin + P.twist * Math.pow(u, 1.3) + P.hem * smooth(0.5, 0.78, u), up = Math.pow(Math.max(0, u), 1.6);
   let r = P.rw + (P.R - P.rw) * u
-    + P.R * up * (P.Af * Math.cos(K * th0 + P.phf) + P.A1 * Math.cos(th - P.psw) + P.A2 * Math.cos(2 * (th - P.psi)) + P.A3 * Math.cos(3 * th + P.psi3));
-  if (P.G > 0.002) {                                      // her hands lift the hem up toward her: the tiers dip in together
-                                                          // (the lower hand higher, keeping the hem out of the title band)
-    const d1 = wrapA(th - P.h1), d2 = wrapA(th - P.h2);
-    r -= P.R * P.G * smooth(0.12, 0.8, u) * (P.g1 * Math.exp(-d1 * d1 / 0.16) + P.g2 * Math.exp(-d2 * d2 / 0.16));
+    + P.R * up * (P.Af * Math.cos(K * th0 + P.phf) + P.A1 * flareF(th - P.psw) + P.A2 * Math.cos(2 * (th - P.psi)) + P.A3 * Math.cos(3 * th + P.psi3));
+  if (P.G > 0.002) {                                      // her fists gather the hem: a narrow pinch of the outer tiers toward each hand
+    const d1 = wrapA(th - P.h1), d2 = wrapA(th - P.h2), w = smooth(0.25, 1, u);
+    r -= P.R * P.G * w * Math.sqrt(w) * (P.g1 * Math.exp(-Math.sqrt(d1 * d1 + 0.004) / 0.26) + P.g2 * Math.exp(-Math.sqrt(d2 * d2 + 0.004) / 0.26));
   }
   if (u > 0.9) r += P.R * P.Ar * smooth(0.9, 1, u) * Math.cos(KR * th0 + P.phr);
   return [r * Math.cos(th), r * Math.sin(th)];
@@ -289,31 +291,27 @@ function drawSkirt(g, P, t, V, bk) {
     g.fillStyle = conic(g, a => rgba(WAVE, 0.16 * P.m * Math.pow(Math.max(0, Math.cos(a - P.psw)), 3)));
     g.fillRect(-P.R * 1.4, -P.R * 1.4, P.R * 2.8, P.R * 2.8);
     for (const hA of [P.h1, P.h2]) {
-      const a0 = hA - P.spin - P.twist - P.hem;              // the cloth under her hand
-      const [hx, hy] = fab(P, 0.975, a0);
-      const lit = P.fald * (1 - 0.8 * smooth(690, 780, V.cy + hy * V.z * V.tilt));
+      const a0 = hA - P.spin - P.twist * Math.pow(0.985, 1.3) - P.hem;   // the cloth under her fist
+      const [hx, hy] = fab(P, 0.985, a0);
+      const lit = P.fald * (1 - 0.75 * smooth(700, 790, V.cy + hy * V.z * V.tilt));
       hands.push([hx, hy, lit, hA]);
-      const fd = new Path2D(), fl = new Path2D();
-      for (let k = -3; k <= 3; k++) {
-        const ue = 0.4 + 0.14 * Math.abs(k), da = 0.22 * k, wd = 7 + 3.5 * Math.abs(k), Lp = [], Rp = [];
-        for (let i = 0; i <= 7; i++) {
-          const s = i / 7, u = lerp(0.985, ue, s), a = a0 + da * Math.pow(s, 0.8);
-          const [x, y] = fab(P, u, a), [x2, y2] = fab(P, u, a + 0.01);
-          let nx = x2 - x, ny = y2 - y; const nn = Math.hypot(nx, ny) || 1; nx /= nn; ny /= nn;
-          const hw = wd * Math.pow(Math.sin(Math.PI * Math.min(1, 0.08 + s * 0.92)), 0.8);
-          Lp.push([x + nx * hw, y + ny * hw]); Rp.push([x - nx * hw, y - ny * hw]);
-        }
-        const p = k % 2 === 0 ? fd : fl;
-        Lp.forEach(([x, y], i) => i ? p.lineTo(x, y) : p.moveTo(x, y)); Rp.reverse().forEach(([x, y]) => p.lineTo(x, y)); p.closePath();
-      }
-      g.filter = HG.blur(5);
-      g.fillStyle = `rgba(24,0,14,${0.75 * P.fald})`; g.fill(fd);
-      g.fillStyle = rgba(GOLD, 0.42 * lit); g.fill(fl);
+      // folds fan out of the fist: out along the gathered hem on both sides, and back in toward her waist
+      const fd = new Path2D(), fl = new Path2D(), ix = -Math.cos(hA), iy = -Math.sin(hA);
+      const wedge = (p, beta, len, w0, w1, bend) => {           // a fold leaving the fist at angle beta from "inward"
+        const c = Math.cos(beta), s_ = Math.sin(beta), dx = ix * c - iy * s_, dy = ix * s_ + iy * c, nx = -dy, ny = dx;
+        const ex = hx + dx * len, ey = hy + dy * len, mx = hx + dx * len * 0.5 + nx * bend, my = hy + dy * len * 0.5 + ny * bend;
+        p.moveTo(hx + nx * w0, hy + ny * w0); p.quadraticCurveTo(mx + nx * (w0 + w1) / 2, my + ny * (w0 + w1) / 2, ex + nx * w1, ey + ny * w1);
+        p.lineTo(ex - nx * w1, ey - ny * w1); p.quadraticCurveTo(mx - nx * (w0 + w1) / 2, my - ny * (w0 + w1) / 2, hx - nx * w0, hy - ny * w0); p.closePath();
+      };
+      const sw = 6 * Math.sin(TAU * (t - 2.35) / 1.2);             // the folds sway with the swing
+      for (let j = -3; j <= 3; j++) wedge(fd, j * 0.42, 185 - 18 * Math.abs(j), 3, 19, sw - j * 11);
+      for (let j = -2.5; j <= 2.5; j++) wedge(fl, j * 0.42, 170 - 18 * Math.abs(j), 1.5, 6, sw - j * 11);
+      const fg = (col, a) => { const q = g.createRadialGradient(hx, hy, 0, hx, hy, 190); q.addColorStop(0, rgba(col, a)); q.addColorStop(0.45, rgba(col, a * 0.8)); q.addColorStop(1, rgba(col, 0)); return q; };
+      g.filter = HG.blur(3);
+      g.fillStyle = fg([10, 0, 5], 0.95 * P.fald); g.fill(fd);
+      g.filter = HG.blur(1.2);
+      g.fillStyle = fg([255, 200, 170], 0.85 * lit); g.fill(fl);
       g.filter = 'none';
-      const lu = new Path2D(); region(lu, P, 0.93, 1.0, a0 - 0.32, a0 + 0.32, 3, 24);
-      const lgr = g.createRadialGradient(hx, hy, 0, hx, hy, 85);
-      lgr.addColorStop(0, rgba(LACE, 0.85 * lit)); lgr.addColorStop(0.5, rgba(LACE, 0.4 * lit)); lgr.addColorStop(1, rgba(LACE, 0));
-      g.fillStyle = lgr; g.fill(lu);
     }
   }
   // afternoon light: warm on the sun side, violet on the far side
@@ -326,55 +324,93 @@ function drawSkirt(g, P, t, V, bk) {
   g.save(); g.globalCompositeOperation = 'lighter';
   g.strokeStyle = conic(g, a => rgba(GOLD, 0.75 * kl * Math.pow(Math.max(0, Math.cos(a - SUN)), 2)));
   g.lineWidth = 12; g.filter = HG.blur(5); g.stroke(lp); g.filter = 'none'; g.lineWidth = 2.5; g.stroke(lp);
-  for (const [x, y, a] of hands) HG.dot(g, GOLD, x, y, 64, 0.22 * a);
+  for (const [x, y, a] of hands) HG.dot(g, GOLD, x, y, 70, 0.2 * a);
   g.restore();
-  // her arms, reaching out from her shoulders (under the ends of the blouse ruffle) to the hem she holds
+  // where the hem turns up in her fist its white lace and pale underside show; then her arm and the fist on the cloth
   const hr = headRot(t);
   for (const [x, y, a, hA] of hands) {
-    const sa = hr + (Math.cos(hA - hr) >= 0 ? 0 : Math.PI), sx = Math.cos(sa) * 104, sy = Math.sin(sa) * 104;
-    const k = Math.sqrt(P.fald);
-    drawArm(g, sx, sy, lerp(sx, x, k), lerp(sy, y, k), smooth(0, 0.35, P.fald), P.h1 - HV - Math.PI / 2);
+    const ox = Math.cos(hA), oy = Math.sin(hA), k = smooth(0, 0.35, P.fald);
+    drawLaceTurn(g, x, y, ox, oy, k, a);
+    const sa = hr + (Math.cos(hA - hr) >= 0 ? 0 : Math.PI), sx = Math.cos(sa) * 122, sy = Math.sin(sa) * 122;
+    const kk = Math.sqrt(P.fald);
+    drawArm(g, sx, sy, lerp(sx, x, kk), lerp(sy, y, kk), k, P.h1 - HV - Math.PI / 2, ox, oy);
   }
 
   // the dancer herself at the centre (until she hops out onto the brim)
   if (t < LIFT0) drawHer(g, headRot(t), ignite(t, 0.05), 1);
 }
 
-// an arm seen from above: shoulder (sx, sy) to hand (hx, hy), with a little bend at the elbow and a soft shadow
+// an arm seen from above: shoulder (sx, sy) -> elbow -> hand (hx, hy). A puffed white sleeve on the upper arm,
+// the forearm, and a fist closed over the hem (fingers on the outer side, direction (ox, oy)), with a soft shadow.
 const SKIN = [204, 138, 104], SKINL = [250, 200, 165], SKIND = [150, 88, 70], BLOUSE = [255, 238, 228];
-function drawArm(g, sx, sy, hx, hy, a, back) {             // back: direction of her back (the elbow bends that way)
+function limb(g, ax, ay, bx, by, w0, w1, bulge = 0) {        // a tapered capsule from a to b
+  const dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L, n = 12, Lp = [], Rp = [];
+  for (let i = 0; i <= n; i++) {
+    const s = i / n, w = lerp(w0, w1, s) + bulge * Math.sin(Math.PI * s), x = ax + dx * s, y = ay + dy * s;
+    Lp.push([x + nx * w, y + ny * w]); Rp.push([x - nx * w, y - ny * w]);
+  }
+  g.beginPath(); Lp.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y));
+  g.arc(bx, by, w1, Math.atan2(ny, nx), Math.atan2(-ny, -nx), true);   // round end at b
+  Rp.reverse().forEach(([x, y]) => g.lineTo(x, y)); g.arc(ax, ay, w0, Math.atan2(-ny, -nx), Math.atan2(ny, nx), true); g.closePath();
+}
+function drawArm(g, sx, sy, hx, hy, a, back, ox, oy) {
   if (a <= 0.01) return;
-  const dx = hx - sx, dy = hy - sy, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, nx = -uy, ny = ux;
-  const b = 0.1 * L * (Math.sign(nx * Math.cos(back) + ny * Math.sin(back)) || 1);
-  const cx = (sx + hx) / 2 + nx * b, cy = (sy + hy) / 2 + ny * b;    // the arm's centre line is a curve S -> H
-  const B = t => [(1 - t) * (1 - t) * sx + 2 * t * (1 - t) * cx + t * t * hx, (1 - t) * (1 - t) * sy + 2 * t * (1 - t) * cy + t * t * hy];
-  const Nm = t => { const tx = 2 * (1 - t) * (cx - sx) + 2 * t * (hx - cx), ty = 2 * (1 - t) * (cy - sy) + 2 * t * (hy - cy), l = Math.hypot(tx, ty) || 1; return [-ty / l, tx / l]; };
-  const strip = (t0, t1, w, ox = 0, oy = 0) => {
-    const Lp = [], Rp = [];
-    for (let i = 0; i <= 10; i++) { const t = lerp(t0, t1, i / 10), [x, y] = B(t), [px, py] = Nm(t), ww = w(t); Lp.push([x + px * ww + ox, y + py * ww + oy]); Rp.push([x - px * ww + ox, y - py * ww + oy]); }
-    g.beginPath(); Lp.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); Rp.reverse().forEach(([x, y]) => g.lineTo(x, y)); g.closePath();
+  const dx = hx - sx, dy = hy - sy, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+  if (ox === undefined) { ox = dx / L; oy = dy / L; }
+  const sg = Math.sign(nx * Math.cos(back) + ny * Math.sin(back)) || 1, off = 0.36 * L;   // the elbow bends out, back
+  const ex = (sx + hx) / 2 + nx * off * sg, ey = (sy + hy) / 2 + ny * off * sg;
+  const ux = (ex - sx), uy = (ey - sy), ul = Math.hypot(ux, uy) || 1;
+  const kx = sx + ux * 0.5, ky = sy + uy * 0.5;               // the puffed sleeve covers the top of the upper arm
+  const sd = Math.sign(nx * Math.cos(SUN) + ny * Math.sin(SUN)) || 1;
+  const fist = (dx_, dy_, sc) => {
+    const tx = -oy, ty = ox, cx = hx + dx_, cy = hy + dy_;
+    g.beginPath(); g.ellipse(cx - ox * 2 * sc, cy - oy * 2 * sc, 14 * sc, 18 * sc, Math.atan2(oy, ox), 0, TAU); g.fill();
+    for (let i = -1.5; i <= 1.5; i++) { g.beginPath(); g.arc(cx + ox * 7 * sc + tx * i * 8 * sc, cy + oy * 7 * sc + ty * i * 8 * sc, 5.5 * sc, 0, TAU); g.fill(); }
   };
-  const [ex, ey] = B(1), [qx, qy] = B(0.97), fa = Math.atan2(ey - qy, ex - qx);
-  const fist = (ox, oy, k) => { g.beginPath(); g.ellipse(hx + Math.cos(fa) * 8 + ox, hy + Math.sin(fa) * 8 + oy, 16 * k, 13 * k, fa, 0, TAU); };
-  const wArm = t => lerp(14, 9.5, t), TS = 0.46, wSl = t => 19 + 5 * Math.sin(Math.PI * clamp(t / TS));
-  g.save();
+  g.save(); g.lineJoin = 'round';
   // shadow on the cloth below (the arm is held above the skirt)
-  g.globalAlpha = 0.6 * a; g.filter = HG.blur(6); g.fillStyle = 'rgb(18,0,10)';
-  strip(0, 1, t => wArm(t) + 2, 9, 12); g.fill(); strip(0, TS, wSl, 9, 12); g.fill(); fist(9, 12, 1.1); g.fill(); g.filter = 'none';
-  // forearm and hand
-  g.globalAlpha = a; g.fillStyle = rgba(SKIN); strip(TS - 0.05, 1, wArm); g.fill(); fist(0, 0, 1); g.fill();
-  const [mx, my] = Nm(0.7), sd = Math.sign(mx * Math.cos(SUN) + my * Math.sin(SUN)) || 1;
-  g.fillStyle = rgba(SKIND, 0.45); strip(TS, 1, t => wArm(t) * 0.45, -sd * mx * 6, -sd * my * 6); g.fill();
-  g.fillStyle = rgba(SKINL, 0.5); strip(TS, 0.98, t => wArm(t) * 0.25, sd * mx * 6, sd * my * 6); g.fill();
-  // the blouse's puffed sleeve, white, edged with green ribbon and a little ruffle
-  g.fillStyle = rgba(BLOUSE); strip(0, TS, wSl); g.fill();
-  g.fillStyle = 'rgba(190,140,170,0.35)'; strip(0, TS, t => wSl(t) * 0.4, -sd * mx * 11, -sd * my * 11); g.fill();
-  const [kx, ky] = B(TS), [nx2, ny2] = Nm(TS), w2 = wSl(TS) + 3;
-  g.lineCap = 'round'; g.strokeStyle = rgba(GREEN); g.lineWidth = 5;
-  g.beginPath(); g.moveTo(kx + nx2 * w2, ky + ny2 * w2); g.lineTo(kx - nx2 * w2, ky - ny2 * w2); g.stroke();
-  g.fillStyle = rgba(BLOUSE); const [tx2, ty2] = [ny2, -nx2];
-  for (let i = -2; i <= 2; i++) { g.beginPath(); g.arc(kx + nx2 * i * w2 / 2.4 - tx2 * 5, ky + ny2 * i * w2 / 2.4 - ty2 * 5, 5, 0, TAU); g.fill(); }
+  g.globalAlpha = 0.6 * a; g.filter = HG.blur(7); g.fillStyle = 'rgb(16,0,8)';
+  g.save(); g.translate(10, 13); limb(g, sx, sy, kx, ky, 26, 22, 9); g.fill(); limb(g, sx, sy, ex, ey, 14, 13); g.fill(); limb(g, ex, ey, hx, hy, 13, 10.5); g.fill(); g.restore();
+  fist(10, 13, 1.1); g.filter = 'none';
+  // forearm (skin), lit on the sun side
+  g.globalAlpha = a; g.fillStyle = rgba(SKIN); limb(g, sx, sy, ex, ey, 14, 13); g.fill(); limb(g, ex, ey, hx, hy, 13, 10.5); g.fill();
+  g.fillStyle = rgba(SKIND, 0.55); g.beginPath(); g.arc(ex, ey, 12.5, 0, TAU); g.fill(); g.fillStyle = rgba(SKIN); g.beginPath(); g.arc(ex, ey, 10.5, 0, TAU); g.fill();
+  const fl = Math.hypot(hx - ex, hy - ey) || 1, fnx = -(hy - ey) / fl, fny = (hx - ex) / fl, fs = Math.sign(fnx * Math.cos(SUN) + fny * Math.sin(SUN)) || 1;
+  g.fillStyle = rgba(SKINL, 0.55); limb(g, ex + fnx * fs * 6, ey + fny * fs * 6, hx + fnx * fs * 5, hy + fny * fs * 5, 4, 3); g.fill();
+  g.fillStyle = rgba(SKIND, 0.5); limb(g, ex - fnx * fs * 7, ey - fny * fs * 7, hx - fnx * fs * 6, hy - fny * fs * 6, 4, 3); g.fill();
+  // the fist, closed over the hem
+  g.fillStyle = rgba(SKIN); fist(0, 0, 1);
+  g.strokeStyle = rgba(SKIND, 0.8); g.lineWidth = 1.6;
+  for (let i = -1; i <= 1; i++) { const tx = -oy, ty = ox, cx = hx + ox * 7 + tx * i * 8, cy = hy + oy * 7 + ty * i * 8; g.beginPath(); g.moveTo(cx - ox * 5, cy - oy * 5); g.lineTo(cx + ox * 3, cy + oy * 3); g.stroke(); }
+  g.fillStyle = rgba(SKINL, 0.6); g.beginPath(); g.ellipse(hx - ox * 6 + Math.cos(SUN) * 5, hy - oy * 6 + Math.sin(SUN) * 5, 7, 5, 0, 0, TAU); g.fill();
+  // the puffed sleeve over the upper arm: a full white balloon, shaded on the far side, with a green ribbon and a frill at the elbow
+  g.fillStyle = rgba(BLOUSE); limb(g, sx, sy, kx, ky, 27, 22, 10); g.fill();
+  g.fillStyle = 'rgba(170,120,160,0.4)'; g.save(); g.translate(-Math.cos(SUN) * 12, -Math.sin(SUN) * 12); limb(g, sx, sy, kx, ky, 13, 10, 6); g.restore(); g.fill();
+  g.strokeStyle = 'rgba(200,150,170,0.55)'; g.lineWidth = 1.5;                     // gathers in the puff
+  const unx = -uy / ul, uny = ux / ul;
+  for (const f of [-0.5, 0, 0.5]) { g.beginPath(); g.moveTo(sx + unx * f * 30, sy + uny * f * 30); g.quadraticCurveTo(sx + ux * 0.25 + unx * f * 46, sy + uy * 0.25 + uny * f * 46, kx + unx * f * 26, ky + uny * f * 26); g.stroke(); }
+  g.lineCap = 'round'; g.strokeStyle = rgba(GREEN); g.lineWidth = 6;
+  g.beginPath(); g.moveTo(kx + unx * 24, ky + uny * 24); g.lineTo(kx - unx * 24, ky - uny * 24); g.stroke();
+  g.fillStyle = rgba(BLOUSE);
+  for (let i = -2; i <= 2; i++) { g.beginPath(); g.arc(kx + unx * i * 10 + ux / ul * 7, ky + uny * i * 10 + uy / ul * 7, 5.5, 0, TAU); g.fill(); }
   g.restore();
+}
+// where her fist lifts the hem it turns over: a scalloped crescent of white lace and the pale satin underside
+function drawLaceTurn(g, x, y, ox, oy, a, lit) {
+  if (a <= 0.01) return;
+  const tx = -oy, ty = ox, cx = x + ox * 13, cy = y + oy * 13, rot = Math.atan2(ty, tx);
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.globalAlpha = a;
+  g.filter = HG.blur(5); g.fillStyle = 'rgba(16,0,8,0.6)'; g.beginPath(); g.ellipse(4, 9, 46, 24, 0, 0, TAU); g.fill(); g.filter = 'none';
+  // lace: scalloped, wider than the fist
+  g.beginPath();
+  for (let i = 0; i <= 96; i++) { const q = i / 96 * TAU, sc = 1 + 0.09 * Math.abs(Math.sin(7 * q)); g.lineTo(Math.cos(q) * 40 * sc, Math.sin(q) * 21 * sc + 4); }
+  g.closePath(); g.fillStyle = rgba(mix([215, 175, 165], LACE, 0.4 + 0.6 * lit)); g.fill();
+  g.fillStyle = 'rgba(150,70,90,0.45)';                      // the lace's pattern
+  for (let i = -3; i <= 3; i++) { g.beginPath(); g.arc(i * 10, 12, 2.4, 0, TAU); g.fill(); g.beginPath(); g.arc(i * 10 + 5, 4, 1.8, 0, TAU); g.fill(); }
+  // the satin underside, pale rose, turned up between lace and fist
+  g.fillStyle = rgba(mix([200, 110, 120], [255, 214, 210], lit)); g.beginPath(); g.ellipse(0, -5, 30, 10, 0, 0, TAU); g.fill();
+  g.restore();
+  g.save(); g.globalCompositeOperation = 'lighter'; HG.dot(g, [255, 226, 200], cx, cy, 90, 0.3 * a * lit); g.restore();
 }
 
 // her, seen from above: blouse ruffle, braids wound round the head with ribbons, rosa bow (scale s)
