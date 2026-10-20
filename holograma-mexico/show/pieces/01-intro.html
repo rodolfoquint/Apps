@@ -264,6 +264,13 @@ function drawSun(t) {
   const ringA = smooth(0, 0.08, bt) * (1 - smooth(TB + 0.9 + HOLD, 5.3 + HOLD, t));
   if (ringA > 0.003) {
     softGlow(C, C, ringR * 1.1, GOLD, 0.2 * ringA, 0.5);
+    // a warm, gently breathing heart, so the medallion's centre never reads as a dim brown disc on the LEDs
+    softGlow(C, C, ringR * 0.95, mix(GOLD, WARM, 0.5), (0.27 + 0.05 * Math.sin(5.5 * bt)) * ringA, 0.75);
+    // an inner ring of twelve gold sparks turning against the rays
+    for (let i = 0; i < 12; i++) {
+      const an = i * TAU / 12 - 0.6 * bt, rr = ringR * 0.6, tw = 0.5 + 0.5 * Math.sin(6 * bt + i * 1.7);
+      spark(i % 2 ? GOLD : WARM, C + Math.cos(an) * rr, C + Math.sin(an) * rr, 16 + 6 * tw, (0.45 + 0.35 * tw) * ringA * smooth(0.2, 0.5, bt));
+    }
     thinRing(ringR, GOLD, 0.95 * ringA, 3.2);
     bandRing(ringR * 0.84, AMBER, 0.32 * ringA, 3, 3);
   }
@@ -277,13 +284,13 @@ function drawSun(t) {
   g.globalCompositeOperation = 'lighter'; g.translate(C, C);
   const N = 24, w0 = 5.2;
   for (let i = 0; i < N; i++) {
-    const tip = TRI[i % 3], hl = Math.pow(0.5 + 0.5 * Math.cos(2 * i * TAU / N - 3.4 * bt), 6);
-    g.globalAlpha = 0.74 + 0.26 * hl;
+    const tip = TRI[i % 3], hl = Math.pow(0.5 + 0.5 * Math.cos(2 * i * TAU / N - 3.4 * bt), 4);
+    g.globalAlpha = 0.58 + 0.42 * hl;
     g.save(); g.rotate(rot + i * TAU / N);
     const lg = g.createLinearGradient(r0, 0, r0 + len, 0);
     lg.addColorStop(0, rgba(GOLD, 0.35)); lg.addColorStop(0.04, rgba(GOLD, 0.95)); lg.addColorStop(0.45, rgba(GOLD, 0.62));
     lg.addColorStop(0.8, rgba(mix(GOLD, tip, 0.6), 0.25)); lg.addColorStop(1, rgba(tip, 0));
-    const li = len * (1 + 0.07 * hl);
+    const li = len * (1 + 0.14 * hl);
     g.fillStyle = lg; g.beginPath(); g.moveTo(r0, -w0); g.lineTo(r0 + li, 0); g.lineTo(r0, w0); g.closePath(); g.fill();
     g.restore();
   }
@@ -292,6 +299,11 @@ function drawSun(t) {
   ctx.globalAlpha = 0.5 * strength; ctx.filter = 'blur(4px)'; ctx.drawImage(RAYS.cv, 0, 0);
   ctx.filter = 'none'; ctx.globalAlpha = 0.9 * strength; ctx.drawImage(RAYS.cv, 0, 0);
   ctx.restore();
+  // the chase made visible: a spark rides out to the tip of each ray as the highlight passes
+  for (let i = 0; i < N; i++) {
+    const hl = Math.pow(0.5 + 0.5 * Math.cos(2 * i * TAU / N - 3.4 * bt), 4), an = rot + i * TAU / N, rr = r0 + len * 0.72;
+    spark(mix(GOLD, TRI[i % 3], 0.4), C + Math.cos(an) * rr, C + Math.sin(an) * rr, 22, 0.75 * hl * strength * smooth(0.4, 0.8, bt));
+  }
 }
 // burst sparks: thrown outward from just outside the heart, still carrying the vortex's spin
 const BURST = (() => {
@@ -327,6 +339,16 @@ function drawBurst(t) {
   }
   ctx.restore();
 }
+// keep the title band calm: from about 2 s everything of the vortex, the bloom and the sun fades out
+// below y≈760 and is gone by 860 (black painted over black is a no-op, so this only dims what is lit there)
+function calmBand(t) {
+  const m = smooth(1.8, 2.2, t);
+  if (m <= 0.003) return;
+  ctx.save(); HG.reset(ctx); ctx.globalCompositeOperation = 'source-over';
+  const g = ctx.createLinearGradient(0, 755, 0, 862);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.35, `rgba(0,0,0,${0.3 * m})`); g.addColorStop(0.7, `rgba(0,0,0,${0.8 * m})`); g.addColorStop(1, `rgba(0,0,0,${m})`);
+  ctx.fillStyle = g; ctx.fillRect(0, 755, W, W - 755); ctx.restore();
+}
 // the sun's warm afterglow: a smooth radial glow that lingers behind the falling garlands, then clears to black
 // (a dim veil between the rows would be crushed to muddy brown by the LEDs)
 function drawBacklight(t) {
@@ -352,20 +374,24 @@ const DESIGNS = {
 // cy: lowest point of the cord at rest, sag: dip below its chord, tilt: right end lower (+) or higher (-)
 // drop: when the row starts falling from above the circle, T: fall time, D: fall distance
 const ROWS = [
-  { cy: 296, sag: 116, tilt: -16, n: 4, spacing: 180, drop: 4.95 + HOLD, T: 1.05, D: 446, ph: 0.0, designs: 'ACBD', cols: ['pink', 'turq', 'orange', 'purple'] },
-  { cy: 508, sag: 126, tilt: 14, n: 5, spacing: 172, drop: 4.62 + HOLD, T: 1.25, D: 658, ph: 1.9, designs: 'BDACA', cols: ['yellow', 'green', 'pink', 'turq', 'orange'] },
-  { cy: 714, sag: 110, tilt: -12, n: 4, spacing: 176, drop: 4.3 + HOLD, T: 1.45, D: 864, ph: 3.7, designs: 'DBAC', cols: ['purple', 'orange', 'yellow', 'green'] },
+  { cy: 251, sag: 116, tilt: -16, n: 4, spacing: 180, drop: 4.95 + HOLD, T: 1.05, D: 446, ph: 0.0, designs: 'ACBD', cols: ['pink', 'turq', 'orange', 'purple'] },
+  { cy: 463, sag: 126, tilt: 14, n: 5, spacing: 172, drop: 4.62 + HOLD, T: 1.25, D: 658, ph: 1.9, designs: 'BDACA', cols: ['yellow', 'green', 'pink', 'turq', 'orange'] },
+  { cy: 669, sag: 110, tilt: -12, n: 4, spacing: 176, drop: 4.3 + HOLD, T: 1.45, D: 864, ph: 3.7, designs: 'DBAC', cols: ['purple', 'orange', 'yellow', 'green'] },
 ];
 ROWS.forEach((R, ri) => { R.ri = ri; });
 const HW = 600, BASEW = 158, SS = 1.4;
 
 // the gust: one breath of wind runs left to right along every row, the clear beat of the hold
-const GUST_T = 6.35, GUST_V = 820, GUST_ROW = 0.08;
+const GUST_T = 6.05, GUST_V = 820, GUST_ROW = 0.08;
 const gustTau = (x, ri, t) => t - GUST_T - (x + 120) / GUST_V - ri * GUST_ROW;
 // damped swing: pushed downwind in ~0.27 s, swings back past rest, settles within about 1.3 s (peak 1)
 const gustSwing = u => u <= 0 ? 0 : smooth(0, 0.08, u) * Math.sin(4.2 * u) * Math.exp(-1.9 * u) / 0.5425;
 // how stirred up the paper and the cord are
 const gustStir = u => u <= 0 ? 0 : smooth(0, 0.16, u) * Math.exp(-1.7 * Math.max(0, u - 0.16));
+// a second, softer breath late in the hold keeps the paper alive under the chase until the dissolve
+const GUST2_T = 8.75, GUST2_K = 0.6;
+const swingAt = (x, ri, t) => gustSwing(gustTau(x, ri, t)) + GUST2_K * gustSwing(gustTau(x, ri, t - GUST2_T + GUST_T));
+const stirAt = (x, ri, t) => gustStir(gustTau(x, ri, t)) + GUST2_K * gustStir(gustTau(x, ri, t - GUST2_T + GUST_T));
 
 // the chase: a spark of light runs back along each cord, right to left, lighting every flag it passes
 const CH_FLASH = 0.45;
@@ -421,9 +447,9 @@ function rowState(R, t) {
 // the cord, with a gentle wave travelling along it (the breeze), pinned at both ends
 function cordY(R, S, x, t) {
   const u = (x - C) / HW;
-  const gu = gustTau(x, R.ri, t), land = smooth(-0.3, 0.5, S.land);
-  const wave = (9 * S.live + 11 * land * gustStir(gu)) * (1 - u * u) * Math.sin(1.85 * t - 0.0057 * x + R.ph);
-  const billow = -17 * land * gustSwing(gu) * (1 - u * u);
+  const land = smooth(-0.3, 0.5, S.land);
+  const wave = (9 * S.live + 11 * land * stirAt(x, R.ri, t)) * (1 - u * u) * Math.sin(1.85 * t - 0.0057 * x + R.ph);
+  const billow = -17 * land * swingAt(x, R.ri, t) * (1 - u * u);
   return R.cy - S.sag + S.dy + S.sag * (1 - u * u) + R.tilt * u + wave + billow;
 }
 
@@ -445,8 +471,8 @@ function flagPoses(t) {
       // landing kick, then a slow pendulum whose phase travels along the cord
       const kick = 0.16 * smooth(-0.1, 0.12, S.land) * Math.exp(-2.0 * Math.max(0, S.land)) * Math.sin(5.2 * S.land + i * 0.9);
       const pend = 0.108 * (0.85 + 0.15 * Math.sin(0.5 * t + ri)) * Math.sin(2.1 * t - 0.0066 * x + R.ph + 0.6);
-      const gu = gustTau(x, ri, t), landed = smooth(-0.3, 0.5, S.land), gs = landed * gustStir(gu);
-      const gust = -0.225 * landed * gustSwing(gu);         // up to ~13 degrees downwind, then back past rest
+      const landed = smooth(-0.3, 0.5, S.land), gs = landed * stirAt(x, ri, t);
+      const gust = -0.225 * landed * swingAt(x, ri, t);         // up to ~13 degrees downwind, then back past rest
       // the top edge stays hinged along the cord; the swing shears the paper below it (no corner pokes above the cord)
       const rot = Math.atan(slope), swing = F.hang + pend * S.live + kick + gust, shear = -Math.tan(swing);
       // 3D flutter: the paper turns about its hanging axis and tips on the cord (harder in the gust)
@@ -650,6 +676,7 @@ HG.start({
     drawBloom(t);
     drawSun(t);
     drawBurst(t);
+    calmBand(t);
     HG.dust(t, { n: 60, colors: [WARM, FC.pink, FC.turq, FC.yellow], alpha: 0.3 * smooth(6.0, 7.2, t) * (1 - smooth(10.0, 11.0, t)), size: 7, r: 470 });
     drawGarlands(t, poses, A);
     drawWave(t);

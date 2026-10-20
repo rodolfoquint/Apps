@@ -48,7 +48,7 @@ const kLight = t => 0.92 * growE((t - 1.2) / 2.45);                     // branc
 const uColour = t => lerp(-0.08, 1.12, ease.inOut3((t - 2.05) / 2.75));  // painted clay floods in
 const T_END = 8.85;                                                       // the ending starts
 const uRecede = t => lerp(1.12, -0.1, smooth(T_END, 10.6, t));           // ...and recedes at the end
-const bCut = t => lerp(730, -12, smooth(9.2, 10.8, t));                   // the light is drawn back into the seed (see seedDist)
+const bCut = t => lerp(730, -12, smooth(9.1, 10.85, t));                   // the light is drawn back into the seed (see seedDist)
 const EDGE = 0.06;                                                        // soft edge of the growth front
 // time at which a monotonic f(t) crosses v (bisection; evaluated once, deterministic)
 function crossing(f, v, a, b) { const up = f(b) > f(a); for (let i = 0; i < 40; i++) { const m = (a + b) / 2; if ((f(m) < v) === up) a = m; else b = m; } return (a + b) / 2; }
@@ -795,15 +795,15 @@ HG.start({
     if (t > T_END - 0.1) {
       const V = [C, 470];
       for (const f of FL) {
-        const R = HG.rng(101 + f.i), n = f.i === CROWN ? 12 : 6;
+        const R = HG.rng(101 + f.i), n = f.i === CROWN ? 10 : 5;
         for (let j = 0; j < n; j++) {
           const ang = R() * TAU, rr = Math.sqrt(R()) * f.Rr * 0.8, ph = R() * TAU, len = 16 + R() * 9, dl = R() * 0.12, spd = 0.85 + 0.4 * R();
           const tau = t - f.tRel - dl; if (tau <= 0) continue;
           const px = f.X + Math.cos(ang) * rr, py = f.Y + Math.sin(ang) * rr;
           const rho0 = Math.hypot(px - V[0], py - V[1]), phi0 = Math.atan2(py - V[1], px - V[0]);
-          const phi = phi0 + spd * (2.2 * tau + 1.2 * tau * tau), rho = rho0 + spd * (90 * tau + 320 * tau * tau);
+          const phi = phi0 + spd * (1.6 * tau + 0.8 * tau * tau), rho = rho0 + spd * (70 * tau + 190 * tau * tau);
           const x = V[0] + Math.cos(phi) * rho, y = V[1] + Math.sin(phi) * rho - 60 * tau;
-          const a = smooth(0, 0.08, tau) * (1 - smooth(0.5, 0.82, tau));
+          const a = smooth(0, 0.1, tau) * (1 - smooth(0.6, 1.0, tau));
           petal(ctx, x, y, len, ph + 4 * tau, Math.cos(ph + 6 * tau), j % 4 ? f.col : mix(f.col, WHITE, 0.4), a);
         }
       }

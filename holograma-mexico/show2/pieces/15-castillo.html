@@ -23,7 +23,7 @@ const TAU = Math.PI * 2;
 const HOT = [255, 236, 204], REED = [226, 146, 84], EMBER = [255, 96, 36];
 const PAL = {
   green: { hot: [214, 255, 190], main: [46, 236, 118], deep: [14, 160, 100] },
-  white: { hot: [255, 250, 236], main: [212, 226, 255], deep: [136, 156, 255] },
+  white: { hot: [255, 250, 236], main: [238, 236, 230], deep: [212, 192, 164] },   // warm silver, like real silver fountain fire
   gold2: { hot: [255, 240, 196], main: [255, 204, 104], deep: [255, 146, 46] },
   red:   { hot: [255, 200, 120], main: [255, 54, 50], deep: [206, 18, 54] },
   pink:  { hot: [255, 206, 236], main: [255, 56, 170], deep: [190, 34, 210] },
@@ -51,8 +51,8 @@ function hash(a, b) {
 const I1 = 1.35, I2 = 2.75, I3 = 4.15, I4 = 5.6, I5 = 6.95;   // ignitions: green, white, red, pink, crown
 const LIFT = 9.1;                                              // the crown lifts off
 const SUN0 = 10.45, SUN1 = 11.3;                               // the whirl becomes the sun
-const SHR0 = 11.8, SHR1 = 12.85;                               // the sun draws in to a point
-const PT0 = 12.95, PT1 = 13.4;                                 // the point fades
+const SHR0 = 12.1, SHR1 = 12.95;                               // the sun draws in to a point
+const PT0 = 13.0, PT1 = 13.4;                                  // the point fades
 
 // ---------- the tower (local coords: x right, y down (screen-like px), z away from us; axis at x = z = 0)
 const LV = [[850, 104], [748, 96], [640, 88], [530, 80], [405, 72], [290, 64]];   // [y, half width]: a reed column, nearly straight
@@ -122,7 +122,7 @@ const FLY = 2.25, FLY_H = 650, FLY_Z = 750;
 const flyK = t => ease.inOut3((t - LIFT) / FLY);
 const crownPos = t => { const k = flyK(t); return [-14 * (1 - k), CROWN_Y - FLY_H * k, -FLY_Z * k]; };
 const focalAt = t => D * (1 + 0.025 * smooth(0, 6.5, t)) * (1 + 0.06 * sstep((t - 6.7) / 2.9)) * (1 + 0.06 * smooth(LIFT + 0.4, SUN1, t));
-const ENDY = 555;                                            // the final point (where the next piece's point waits)
+const ENDY = 540;                                            // the final point: the centre, where the gold portal opens
 // the camera tilts up after it: eased so the crown holds near the top, then settles at the centre
 const EL_END = Math.atan2(EY - (CROWN_Y - FLY_H), D - FLY_Z);
 const PITCH_END = EL_END + Math.atan((ENDY - 540) / focalAt(20));
@@ -130,7 +130,11 @@ const PITCH_END = EL_END + Math.atan((ENDY - 540) / focalAt(20));
 const LEAN = 0.045;
 const pitchAt = t => A0 + LEAN * sstep((t - 6.7) / 3.0) + (PITCH_END - A0 - LEAN) * sstep((t - 9.4) / 1.95);
 // the crown tilts toward us in flight, so that it ends facing us
-const tiltAt = t => (Math.PI / 2 - EL_END) * smooth(LIFT + 0.1, LIFT + 1.05, t);   // face-on early: never an oblique ring over one arm
+// In flight the ring leans back so its axis runs along the trail it leaves (down and away): every jet then
+// draws a true helix, symmetric about its axis from any view (a ring spinning in the plane of its own drift
+// would draw one-sided loops, like a letter). As the sun is born the ring swings round to face us.
+const TRAIL_LEAN = 0.72;
+const tiltAt = t => -TRAIL_LEAN * smooth(LIFT, LIFT + 0.7, t) + (TRAIL_LEAN + Math.PI / 2 - EL_END) * smooth(SUN0 - 0.3, SUN1 - 0.1, t);
 let V = null, SUBA = 1, STRUCTA = 1;                       // SUBA: alpha share of a motion-blur sub-sample
 function view(t) {
   const a = pitchAt(t), psi = yawAt(t);
@@ -459,6 +463,31 @@ function drawFlower(c, F, d, t, base, fire = true) {
   }
 }
 
+// ---------- a few large, rare pops in the full blaze (7 to 8.7 s): four-frame star bursts near the devices
+const POPS = (() => {
+  const R = HG.rng(4242), o = [], hosts = [0, 2, 6, 3, 1, 7, 2, 4, 6];
+  hosts.forEach((di, i) => o.push({ tp: 7.0 + 1.6 * (i + 0.2 + 0.6 * R()) / hosts.length, d: DEV[di], ang: R() * TAU, rr: 0.75 + 0.6 * R(), rot: R() * 3, n: 9 + Math.floor(4 * R()) }));
+  return o;
+})();
+function drawPops(c, t) {
+  c.lineCap = 'round';
+  for (const P0 of POPS) {
+    const u = (t - P0.tp) / 0.15; if (u < 0 || u > 1) continue;
+    const d = P0.d, rad = DEVR[d.kind](d) * P0.rr, q = devMap(d)(rad * Math.cos(P0.ang), rad * Math.sin(P0.ang));
+    if (!q || q[1] > 730) continue;
+    const P = PAL[d.pal], env = Math.sin(Math.PI * Math.pow(u, 0.6)), k = q[2];
+    glint(c, P.hot, q[0], q[1], (70 + 60 * u) * k, 0.85 * env, P0.rot, 0.05);
+    dot(c, P.hot, q[0], q[1], 24 * k, env);
+    dot(c, P.main, q[0], q[1], 70 * k, 0.35 * env);
+    c.strokeStyle = css(P.main);
+    for (let j = 0; j < P0.n; j++) {
+      const a = P0.rot + j * TAU / P0.n, r1 = (12 + 52 * ease.out3(u)) * k, r0 = r1 * 0.55;
+      c.globalAlpha = 0.75 * env; c.lineWidth = 2.2 * k;
+      c.beginPath(); c.moveTo(q[0] + r0 * Math.cos(a), q[1] + r0 * Math.sin(a)); c.lineTo(q[0] + r1 * Math.cos(a), q[1] + r1 * Math.sin(a)); c.stroke();
+    }
+  }
+}
+
 // ---------- the fuse: a bright head running along the frame, sputtering
 const FUSE = (() => {
   const fp = (x, y) => [x, y, -hwAt(y) - 2], lvl = i => LV[i][0], out = [];
@@ -555,8 +584,9 @@ function drawCrown(c, F, t, lights, base) {
   if (t < I5) return;
   // four jets spray tangentially (and downwards in flight): spiral arms, then a helix of sparks
   // arms limited to under a turn while it spins fast; old helix trails cleared as the sun is born
-  const rl = Math.min(clamp(5.2 / Math.max(1, w), 0.36, 0.8) + 0.5 * smooth(LIFT - 0.2, LIFT + 0.4, t), 0.8) * lerp(1, 0.6, smooth(SUN0 - 0.4, SUN0 + 0.4, t));
-  for (let j = 0; j < NJ; j++) ribbon(c, t, { t0: I5, life: rl, n: 30, jet: s => crownJet(s, 0.5, 0.5, j), map: proj, pal: 'gold', kap: 2, g: 190, w: 4.4, a: 0.7 });
+  const turn = smooth(SUN0 - 0.45, SUN0 + 0.15, t);              // the ring swings round: the helix ribbons give way
+  const rl = Math.min(clamp(5.2 / Math.max(1, w), 0.36, 0.8) + 0.5 * smooth(LIFT - 0.2, LIFT + 0.4, t), 0.8) * lerp(1, 0.38, turn);
+  for (let j = 0; j < NJ; j++) ribbon(c, t, { t0: I5, life: rl, n: 30, jet: s => crownJet(s, 0.5, 0.5, j), map: proj, pal: 'gold', kap: 2, g: 190, w: 4.4, a: 0.7 * (1 - 0.45 * turn) });
   stream(c, t, { t0: I5, t1: SHR1, rate: 300, life0: 0.5, life1: 1.1, seed: 1100, pal: 'gold', kap: 2.0, g: 190, w: 2.6, crackle: 0.12, streak: 0.008, head: 1.3,
     maxAge: lerp(1.2, 0.5, smooth(SUN0 - 0.5, SUN0 + 0.3, t)), map: proj, jet: (tau, h1, h2, k) => crownJet(tau, h1, h2, k % NJ) });
   const len = clamp(0.35 + w * 0.065, 0.35, 1.5);                // the ring of fire, longer as it spins faster
@@ -584,15 +614,52 @@ function sunAt(t) {
   if (t < SUN0 - 0.6) return null;
   const cp = proj(...crownWorld(t, 0, 0)); if (!cp) return null;
   const shr = ease.inOut3((t - SHR0) / (SHR1 - SHR0)), k = smooth(SUN0, SUN1, t);
-  return { x: lerp(cp[0], 540, shr), y: lerp(cp[1], ENDY, shr), k, shr, R: 86 * ease.out3((t - SUN0) / (SUN1 - SUN0 + 0.2)) * (1 - shr) };
+  const breath = 1 + 0.035 * Math.sin(TAU * 0.55 * (t - SUN1)) * smooth(SUN1 - 0.3, SUN1 + 0.3, t);   // a slow breathing
+  return { x: lerp(cp[0], 540, shr), y: lerp(cp[1], ENDY, shr), k, shr, breath, R: 90 * ease.out3((t - SUN0) / (SUN1 - SUN0 + 0.2)) * (1 - shr) * breath };
+}
+// the corona: flame tongues (long gold, short rose) grown out of the crown's whirl, licking and turning slowly;
+// as the sun draws in they spin up and shrink with it
+const NRAY = 16, LS = HG.layer();
+function drawCorona(t, sun) {
+  const { x, y, R, shr } = sun;
+  if (R < 2) return;
+  const g = clearL(LS); g.globalCompositeOperation = 'lighter';
+  const rot = crownTh(SUN0) + 0.26 * (t - SUN0) + 2.4 * shr * shr;
+  const r0 = R * 0.9, W0 = TAU * r0 / NRAY * 0.3;
+  for (let i = 0; i < NRAY; i++) {
+    const long = i % 2 === 0, h = hash(1300, i), h2 = hash(1310, i);
+    const grow = ease.out3((t - (SUN0 + 0.2 + 0.35 * h)) / 0.65); if (grow <= 0) continue;
+    const flick = 1 + 0.15 * Math.sin(t * (2.0 + 0.9 * h) + h2 * TAU) + 0.07 * Math.sin(t * 5.1 + h * TAU);
+    const L = R * (long ? 1.5 : 0.85) * flick * grow, th = rot + i * TAU / NRAY + 0.06 * Math.sin(t * 1.3 + h * 5);
+    const sweep = long ? -0.5 : -0.34, wav = 0.13 * Math.sin(t * 2.6 + h2 * TAU), wk = (long ? 1 : 0.8) * W0;
+    const left = [], right = [];
+    for (let m = 0; m <= 10; m++) {
+      const u = m / 10, a = th + sweep * Math.pow(u, 1.4) + wav * Math.sin(Math.PI * u) * u, r = r0 + L * u;
+      const hw = wk * Math.pow(1 - u, 1.3) * (1 + 0.7 * Math.sin(Math.PI * Math.min(1, u * 1.8)));
+      const cx = x + r * Math.cos(a), cy = y + r * Math.sin(a), nx = -Math.sin(a), ny = Math.cos(a);
+      left.push([cx + nx * hw, cy + ny * hw]); right.push([cx - nx * hw, cy - ny * hw]);
+    }
+    const gr = g.createRadialGradient(x, y, r0 * 0.95, x, y, r0 + L);
+    const tipC = long ? [255, 120, 54] : [240, 70, 120];
+    gr.addColorStop(0, rgba([255, 214, 120], 0.85)); gr.addColorStop(0.3, rgba([255, 170, 64], 0.7));
+    gr.addColorStop(0.7, rgba(tipC, 0.36)); gr.addColorStop(1, rgba(tipC, 0));
+    g.fillStyle = gr; g.globalAlpha = 1; g.beginPath(); g.moveTo(...left[0]);
+    for (const p of left) g.lineTo(...p);
+    for (let m = right.length - 1; m >= 0; m--) g.lineTo(...right[m]);
+    g.closePath(); g.fill();
+  }
+  HG.reset(g);
+  bloom(LS, 12, 0.55);
+  HG.drawLayer(ctx, LS, { op: 'lighter', alpha: 0.95 });
 }
 function drawSun(t, sun) {
   if (!sun || sun.k <= 0.003 || t > PT1) return;
   const { x, y, k, shr, R } = sun, pulse = 0.5 + 0.5 * Math.sin(t * 2.4);
   const on = smooth(SUN0, SUN0 + 0.35, t);
-  radial(ctx, x, y, R * 3 + 60 * (1 - shr), [[0, [255, 178, 80], 0.32], [0.3, [255, 122, 92], 0.13], [1, [255, 90, 110], 0]], on);
-  radial(ctx, x, y, R * 1.12 + 6, [[0, [255, 238, 192], 0.96], [0.5, [255, 208, 106], 0.92], [0.82, [255, 166, 60], 0.72], [1, [255, 130, 40], 0]], on);
-  if (R > 3) HG.ring(ctx, x, y, R * 0.97, [255, 200, 96], { width: 4, blur: 6, alpha: 0.4 * on * (1 - shr) });
+  radial(ctx, x, y, R * 3 + 60 * (1 - shr), [[0, [255, 178, 80], 0.3], [0.3, [255, 122, 92], 0.12], [1, [255, 90, 110], 0]], on * (0.9 + 0.1 * sun.breath));
+  drawCorona(t, sun);
+  radial(ctx, x, y, R * 1.12 + 6, [[0, [255, 230, 172], 0.95], [0.45, [255, 206, 104], 0.9], [0.8, [255, 160, 56], 0.74], [1, [255, 124, 40], 0]], on);
+  if (R > 3) HG.ring(ctx, x, y, R * 0.97, [255, 196, 92], { width: 4, blur: 6, alpha: (0.34 + 0.12 * pulse) * on * (1 - shr) });
   HG.reset(ctx);
   // the golden point it becomes (the point Teotihuacan's dawn opens with)
   const pa = smooth(SHR0 + 0.25, SHR1 - 0.1, t) * (1 - smooth(PT0, PT1, t));
@@ -623,7 +690,7 @@ function drawSky(t, blaze, sun) {
   // dawn: violet overhead warming to rose and peach around the new sun
   if (sun && dawn > 0.003) {
     const a = dawn * (1 - smooth(SHR0 + 0.1, SHR1, t));
-    radial(ctx, sun.x, sun.y, 640, [[0, [255, 150, 86], 0.42], [0.28, [236, 86, 112], 0.3], [0.62, [112, 50, 150], 0.16], [1, [40, 20, 90], 0]], a);
+    radial(ctx, sun.x, sun.y, 480, [[0, [255, 150, 86], 0.42], [0.28, [236, 86, 112], 0.3], [0.62, [112, 50, 150], 0.15], [1, [40, 20, 90], 0]], a);
   }
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const sa = smooth(0.25, 1.4, t) * (1 - 0.6 * blaze) * (1 - smooth(9.45, 9.9, t));
@@ -702,6 +769,7 @@ HG.start({
     drawCrown(X, F, t, lights, base);
     STRUCTA = 1 - smooth(9.75, 10.25, t);                    // burnt devices are gone before the tilt is fastest
     for (const d of DEV) DRAW[d.kind](X, F, d, t, base);
+    drawPops(X, t);
     // the tower is smeared over many sub-samples while the camera tilts fast (no strobing or stepped outlines)
     const rate = Math.abs(pitchAt(t) - pitchAt(t - 1 / 30)) * focalAt(t);
     const subs = rate > 7 ? Math.min(14, Math.max(4, Math.ceil(rate / 3))) : 1;
