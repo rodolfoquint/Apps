@@ -37,6 +37,11 @@ def duration_of(html):
     sys.exit(f"{html}: no 'duration:' found")
 
 
+def piece_duration(p):
+    """A coded piece's duration comes from its page; a filmed clip's from the playlist."""
+    return float(p["duration"]) if "clip" in p else duration_of(ROOT / p["src"])
+
+
 def engine_of(page):
     """The engine a page loads (pieces and transitions sit one folder below their engine)."""
     return page.parent.parent / "engine.js"
@@ -74,7 +79,37 @@ class Video:
         tmp_dest.replace(dest)
         print(f"rendered {dest.relative_to(ROOT)}", flush=True)
 
+    def clip(self, piece):
+        """A filmed clip as a piece: it opens and closes softly, floats in a round vignette
+        (the fan's black is transparent) and gets a thin gold ring at the rim."""
+        src = ROOT / piece["clip"]
+        dur = piece_duration(piece)
+        key = f"clip-{src.stem}"
+        dest = self.out / "raw" / f"{key}{self.tag}.mp4"
+        ring_page = ROOT / "shows" / "titles" / "ventana.html"
+        ring = self.out / "raw" / f"_ventana_{dur}{self.tag}.mov"
+        if stale(ring, [ring_page, ROOT / "show2" / "engine.js"]):
+            self.frames(ring_page, f"D={dur}", dur, ring, alpha=True)
+        vig = self.out / f".vignette{self.tag}.png"
+        if not vig.exists():
+            S = self.size
+            run(["ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi", "-i", f"color=black:s={S}x{S},format=rgba",
+                 "-vf", f"geq=r=0:g=0:b=0:a='255*clip((hypot(X-{S / 2},Y-{S / 2})-{0.82 * S / 2})/({0.15 * S / 2}),0,1)'",
+                 "-frames:v", "1", str(vig)])
+        if stale(dest, [src, ring, vig]):
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            S = self.size
+            graph = (f"[0:v]scale={S}:{S}:flags=lanczos,fps=30,trim=end={dur},setpts=PTS-STARTPTS,format=yuv420p,"
+                     f"fade=t=in:st=0:d=0.8,fade=t=out:st={dur - 0.9}:d=0.8[v];"
+                     f"[v][1:v]overlay[w];[2:v]fps=30,format=rgba[r];[w][r]overlay=eof_action=pass,format=yuv420p")
+            run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(src), "-loop", "1", "-t", str(dur), "-i", str(vig), "-i", str(ring),
+                 "-filter_complex", graph, "-t", str(dur), "-c:v", "libx264", "-crf", "14", "-preset", "slow", "-pix_fmt", "yuv420p", str(dest)])
+            print(f"rendered {dest.relative_to(ROOT)}", flush=True)
+        return key, dest
+
     def raw(self, piece):
+        if "clip" in piece:
+            return self.clip(piece)
         html = ROOT / piece["src"]
         key = f"{html.parent.parent.name}-{html.stem}"
         dest = self.out / "raw" / f"{key}{self.tag}.mp4"
@@ -128,7 +163,7 @@ class Video:
             nxt = (i + 1) % len(pieces)
             key, a = raws[i]
             b = raws[nxt][1]
-            dur = duration_of(ROOT / p["src"])
+            dur = piece_duration(p)
             body = dur - 2 * T
             tr = self.transition(pieces[nxt].get("transition", ""))
             title = self.title(p, key, body)
@@ -161,7 +196,7 @@ class Video:
         run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(full), "-vf", "scale=540:540",
              "-c:v", "libx264", "-b:v", "1200k", "-maxrate", "1400k", "-bufsize", "2800k", "-preset", "slow",
              "-movflags", "+faststart", str(preview)])
-        total = sum(duration_of(ROOT / p["src"]) for p in pieces) - len(pieces) * T
+        total = sum(piece_duration(p) for p in pieces) - len(pieces) * T
         print(f"saved {full.relative_to(ROOT)} and {preview.name}: {len(pieces)} pieces, {total:.1f} s loop, {self.size}px")
 
 

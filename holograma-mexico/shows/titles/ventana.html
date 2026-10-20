@@ -1,0 +1,33 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../../show2/engine.js"></script>
+<script>
+// The frame around a filmed clip ("ventana"): a thin glowing gold ring at the rim with a
+// few sparks drifting along it, on TRANSPARENT, laid over the clip at assembly.
+//   ?D=10 (clip length in seconds) &size=N
+const { C, W, ctx, smooth, rgba, rng } = HG;
+const D = Number(new URLSearchParams(location.search).get('D') || 10);
+const GOLD = [255, 196, 90], WARM = [255, 236, 190], R0 = 500;
+window.ready = Promise.resolve(true);
+window.render = t => {
+  HG.reset(); ctx.clearRect(0, 0, W, W);
+  const a = smooth(0.2, 1.0, t) * (1 - smooth(D - 1.0, D - 0.3, t));
+  if (a <= 0) return;
+  const grow = smooth(0.2, 1.2, t);
+  ctx.save();
+  ctx.strokeStyle = rgba(GOLD, 0.55 * a); ctx.lineWidth = 10; ctx.filter = HG.blur(8);
+  ctx.beginPath(); ctx.arc(C, C, R0, -Math.PI / 2 - Math.PI * grow, -Math.PI / 2 + Math.PI * grow); ctx.stroke();
+  ctx.filter = 'none'; ctx.strokeStyle = rgba(WARM, 0.85 * a); ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(C, C, R0, -Math.PI / 2 - Math.PI * grow, -Math.PI / 2 + Math.PI * grow); ctx.stroke();
+  // sparks travelling round the ring
+  ctx.globalCompositeOperation = 'lighter';
+  const R = rng(7);
+  for (let i = 0; i < 26; i++) {
+    const a0 = R() * Math.PI * 2, sp = (R() < 0.5 ? -1 : 1) * (0.08 + R() * 0.12), ph = R() * 6.28, s = 10 + R() * 12;
+    const ang = a0 + sp * t, rr = R0 + Math.sin(t * 1.3 + ph) * 8;
+    HG.dot(ctx, i % 3 ? GOLD : WARM, C + Math.cos(ang) * rr, C + Math.sin(ang) * rr, s, a * (0.5 + 0.5 * Math.sin(t * 3 + ph)));
+  }
+  ctx.restore(); HG.reset();
+};
+</script></body></html>

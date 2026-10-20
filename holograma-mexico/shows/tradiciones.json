@@ -1,0 +1,88 @@
+{
+  "title": "Tradiciones de México",
+  "slug": "tradiciones",
+  "out": "out-tradiciones",
+  "size": 1080,
+  "fan": "large",
+  "transition": {
+    "page": "show/transitions/portal.html",
+    "seconds": 1.8
+  },
+  "titles": {
+    "page": "shows/titles/title.html"
+  },
+  "pieces": [
+    {
+      "clip": "out-gente/videos/rosca-reyes-1.mp4",
+      "duration": 10,
+      "name": "Rosca de Reyes",
+      "place": "6 de enero"
+    },
+    {
+      "clip": "out-gente/videos/escaramuza-1.mp4",
+      "duration": 10,
+      "name": "Escaramuza Charra",
+      "place": "Charrería, Jalisco"
+    },
+    {
+      "clip": "out-gente/videos/concheros-1.mp4",
+      "duration": 10,
+      "name": "Concheros",
+      "place": "Danza azteca, Ciudad de México"
+    },
+    {
+      "clip": "out-gente/videos/xochimilco-1.mp4",
+      "duration": 10,
+      "name": "Xochimilco",
+      "place": "Ciudad de México"
+    },
+    {
+      "clip": "out-gente/videos/mercado-1.mp4",
+      "duration": 10,
+      "name": "Mercado Mexicano",
+      "place": "Tortillas hechas a mano"
+    },
+    {
+      "clip": "out-gente/videos/mariachi-1.mp4",
+      "duration": 10,
+      "name": "Mariachi",
+      "place": "Plaza Garibaldi, Ciudad de México"
+    },
+    {
+      "clip": "out-gente/videos/jarabe-tapatio-1.mp4",
+      "duration": 10,
+      "name": "Jarabe Tapatío",
+      "place": "Jalisco"
+    },
+    {
+      "clip": "out-gente/videos/guelaguetza-1.mp4",
+      "duration": 10,
+      "name": "Guelaguetza",
+      "place": "Flor de Piña, Oaxaca"
+    },
+    {
+      "clip": "out-gente/videos/grito-zocalo-1.mp4",
+      "duration": 10,
+      "name": "El Grito",
+      "place": "Zócalo, 15 de septiembre"
+    },
+    {
+      "clip": "out-gente/videos/ofrenda-1.mp4",
+      "duration": 10,
+      "name": "La Ofrenda",
+      "place": "Día de Muertos, 2 de noviembre"
+    },
+    {
+      "clip": "out-gente/videos/janitzio-1.mp4",
+      "duration": 10,
+      "name": "Noche de Muertos",
+      "place": "Janitzio, Michoacán"
+    },
+    {
+      "clip": "out-gente/videos/posada-1.mp4",
+      "duration": 10,
+      "name": "Las Posadas",
+      "place": "16 al 24 de diciembre"
+    }
+  ]
+}
