@@ -795,15 +795,15 @@ HG.start({
     if (t > T_END - 0.1) {
       const V = [C, 470];
       for (const f of FL) {
-        const R = HG.rng(101 + f.i), n = f.i === CROWN ? 10 : 5;
+        const R = HG.rng(101 + f.i), n = f.i === CROWN ? 9 : f.r > 50 ? 4 : 3;
         for (let j = 0; j < n; j++) {
           const ang = R() * TAU, rr = Math.sqrt(R()) * f.Rr * 0.8, ph = R() * TAU, len = 16 + R() * 9, dl = R() * 0.12, spd = 0.85 + 0.4 * R();
           const tau = t - f.tRel - dl; if (tau <= 0) continue;
           const px = f.X + Math.cos(ang) * rr, py = f.Y + Math.sin(ang) * rr;
           const rho0 = Math.hypot(px - V[0], py - V[1]), phi0 = Math.atan2(py - V[1], px - V[0]);
-          const phi = phi0 + spd * (1.6 * tau + 0.8 * tau * tau), rho = rho0 + spd * (70 * tau + 190 * tau * tau);
+          const phi = phi0 + spd * (1.3 * tau + 0.6 * tau * tau), rho = rho0 + spd * (55 * tau + 140 * tau * tau);
           const x = V[0] + Math.cos(phi) * rho, y = V[1] + Math.sin(phi) * rho - 60 * tau;
-          const a = smooth(0, 0.1, tau) * (1 - smooth(0.6, 1.0, tau));
+          const a = smooth(0, 0.12, tau) * (1 - smooth(0.65, 1.1, tau));
           petal(ctx, x, y, len, ph + 4 * tau, Math.cos(ph + 6 * tau), j % 4 ? f.col : mix(f.col, WHITE, 0.4), a);
         }
       }

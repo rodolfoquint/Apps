@@ -411,7 +411,7 @@ function knifeAt(t) {
     y = lerp(yA, yB, u); x = meatEdge(P, y) + 3; ang = alongAng(P, y);
   } else if (t < T_FLICK) {               // swings out to the right and up, round to the pineapple
     const u = ease.inOut3((t - T_CUT1) / (T_FLICK - T_CUT1));
-    x = qb(cutEnd.x, cutEnd.x + 330, flick0.x, u); y = qb(cutEnd.y, cutEnd.y - 90, flick0.y, u);
+    x = qb(cutEnd.x, cutEnd.x + 250, flick0.x, u); y = qb(cutEnd.y, cutEnd.y - 330, flick0.y, u);
     ang = lerp(cutEnd.ang, flick0.ang + TAU * 0, ease.inOut3(u));
   } else {                                // the flick, then away up and to the right
     const u = (t - T_FLICK) / (T_KOUT - T_FLICK);
@@ -445,9 +445,10 @@ function drawCurl(c, TEX, s, x, y, rot, sy, alpha) {
   c.globalCompositeOperation = 'lighter';
   HG.dot(c, FIRE_O, 0, 0, s.w * 2.2, 0.3 * alpha);
   c.globalCompositeOperation = 'source-over'; c.scale(1, sy);
-  const R0 = s.w * 0.5, span = 1.55 * Math.PI, N = 16, out = [], inn = [];
+  const R0 = s.w * 0.5, span = 1.2 * Math.PI, N = 18, out = [], inn = [];
   for (let i = 0; i <= N; i++) {
-    const q = i / N, th = s.a0 + q * span, r = R0 * (1 - 0.32 * q), thick = R0 * 0.5 * Math.pow(Math.sin(Math.PI * q), 0.6);
+    const q = i / N, th = s.a0 + q * span, r = R0 * (1 - 0.18 * q) * (1 + 0.07 * Math.sin(q * 11 + s.a0 * 3));
+    const thick = R0 * 0.62 * Math.pow(Math.sin(Math.PI * q), 0.5);
     out.push([Math.cos(th) * r, Math.sin(th) * r]); inn.push([Math.cos(th) * (r - thick), Math.sin(th) * (r - thick)]);
   }
   c.beginPath(); c.moveTo(out[0][0], out[0][1]);
@@ -459,8 +460,10 @@ function drawCurl(c, TEX, s, x, y, rot, sy, alpha) {
   c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.28 * alpha;
   c.drawImage(TEX, s.sx, s.sy, 110, 110, -R0, -R0, 2 * R0, 2 * R0);
   c.restore();
-  c.strokeStyle = rgba([255, 184, 110], 0.5 * alpha); c.lineWidth = 1.3;
+  c.strokeStyle = rgba([110, 22, 6], 0.55 * alpha); c.lineWidth = 2;                 // a charred rim
   c.beginPath(); c.moveTo(out[0][0], out[0][1]); for (let i = 1; i <= N; i++) c.lineTo(out[i][0], out[i][1]); c.stroke();
+  c.strokeStyle = rgba([255, 190, 120], 0.45 * alpha); c.lineWidth = 1.1;            // and a glossy inner edge
+  c.beginPath(); c.moveTo(inn[2][0], inn[2][1]); for (let i = 3; i <= N - 2; i++) c.lineTo(inn[i][0], inn[i][1]); c.stroke();
   c.restore();
 }
 // a chunk of pineapple: a little cube, the top face catching the light, textured with the fruit
@@ -495,24 +498,27 @@ function tacoSlide(t, i) {
 // at the foot, wider and fainter as it climbs. Smooth noise drifting upward with the steam bends them
 // gently (the wisps visibly rise). lift: the plume's foot (rises at the end, so the steam lets go);
 // topFade: the plume dissolves from the top down. Drawn into STM, blurred when composited.
-function plume(g, x0, y0, t, seed, { H = 300, amp = 1, w0 = 7, w1 = 46, alpha = 0.2, speed = 1, lift = 0, topFade = 0, lean = 0 } = {}) {
+function plume(g, x0, y0, t, seed, { H = 300, amp = 1, w0 = 5, w1 = 36, alpha = 0.2, speed = 1, lift = 0, topFade = 0, lean = 0 } = {}) {
   const top = H - (H - lift) * clamp(topFade);
   if (top - lift < 8 || alpha <= 0.003) return;
   const rise = 55 * speed;
+  // brightness by height above the source (not by the visible span), so a plume that lets go
+  // keeps only its faint upper wisps, softly cut at both ends
+  const lum = h => smooth(0, 16, h) * (0.28 + 0.72 * Math.exp(-h / 190)) * (lift > 0 ? smooth(lift, lift + 60, h) : 1)
+    * (1 - smooth(top - Math.max(30, 0.4 * (top - lift)), top, h));
   for (let r = 0; r < 3; r++) {
     const N = 20, L = [], R = [];
     for (let j = 0; j <= N; j++) {
-      const h = lerp(lift, top, j / N), q = (h - rise * t) * 0.006;
-      const A = amp * (4 + 0.1 * h);
-      const x = x0 + A * fbm(q + seed * 3.1, 70) + lean * h + (r - 1) * (3 + 0.1 * h) + 0.3 * A * vnoise(q * 1.7 + r * 4.3 + seed, 71);
-      const hw = 0.5 * lerp(w0, w1, clamp(h / 420)) * (r === 1 ? 1 : 0.62);
+      const h = lerp(lift, top, j / N), q = (h - rise * t) * 0.0062;
+      const A = amp * (5 + 0.15 * h);
+      const x = x0 + A * fbm(q + seed * 3.1, 70) + lean * h + (r - 1) * (2 + 0.14 * h) + 0.45 * A * vnoise(q * 1.9 + r * 4.3 + seed, 71);
+      const hw = 0.5 * lerp(w0, w1, clamp(h / 420)) * (r === 1 ? 1 : 0.6);
       L.push([x - hw, y0 - h]); R.push([x + hw, y0 - h]);
     }
     const yA = y0 - lift, yB = y0 - top;
     const gr = g.createLinearGradient(0, yA, 0, yB);
-    const al = alpha * (r === 1 ? 1 : 0.55);
-    gr.addColorStop(0, rgba(STEAM, 0)); gr.addColorStop(0.08, rgba(STEAM, al)); gr.addColorStop(0.4, rgba(STEAM, al * 0.55));
-    gr.addColorStop(0.75, rgba(STEAM, al * 0.22)); gr.addColorStop(1, rgba(STEAM, 0));
+    const al = alpha * (r === 1 ? 1 : 0.6);
+    for (let i = 0; i <= 10; i++) gr.addColorStop(i / 10, rgba(STEAM, al * lum(lerp(lift, top, i / 10))));
     g.fillStyle = gr;
     g.beginPath(); g.moveTo(L[0][0], L[0][1]);
     for (let j = 1; j < N; j++) g.quadraticCurveTo(L[j][0], L[j][1], (L[j][0] + L[j + 1][0]) / 2, (L[j][1] + L[j + 1][1]) / 2);
@@ -575,7 +581,7 @@ HG.start({
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.filter = HG.blur(36);
       const g = ctx.createLinearGradient(ox, oy, ox + dx * len, oy + dy * len);
       const br = shaftA * (0.85 + 0.15 * Math.sin(t * 0.9));
-      g.addColorStop(0, rgba(SUN, 0)); g.addColorStop(0.15, rgba(SUN, 0.1 * br)); g.addColorStop(0.55, rgba(SUN, 0.07 * br)); g.addColorStop(1, rgba(SUN, 0));
+      g.addColorStop(0, rgba(SUN, 0)); g.addColorStop(0.14, rgba(SUN, 0.15 * br)); g.addColorStop(0.5, rgba(SUN, 0.1 * br)); g.addColorStop(0.85, rgba(SUN, 0.03 * br)); g.addColorStop(1, rgba(SUN, 0));
       ctx.fillStyle = g; ctx.beginPath();
       ctx.moveTo(ox + nx_ * w0 / 2, oy + ny_ * w0 / 2); ctx.lineTo(ox + dx * len + nx_ * w1 / 2, oy + dy * len + ny_ * w1 / 2);
       ctx.lineTo(ox + dx * len - nx_ * w1 / 2, oy + dy * len - ny_ * w1 / 2); ctx.lineTo(ox - nx_ * w0 / 2, oy - ny_ * w0 / 2);
@@ -775,14 +781,26 @@ HG.start({
         }
         ctx.restore();
       }
-      const Kp = knifeAt(t - 1 / 30), speed = Math.hypot(K.x - Kp.x, K.y - Kp.y) + 60 * Math.abs(K.ang - Kp.ang);
-      const smear = smooth(10, 40, speed);
+      // motion smear: the area the blade swept over the last frame, a soft wedge of steel light
+      const Kp = knifeAt(t - 1 / 30), speed = Math.hypot(K.x - Kp.x, K.y - Kp.y) + 90 * Math.abs(K.ang - Kp.ang);
+      const smear = smooth(8, 36, speed) * K.a;
       if (smear > 0.01) {
-        for (let j = 4; j >= 1; j--) {
-          const Kg = knifeAt(t - j * 0.011);
+        const M = 8, tips = [], ends = [];
+        for (let j = 0; j <= M; j++) {
+          const Kg = knifeAt(t - j * (1.4 / 30) / M), [gx, gy] = cam(Z, Kg.x, Kg.y), bl = KL * KS * Z;
+          tips.push([gx, gy]); ends.push([gx + Math.cos(Kg.ang) * bl, gy + Math.sin(Kg.ang) * bl]);
+        }
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.filter = HG.blur(4);
+        for (let j = 0; j < M; j++) {
+          ctx.fillStyle = rgba(STEEL, 0.2 * smear * (1 - j / M));
+          ctx.beginPath(); ctx.moveTo(...tips[j]); ctx.lineTo(...ends[j]); ctx.lineTo(...ends[j + 1]); ctx.lineTo(...tips[j + 1]); ctx.closePath(); ctx.fill();
+        }
+        ctx.restore();
+        for (let j = 2; j >= 1; j--) {
+          const Kg = knifeAt(t - j * 0.012);
           const [gx, gy] = cam(Z, Kg.x, Kg.y);
           ctx.save(); ctx.translate(gx, gy); ctx.scale(KS * Z, KS * Z);
-          drawKnife(ctx, 0, 0, Kg.ang, Kg.a * smear * 0.4 * (1 - j / 5));
+          drawKnife(ctx, 0, 0, Kg.ang, Kg.a * smear * 0.22 * (1 - j / 3));
           ctx.restore();
         }
       }
@@ -897,33 +915,34 @@ HG.start({
     {
       const sg = STM.ctx; HG.reset(sg); sg.clearRect(0, 0, W, W);
       const fin = ease.inOut3((t - T_END + 0.5) / 1.4);              // 0..1 during the finale
-      const letGo = ease.in3((t - T_END - 0.35) / 1.0);
-      const topFade = smooth(T_END + 0.55, T_END + 1.3, t);
+      const letGo = ease.in3((t - T_END - 0.3) / 1.0);               // the foot lets go of the table
+      const drift = 240 * ease.in3((t - T_END - 0.2) / 1.1);         // and the whole plume floats up
+      const topFade = smooth(T_END + 0.5, T_END + 1.25, t);          // dissolving from the top down
       let any = false;
       for (let i = 0; i < 3; i++) {
         const tb = T_TACO + 0.95 + 0.1 * i;
         const grow = ease.out3((t - tb) / 2.2);
         if (grow <= 0) continue;
         const [x0, y0] = cam(Z, ...plateXY(TACO_C[i][0] + [20, -10, -30][i], TACO_C[i][1] - 90));
-        const breathe = 0.78 + 0.22 * Math.sin(t * 1.3 + i * 2.1);
-        const H = lerp(40, 330, grow) + 200 * fin;
-        plume(sg, x0, y0, t, i + 1, {
-          H, amp: 1, w0: 7, w1: 46 + 16 * fin, alpha: 0.3 * breathe * (1 + 0.25 * fin),
-          speed: 1 + 0.7 * fin, lift: Math.min(H - 10, 520 * letGo), topFade, lean: (0.04 - 0.1 * i),
+        const breathe = 0.8 + 0.2 * Math.sin(t * 1.3 + i * 2.1);
+        const H = lerp(40, 340, grow) + 170 * fin;
+        plume(sg, x0, y0 - drift, t, i + 1, {
+          H, amp: 1, w0: 5, w1: 36 + 14 * fin, alpha: 0.42 * breathe * (1 + 0.2 * fin),
+          speed: 1 + 0.6 * fin, lift: Math.min(H - 10, 420 * letGo), topFade, lean: (0.04 - 0.1 * i),
         });
         any = true;
       }
       // a last breath of steam off the trompo as it evaporates
       if (fin > 0) {
         const [x0, y0] = cam(Z, P0.ax + 10, P0.ty + 330);
-        const H = 120 + 360 * fin;
-        plume(sg, x0, y0, t, 4, { H, amp: 0.9, w0: 8, w1: 52, alpha: 0.24 * Math.sin(Math.PI * clamp(fin * 1.1)), speed: 1.6, lift: Math.min(H - 10, 520 * letGo), topFade, lean: 0.05 });
+        const H = 120 + 330 * fin;
+        plume(sg, x0, y0 - drift, t, 4, { H, amp: 0.9, w0: 6, w1: 44, alpha: 0.34 * Math.sin(Math.PI * clamp(fin * 1.1)), speed: 1.5, lift: Math.min(H - 10, 420 * letGo), topFade, lean: 0.05 });
         any = true;
       }
       if (any) {
         HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = 0.9; ctx.filter = HG.blur(10); ctx.drawImage(STM.cv, 0, 0, W, W);
-        ctx.globalAlpha = 0.55; ctx.filter = HG.blur(2.5); ctx.drawImage(STM.cv, 0, 0, W, W);
+        ctx.globalAlpha = 0.85; ctx.filter = HG.blur(9); ctx.drawImage(STM.cv, 0, 0, W, W);
+        ctx.globalAlpha = 0.6; ctx.filter = HG.blur(2.2); ctx.drawImage(STM.cv, 0, 0, W, W);
         HG.reset(ctx);
       }
     }
