@@ -12,8 +12,8 @@ folders.
 ## Gente y Lugares (People & Places): the LARGE fan
 
 A journey across Mexico. It begins with the map drawing itself, travels through its
-places and the people who keep its traditions alive, and ends with a fiesta of
-fireworks that leads back to the map. Transition: the "horizonte"
+places and the people who keep its traditions alive by day, then Mexico City, the
+posadas and a fiesta of fireworks by night, which leads back to the map. Transition: the "horizonte"
 (`show2/transitions/horizonte.html`), a rising horizon of light with the sun on it. As
 the journey goes on, the sun moves across the sky and the moon takes over for the
 night pieces.
@@ -23,17 +23,17 @@ night pieces.
 | 1 | show/02-mapa | MÉXICO |
 | 2 | show2/01-amanecer-teotihuacan | TEOTIHUACAN / Estado de México |
 | 3 | show/13-aguila-nopal | TENOCHTITLAN / Ciudad de México |
-| 4 | show2/13-cdmx-noche | CIUDAD DE MÉXICO / Ángel de la Independencia · Bellas Artes |
-| 5 | show/06-ajolote | AJOLOTE / Xochimilco, Ciudad de México |
-| 6 | show/05-mariposas | MARIPOSA MONARCA / Michoacán |
-| 7 | show2/10-mariachi | MARIACHI / Jalisco |
-| 8 | show2/11-jarabe-tapatio | JARABE TAPATÍO / Jalisco |
-| 9 | show2/12-danza-de-la-pluma | DANZA DE LA PLUMA / Guelaguetza, Oaxaca |
-| 10 | show2/09-voladores | VOLADORES DE PAPANTLA / Veracruz |
-| 11 | show/04-chichen-itza | CHICHÉN ITZÁ / Yucatán |
-| 12 | show2/03-cenote | CENOTE / Yucatán |
-| 13 | show2/04-jaguar | JAGUAR / Selva Lacandona, Chiapas |
-| 14 | show2/08-taqueria | TACOS AL PASTOR / Ciudad de México |
+| 4 | show/06-ajolote | AJOLOTE / Xochimilco, Ciudad de México |
+| 5 | show/05-mariposas | MARIPOSA MONARCA / Michoacán |
+| 6 | show2/10-mariachi | MARIACHI / Jalisco |
+| 7 | show2/11-jarabe-tapatio | JARABE TAPATÍO / Jalisco |
+| 8 | show2/12-danza-de-la-pluma | DANZA DE LA PLUMA / Guelaguetza, Oaxaca |
+| 9 | show2/09-voladores | VOLADORES DE PAPANTLA / Veracruz |
+| 10 | show/04-chichen-itza | CHICHÉN ITZÁ / Yucatán |
+| 11 | show2/03-cenote | CENOTE / Yucatán |
+| 12 | show2/04-jaguar | JAGUAR / Selva Lacandona, Chiapas |
+| 13 | show2/08-taqueria | TACOS AL PASTOR / Ciudad de México |
+| 14 | show2/13-cdmx-noche | CIUDAD DE MÉXICO / Ángel de la Independencia · Bellas Artes |
 | 15 | show2/14-posadas | LAS POSADAS / Navidad mexicana |
 | 16 | show/12-finale | ¡VIVA MÉXICO! |
 
