@@ -497,7 +497,13 @@ HG.start({
     // a candle whose image overlaps the peregrinos is drawn before them (they stay clear and in front)
     const PB = [PG.x - 132 * PG.s, PG.y - 228 * PG.s, PG.x + 132 * PG.s, PG.y + 8 * PG.s];
     const overP = l => pa > 0.003 && l.wx + 0.32 * l.hp > PB[0] && l.wx - 0.32 * l.hp < PB[2] && l.wy - 0.5 * l.hp < PB[3] && l.P.y + 0.1 * l.hp > PB[1];
-    for (const l of L) { l.behind = pa > 0.003 && (l.G.z > PG.z || overP(l)); items.push({ kind: 'l', z: overP(l) ? Math.max(l.G.z, PG.z + 1) : l.G.z, l }); }
+    for (const l of L) {
+      const o = overP(l);
+      l.behind = pa > 0.003 && (l.G.z > PG.z || o);
+      // a candle passing behind them dims a little (in their shadow), so it never reads as carried by them
+      l.shade = o ? 1 - 0.55 * pa * (1 - smooth(0.7, 1.08, Math.abs(l.wx - PG.x) / (125 * PG.s))) : 1;
+      items.push({ kind: 'l', z: o ? Math.max(l.G.z, PG.z + 1) : l.G.z, l });
+    }
     if (pa > 0.003) items.push({ kind: 'p', z: PG.z });
     items.push({ kind: 'h', z: proj(K, 0, 0, 0).z - 1 });
     items.sort((p, q) => q.z - p.z);
@@ -515,7 +521,7 @@ HG.start({
         g.restore();
       } else if (it.kind === 'l') {
         const l = it.l, P = l.P, hp = l.hp;
-        const a = l.lit * end * (1 - smooth(0.05, 0.5, l.lift));
+        const a = l.lit * end * (1 - smooth(0.05, 0.5, l.lift)) * l.shade;
         if (a <= 0.003) continue;
         const glowK = flick(t, l.j), pc = PAPER_RGB[l.col];
         g.save(); g.translate(P.x, P.y); g.rotate(l.sway);
