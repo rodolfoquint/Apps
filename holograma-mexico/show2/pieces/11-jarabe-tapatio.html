@@ -148,7 +148,7 @@ function fab(P, u, th0) {
     + P.R * up * (P.Af * Math.cos(K * th0 + P.phf) + P.A1 * flareF(th - P.psw) + P.A2 * Math.cos(2 * (th - P.psi)) + P.A3 * Math.cos(3 * th + P.psi3));
   if (P.G > 0.002) {                                      // her fists gather the hem: a narrow pinch of the outer tiers toward each hand
     const d1 = wrapA(th - P.h1), d2 = wrapA(th - P.h2), w = smooth(0.25, 1, u);
-    r -= P.R * P.G * w * Math.sqrt(w) * (P.g1 * Math.exp(-Math.sqrt(d1 * d1 + 0.004) / 0.26) + P.g2 * Math.exp(-Math.sqrt(d2 * d2 + 0.004) / 0.26));
+    r -= P.R * P.G * w * Math.sqrt(w) * (P.g1 * Math.exp(-Math.sqrt(d1 * d1 + 0.004) / 0.19) + P.g2 * Math.exp(-Math.sqrt(d2 * d2 + 0.004) / 0.19));
   }
   if (u > 0.9) r += P.R * P.Ar * smooth(0.9, 1, u) * Math.cos(KR * th0 + P.phr);
   return [r * Math.cos(th), r * Math.sin(th)];
@@ -308,9 +308,10 @@ function drawSkirt(g, P, t, V, bk) {
       for (let j = -2.5; j <= 2.5; j++) wedge(fl, j * 0.42, 170 - 18 * Math.abs(j), 1.5, 6, sw - j * 11);
       const fg = (col, a) => { const q = g.createRadialGradient(hx, hy, 0, hx, hy, 190); q.addColorStop(0, rgba(col, a)); q.addColorStop(0.45, rgba(col, a * 0.8)); q.addColorStop(1, rgba(col, 0)); return q; };
       g.filter = HG.blur(3);
-      g.fillStyle = fg([10, 0, 5], 0.95 * P.fald); g.fill(fd);
+      const gk = smooth(0.55, 0.9, P.fald);
+      g.fillStyle = fg([10, 0, 5], 0.95 * gk); g.fill(fd);
       g.filter = HG.blur(1.2);
-      g.fillStyle = fg([255, 200, 170], 0.85 * lit); g.fill(fl);
+      g.fillStyle = fg([255, 200, 170], 0.85 * lit * gk); g.fill(fl);
       g.filter = 'none';
     }
   }
@@ -330,10 +331,10 @@ function drawSkirt(g, P, t, V, bk) {
   const hr = headRot(t);
   for (const [x, y, a, hA] of hands) {
     const ox = Math.cos(hA), oy = Math.sin(hA), k = smooth(0, 0.35, P.fald);
-    drawLaceTurn(g, x, y, ox, oy, k, a);
     const sa = hr + (Math.cos(hA - hr) >= 0 ? 0 : Math.PI), sx = Math.cos(sa) * 122, sy = Math.sin(sa) * 122;
-    const kk = Math.sqrt(P.fald);
-    drawArm(g, sx, sy, lerp(sx, x, kk), lerp(sy, y, kk), k, P.h1 - HV - Math.PI / 2, ox, oy);
+    const kk = smooth(0, 0.7, P.fald), ax = lerp(sx, x, kk), ay = lerp(sy, y, kk);   // she reaches out to the hem, then grips it
+    drawLaceTurn(g, ax, ay, ox, oy, smooth(0.6, 0.9, P.fald), a);
+    drawArm(g, sx, sy, ax, ay, k, P.h1 - HV - Math.PI / 2, ox, oy);
   }
 
   // the dancer herself at the centre (until she hops out onto the brim)

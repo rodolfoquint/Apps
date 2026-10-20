@@ -446,11 +446,11 @@ function drawCurl(c, TEX, s, x, y, rot, sy, alpha) {
   c.globalCompositeOperation = 'lighter';
   HG.dot(c, FIRE_O, 0, 0, s.w * 1.5, 0.1 * alpha);
   c.globalCompositeOperation = 'source-over'; c.scale(1, sy);
-  const L = s.w * 1.15, T = s.w * 0.26, N = 12, top = [], bot = [];
+  const L = s.w * 0.95, T = s.w * 0.42, N = 12, top = [], bot = [];
   for (let i = 0; i <= N; i++) {
     const q = i / N, xx = (q - 0.5) * L;
-    const bend = -0.16 * L * Math.pow(2 * q - 1, 2) + 0.05 * L * Math.sin(q * 4 + s.a0);
-    const th = T * Math.pow(Math.sin(Math.PI * (0.06 + 0.88 * q)), 0.45);
+    const bend = -0.1 * L * Math.pow(2 * q - 1, 2) + 0.05 * L * Math.sin(q * 4 + s.a0);
+    const th = T * Math.pow(Math.sin(Math.PI * (0.16 + 0.68 * q)), 0.3);      // blunt, torn ends
     const jt = 1 + 0.32 * (hash(i + 17 * Math.floor(s.a0 * 10), 41) - 0.5), jb = 1 + 0.32 * (hash(i + 17 * Math.floor(s.a0 * 10), 42) - 0.5);
     top.push([xx, bend - th * 0.5 * jt]); bot.push([xx, bend + th * 0.5 * jb]);
   }
@@ -461,6 +461,12 @@ function drawCurl(c, TEX, s, x, y, rot, sy, alpha) {
   c.save(); c.clip();
   c.globalAlpha = alpha; c.drawImage(TEX, s.sx, s.sy, 110, 48, -L * 0.55, -L * 0.3, L * 1.1, L * 0.5);
   // the cut face is a touch paler and moister, the outer face darker with char
+  c.globalCompositeOperation = 'multiply'; c.fillStyle = 'rgb(205,130,96)'; c.fillRect(-L, -L, 2 * L, 2 * L);   // cooked adobo, browner
+  c.globalCompositeOperation = 'source-over';
+  for (let k = 0; k < 4; k++) {                                                      // a few charred spots
+    const cx = (hash(k, s.a0 * 7) - 0.5) * L * 0.8, cy = (hash(k, s.a0 * 7 + 1) - 0.5) * T * 0.6;
+    c.fillStyle = 'rgba(40,8,2,0.45)'; c.beginPath(); c.ellipse(cx, cy, L * 0.08, T * 0.14, 0.3 * k, 0, TAU); c.fill();
+  }
   const g = c.createLinearGradient(0, -T, 0, T);
   g.addColorStop(0, 'rgba(70,14,4,0.55)'); g.addColorStop(0.45, 'rgba(70,14,4,0)'); g.addColorStop(1, 'rgba(255,170,120,0.12)');
   c.fillStyle = g; c.globalAlpha = alpha; c.fillRect(-L, -L, 2 * L, 2 * L);
@@ -698,8 +704,8 @@ HG.start({
           const col = hash(i, 105) < 0.5 ? FIRE_Y : EMBER;
           streak(ctx, tr, col, 5.5, 0.95 * fade);
           ctx.save(); ctx.globalCompositeOperation = 'lighter';
-          HG.dot(ctx, FIRE_O, tr[0][0], tr[0][1], 70 + 26 * hash(i, 106), 0.4 * fade);     // a warm halo
-          HG.dot(ctx, col, tr[0][0], tr[0][1], 30 + 12 * hash(i, 106), 0.95 * fade);      // the ember
+          HG.dot(ctx, FIRE_O, tr[0][0], tr[0][1], 90 + 30 * hash(i, 106), 0.38 * fade);     // a warm halo
+          HG.dot(ctx, col, tr[0][0], tr[0][1], 44 + 14 * hash(i, 106), 0.95 * fade);      // the ember
           ctx.restore();
         }
       }

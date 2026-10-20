@@ -14,7 +14,7 @@
 // it; four doves of light lift off from the clay doves and circle the tree in two mirrored orbits, passing in
 // front of it and behind it; petals and colour sparks drift down; a sheen crosses the glaze. Ending: the
 // colour recedes from the crown back down the branches, each flower releasing its petals into a swirl as the
-// edge passes it, the branches of light fold back into the seed, and the seed goes out.
+// edge passes it, the whole gold tree of light (curls, leaves and all) shrinks into the seed, and the seed goes out.
 // Midday: when the crown flower opens, a gold Metepec-style sun (a ring of straight and flame rays, the
 // clay suns Metepec is famous for) blooms behind the crown with a warm halo and soft rays of light.
 // The growth uses a precomputed growth-distance map (tools/gen.py in the work folder): every pixel's distance
@@ -47,8 +47,12 @@ const growE = u => { u = clamp(u); return 0.55 * ease.inOut3(u) + 0.45 * ease.ou
 const kLight = t => 0.92 * growE((t - 1.2) / 2.45);                     // branches of light (skeleton distance)
 const uColour = t => lerp(-0.08, 1.12, ease.inOut3((t - 2.05) / 2.75));  // painted clay floods in
 const T_END = 8.85;                                                       // the ending starts
-const uRecede = t => lerp(1.12, -0.1, smooth(T_END, 10.6, t));           // ...and recedes at the end
-const bCut = t => lerp(730, -12, smooth(9.1, 10.85, t));                   // the light is drawn back into the seed (see seedDist)
+const uRecede = t => lerp(1.12, -0.1, smooth(T_END, 10.0, t));           // ...and recedes at the end
+// then the whole tree of light, intact (arms, curls, leaves), shrinks into the seed and dissolves: its silhouette
+// stays a full little tree all the way down, never a stump or a lone column
+const sinkK = t => lerp(1, 0.03, ease.inOut3((t - 9.55) / 1.2));
+const sinkA = t => 1 - smooth(10.0, 10.8, t);
+let SK = 1, TW = 1;   // TW: the young trunk is a thin shoot that thickens as the tree grows (set per frame too)   // the current frame's sink scale (set at the top of render(t); a pure function of t)
 const EDGE = 0.06;                                                        // soft edge of the growth front
 // time at which a monotonic f(t) crosses v (bisection; evaluated once, deterministic)
 function crossing(f, v, a, b) { const up = f(b) > f(a); for (let i = 0; i < 40; i++) { const m = (a + b) / 2; if ((f(m) < v) === up) a = m; else b = m; } return (a + b) / 2; }
@@ -86,7 +90,22 @@ function clearL(L) { const g = L.ctx; HG.reset(g); g.clearRect(0, 0, W, W); retu
 // Deliberate, scale-safe exception to the HG.drawLayer rule: drawLayer cannot apply a blur filter.
 function bloomLayer(L, b, a) {
   ctx.save(); HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a;
-  ctx.filter = HG.blur(b); ctx.drawImage(L.cv, 0, 0, W, W); ctx.restore();
+  ctx.filter = HG.blur(b * Math.max(0.35, SK)); sinkXf(ctx); ctx.drawImage(L.cv, 0, 0, W, W); ctx.restore();
+}
+// the sink transform about the seed (identity while SK = 1)
+function sinkXf(g) { if (SK < 1) { g.translate(ROOT[0], ROOT[1]); g.scale(SK, SK); g.translate(-ROOT[0], -ROOT[1]); } }
+// a full-frame layer drawn through the sink transform (same deliberate exception as bloomLayer)
+function drawSunk(L, alpha = 1, op = 'source-over') {
+  if (SK >= 1) { HG.drawLayer(ctx, L, { alpha, op }); return; }
+  ctx.save(); HG.reset(ctx); ctx.globalAlpha = alpha; ctx.globalCompositeOperation = op; sinkXf(ctx); ctx.drawImage(L.cv, 0, 0, W, W); ctx.restore();
+}
+
+// fade a layer out toward the rim of the visible circle (for the sun's glow, which sits close to the top rim)
+function rimFade(g) {
+  const rg = g.createRadialGradient(C, C, 0, C, C, 536);
+  rg.addColorStop(0, '#000'); rg.addColorStop(400 / 536, '#000'); rg.addColorStop(460 / 536, 'rgba(0,0,0,0.6)');
+  rg.addColorStop(505 / 536, 'rgba(0,0,0,0.12)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.globalCompositeOperation = 'destination-in'; g.fillStyle = rg; g.fillRect(0, 0, W, W); HG.reset(g);
 }
 
 // soft disc (the flower holes) in the same profile as the flower sprites
@@ -135,23 +154,11 @@ function star(g, x, y, s, a, rot = 0, col = WARM) {
 // ---------- the branches of light: every skeleton path drawn up to distance k, tapering to its growing tip
 const PEND = DATA.paths.map(p => p.d[p.d.length - 1]);
 // the light of the two outer arches grows faster, so they rise like the arms of a candelabra ahead of the trunk
-const warpK = (p, k) => p.n.endsWith('1') ? p.d[0] + Math.max(0, k - p.d[0]) * 1.45 : k;
-// at the end the light withdraws into a shrinking ellipse around the seed, a little taller than wide, so the
-// crown goes first and the outer arches are drawn in lower than the trunk: the light keeps a tree's pointed
-// outline as it sinks (never a row of upright prongs). seedDist: a screen point's 'distance' in that ellipse.
-const seedDist = (x, y) => Math.hypot((x - ROOT[0]) / 0.85, ROOT[1] - y);
-// growth distance along path p where it first leaves the ellipse of size `cut`
-function kAtCut(p, cut) {
-  let e0 = 0;
-  for (let j = 0; j < p.x.length; j++) {
-    const e = seedDist(sx(p.x[j]), sy(p.y[j]));
-    if (e > cut) return j === 0 ? -1 : lerp(p.d[j - 1], p.d[j], (cut - e0) / (e - e0));
-    e0 = e;
-  }
-  return 9;
-}
-function branchShape(p, k, wScale, dEnd, cap = 99, cut = null) {
-  if (cut !== null) k = Math.min(k, kAtCut(p, cut));
+// and the trunk pauses just above the fork of the lower arms until the arches are curving up (so the young tree is
+// never a bare cross or a stub between two rosettes)
+const warpK = (p, k) => p.n.endsWith('1') ? p.d[0] + Math.max(0, k - p.d[0]) * 1.45
+  : p.n === 'T' && k > 0.21 ? 0.21 + Math.max(0, k - 0.3) * (0.71 / 0.62) : k;
+function branchShape(p, k, wScale, dEnd, cap = 99) {
   const n = p.x.length, pts = [];
   for (let j = 0; j < n; j++) {
     if (p.d[j] <= k) { pts.push([sx(p.x[j]), sy(p.y[j]), p.w[j], p.d[j]]); continue; }
@@ -162,8 +169,7 @@ function branchShape(p, k, wScale, dEnd, cap = 99, cut = null) {
     break;
   }
   if (pts.length < 2) return null;
-  // while the light is drawn back at the end, the cut ends are blunt and rounded (no needle tips)
-  const blunt = cut !== null && k < dEnd, tl = blunt ? 0.012 : 0.06;
+  const tl = 0.06;
   const L = [], R = [];
   for (let j = 0; j < pts.length; j++) {
     const a = pts[Math.max(0, j - 1)], b = pts[Math.min(pts.length - 1, j + 1)];
@@ -173,28 +179,27 @@ function branchShape(p, k, wScale, dEnd, cap = 99, cut = null) {
     L.push([pts[j][0] - dy * hw, pts[j][1] + dx * hw]); R.push([pts[j][0] + dy * hw, pts[j][1] - dx * hw]);
   }
   const tip = pts[pts.length - 1];
-  return { pts, L, R, tip, blunt, capR: Math.min(cap, tip[2] * K * wScale) * 0.8 + 0.5 };
+  return { pts, L, R, tip };
 }
 function smoothLine(g, P, move = true) {
   if (move) g.moveTo(P[0][0], P[0][1]); else g.lineTo(P[0][0], P[0][1]);
   for (let j = 1; j < P.length - 1; j++) g.quadraticCurveTo(P[j][0], P[j][1], (P[j][0] + P[j + 1][0]) / 2, (P[j][1] + P[j + 1][1]) / 2);
   g.lineTo(P[P.length - 1][0], P[P.length - 1][1]);
 }
-const wOf = p => p.n === 'T' ? 0.6 : 0.85;
-function drawBranches(g, k, cut = null) {
+const wOf = p => p.n === 'T' ? 0.45 : 0.85;
+function drawBranches(g, k) {
   g.save(); g.lineJoin = 'round'; g.lineCap = 'round';
   // body of light, then a brighter core, then a fine vein of sap
   for (const [ws, col, al, cap] of [[1, GOLD, 0.4, 24], [0.42, WARM, 0.7, 5.5]]) {
     g.globalAlpha = al; g.fillStyle = rgba(col, 1);
     DATA.paths.forEach((p, i) => {
-      const s = branchShape(p, warpK(p, k), wOf(p) * ws, PEND[i], cap, cut); if (!s) return;
+      const s = branchShape(p, warpK(p, k), wOf(p) * ws * (p.n === 'T' ? TW : 1), PEND[i], cap); if (!s) return;
       g.beginPath(); smoothLine(g, s.L); smoothLine(g, s.R.slice().reverse(), false); g.closePath();
-      if (s.blunt) { g.moveTo(s.tip[0] + s.capR, s.tip[1]); g.arc(s.tip[0], s.tip[1], s.capR, 0, TAU); }
       g.fill('nonzero');
     });
   }
   g.globalAlpha = 0.85; g.strokeStyle = rgba(WHITE, 1); g.lineWidth = 1.6;
-  DATA.paths.forEach((p, i) => { const s = branchShape(p, warpK(p, k), 1, PEND[i], 99, cut); if (s) { g.beginPath(); smoothLine(g, s.pts); g.stroke(); } });
+  DATA.paths.forEach((p, i) => { const s = branchShape(p, warpK(p, k), 1, PEND[i], 99); if (s) { g.beginPath(); smoothLine(g, s.pts); g.stroke(); } });
   g.restore();
 }
 
@@ -217,7 +222,7 @@ const LEAVES = [];
       const nx = -Math.sin(th) * side, ny = Math.cos(th) * side;
       const leaf = { x: x1 + nx * hw, y: y1 + ny * hw, ang: th + side * (0.95 + 0.3 * R()), len, d: p.d[j] };
       leaf.tOn = crossing(t => warpK(p, kLight(t)), leaf.d + 0.01, 0.8, 4.8);
-      leaf.tOff = crossing(t => kAtCut(p, bCut(t)), leaf.d + 0.004, 9.0, 11.2);   // when its branch is drawn back past it
+      leaf.tOff = 99;   // (the whole tree of light sinks together at the end)
       LEAVES.push(leaf); side = -side;
     }
   });
@@ -254,18 +259,17 @@ const CURLS = DATA.paths.filter(p => p.n !== 'T').map(p => {
   const th = Math.atan2(y - sy(p.y[n - 3]), x - sx(p.x[n - 3]));
   const sg = Math.cos(th) < 0 ? 1 : -1, arch = p.n.endsWith('1');
   const w0 = (p.w[n - 1] * K * wOf(p) * 0.55 + 0.5);
-  return { pts: spiral(x, y, th, sg, arch ? 74 : 58, 5.0), w0, tOn: crossing(t => warpK(p, kLight(t)), PEND[i] - 0.004, 0.8, 4.8),
-    tOff: crossing(t => kAtCut(p, bCut(t)), PEND[i] - 0.03, 9.0, 11.2) };
+  return { pts: spiral(x, y, th, sg, arch ? 74 : 58, 5.0), w0, tOn: crossing(t => warpK(p, kLight(t)), PEND[i] - 0.004, 0.8, 4.8), tOff: 99 };
 });
 // the trunk ends in two small curls cupping the crown flower, like the scrolls on the arms of a candelero
 {
   const T = DATA.paths[0], n = T.x.length, x = sx(T.x[n - 1]), y = sy(T.y[n - 1]) + 2;
-  const tOn = crossing(kLight, PEND[0] - 0.004, 0.8, 4.8), tOff = crossing(t => kAtCut(T, bCut(t)), PEND[0] - 0.03, 9.0, 11.2);
+  const tOn = crossing(t => warpK(T, kLight(t)), PEND[0] - 0.004, 0.8, 4.8), tOff = 99;
   for (const sd of [-1, 1]) CURLS.push({ pts: spiral(x + sd * 2, y, -Math.PI / 2 + sd * 1.05, sd, 42, 4.4), w0: 2.6, tOn, tOff });
 }
 // two root scrolls at the foot of the trunk, curling down toward the ground
 for (const sd of [-1, 1]) CURLS.push({ pts: spiral(ROOT[0] + sd * 10, ROOT[1] - 8, sd > 0 ? -0.25 : Math.PI + 0.25, sd, 62, 4.6), w0: 3.2,
-  tOn: crossing(kLight, 0.012, 0.8, 4.8), tOff: crossing(bCut, 26, 9.0, 11.2) });
+  tOn: 2.15, tOff: 99 });   // (once the arches are rising)
 function drawCurls(g, t) {
   g.save(); g.lineCap = 'round';
   for (const c of CURLS) {
@@ -295,9 +299,11 @@ function nearestOnPaths(x, y) {
 }
 const motifTimes = (x, y) => {
   const nb = nearestOnPaths(x, y);
-  return { tOn: crossing(t => warpK(nb.p, kLight(t)), nb.d, 0.8, 4.8), tOff: crossing(t => kAtCut(nb.p, bCut(t)), nb.d + 0.004, 9.0, 11.2) };
+  return { tOn: crossing(t => warpK(nb.p, kLight(t)), nb.d, 0.8, 4.8), tOff: 99 };
 };
 const ROS = FL.map(f => ({ X: f.X, Y: f.Y, r: f.Rr * 0.86, n: f.r > 58 ? 10 : 8, rot: f.i * 0.7, ...motifTimes(f.x, f.y) }));
+// the rosettes at the foot of the trunk wait until the arches have risen
+for (const m of ROS) if (m.Y > sy(1300)) m.tOn = Math.max(m.tOn, 2.3);
 const DOL = DATA.doves.map(d => ({ X: sx(d.x), Y: sy(d.y), f: d.f, ...motifTimes(d.x, d.y) }));
 function rosette(g, X, Y, r, n, rot) {
   g.save(); g.translate(X, Y); g.rotate(rot);
@@ -388,7 +394,7 @@ function dproj(fr, x, y, z) {
   const Z = fr.P[2] + s * (x * fr.F[2] + y * fr.U[2] + z * fr.R[2]);
   return [fr.ox + X, fr.oy - Y * CT + Z * ST, Z * CT + Y * ST];
 }
-function drawDove(g, fr, ang, a) {
+function drawDove(g, fr, ang, a, over = 0) {
   if (a <= 0.003) return;
   const s = fr.s, c = dproj(fr, 0, 0, 0);
   const wing = side => {
@@ -426,8 +432,11 @@ function drawDove(g, fr, ang, a) {
   g.shadowColor = rgba(GOLD, 0.9); g.shadowBlur = HG.px(11 * s);
   g.globalAlpha = a; g.fillStyle = rgba(mix(D_BODYC, D_TIP, 0.35), 1); g.fill();
   g.shadowBlur = 0; g.strokeStyle = rgba(D_RIM, 1); g.lineWidth = 1.6; g.stroke();
+  // the body is warmed toward gold and made translucent while the dove crosses the painted tree, so it never reads as
+  // an opaque ivory blob over the busy clay
   spheres();
-  g.shadowBlur = HG.px(13 * s); g.fillStyle = rgba(D_BODYC, 1); g.fill('nonzero');
+  g.shadowBlur = HG.px(13 * s); g.globalAlpha = a * (1 - 0.38 * over); g.fillStyle = rgba(mix(D_BODYC, D_TIP, 0.18 + 0.27 * over), 1); g.fill('nonzero');
+  g.globalAlpha = a;
   g.shadowBlur = 0;
   // beak and the eye on the side we can see
   const b0 = dproj(fr, 43, 12, 0), b1 = dproj(fr, 52, 9.5, 0), b2 = dproj(fr, 43, 7, 0), bl = dproj(fr, 43, 9.5, -3), br = dproj(fr, 43, 9.5, 3);
@@ -450,7 +459,8 @@ const uWave = t => lerp(1.08, -0.14, 1 - Math.pow(1 - clamp((t - T_CROWN - 0.08)
 // reaches it, swoops outward (a cubic Hermite curve from its take-off velocity to its orbit velocity) and joins
 // its orbit outside the tree's outline about 0.75 s later; at the end the orbits open out and climb past the rim.
 const OMEGA = 1.0, UJ = 0.75;
-const ORB = [{ ox: C, oy: 300, R: 360, hy: 20, s: 1.12, dir: 1 }, { ox: C, oy: 150, R: 280, hy: 30, s: 0.94, dir: -1 }];
+// the crown orbit dips on its front pass, so the top pair passes below the sun's face rather than across it
+const ORB = [{ ox: C, oy: 300, R: 360, hy: 20, s: 1.12, dir: 1, dip: 0 }, { ox: C, oy: 150, R: 280, hy: 30, s: 0.94, dir: -1, dip: 105 }];
 const JOIN = [-1.1, 1.25, -2.35, 1.0];                  // orbit angle where each dove joins (all outside the tree)
 const DV = DATA.doves.map((d, i) => {
   const o = ORB[i < 2 ? 0 : 1];
@@ -462,13 +472,13 @@ const EXIT = 8.9;
 function orbitAt(d, u, t) {
   const o = d.o, ex = ease.inOut3((t - EXIT) / 1.4), R = o.R * (1 + 0.7 * ex);
   const phi = d.phiJ + o.dir * (OMEGA * (u - UJ) + 0.4 * ex);
-  return [R * Math.sin(phi), o.hy + 10 * Math.sin(1.3 * u + d.ph) + 250 * ex, R * Math.cos(phi)];
+  return [R * Math.sin(phi), o.hy - o.dip * Math.pow(Math.max(0, Math.cos(phi)), 2) * (1 - ex) + 10 * Math.sin(1.3 * u + d.ph) + 250 * ex, R * Math.cos(phi)];
 }
 function dovePos(d, t) {
   const u = t - d.lift;
   if (u >= UJ) return orbitAt(d, u, t);
   const s = Math.max(0, u) / UJ, J = orbitAt(d, UJ, d.lift + UJ), o = d.o;
-  const vJ = [o.dir * OMEGA * o.R * Math.cos(d.phiJ), 0, -o.dir * OMEGA * o.R * Math.sin(d.phiJ)];
+  const J2 = orbitAt(d, UJ + 0.01, d.lift + UJ + 0.01), vJ = [0, 1, 2].map(k => (J2[k] - J[k]) / 0.01);
   const h00 = 2 * s * s * s - 3 * s * s + 1, h10 = s * s * s - 2 * s * s + s, h01 = -2 * s * s * s + 3 * s * s, h11 = s * s * s - s * s;
   return [0, 1, 2].map(k => h00 * d.P0[k] + h10 * UJ * d.v0[k] + h01 * J[k] + h11 * UJ * vJ[k]);
 }
@@ -543,27 +553,39 @@ HG.start({
   },
   render(t, A) {
     const spr = sprites(A.tree);
+    SK = t > 9.55 ? sinkK(t) : 1;
+    TW = lerp(0.3, 1, smooth(1.4, 2.9, t));
+    const fadeA = sinkA(t);
     const ending = t > T_END;
     const uMask = ending ? uRecede(t) : uColour(t);
-    const kGold = ending ? 0.92 : kLight(t), cut = ending ? bCut(t) : null;
+    const kGold = ending ? 0.92 : kLight(t);
 
     // ---------- midday sun: a faint warm halo behind the crown while the tree grows; when the crown flower opens
     // it swells (about 70/255 around the crown, settling to about 45) and the Metepec sun blooms behind the crown
     const sunOut = 1 - smooth(T_END, 9.55, t);
-    const halo = (0.07 * smooth(3.0, 5.2, t) + 0.23 * smooth(T_CROWN, T_CROWN + 0.45, t) + 0.12 * bump(t, T_CROWN, T_CROWN + 0.45, T_CROWN + 0.7, T_CROWN + 2.2)) * sunOut;
+    const halo = (0.07 * smooth(3.0, 5.2, t) + 0.15 * smooth(T_CROWN, T_CROWN + 0.45, t) + 0.2 * bump(t, T_CROWN, T_CROWN + 0.45, T_CROWN + 0.7, T_CROWN + 2.0)) * sunOut;
+    // the halo and the sun are drawn in a layer that fades out toward the rim of the circle (the crown is only ~130 px
+    // below the top of the disc), so no lit dome edge is cut by the fan's edge
+    const hctx = clearL(FX); let sunDrawn = false;
     if (halo > 0.002) {
+      sunDrawn = true; const ctx = hctx;
       const hg = ctx.createRadialGradient(SUN_X, SUN_Y, 0, SUN_X, SUN_Y, 350);
       hg.addColorStop(0, rgba(SUN, halo)); hg.addColorStop(0.3, rgba(SUN, halo * 0.78)); hg.addColorStop(0.55, rgba(SUN, halo * 0.42));
       hg.addColorStop(0.8, rgba(SUN, halo * 0.12)); hg.addColorStop(1, rgba(SUN, 0));
-      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = hg; ctx.fillRect(SUN_X - 350, SUN_Y - 350, 700, 700); ctx.restore();
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(SUN_X, SUN_Y); ctx.scale(1, 0.72); ctx.translate(-SUN_X, -SUN_Y);
+      ctx.fillStyle = hg; ctx.fillRect(SUN_X - 350, SUN_Y - 350, 700, 700); ctx.restore();
     }
     {
       const su = (t - T_CROWN - 0.04) / 0.9;
       if (su > 0) {
         const k = ease.outBack(su) * (1 + 0.025 * Math.sin(1.6 * t)), a = smooth(0, 0.25, su) * sunOut;
-        sunRays(ctx, 0.45 + 0.55 * ease.out3(su), a * (0.55 + 0.45 * bump(t, T_CROWN, T_CROWN + 0.4, T_CROWN + 0.8, T_CROWN + 2.4)), -0.03 * t);
-        sunRosette(ctx, (0.3 + 0.7 * k) * (1 - 0.3 * smooth(T_END, 9.55, t)), a, 0.06 * (t - T_CROWN));
+        sunDrawn = true;
+        sunRays(hctx, 0.45 + 0.55 * ease.out3(su), a * (0.45 + 0.55 * bump(t, T_CROWN, T_CROWN + 0.4, T_CROWN + 0.8, T_CROWN + 2.2)), -0.03 * t);
+        sunRosette(hctx, (0.3 + 0.7 * k) * (1 - 0.3 * smooth(T_END, 9.55, t)), a, 0.06 * (t - T_CROWN));
       }
+    }
+    if (sunDrawn) {
+      rimFade(hctx); HG.drawLayer(ctx, FX, { op: 'lighter' });
     }
 
     // ---------- doves (computed now; the ones behind the tree are drawn before it)
@@ -578,17 +600,23 @@ HG.start({
       // flapping, with short glides once it is cruising (wings held up in a V, never flat and edge-on)
       const glide = smooth(1.2, 1.6, u) * Math.pow(0.5 + 0.5 * Math.sin(1.4 * u + d.ph), 4);
       const ang = lerp(0.35 + 0.9 * Math.sin(TAU * 3.0 * u + d.ph), 0.8 + 0.08 * Math.sin(TAU * 0.8 * u), glide);
-      const a = smooth(0, 0.3, u) * (0.88 + 0.12 * clamp(zr)) * (1 - smooth(9.75, 10.4, t));
-      doves.push({ fr, ang, a, behind: p[2] < 0 });
+      // over the painted tree (in front of it), the wings stay up in a V in every frame
+      const c = dproj(fr, 0, 0, 0), e = Math.hypot((c[0] - C) / 300, (c[1] - 420) / 340);
+      const over = smooth(-40, 10, p[2]) * (1 - smooth(0.85, 1.08, e)) * smooth(0.15, 0.5, u);
+      const angV = lerp(ang, 0.78 + 0.24 * Math.sin(TAU * 3.0 * u + d.ph), over);
+      let a = smooth(0, 0.3, u) * (0.88 + 0.12 * clamp(zr)) * (1 - smooth(9.75, 10.4, t));
+      // the top pair passes behind the sun's face lost in its glow
+      if (d.o === ORB[1] && p[2] < 0) a *= lerp(0.1, 1, smooth(100, 180, Math.hypot(c[0] - SUN_X, c[1] - SUN_Y)));
+      doves.push({ fr, ang: angV, a, over, behind: p[2] < 0 });
     }
-    for (const d of doves) if (d.behind) drawDove(ctx, d.fr, d.ang, d.a);
+    for (const d of doves) if (d.behind) drawDove(ctx, d.fr, d.ang, d.a, d.over);
 
     // ---------- branches of light (only where the painted clay hasn't arrived yet)
     const any = growMask(MK, A.grow, uMask);
     const b = clearL(BR);
-    const light = kGold > 0 && uMask < 1 + EDGE && (cut === null || cut > 0);
+    const light = kGold > 0 && uMask < 1 + EDGE && fadeA > 0.002;
     if (light) {
-      drawBranches(b, kGold, cut);
+      drawBranches(b, kGold);
       drawLeaves(b, t);
       drawCurls(b, t);
       drawMotifs(b, t);
@@ -641,7 +669,7 @@ HG.start({
       apply(g, SP, 'lighter');
 
       bloomLayer(TL, 16, 0.32);
-      HG.drawLayer(ctx, TL);
+      drawSunk(TL);
       if (crownTop) {
         const F = FL[CROWN], S = spr[CROWN], R = S.R * K, sw = smooth(1.0, 1.2, crownTop.sc);
         ctx.save(); ctx.translate(F.X, F.Y); ctx.rotate(crownTop.rot); ctx.scale(crownTop.sc, crownTop.sc);
@@ -658,7 +686,7 @@ HG.start({
         fx.globalCompositeOperation = 'source-atop'; fx.globalAlpha = ending ? 0.45 : 0.3; fx.fillStyle = rgba(GOLD, 1); fx.fillRect(0, 0, W, W);
         HG.reset(fx);
         bloomLayer(FX, 10, ending ? 0.55 : 0.75);
-        HG.drawLayer(ctx, FX, { alpha: ending ? 0.5 : 0.7, op: 'lighter' });
+        drawSunk(FX, ending ? 0.5 : 0.7, 'lighter');
       }
     }
 
@@ -680,8 +708,8 @@ HG.start({
 
     // ---------- branches of light on top, with sparks riding the growing tips
     if (light) {
-      bloomLayer(BR, 9, 0.95);
-      HG.drawLayer(ctx, BR, { op: 'lighter' });
+      bloomLayer(BR, 9, 0.95 * fadeA);
+      drawSunk(BR, fadeA, 'lighter');
       if (!ending) {
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         DATA.paths.forEach((p, i) => {
@@ -694,15 +722,6 @@ HG.start({
           const arch = p.n.endsWith('1');
           HG.dot(ctx, WARM, x, y, arch ? 46 : 34, (arch ? 0.9 : 0.7) * live);
           star(ctx, x, y, 58, 0.8 * live * smooth(2.45, 2.8, t), 0.4 * t + i);
-        });
-        ctx.restore();
-      } else if (cut !== null && cut < 720) {
-        // the rounded ends glow softly as the light is drawn back into the seed
-        ctx.save(); ctx.globalCompositeOperation = 'lighter';
-        DATA.paths.forEach((p, i) => {
-          const kc = kAtCut(p, cut); if (kc >= PEND[i] - 0.004 || kc <= p.d[0] + 0.01) return;
-          const s = branchShape(p, 9, 1, PEND[i], 99, cut); if (!s) return;
-          HG.dot(ctx, WARM, s.tip[0], s.tip[1], 26, 0.45 * smooth(p.d[0] + 0.01, p.d[0] + 0.04, kc));
         });
         ctx.restore();
       }
@@ -733,7 +752,8 @@ HG.start({
         const a = 0.36 * Math.sin(Math.PI * Math.min(1, u * 1.3)) * (1 - u);
         gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(Math.max(0, (r0 - wd) / R), 'rgba(0,0,0,0)');
         gr.addColorStop(r0 / R, rgba(SUN, a)); gr.addColorStop(1, rgba(SUN, 0));
-        ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.fillRect(F.X - R, F.Y - R, 2 * R, 2 * R);
+        const wg = clearL(FX); wg.fillStyle = gr; wg.fillRect(F.X - R, F.Y - R, 2 * R, 2 * R);
+        rimFade(wg); HG.drawLayer(ctx, FX, { op: 'lighter' });
       }
     }
     ctx.restore();
@@ -774,7 +794,7 @@ HG.start({
     ctx.restore();
 
     // ---------- doves in front of the tree; the clay dove glows as its dove of light lifts off
-    for (const d of doves) if (!d.behind) drawDove(ctx, d.fr, d.ang, d.a);
+    for (const d of doves) if (!d.behind) drawDove(ctx, d.fr, d.ang, d.a, d.over);
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     for (const d of DV) { const u = (t - d.lift) / 0.7; if (u > 0 && u < 1) HG.dot(ctx, GOLD, d.x0, d.y0 + 6, 110, 0.55 * Math.sin(Math.PI * u)); }
     ctx.restore();
@@ -845,7 +865,7 @@ HG.start({
         HG.dot(ctx, j % 2 ? GOLD : WARM, ROOT[0] + Math.cos(a) * v * u, ROOT[1] + Math.sin(a) * v * u + 160 * u * u, 13, 0.9 * (1 - u));
       }
     }
-    const seedGlow = smooth(0.95, 1.15, t) * (1 - smooth(1.9, 2.8, t)) + bump(t, 10.4, 10.72, 10.82, 11.2);
+    const seedGlow = smooth(0.95, 1.15, t) * (1 - smooth(1.55, 2.15, t)) + bump(t, 10.4, 10.72, 10.82, 11.2);
     if (seedGlow > 0.003) {
       HG.dot(ctx, GOLD, ROOT[0], ROOT[1], 150, 0.45 * seedGlow);
       HG.dot(ctx, WARM, ROOT[0], ROOT[1], 34, 0.95 * seedGlow);

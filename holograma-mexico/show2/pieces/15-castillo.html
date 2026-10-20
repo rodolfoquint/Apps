@@ -614,7 +614,7 @@ function sunAt(t) {
   if (t < SUN0 - 0.6) return null;
   const cp = proj(...crownWorld(t, 0, 0)); if (!cp) return null;
   const shr = ease.inOut3((t - SHR0) / (SHR1 - SHR0)), k = smooth(SUN0, SUN1, t);
-  const breath = 1 + 0.06 * Math.sin(TAU * 0.8 * (t - SUN1)) * smooth(SUN1 - 0.3, SUN1 + 0.3, t);   // a slow breathing
+  const breath = 1 + 0.075 * Math.sin(TAU * 0.9 * (t - SUN1)) * smooth(SUN1 - 0.3, SUN1 + 0.3, t);   // a slow breathing
   return { x: lerp(cp[0], 540, shr), y: lerp(cp[1], ENDY, shr), k, shr, breath, R: 90 * ease.out3((t - SUN0) / (SUN1 - SUN0 + 0.2)) * (1 - shr) * breath };
 }
 // the corona: flame tongues (long gold, short rose) grown out of the crown's whirl, licking and turning slowly;
@@ -624,13 +624,13 @@ function drawCorona(t, sun) {
   const { x, y, R, shr } = sun;
   if (R < 2) return;
   const g = clearL(LS); g.globalCompositeOperation = 'lighter';
-  const rot = crownTh(SUN0) + 0.62 * (t - SUN0) + 2.4 * shr * shr;
+  const rot = crownTh(SUN0) + 0.75 * (t - SUN0) + 2.4 * shr * shr;
   const r0 = R * 0.62, W0 = TAU * r0 / NRAY * 0.3;
   for (let i = 0; i < NRAY; i++) {
     const long = i % 2 === 0, h = hash(1300, i), h2 = hash(1310, i);
     const grow = ease.out3((t - (SUN0 + 0.2 + 0.35 * h)) / 0.65); if (grow <= 0) continue;
-    const flick = 1 + 0.26 * Math.sin(t * (3.1 + 1.4 * h) + h2 * TAU) + 0.12 * Math.sin(t * 7.3 + h * TAU);
-    const L = R * (long ? 1.78 : 1.1) * flick * grow, th = rot + i * TAU / NRAY + 0.1 * Math.sin(t * 2.1 + h * 5);
+    const flick = 1 + 0.32 * Math.sin(t * (3.4 + 1.6 * h) + h2 * TAU) + 0.12 * Math.sin(t * 7.3 + h * TAU);
+    const L = R * (long ? 1.78 : 1.1) * flick * grow * (1 + 0.16 * Math.sin(TAU * 0.9 * (t - SUN1) + 0.6 + (long ? 0 : 1.2))), th = rot + i * TAU / NRAY + 0.1 * Math.sin(t * 2.1 + h * 5);
     const sweep = long ? -0.5 : -0.34, wav = 0.28 * Math.sin(t * 4.2 + h2 * TAU), wk = (long ? 1 : 0.8) * W0;
     const left = [], right = [];
     for (let m = 0; m <= 10; m++) {
@@ -657,11 +657,11 @@ function drawSun(t, sun) {
   if (!sun || sun.k <= 0.003 || t > PT1) return;
   const { x, y, k, shr, R } = sun, pulse = 0.5 + 0.5 * Math.sin(t * 2.4);
   const on = smooth(SUN0, SUN0 + 0.35, t);
-  radial(ctx, x, y, R * 3 + 60 * (1 - shr), [[0, [255, 178, 80], 0.3], [0.3, [255, 122, 92], 0.12], [1, [255, 90, 110], 0]], on * (0.8 + 0.2 * Math.sin(TAU * 0.8 * (t - SUN1) + 0.6)));
+  radial(ctx, x, y, R * 3 + 60 * (1 - shr), [[0, [255, 178, 80], 0.3], [0.3, [255, 122, 92], 0.12], [1, [255, 90, 110], 0]], on * (0.68 + 0.32 * Math.sin(TAU * 0.9 * (t - SUN1) + 0.6)));
   drawCorona(t, sun);
   // a soft breathing rim glow that hides where the tongues are rooted
-  const glow = 0.75 + 0.25 * Math.sin(TAU * 0.8 * (t - SUN1) + 0.6);
-  radial(ctx, x, y, R * 1.45 + 10, [[0, [255, 190, 90], 0.5], [0.62, [255, 170, 70], 0.42], [0.8, [255, 140, 60], 0.18], [1, [255, 120, 60], 0]], on * glow);
+  const glow = 0.65 + 0.35 * Math.sin(TAU * 0.9 * (t - SUN1) + 0.6);
+  radial(ctx, x, y, R * 1.45 + 10, [[0, [255, 190, 90], 0], [0.5, [255, 180, 80], 0.04], [0.68, [255, 160, 64], 0.4], [0.82, [255, 136, 60], 0.16], [1, [255, 120, 60], 0]], on * glow);
   radial(ctx, x, y, R * 1.12 + 6, [[0, [255, 230, 172], 0.95], [0.45, [255, 206, 104], 0.9], [0.8, [255, 160, 56], 0.74], [1, [255, 124, 40], 0]], on);
   if (R > 3) HG.ring(ctx, x, y, R * 0.97, [255, 196, 92], { width: 4, blur: 6, alpha: (0.34 + 0.12 * pulse) * on * (1 - shr) });
   HG.reset(ctx);
