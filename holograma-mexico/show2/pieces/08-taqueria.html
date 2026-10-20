@@ -1,0 +1,754 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script src="../engine.js"></script>
+<script>
+// La taqueria (afternoon). A burner lights up the dark, flames climbing from the bottom, and in
+// their glow the trompo al pastor appears, really turning on its spit: the meat is wrapped round
+// a cylinder (see drawTrompo), the fire paints its left side orange, the afternoon light its right,
+// sparks fly up and heat shimmers along it, the pineapple on top glints. The camera glides aside,
+// the taquero's knife flashes down the trompo and shavings of meat fly off in an arc of sparks,
+// right into three tacos sliding in on the counter; a flick of the knife sends a piece of
+// pineapple sailing over to the middle taco. The molcajete of salsa rises beside them, the lime
+// glints, steam curls up through the warm light. At the end the steam swirls up and carries the
+// whole scene away.
+// Assets: 08-taqueria-trompo_tex (scratchpad unwrap.py: trompo-pastor-1 and -2 unwrapped round the
+// spit, photo shading removed, four faces joined by min-error seams; pineapple from the flesh
+// beside the core), 08-taqueria-taco1..3 (tacos-2 split along the gaps between the tortillas,
+// the lime goes with taco 3), 08-taqueria-molcajete (prepare.py). PR is the trompo's silhouette:
+// half-width per two texture rows, in source pixels. Everything is a pure function of t.
+const PR = [120.1,120.3,120.7,121.2,122.1,123.4,125,126.7,128.2,129.5,130.7,132,133.2,134.4,135.4,136.3,137.1,137.9,138.7,139.6,140.5,141.5,142.6,143.8,144.9,145.9,146.9,148.2,151,155.9,159.9,161.8,162.7,164,166.5,169.3,171,172.2,172.5,172.3,172.1,171.8,171.5,171.2,171,170.9,170.6,170.2,169.8,169.3,168.7,168.1,167.6,167.4,167.3,167.4,167.6,167.8,168,168.1,168.3,168.5,168.7,168.7,168.4,168.1,168.1,168.5,169.1,170,171.9,174.9,177.4,178.6,178.9,179,179,179.1,179.3,179.4,179.4,179.3,179,178.6,178.2,177.8,177.6,177.3,177.1,177,177.1,177.6,179.3,182.4,184.8,185.3,184.9,184.4,184,183.8,183.6,182.9,181.7,180.5,179.2,178.1,177.2,176.5,176.1,176,176.1,176.2,176.1,175.9,175.5,174.9,174.1,173.6,173.2,172.8,172.4,172.1,171.9,171.8,171.9,171.9,172,172.2,174.1,178.5,182.3,183.4,183.3,182.9,182.3,181.4,180.2,178.6,176.8,175.3,174.3,173.6,172.9,172,170.5,168.4,166.3,164.7,163.5,162.4,161.3,160.3,159.2,158,156.8,155.5,154.4,154.2,155.8,158.2,159.1,158.7,157.6,156.6,156.4,156.1,153.9,150.3,147.1,144.7,142.7,140.8,138.9,137.1,135.2,133.4,132.8,131.2,127.3,123.8,121.4,119.4,119.1,121.1,118.3,109.8,103.8,209.5,212.4,216.7,222,227.4,233,239,245.1,250.7,256.4,261.5,264.7,266.7,269,271.7,274.5,277,278.9,280.2,281.1,281.4,281,280.3,279.6,280.1,281.5,283.1,284.4,285.2,285.8,286.7,288,289.5,291,292.2,293.1,293.7,294.1,294,292.1,288.6,286.9,287.6,288.8,289.4,289.8,290,290.3,290.9,291.5,291.7,291.4,291,290.4,289.7,289.1,288.6,288.2,287.8,287.5,287.1,286.6,285.9,284.6,282.8,282,282.3,283.1,283.9,284.7,285.4,286.1,286.7,287.2,287.7,287.9,287.8,287.2,286.3,285.6,285,284.7,284.4,284.3,284.3,284.5,284.9,285.4,286.1,287,288,289,290,290.9,291.7,292.2,292.9,293.6,294.3,294.9,295.2,295.1,294.6,294,293.3,292.4,290.9,289.3,288.7,289.2,289.9,289.9,289.5,288.9,288.1,287.5,286.9,286.3,285.6,284.6,283.1,281.8,280.6,279.6,279.1,279.1,279.3,279.5,279.7,280.1,280.6,281.1,281.6,281.8,281.6,280.8,279.2,276.9,274.9,273.9,273.4,273.3,273.8,274.7,275.6,276.7,278,279.2,280.1,280.9,281.5,282,282.3,282.4,282.3,282.3,282.3,282.1,281.8,281.2,280.3,279,277.4,275.3,272.5,269.9,268.1,266.7,265.7,264.9,264,263,262.2,261.8,261.7,261.8,261.7,261.2,260.6,259.8,259,258.2,257.6,257.5,257.5,257.4,257.4,257.4,257.2,256.4,254.6,252.8,252.2,252.5,253.2,254,254.7,255.2,255.2,254.7,253.1,250.3,247.4,245.9,245.2,244.8,244.7,244.9,244.9,244.7,244.4,244.1,243.9,243.7,243.2,242.6,241.9,241.1,240.4,239.8,239.1,238.4,238,237.6,237.3,237.1,237.2,237.3,236.8,235.9,235.7,236.1,236.3,236,235.2,233.7,231.6,229.7,228.4,227.4,226.8,226.5,226.1,225.6,225.3,225.5,225.9,226.3,226.4,226,224.7,223.3,222.8,222.6,222.5,222.1,220.8,218.3,215.7,214.6,214.5,214.5,214.5,214.4,214.3,214.3,214.4,214.1,212.1,209.5,208.3,208,207.9,207.6,207.4,207.5,207.9,208.2,208.4,208.2,207.4,205.7,203.5,201.9,201.2,200.9,200.5,200.1,199.9,199.6,199.2,198.8,198.5,198.5,198.8,199.1,199.5,199.9,199.9,199.6,199.3,199.2,199.5,199.8,199.6,199,198.3,197.5,196.6,195.7,193.7,189,182.9,177.9,174.3,172.3,171.7,171.7,172,172.2,172.2,171.9,171.6,171.5,171.2,170.9,170.4,169.8,169.1,168.5,168,167.4,166.8,166.5,166.6,167.1,167.4,167.2,166.9,166.5,165.7,164.9,164.4,163.9,162.9,160.6,158,156.6,156,155.5,154.8,154.2,153.8,153.5,153.1,152.9,152.7,152.4,152.2,151.9,151.5,151,150.3,149.1,146.5,142.5,139.3,137.8,136.8,135.9,135.4,134.9,134.6,134.3,134,133.7,133.4,133.1,132.7,132.3,131.7,130.8,129.6,128.3,127.4,126.6,125.8,124.9,124.1,123.5,123.3,123.1,122.3,120.8,119.7,119.1,118.8,118.4,117.9,117.2,116.6,116,115.3,114.5,114.1,113.6,113,112.3,111.6,111,110.4,109.9,109.2,108.3,107.1,105.7,104,102,99.9,97.9,95.7,93.6,91.6,89.4,87.7,86.9,86.4,85.8,85,84.2,83.5,82.7,82,81.1,80.2,79.5,79.1,78.5,77.7,76.8,75.6,74.5,73.3,72.1,71.1,70.4,69.8,69.2,68.5,67.2,65.5,63.8,61.9,59.8,58.1];
+const { W, C, S, ctx, clamp, lerp, smooth, ease, rgba } = HG;
+const TAU = Math.PI * 2;
+const mix = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)];
+const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
+const hash = (i, j = 0) => { const s = Math.sin(i * 127.1 + j * 311.7 + 0.37) * 43758.5453; return s - Math.floor(s); };
+const vnoise = (x, s = 0) => { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f); return lerp(hash(i, s), hash(i + 1, s), u) * 2 - 1; };
+const fbm = (x, s = 0) => 0.65 * vnoise(x, s) + 0.35 * vnoise(x * 2.3 + 5.1, s + 7);
+const outBackS = (x, s = 0.8) => { x = clamp(x); return 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2); };
+
+// ---------- palette (afternoon: fire orange, adobo red, warm gold light, fresh greens)
+const FIRE_Y = [255, 214, 120], FIRE_O = [255, 126, 26], FIRE_R = [235, 50, 16], EMBER = [255, 168, 60],
+  SUN = [255, 176, 86], STEAM = [255, 222, 178], STEEL = [205, 222, 255], GOLD = [255, 204, 96],
+  LIME = [160, 255, 90], SALSA = [255, 84, 46], WHITE = [255, 250, 240];
+
+// ---------- trompo texture and silhouette
+const TEX_W = 2048, TEX_H = 1283, NP = 373;           // texture: 2pi over TEX_W px (+128 repeated), pineapple rows 0..NP
+const PXR = TEX_W / TAU;
+const prof0 = v => { const x = clamp(v / 2, 0, PR.length - 1), i = Math.floor(x), f = x - i; return lerp(PR[i], PR[Math.min(i + 1, PR.length - 1)], f); };
+// the pineapple's rows are rounded off into a whole peeled fruit (the photo's is cut flat on top)
+const prof = v => v >= NP ? prof0(v) : Math.min(prof0(v), 152 * Math.pow(Math.max(0, 1 - Math.pow((v - 196) / 214, 2)), 0.42));
+const MAXR = 296;
+
+// ---------- timeline
+const T_MOVE = 3.85, D_MOVE = 1.35;                   // camera glides: trompo to the left
+const T_KIN = 4.75, T_CUT0 = 5.0, T_CUT1 = 5.5;       // knife comes in, cuts down the trompo
+const T_FLICK = 5.78, T_KOUT = 6.3;                   // flicks the pineapple, leaves
+const T_TACO = 5.15;                                  // tacos slide in
+const T_PINE = 5.86, D_PINE = 0.98;                   // pineapple piece in flight
+const T_MOLC = 6.5;                                   // molcajete rises
+const T_END = 9.9;                                    // steam takes over
+const T_FLARE = 3.0;                                  // the fire flares up (fat dripping on the burner)
+
+// ---------- layout (still life after the camera move)
+const HERO = { ax: 540, ty: 132, k: 0.475 };
+const STILL = { ax: 338, ty: 142, k: 0.365 };
+const PLATE = { x: 614, y: 652, w: 505, sy: 0.82 };   // tacos frame (1024 asset px -> w)
+const MOLC = { x: 846, y: 466, w: 224 };
+const TACO_C = [[188, 476], [512, 490], [840, 470]];   // taco centres in asset px
+const plateXY = (ax, ay) => [PLATE.x + (ax - 512) / 1024 * PLATE.w, PLATE.y + (ay - 512) / 1024 * PLATE.w * PLATE.sy];
+
+function trompoPose(t) {
+  const m = ease.inOut3((t - T_MOVE) / D_MOVE);
+  const kh = HERO.k - 0.012 + 0.04 * ease.inOut3(t / 4.2);
+  return { ax: lerp(HERO.ax, STILL.ax, m), ty: lerp(HERO.ty, STILL.ty, m), k: lerp(kh, STILL.k, m), m };
+}
+// slow push into the still life
+const zoomAt = t => 1 + 0.03 * ease.inOut3((t - 6.9) / 3.6);
+const cam = (z, x, y) => [C + (x - C) * z, C + (y - C) * z];
+
+// ---------- canvases (NC and TC are private buffers in device pixels, never transformed)
+const NC = document.createElement('canvas'), nx = NC.getContext('2d');
+const TC = document.createElement('canvas'), tx = TC.getContext('2d');
+NC.width = Math.ceil(2 * MAXR * 0.56 * S) + 8; NC.height = Math.ceil(TEX_H * 0.56 * S) + 8;
+TC.width = NC.width + 24; TC.height = NC.height + 8;
+const FL = HG.layer(), FOOD = HG.layer(), STM = HG.layer();
+
+// The trompo turning on its spit. Pass 1 builds the visible half of the cylinder in a normalised
+// strip NC (columns u = sin(theta) from -1 to 1, the same for every row): each column strip takes the
+// texture at angle theta + phi, so the meat slides round as phi turns, squeezing toward the rims.
+// Light is fixed in this space (fire from the left, afternoon key from the front right, a glossy
+// sheen), so the meat turns through it. Pass 2 stretches every device row of NC to the silhouette's
+// width at that height, one pixel row at a time (TC), with a little heat shimmer.
+const LIGHT = 0.5;
+function drawTrompo(c, A, o) {
+  const { ax, ty, k, phi, alpha } = o;
+  if (alpha <= 0.003) return;
+  const rows = Math.max(4, Math.round(TEX_H * k * S));
+  const nw = Math.max(16, Math.round(2 * MAXR * k * S));
+  const rp = Math.round(NP * k * S);
+  // pass 1
+  nx.globalCompositeOperation = 'source-over'; nx.globalAlpha = 1; nx.filter = 'none';
+  nx.clearRect(0, 0, NC.width, NC.height);
+  nx.imageSmoothingEnabled = true; nx.imageSmoothingQuality = 'high';
+  let x = 0;
+  while (x < nw) {
+    const u0 = x / nw * 2 - 1;
+    const x1 = Math.min(nw, x + (Math.abs(u0) > 0.9 ? 1 : 3)), u1 = x1 / nw * 2 - 1;
+    const t0 = Math.asin(clamp(u0, -1, 1)), t1 = Math.asin(clamp(u1, -1, 1));
+    let s0 = ((t0 + phi) * PXR) % TEX_W; if (s0 < 0) s0 += TEX_W;
+    nx.drawImage(A.tex, s0, 0, Math.max(0.01, (t1 - t0) * PXR), TEX_H, x, 0, x1 - x, rows);
+    x = x1;
+  }
+  // light (source-atop keeps the meat's own alpha)
+  nx.globalCompositeOperation = 'source-atop';
+  const n = 32;
+  const shade = nx.createLinearGradient(0, 0, nw, 0);
+  for (let i = 0; i <= n; i++) {
+    const u = i / n * 2 - 1, th = Math.asin(u);
+    const I = o.amb + o.key * Math.pow(Math.max(0, Math.cos(th - LIGHT)), 0.85);
+    shade.addColorStop(i / n, `rgba(0,0,0,${clamp(1 - I).toFixed(3)})`);
+  }
+  nx.fillStyle = shade; nx.fillRect(0, 0, nw, rows);
+  const fire = nx.createLinearGradient(0, 0, nw, 0);
+  for (let i = 0; i <= n; i++) {
+    const u = i / n * 2 - 1;
+    fire.addColorStop(i / n, rgba(FIRE_O, clamp(o.rim * Math.pow(Math.max(0, -u * 1.05), 2.2))));
+  }
+  nx.fillStyle = fire; nx.fillRect(0, rp, nw, rows - rp);
+  nx.globalAlpha = 0.45; nx.fillRect(0, 0, nw, rp); nx.globalAlpha = 1;
+  if (o.front < 1.2) {                   // still dark above the fire that is climbing the burner
+    const yf = rows * (1 - o.front), band = rows * 0.28;
+    const dk = nx.createLinearGradient(0, yf - band, 0, yf + band * 0.4);
+    dk.addColorStop(0, `rgba(0,0,0,${o.dark.toFixed(3)})`); dk.addColorStop(1, 'rgba(0,0,0,0)');
+    nx.fillStyle = dk; nx.fillRect(0, 0, nw, rows);
+  }
+  if (o.spec > 0.003) {
+    const sp = nx.createLinearGradient(0, 0, nw, 0), us = Math.sin(0.28);
+    sp.addColorStop(0, 'rgba(255,240,210,0)');
+    sp.addColorStop(clamp((us + 1) / 2 - 0.09), 'rgba(255,240,210,0)');
+    sp.addColorStop((us + 1) / 2, `rgba(255,240,210,${(0.16 * o.spec).toFixed(3)})`);
+    sp.addColorStop(clamp((us + 1) / 2 + 0.09), 'rgba(255,240,210,0)');
+    sp.addColorStop(1, 'rgba(255,240,210,0)');
+    nx.fillStyle = sp; nx.fillRect(0, 0, nw, rows);
+  }
+  // soft rims
+  nx.globalCompositeOperation = 'destination-out';
+  const rim = nx.createLinearGradient(0, 0, nw, 0);
+  rim.addColorStop(0, 'rgba(0,0,0,1)'); rim.addColorStop(1.6 / nw, 'rgba(0,0,0,0)');
+  rim.addColorStop(1 - 1.6 / nw, 'rgba(0,0,0,0)'); rim.addColorStop(1, 'rgba(0,0,0,1)');
+  nx.fillStyle = rim; nx.fillRect(0, 0, nw, rows);
+  // pass 2
+  tx.globalCompositeOperation = 'source-over'; tx.globalAlpha = 1;
+  tx.clearRect(0, 0, TC.width, TC.height);
+  tx.imageSmoothingEnabled = true; tx.imageSmoothingQuality = 'high';
+  const cx = TC.width / 2, t = o.t;
+  for (let ky = 0; ky < rows; ky++) {
+    const v = (ky + 0.5) / rows * TEX_H, r = prof(v) * k * S;
+    const yy = ky / S;
+    const dx = o.heat * S * 0.9 * Math.sin(yy * 0.13 + t * 9.0) * (0.55 + 0.45 * Math.sin(yy * 0.037 - t * 2.6));
+    tx.drawImage(NC, 0, ky, nw, 1, cx - r + dx, ky, 2 * r, 1);
+  }
+  // composite with a warm bloom
+  const X0 = ax - cx / S, wC = TC.width / S, hC = TC.height / S;
+  c.save();
+  c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.3 * alpha; c.filter = HG.blur(16);
+  c.drawImage(TC, X0, ty, wC, hC);
+  c.filter = 'none'; c.globalCompositeOperation = 'source-over'; c.globalAlpha = alpha;
+  c.drawImage(TC, X0, ty, wC, hC);
+  c.restore();
+}
+
+// the steel spit through the trompo
+function drawSpit(c, P, alpha, t) {
+  if (alpha <= 0.003) return;
+  const { ax, ty, k } = P, w = 9 * k / 0.5, top = ty - 70 * k / 0.5, bot = ty + TEX_H * k;
+  c.save();
+  const seg = (y0, y1, fadeTop) => {
+    const g = c.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, `rgba(200,212,235,${fadeTop ? 0 : 0.85 * alpha})`); g.addColorStop(0.5, `rgba(200,212,235,${0.85 * alpha})`);
+    g.addColorStop(1, `rgba(200,212,235,${fadeTop ? 0.85 * alpha : 0})`);
+    const h = c.createLinearGradient(ax - w / 2, 0, ax + w / 2, 0);
+    h.addColorStop(0, 'rgba(0,0,0,0.75)'); h.addColorStop(0.35, 'rgba(0,0,0,0)'); h.addColorStop(0.6, 'rgba(0,0,0,0)'); h.addColorStop(1, 'rgba(0,0,0,0.8)');
+    c.fillStyle = g; c.fillRect(ax - w / 2, y0, w, y1 - y0);
+    c.fillStyle = h; c.globalCompositeOperation = 'source-atop'; c.fillRect(ax - w / 2, y0, w, y1 - y0);
+    c.globalCompositeOperation = 'source-over';
+  };
+  seg(bot - 10 * k, bot + 46 * k / 0.5, false);
+  c.restore();
+}
+
+// fire: tongues of flame licking up the trompo's left side, following its slope (soft particles in FL,
+// laid over the meat's fire side additively with a glow)
+const FCOL = Array.from({ length: 9 }, (_, i) => {
+  const u = i / 8;
+  return (u < 0.25 ? mix(FIRE_Y, FIRE_O, u / 0.25) : mix(FIRE_O, FIRE_R, (u - 0.25) / 0.75)).map(Math.round);
+});
+const edgeL = (P, v) => P.ax - prof(v) * P.k;
+function drawFlames(t, P, power, ign) {
+  const f = FL.ctx; HG.reset(f); f.clearRect(0, 0, W, W);
+  if (power <= 0.003) return false;
+  const { ty, k } = P, sc = k / 0.5;
+  f.globalCompositeOperation = 'lighter';
+  const NJ = 11, v0 = NP + 30, v1 = TEX_H - 40;
+  for (let j = 0; j < NJ; j++) {
+    const v = lerp(v1, v0, (j + 0.5) / NJ);                       // j = 0 at the bottom
+    const on = smooth(0, 1, (ign - j / NJ * 0.85) / 0.16);
+    if (on <= 0.003) continue;
+    const yj = ty + v * k, xj = edgeL(P, v) + 6 * sc;
+    const flare = Math.max(0, fbm(t * 1.3 + j * 5.7, 66)) * 0.9;
+    const jetH = (110 + 45 * fbm(t * 2.1 + j * 3.1, 61)) * (1 + flare) * sc * on * (0.55 + 0.45 * Math.min(power, 1)) * (1 + 1.5 * Math.max(0, power - 1));
+    const slope = (prof(Math.max(v0, v - 120)) - prof(v)) / 120;   // how far the surface leans out per row
+    for (let i = 0; i < 18; i++) {
+      const life = 0.4 + 0.25 * hash(j * 31 + i, 62);
+      const x_ = t / life + hash(j * 31 + i, 63), cyc = Math.floor(x_), a = x_ - cyc;
+      const r1 = hash(j * 131 + i * 7 + cyc, 64), r2 = hash(j * 131 + i * 7 + cyc, 65);
+      const rise = jetH * (0.8 + 0.35 * r2) * a;
+      const x = xj - (r1 * 14 + 2) * sc - slope * rise - (12 + 30 * r2) * sc * a * a + 6 * sc * Math.sin(t * 10 + i * 1.3 + j * 2.2) * a;
+      const y = yj - rise;
+      const sz = (46 - 26 * a) * sc * (0.7 + 0.5 * r1);
+      const al = Math.min(1.25, power) * on * Math.pow(1 - a, 1.1) * smooth(0, 0.1, a) * 0.34;
+      if (al <= 0.003) continue;
+      f.globalAlpha = Math.min(1, al);
+      f.drawImage(HG.sprite(FCOL[Math.min(8, Math.floor(a * 9))]), x - sz / 2, y - sz * 0.9, sz, sz * 1.8);
+    }
+  }
+  f.globalAlpha = 1;
+  return true;
+}
+
+// the pineapple's crown: stiff spiky leaves turning with the spit (back leaves dimmer, drawn first)
+const LEAVES = [];
+{
+  const R = HG.rng(4242);
+  for (let i = 0; i < 17; i++) { const inner = i < 6; LEAVES.push({ az: i * 2.39996 + R() * 0.3, el: inner ? 0.12 + 0.35 * R() : 0.55 + 0.6 * R(), len: inner ? 66 + 26 * R() : 44 + 30 * R(), w: 14 + 6 * R(), droop: inner ? 0.05 : 0.25 + 0.3 * R() }); }
+}
+function drawCrown(c, P, phi, alpha, front) {
+  if (alpha <= 0.003) return;
+  const sc = P.k / 0.5, x0 = P.ax, y0 = P.ty + 12 * P.k;
+  const list = LEAVES.map(L => ({ L, d: Math.sin(L.el) * Math.cos(L.az + phi) })).sort((a, b) => a.d - b.d);
+  c.save();
+  for (const { L, d } of list) {
+    if ((d >= 0) !== front) continue;
+    const sx = Math.sin(L.el) * Math.sin(L.az + phi), sy = -Math.cos(L.el);
+    const len = L.len * sc, dirx = sx, diry = sy;
+    const tipx = x0 + dirx * len, tipy = y0 + diry * len + L.droop * len * Math.abs(sx) * 0.8;
+    const mx = x0 + dirx * len * 0.5, my = y0 + diry * len * 0.55;
+    const nxv = -diry, nyv = dirx, w = L.w * sc * (0.55 + 0.45 * Math.abs(Math.cos(L.az + phi)));
+    const lit = 0.55 + 0.45 * (d + 1) / 2;
+    const col = mix([24, 105, 72], [110, 215, 130], lit);
+    c.beginPath();
+    c.moveTo(x0 - nxv * w * 0.5, y0 - nyv * w * 0.5);
+    c.quadraticCurveTo(mx - nxv * w * 0.45, my - nyv * w * 0.45, tipx, tipy);
+    c.quadraticCurveTo(mx + nxv * w * 0.45, my + nyv * w * 0.45, x0 + nxv * w * 0.5, y0 + nyv * w * 0.5);
+    c.closePath();
+    const g = c.createLinearGradient(x0, y0, tipx, tipy);
+    g.addColorStop(0, rgba(mix(col, [200, 180, 80], 0.35), alpha)); g.addColorStop(0.5, rgba(col, alpha)); g.addColorStop(1, rgba(mix(col, [180, 255, 170], 0.3), alpha * 0.9));
+    c.shadowColor = rgba([90, 230, 120], 0.6 * alpha * lit); c.shadowBlur = HG.px(8);
+    c.fillStyle = g; c.fill();
+    c.shadowBlur = 0;
+    c.strokeStyle = rgba([200, 255, 190], 0.35 * alpha * lit); c.lineWidth = 1.2;
+    c.beginPath(); c.moveTo(x0, y0); c.quadraticCurveTo(mx, my, tipx, tipy); c.stroke();
+  }
+  c.restore();
+}
+
+// glowing star glint
+function star(c, x, y, s, a, rot = 0, col = WHITE) {
+  if (a <= 0.003 || s <= 0) return;
+  const sp = HG.sprite(col);
+  c.save(); c.globalCompositeOperation = 'lighter'; c.translate(x, y); c.rotate(rot);
+  c.globalAlpha = Math.min(1, a);
+  c.drawImage(sp, -s / 2, -s * 0.05, s, s * 0.1);
+  c.drawImage(sp, -s * 0.05, -s / 2, s * 0.1, s);
+  c.globalAlpha = Math.min(1, a * 0.8);
+  c.drawImage(sp, -s * 0.17, -s * 0.17, s * 0.34, s * 0.34);
+  c.restore();
+}
+
+// the taquero's knife; (x, y) is the tip on the meat, ang the blade's angle (0 = pointing left)
+function drawKnife(c, x, y, ang, alpha, glint) {
+  if (alpha <= 0.003) return;
+  const L = 200, Hb = 30;
+  c.save(); c.translate(x, y); c.rotate(ang);
+  // blade (tip at the origin, edge along +x, spine above)
+  const blade = new Path2D();
+  blade.moveTo(0, 0); blade.quadraticCurveTo(L * 0.5, 5, L, 4); blade.lineTo(L, -Hb);
+  blade.quadraticCurveTo(L * 0.3, -Hb, 0, 0); blade.closePath();
+  const g = c.createLinearGradient(0, 4, 0, -Hb);
+  g.addColorStop(0, rgba(STEEL, 0.95 * alpha)); g.addColorStop(0.25, rgba([120, 135, 165], 0.75 * alpha)); g.addColorStop(1, rgba([70, 80, 100], 0.7 * alpha));
+  c.shadowColor = rgba(STEEL, 0.7 * alpha); c.shadowBlur = HG.px(14);
+  c.fillStyle = g; c.fill(blade);
+  c.shadowBlur = 0;
+  c.strokeStyle = rgba([235, 245, 255], 0.95 * alpha); c.lineWidth = 2;
+  c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(L * 0.5, 5, L, 4); c.stroke();
+  // handle
+  c.fillStyle = rgba([120, 62, 28], 0.95 * alpha);
+  c.beginPath(); c.roundRect(L + 2, -Hb * 0.82, 96, Hb * 0.72, 7); c.fill();
+  c.fillStyle = rgba([255, 200, 140], 0.35 * alpha);
+  c.beginPath(); c.roundRect(L + 6, -Hb * 0.8, 88, 4, 2); c.fill();
+  for (const rx of [L + 26, L + 52, L + 78]) { c.fillStyle = rgba([230, 235, 245], 0.9 * alpha); c.beginPath(); c.arc(rx, -Hb * 0.46, 2.6, 0, TAU); c.fill(); }
+  // a glint runs along the edge
+  if (glint >= 0 && glint <= 1) {
+    const gx = lerp(L * 0.95, L * 0.05, ease.inOut3(glint)), ga = Math.sin(Math.PI * glint);
+    c.globalCompositeOperation = 'lighter';
+    const sg = c.createLinearGradient(gx - 60, 0, gx + 60, 0);
+    sg.addColorStop(0, 'rgba(255,255,255,0)'); sg.addColorStop(0.5, `rgba(255,255,255,${0.75 * ga * alpha})`); sg.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = sg; c.fill(blade);
+    c.restore();
+    star(c, ...rotPt(x, y, ang, gx, 2), 70 * ga, 0.9 * ga * alpha, 0.3, STEEL);
+    return;
+  }
+  c.restore();
+}
+// a smooth tapered streak of light through pts (head first), fading toward the tail
+function streak(c, pts, col, width, alpha) {
+  if (pts.length < 2 || alpha <= 0.003) return;
+  const [hx, hy] = pts[0], [tx_, ty_] = pts[pts.length - 1];
+  if (Math.hypot(hx - tx_, hy - ty_) < 0.5) return;
+  const g = c.createLinearGradient(hx, hy, tx_, ty_);
+  g.addColorStop(0, rgba(col, alpha)); g.addColorStop(0.35, rgba(col, alpha * 0.55)); g.addColorStop(1, rgba(col, 0));
+  c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = g; c.lineCap = 'round'; c.lineJoin = 'round';
+  const path = () => { c.beginPath(); c.moveTo(hx, hy); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); };
+  c.lineWidth = width * 2.6; c.globalAlpha = 0.35; path(); c.stroke();
+  c.lineWidth = width; c.globalAlpha = 1; path(); c.stroke();
+  c.restore();
+}
+const rotPt = (x, y, ang, lx, ly) => [x + lx * Math.cos(ang) - ly * Math.sin(ang), y + lx * Math.sin(ang) + ly * Math.cos(ang)];
+
+// the knife's path (still-life coordinates, before the camera zoom)
+const meatEdge = (P, y) => P.ax + prof((y - P.ty) / P.k) * P.k;
+function knifeAt(t) {
+  const P = STILL, yTop = P.ty + (NP + 60) * P.k, yBot = P.ty + (TEX_H - 260) * P.k;
+  const yPine = P.ty + NP * 0.62 * P.k;
+  let x, y, ang, a = 1;
+  if (t < T_CUT0) {                       // comes in from the right to the top of the meat
+    const u = ease.out3((t - T_KIN) / (T_CUT0 - T_KIN));
+    y = lerp(yTop - 120, yTop, u); x = lerp(meatEdge(P, yTop) + 360, meatEdge(P, yTop) - 6, u);
+    ang = lerp(-0.55, -0.32, u); a = smooth(T_KIN, T_KIN + 0.18, t);
+  } else if (t < T_CUT1) {                // the cut: down the trompo's right side
+    const u = ease.inOut3((t - T_CUT0) / (T_CUT1 - T_CUT0));
+    y = lerp(yTop, yBot, u); x = meatEdge(P, y) - 6; ang = lerp(-0.32, 0.12, u);
+  } else if (t < T_FLICK) {               // swings up to the pineapple
+    const u = ease.inOut3((t - T_CUT1) / (T_FLICK - T_CUT1));
+    const px_ = P.ax + prof(NP * 0.62) * P.k + 4;
+    y = lerp(yBot, yPine + 40, u); x = lerp(meatEdge(P, yBot) - 6, px_, u) + 190 * Math.sin(Math.PI * u);
+    ang = lerp(0.12, 0.35, u) - 0.25 * Math.sin(Math.PI * u);
+  } else {                                // the flick, then away
+    const u = (t - T_FLICK) / (T_KOUT - T_FLICK);
+    const f = ease.out3(u / 0.35), o = ease.in3((u - 0.3) / 0.7);
+    const px_ = P.ax + prof(NP * 0.62) * P.k + 4;
+    y = yPine + 40 - 70 * f - 40 * o; x = px_ + 30 * f + 420 * o;
+    ang = 0.35 - 0.95 * f + 0.4 * o; a = 1 - smooth(0.55, 1, u);
+  }
+  return { x, y, ang, a };
+}
+
+// shavings of meat: cut off along the knife's path, flying in an arc of sparks into the three tacos
+const SHAV = [], SPARK = [];
+{
+  const R = HG.rng(808);
+  for (let i = 0; i < 15; i++) {
+    const ts = lerp(T_CUT0 + 0.03, T_CUT1 - 0.03, (i + R() * 0.7) / 15);
+    const taco = [0, 1, 2][i % 3], [tx0, ty0] = TACO_C[taco];
+    const tgt = plateXY(tx0 + (R() - 0.5) * 110, ty0 + (R() - 0.5) * 240);
+    SHAV.push({ ts, dur: 0.78 + R() * 0.2, tgt, lift: 150 + R() * 90, spin: (R() - 0.5) * 14, flip: 5 + R() * 7,
+      sx: R() * (TEX_W - 80), sy: NP + 60 + R() * (TEX_H - NP - 220), w: 34 + R() * 14, h: 12 + R() * 5 });
+  }
+  for (let i = 0; i < 52; i++) {
+    const ts = lerp(T_CUT0, T_CUT1, R());
+    SPARK.push({ ts, dur: 0.45 + R() * 0.4, vx: 120 + R() * 300, vy: -(120 + R() * 260), col: R() < 0.5 ? FIRE_Y : EMBER, s: 8 + R() * 8 });
+  }
+}
+const taco0 = taco => 0.075 * taco;          // tacos slide in staggered (left one leads)
+function tacoSlide(t, i) {
+  const u = (t - T_TACO - taco0(i)) / 1.0;
+  return { dx: (1 - outBackS(u, 0.5)) * 560, rot: -0.06 * (1 - ease.out3(u)), a: smooth(0, 0.22, u) };
+}
+
+// steam: a plume of soft filaments rising from (x0, y0). Each filament is displaced by smooth noise
+// that drifts upward with the steam (so the wisps visibly rise), sharing one main sway and parting
+// as they climb. H: height reached; lift: the plume's foot (rises at the end, so the steam lets go
+// and floats away); curl: a slow travelling curl for the finale. Drawn into STM, blurred when composited.
+function plume(g, x0, y0, t, seed, { H = 300, amp = 1, width = 30, alpha = 0.1, speed = 1, curl = 0, lift = 0, lean = 0 } = {}) {
+  if (H - lift < 8 || alpha <= 0.003) return;
+  const rise = 55 * speed;                                   // px/s the wisps climb
+  for (let r = 0; r < 3; r++) {
+    const N = 24, pts = [];
+    for (let j = 0; j <= N; j++) {
+      const h = lerp(lift, H, j / N), q = (h - rise * t) * 0.0065;       // noise coordinate moving up
+      const A = amp * (6 + 0.32 * h);
+      let x = x0 + A * fbm(q + seed * 3.1, 70) + lean * h;
+      x += (r - 1) * (5 + 0.13 * h) + 0.35 * A * vnoise(q * 1.7 + r * 4.3 + seed, 71);
+      x += curl * (0.25 * h) * Math.sin(h * 0.011 - t * 2.2 + seed);
+      pts.push([x, y0 - h]);
+    }
+    const yA = y0 - lift, yB = y0 - H;
+    const gr = g.createLinearGradient(0, yA, 0, yB);
+    const al = alpha * (r === 1 ? 1 : 0.42);
+    gr.addColorStop(0, rgba(STEAM, 0)); gr.addColorStop(0.2, rgba(STEAM, al)); gr.addColorStop(0.55, rgba(STEAM, al * 0.7)); gr.addColorStop(1, rgba(STEAM, 0));
+    g.strokeStyle = gr; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.lineWidth = width * (r === 1 ? 1 : 0.5);
+    g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
+    for (let j = 1; j < N; j++) g.quadraticCurveTo(pts[j][0], pts[j][1], (pts[j][0] + pts[j + 1][0]) / 2, (pts[j][1] + pts[j + 1][1]) / 2);
+    g.lineTo(pts[N][0], pts[N][1]); g.stroke();
+  }
+}
+
+HG.start({
+  duration: 12,
+  assets: {
+    tex: '../assets/08-taqueria-trompo_tex.png',
+    t1: '../assets/08-taqueria-taco1.png', t2: '../assets/08-taqueria-taco2.png', t3: '../assets/08-taqueria-taco3.png',
+    molc: '../assets/08-taqueria-molcajete.png', molcL: '../assets/08-taqueria-molcajete_lines.png',
+  },
+  render(t, A) {
+    const P0 = trompoPose(t);
+    const Z = zoomAt(t);
+    const [axZ, tyZ] = cam(Z, P0.ax, P0.ty);
+    const P = { ax: axZ, ty: tyZ, k: P0.k * Z };
+    const endA = 1 - smooth(T_END + 0.15, T_END + 1.25, t);        // solids dissolve into the steam
+    const ign = smooth(0.1, 1.25, t);                                // burner lights bottom to top
+    const flare = bump(t, T_FLARE, T_FLARE + 0.25, T_FLARE + 0.5, T_FLARE + 1.3);
+    const fireP = (0.85 + 0.15 * fbm(t * 6.5, 21) + 0.55 * flare) * smooth(0.05, 0.5, t) * (1 - smooth(T_END + 0.1, T_END + 1.2, t));
+
+    // ---- afternoon light: a soft warm glow high on the right, golden motes drifting in it
+    const sunA = smooth(0.9, 2.8, t) * (1 - smooth(T_END - 0.2, T_END + 1.2, t));
+    if (sunA > 0.003) {
+      const sx = 790, sy = 220;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 26; i++) {
+        const r1 = hash(i, 81), r2 = hash(i, 82), r3 = hash(i, 83);
+        const ang = r1 * TAU, rad = 60 + 300 * Math.sqrt(r2);
+        const x = sx + Math.cos(ang) * rad + 18 * Math.sin(t * 0.4 + i) + 8 * t;
+        const y = sy + Math.sin(ang) * rad * 0.8 - 7 * t + 10 * Math.cos(t * 0.33 + i * 1.7);
+        const a = sunA * (0.32 + 0.3 * Math.sin(t * (1.3 + r3) + i * 2.1)) * (1 - rad / 420);
+        HG.dot(ctx, i % 4 ? GOLD : WHITE, x, y, 7 + 6 * r3, a);
+      }
+      ctx.restore();
+    }
+
+    // ---- fire glow behind the trompo
+    const midY = P.ty + (NP + (TEX_H - NP) * 0.55) * P.k, fx = P.ax - 250 * P.k;
+    if (fireP > 0.003) {
+      const g = ctx.createRadialGradient(fx, midY, 10, fx, midY, 560 * P.k);
+      g.addColorStop(0, rgba(FIRE_O, 0.24 * fireP * ign)); g.addColorStop(0.45, rgba(FIRE_R, 0.08 * fireP * ign)); g.addColorStop(1, rgba(FIRE_R, 0));
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, W);
+    }
+    const hasFire = drawFlames(t, P, fireP, ign);
+    if (hasFire) {                                                   // the part of the fire behind the meat
+      HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.6; ctx.filter = HG.blur(14); ctx.drawImage(FL.cv, 0, 0, W, W);
+      HG.reset(ctx);
+    }
+
+    // the spark that lights the burner climbs the trompo's side
+    {
+      const u = (t - 0.12) / 1.05;
+      if (u > 0 && u < 1.15) {
+        const vv = lerp(TEX_H - 40, NP + 20, clamp(u)), e = Math.sin(Math.PI * clamp(u / 1.15));
+        const x = P.ax - prof(vv) * P.k - 6, y = P.ty + vv * P.k;
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        HG.dot(ctx, FIRE_O, x, y, 90, 0.35 * e);
+        ctx.restore();
+        star(ctx, x, y, 70 * e, 0.9 * e, t * 2, FIRE_Y);
+      }
+    }
+
+    // ---- the trompo
+    const show = smooth(0.2, 1.0, t) * endA;
+    const key = 0.8 * smooth(0.75, 2.1, t), amb = 0.08 + 0.19 * smooth(0.5, 1.9, t);
+    const phi = -0.5 * t + 0.6;
+    drawSpit(ctx, P, show * (0.45 + 0.55 * key), t);
+    drawCrown(ctx, P, phi, show * smooth(0.75, 1.7, t), false);
+    drawTrompo(ctx, A, { ...P, phi, alpha: show, amb, key, rim: (0.6 + 0.28 * fireP) * smooth(0.15, 0.8, t), spec: key,
+      heat: fireP, t, front: ign * 1.15, dark: 0.85 * (1 - smooth(1.1, 1.9, t)) });
+    drawCrown(ctx, P, phi, show * smooth(0.75, 1.7, t), true);
+    if (hasFire) {                                                   // flames licking over the meat's side
+      HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.55; ctx.filter = HG.blur(8); ctx.drawImage(FL.cv, 0, 0, W, W);
+      ctx.globalAlpha = 0.85; ctx.filter = HG.blur(1.5); ctx.drawImage(FL.cv, 0, 0, W, W);
+      HG.reset(ctx);
+    }
+
+    // ---- embers flying up off the fire
+    {
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 40; i++) {
+        const per = 1.2 + hash(i, 1) * 1.1, x_ = t / per + hash(i, 2), cyc = Math.floor(x_), age = x_ - cyc;
+        const tb = t - age * per;
+        if (tb < 0.3 || tb > T_END + 0.7) continue;
+        const r1 = hash(i * 7 + cyc, 3), r2 = hash(i * 7 + cyc, 4), r3 = hash(i * 7 + cyc, 5);
+        if (smooth(0.1, 1.25, tb) < r1 * 0.85 + 0.1) continue;
+        const Pb = trompoPose(tb), Zb = zoomAt(tb);
+        const vv = NP + 40 + (1 - r1) * (TEX_H - NP - 100);
+        const [bx, by] = cam(Zb, Pb.ax - prof(vv) * Pb.k - 8 * Pb.k, Pb.ty + vv * Pb.k);
+        const life = per * age;
+        const x = bx + (r2 - 0.3) * 50 * life + 12 * Math.sin(life * 5 + r3 * 6);
+        const y = by - (110 + 120 * r3) * life - 25 * life * life;
+        const a = Math.sin(Math.PI * Math.pow(age, 0.7)) * (0.55 + 0.45 * Math.sin(t * 19 + i * 2.3)) * (1 - smooth(T_END + 0.3, T_END + 1.2, t));
+        HG.dot(ctx, r2 < 0.5 ? FIRE_Y : EMBER, x, y, 8 + 7 * r2, a);
+      }
+      ctx.restore();
+    }
+    // the flare throws a burst of sparks up and out
+    {
+      const fa = t - T_FLARE - 0.1;
+      if (fa > 0 && fa < 1.6) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 34; i++) {
+          const d = hash(i, 101) * 0.35, a = fa - d; if (a <= 0 || a > 1.2) continue;
+          const vv = NP + 80 + hash(i, 102) * (TEX_H - NP - 200);
+          const bx = P.ax - prof(vv) * P.k - 10, by = P.ty + vv * P.k;
+          const an = -Math.PI / 2 - 0.25 - hash(i, 103) * 0.9, v = 160 + 220 * hash(i, 104);
+          for (let j = 0; j < 3; j++) {
+            const aa = Math.max(0, a - j * 0.03);
+            const x = bx + Math.cos(an) * v * aa, y = by + Math.sin(an) * v * aa + 160 * aa * aa;
+            HG.dot(ctx, hash(i, 105) < 0.5 ? FIRE_Y : EMBER, x, y, (11 + 5 * hash(i, 106)) * (1 - j / 3), (1 - a / 1.2) * (1 - j / 3) * (0.7 + 0.3 * Math.sin(t * 25 + i)));
+          }
+        }
+        ctx.restore();
+      }
+    }
+    // sizzle: grease pops on the fire side of the meat
+    for (let i = 0; i < 8; i++) {
+      const per = 0.8 + hash(i, 31) * 0.6, x_ = t / per + hash(i, 32), cyc = Math.floor(x_), age = (x_ - cyc) * per;
+      if (age > 0.28 || t < 1.3 || t > T_END + 0.5) continue;
+      const vv = NP + 50 + hash(i * 13 + cyc, 33) * (TEX_H - NP - 200);
+      const u = -0.35 - 0.5 * hash(i * 13 + cyc, 34);
+      const x = P.ax + u * prof(vv) * P.k, y = P.ty + vv * P.k, e = Math.sin(Math.PI * age / 0.28);
+      star(ctx, x, y, 40 * e * P.k / 0.5, 0.85 * e * endA, hash(i, cyc), FIRE_Y);
+    }
+    // the pineapple glints
+    for (const [tg, du] of [[2.5, 0.85], [8.6, 0.85]]) {
+      const u = (t - tg) / du; if (u <= 0 || u >= 1) continue;
+      const vv = NP * 0.3, x = P.ax + prof(vv) * P.k * 0.5, y = P.ty + vv * P.k, e = Math.sin(Math.PI * u);
+      star(ctx, x, y, 170 * e * P.k / 0.5, e * endA, u * 0.8, GOLD);
+      HG.dot(ctx, GOLD, x, y, 120 * e * P.k / 0.5, 0.25 * e * endA);
+    }
+
+    // ---- molcajete and tacos (FOOD layer, with bloom)
+    const fg = FOOD.ctx; HG.reset(fg); fg.clearRect(0, 0, W, W);
+    let food = false;
+    const mU = (t - T_MOLC) / 0.95;
+    if (mU > 0 && endA > 0.003) {
+      food = true;
+      const [mx, my] = cam(Z, MOLC.x, MOLC.y + 50 * (1 - ease.out3(mU)));
+      const mw = MOLC.w * Z * lerp(0.88, 1, outBackS(mU, 1.1));
+      fg.save(); fg.globalAlpha = smooth(0, 0.4, mU);
+      fg.drawImage(A.molc, mx - mw / 2, my - mw / 2, mw, mw);
+      fg.globalCompositeOperation = 'lighter'; fg.globalAlpha = 0.45 * smooth(0, 0.4, mU);
+      fg.drawImage(A.molcL, mx - mw / 2, my - mw / 2, mw, mw);
+      fg.restore();
+    }
+    const tacoImgs = [A.t1, A.t2, A.t3];
+    const pw = PLATE.w * Z, ph = PLATE.w * PLATE.sy * Z;
+    const [plx, ply] = cam(Z, PLATE.x, PLATE.y);
+    for (const i of [0, 2, 1]) {                     // the middle taco lies on its neighbours' rims
+      const s = tacoSlide(t, i);
+      if (s.a <= 0.003 || endA <= 0.003) continue;
+      food = true;
+      const [px, py] = cam(Z, ...plateXY(...TACO_C[i]));
+      fg.save(); fg.globalAlpha = s.a;
+      fg.translate(px + s.dx * Z, py); fg.rotate(s.rot); fg.translate(-px, -py);
+      fg.drawImage(tacoImgs[i], plx - pw / 2, ply - ph / 2, pw, ph);
+      fg.restore();
+    }
+    if (food) {
+      // a sheen of light slides across the food
+      const su = (t - 8.05) / 1.15;
+      if (su > 0 && su < 1) {
+        fg.save(); fg.globalCompositeOperation = 'source-atop';
+        const sx = lerp(330, 1010, ease.inOut3(su));
+        const gr = fg.createLinearGradient(sx - 80, 330, sx + 80, 450);
+        gr.addColorStop(0, 'rgba(255,240,200,0)'); gr.addColorStop(0.5, `rgba(255,240,200,${0.28 * Math.sin(Math.PI * su)})`); gr.addColorStop(1, 'rgba(255,240,200,0)');
+        fg.fillStyle = gr; fg.fillRect(0, 0, W, W); fg.restore();
+      }
+      HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.26 * endA; ctx.filter = HG.blur(14); ctx.drawImage(FOOD.cv, 0, 0, W, W);
+      HG.reset(ctx); ctx.globalAlpha = endA; ctx.drawImage(FOOD.cv, 0, 0, W, W); HG.reset(ctx);
+    }
+
+    // ---- the knife
+    if (t > T_KIN && t < T_KOUT) {
+      const K = knifeAt(t);
+      const [kx, ky] = cam(Z, K.x, K.y);
+      if (t > T_CUT0 && t < T_CUT1 + 0.2) {           // a slash of light along the cut just made
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.filter = HG.blur(3);
+        const N = 10;
+        for (let j = 0; j < N; j++) {
+          const ta = t - j * 0.02, tb = t - (j + 1) * 0.02;
+          if (tb < T_CUT0) break;
+          if (ta > T_CUT1) continue;
+          const Ka = knifeAt(ta), Kb = knifeAt(tb);
+          ctx.strokeStyle = rgba(STEEL, (1 - j / N) * 0.6); ctx.lineWidth = 12 * (1 - j / N) + 2;
+          ctx.beginPath(); ctx.moveTo(...cam(Z, Ka.x, Ka.y)); ctx.lineTo(...cam(Z, Kb.x, Kb.y)); ctx.stroke();
+        }
+        ctx.restore();
+      }
+      drawKnife(ctx, kx, ky, K.ang, K.a, (t - T_CUT0 - 0.04) / 0.42);
+    }
+
+    // ---- shavings: glowing comets with a curl of meat at the head, landing in the tacos
+    {
+      ctx.save();
+      for (const s of SHAV) {
+        const u = (t - s.ts) / s.dur;
+        if (u <= 0 || u >= 1.2) continue;
+        const K0 = knifeAt(s.ts), p0 = [K0.x + 6, K0.y + 4];
+        const pos = q => {
+          const e = q * (0.8 + 0.2 * q);
+          const [x, y] = [lerp(p0[0], s.tgt[0], e), lerp(p0[1], s.tgt[1], e) - s.lift * 4 * q * (1 - q)];
+          return cam(Z, x, y);
+        };
+        if (u < 1) {
+          const tr = [];
+          for (let j = 0; j <= 8; j++) tr.push(pos(Math.max(0, u - j * 0.022)));
+          streak(ctx, tr, FIRE_O, 4, 0.75);
+          ctx.globalCompositeOperation = 'lighter';
+          const [x, y] = pos(u);
+          HG.dot(ctx, FIRE_O, x, y, 54, 0.4);
+          HG.dot(ctx, FIRE_Y, x, y, 18, 0.7);
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.save(); ctx.translate(x, y); ctx.rotate(s.spin * u * 0.5 + 0.4); ctx.scale(1, 0.4 + 0.6 * Math.abs(Math.cos(s.flip * u)));
+          ctx.globalAlpha = smooth(0, 0.08, u) * (1 - smooth(0.88, 1, u));
+          ctx.beginPath(); ctx.moveTo(-s.w / 2, 0); ctx.quadraticCurveTo(0, -s.h * 1.05, s.w / 2, 0); ctx.quadraticCurveTo(0, s.h * 0.9, -s.w / 2, 0); ctx.clip();
+          ctx.drawImage(A.tex, s.sx, s.sy, 80, 30, -s.w / 2, -s.h / 2, s.w, s.h);
+          ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha *= 0.55;
+          ctx.drawImage(A.tex, s.sx, s.sy, 80, 30, -s.w / 2, -s.h / 2, s.w, s.h);
+          ctx.restore();
+        } else {
+          const q = (u - 1) / 0.2, [x, y] = cam(Z, ...s.tgt);
+          ctx.globalCompositeOperation = 'lighter';
+          HG.dot(ctx, FIRE_O, x, y, 50 * (1 - q * 0.5), 0.35 * (1 - q));
+          for (let j = 0; j < 4; j++) {
+            const an = -Math.PI / 2 + (j - 1.5) * 0.65;
+            HG.dot(ctx, FIRE_Y, x + Math.cos(an) * 28 * q, y + Math.sin(an) * 28 * q, 11, 0.6 * (1 - q));
+          }
+        }
+      }
+      // free sparks thrown off the blade
+      ctx.globalCompositeOperation = 'lighter';
+      for (const sp of SPARK) {
+        const a = t - sp.ts; if (a <= 0 || a >= sp.dur) continue;
+        const K0 = knifeAt(sp.ts), u = a / sp.dur;
+        const tr = [];
+        for (let j = 0; j <= 4; j++) { const aa = Math.max(0, a - j * 0.018); tr.push(cam(Z, K0.x + sp.vx * aa, K0.y + sp.vy * aa + 420 * aa * aa)); }
+        streak(ctx, tr, sp.col, 2.2, 0.9 * (1 - u));
+        HG.dot(ctx, sp.col, tr[0][0], tr[0][1], sp.s, (1 - u) * 0.8);
+      }
+      ctx.restore();
+    }
+
+    // ---- the pineapple piece: flicked off the top, sails over to the middle taco
+    {
+      const u = (t - T_PINE) / D_PINE;
+      const P1 = STILL;
+      const p0 = [P1.ax + 150 * P1.k, P1.ty + NP * 0.55 * P1.k];
+      const p1 = plateXY(500, 470);
+      const at = q => cam(Z, lerp(p0[0], p1[0], q), lerp(p0[1], p1[1], q) - 230 * 4 * q * (1 - q));
+      if (u > 0 && u < 1) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        const ptr = [];
+        for (let j = 0; j <= 10; j++) ptr.push(at(Math.max(0, u - j * 0.025)));
+        streak(ctx, ptr, GOLD, 5, 0.6);
+        for (let j = 1; j < 12; j++) {
+          const q = u - j * 0.028; if (q <= 0) break;
+          const [qx, qy] = at(q);
+          HG.dot(ctx, GOLD, qx + 6 * Math.sin(j * 2.1 + t * 8), qy + 6 * Math.cos(j * 1.7 + t * 7), 22 - j * 1.4, 0.6 * (1 - j / 12));
+        }
+        const [X, Y] = at(u);
+        HG.dot(ctx, GOLD, X, Y, 120, 0.42);
+        ctx.restore();
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(u * 8 - 0.5); ctx.globalAlpha = smooth(0, 0.05, u);
+        const sz = 46 * Z;
+        ctx.beginPath(); ctx.moveTo(-sz * 0.5, -sz * 0.3); ctx.lineTo(sz * 0.5, -sz * 0.42); ctx.lineTo(sz * 0.38, sz * 0.42); ctx.lineTo(-sz * 0.4, sz * 0.36); ctx.closePath(); ctx.clip();
+        ctx.drawImage(A.tex, 420, 110, 120, 120, -sz * 0.55, -sz * 0.55, sz * 1.1, sz * 1.1);
+        ctx.restore();
+        star(ctx, X, Y, 80, 0.55 * Math.sin(Math.PI * u), u * 3, GOLD);
+      }
+      // it lands: a golden star and a spray of sparkles
+      const lu = (t - T_PINE - D_PINE) / 0.75;
+      if (lu > 0 && lu < 1) {
+        const [X, Y] = cam(Z, ...p1);
+        star(ctx, X, Y, 190 * Math.sin(Math.PI * Math.pow(lu, 0.55)), Math.sin(Math.PI * Math.pow(lu, 0.7)), 0.4 + lu * 0.5, GOLD);
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        for (let j = 0; j < 12; j++) {
+          const an = -Math.PI / 2 + (hash(j, 71) - 0.5) * 2.6, v = 90 + 110 * hash(j, 72);
+          HG.dot(ctx, j % 3 ? GOLD : WHITE, X + Math.cos(an) * v * lu, Y + Math.sin(an) * v * lu + 90 * lu * lu, 12, (1 - lu) * 0.85);
+        }
+        ctx.restore();
+      }
+    }
+
+    // glints on the lime and the salsa
+    {
+      const [lx, ly] = cam(Z, ...plateXY(730, 752));
+      const lu = (t - 7.15) / 0.9;
+      if (lu > 0 && lu < 1) {
+        const e = Math.sin(Math.PI * lu);
+        star(ctx, lx, ly, 130 * e, 0.9 * e * endA, lu, LIME);
+        for (let j = 0; j < 7; j++) {
+          const an = j / 7 * TAU + 0.4, rr = 30 + 46 * ease.out3(lu);
+          HG.dot(ctx, LIME, lx + Math.cos(an) * rr, ly + Math.sin(an) * rr * 0.8, 12, 0.55 * (1 - lu));
+        }
+      }
+      const su = (t - 7.7) / 0.9;
+      if (su > 0 && su < 1) {
+        const [sx, sy] = cam(Z, MOLC.x + 34, MOLC.y - 28), e = Math.sin(Math.PI * su);
+        star(ctx, sx, sy, 120 * e, 0.85 * e * endA, 0.2 + su, [255, 200, 160]);
+      }
+    }
+
+    // ---- steam: soft plumes curl up from the tacos; at the end they gather into a swirling column
+    // that rises, lets go of the table and floats away with the whole scene
+    {
+      const sg = STM.ctx; HG.reset(sg); sg.clearRect(0, 0, W, W);
+      const fin = ease.inOut3((t - T_END + 0.4) / 1.5);              // 0..1 during the finale
+      const gone = 1 - smooth(T_END + 0.9, T_END + 1.75, t);
+      let any = false;
+      for (let i = 0; i < 3; i++) {
+        const tb = T_TACO + 0.95 + 0.1 * i;
+        const grow = ease.out3((t - tb) / 2.2);
+        if (grow <= 0) continue;
+        const [x0, y0] = cam(Z, ...plateXY(TACO_C[i][0] + [20, -10, -30][i], TACO_C[i][1] - 90));
+        const breathe = 0.75 + 0.25 * Math.sin(t * 1.3 + i * 2.1);
+        const H = lerp(40, 330, grow) + 230 * fin;
+        plume(sg, x0, y0, t, i + 1, {
+          H, amp: 1 + 0.3 * fin, width: 40 + 12 * fin, alpha: 0.2 * breathe * (1 + 0.3 * fin) * gone,
+          speed: 1 + 0.8 * fin, curl: 0.35 * fin, lift: Math.min(H - 10, 600 * ease.in3((t - T_END - 0.15) / 1.45)), lean: (0.04 - 0.1 * i),
+        });
+        any = true;
+      }
+      // the finale: the trompo, the tacos and the molcajete give off a last breath of steam that rises
+      // in big slow curls and floats away
+      if (fin > 0 && gone > 0) {
+        const foot = 600 * ease.in3((t - T_END - 0.15) / 1.45);
+        const srcs = [[P0.ax + 20, P0.ty + 300, 4, 0.06]];
+        for (const [sx, sy, sd, ln] of srcs) {
+          const [x0, y0] = cam(Z, sx, sy);
+          const H = 140 + 420 * fin;
+          plume(sg, x0, y0, t, sd, { H, amp: 1.1, width: 46, alpha: 0.16 * Math.sin(Math.PI * clamp(fin * 1.25)) * gone, speed: 1.8, curl: 0.4, lift: Math.min(foot, H - 10), lean: ln });
+        }
+        any = true;
+      }
+      if (any) {
+        HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 1; ctx.filter = HG.blur(15); ctx.drawImage(STM.cv, 0, 0, W, W);
+        ctx.globalAlpha = 0.5; ctx.filter = HG.blur(3.5); ctx.drawImage(STM.cv, 0, 0, W, W);
+        HG.reset(ctx);
+      }
+      // golden sparks rise with the steam at the end
+      if (fin > 0) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 40; i++) {
+          const t0 = T_END - 0.3 + hash(i, 91) * 1.2, a = t - t0; if (a <= 0 || a > 1.4) continue;
+          const th = hash(i, 92) * TAU + a * 3.4, R = 50 + 120 * hash(i, 93) + 60 * a;
+          const [x, y] = cam(Z, 580 + R * Math.sin(th), 620 - 260 * a - 120 * a * a - 200 * hash(i, 94));
+          HG.dot(ctx, i % 3 ? GOLD : FIRE_Y, x, y, 9 + 6 * hash(i, 95), Math.sin(Math.PI * a / 1.4) * 0.7 * (0.6 + 0.4 * Math.sin(t * 17 + i)));
+        }
+        ctx.restore();
+      }
+    }
+  },
+});
+</script></body></html>

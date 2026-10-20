@@ -4,16 +4,19 @@
 <script src="../engine.js"></script>
 <script>
 // Finale: a choreographed fireworks show in green, white and red inside the circle.
-// Act I  — three single shells, left to right: a green peony, a silver chrysanthemum with long
-//          brocade tails, a red peony; then one small low brocade anchors the bottom of the frame.
-// Act II — mirrored pairs on a 0.7 s beat, alternating high and low: peonies, crossettes (silver
-//          comets that split into green / red crosses), swapped peonies, staggered glitter shells.
-// Act III — crescendo: a fan salvo sweeping over the top, then a wreath of shells that starts at
-//           the bottom and chases round the circle ever faster, closes, and holds while one great
-//           tricolour shell (green left, white centre, red right) opens through it.
-// Finale — a single heavy comet climbs and opens into a gold-white willow whose glittering
-//          sparks droop, drift down and fade to black; a few white strobes wink in its wake.
-// Every star is analytic: position = start + drag-limited motion + gravity, so render(t) is pure.
+// Act I  — mirrored pairs: green + red peonies opening as the portal clears, a pair of low silver
+//          brocade crowns whose gold tails fill the lower half, then red + green high.
+// Act II — pairs on a 0.6 s beat: crossettes (silver comets that break straight into green / red
+//          crosses), low peonies, high white glitter shells.
+// Act III — crescendo: a wave of five shells over the top, then six large crackling shells that
+//           fill the lower half, so ten or more burst together; the great tricolour shell (green
+//           left, white centre, red right) opens through their crackle.
+// Signature — the eagle of the coat of arms (from 13-aguila-nopal) is traced in burning gold
+//          sparks, like the set pieces of a Mexican castillo: two sparks run from the beak round
+//          the outline and meet at the tail, eye, beak and feathers light up, sparks drip from it.
+// Finale — a heavy comet climbs into the eagle's heart; the eagle bursts into a gold-white willow
+//          whose glittering sparks droop and fade to black; white strobes wink round its rim.
+// Every spark is analytic: position = start + drag-limited motion + gravity, so render(t) is pure.
 const { W, C, ctx, clamp, lerp, smooth, rng, COLORS, rgba } = HG;
 const TAU = Math.PI * 2;
 
@@ -33,7 +36,8 @@ const P = [];
 function shell(o) {
   const sh = Object.assign({
     kind: 'peony', n: 140, R: 180, k: 4.6, g: 300, tau: 0.2, life: 1.8, size: 15, width: 3.4, trailA: 0.7,
-    rise: 0.75, flick: 0, flickW: 22, glitter: 0, haze: 0.06, flash: 1, comet: 1, fan: 1.25, cometSize: 1, gain: 1, fo: 0.42,
+    rise: 0.75, flick: 0, flickW: 22, glitter: 0, haze: 0.07, flash: 1, comet: 1, fan: 1.25, cometSize: 1, gain: 1, fo: 0.42,
+    crackle: 0, fin: 0.07,
   }, o);
   sh.seed = sh.seed ?? (P.length * 37 + 11);
   const R = rng(sh.seed * 7919 + 3);
@@ -44,10 +48,11 @@ function shell(o) {
   }
   sh.hazeColor = sh.hazeColor || sh.color;
   sh.stars = [];
-  // t0: birth (s after burst); life: own life; fo: fade-out start (fraction of life); fin: fade-in
+  // t0: birth (s after burst); life: own life; fo: fade-out start (fraction of life); fin: fade-in;
+  // g0: gain at birth (ramps to 1 over 0.35 s); ta: trail alpha factor
   const add = (dx, dy, dz, col, sp, sz, extra) => {
     const st = { dx, dy, col, sp: sp * (0.92 + 0.08 * R()), die: 0.78 + 0.32 * R(), ph: R() * TAU,
-      sz: sz * (0.85 + 0.3 * R()) * (1 + 0.12 * dz), t0: 0, life: sh.life, fo: sh.fo, fin: 0.07 };
+      sz: sz * (0.85 + 0.3 * R()) * (1 + 0.12 * dz), t0: 0, life: sh.life, fo: sh.fo, fin: sh.fin, g0: 1, ta: 1 };
     sh.stars.push(Object.assign(st, extra)); return st;
   };
   const sphere = (n, cb) => {
@@ -62,10 +67,10 @@ function shell(o) {
     }
   };
   if (sh.kind === 'crossette') {
-    // silver comets fly out, then each splits into a cross of four coloured stars
+    // silver comets fly out, then each breaks straight into a cross of four coloured stars
     const k = sh.k, ts = sh.split, e = Math.exp(-k * ts), E = (1 - e) / k;
     const prim = [];
-    sphere(sh.n, (x, y, z) => prim.push(add(x, y, z, sh.color, 1, sh.size, { life: ts, die: 1, fo: 0.86 })));
+    sphere(sh.n, (x, y, z) => prim.push(add(x, y, z, sh.color, 1, sh.size, { life: ts, die: 1, fo: 0.97 })));
     sh.pops = [];
     for (const p of prim) {
       const V = sh.R * k * p.sp;
@@ -74,23 +79,30 @@ function shell(o) {
       const th = Math.atan2(p.dy, p.dx) + Math.PI / 4 + (R() - 0.5) * 0.5, V2 = sh.R2 * k;
       for (let j = 0; j < 4; j++) {
         const a = th + j * Math.PI / 2, v2 = V2 * (0.8 + 0.4 * R());
-        add(0, 0, 0, sh.color2, 1, sh.size2, { child: 1, t0: ts, life: sh.life2, fin: 0.1, bx, by,
+        add(0, 0, 0, sh.color2, 1, sh.size2, { child: 1, t0: ts, life: sh.life2, fin: 0.03, bx, by,
           vx: vx + Math.cos(a) * v2, vy: vy + Math.sin(a) * v2 });
       }
       sh.pops.push([bx, by]);
     }
   } else if (sh.kind === 'tricolor') {
-    sphere(sh.n, (x, y, z) => add(x, y, z, x < -0.34 ? GRN : x > 0.34 ? RED : SIL, 1, sh.size));
+    // the white band opens a little softer (and with lighter trails) so it is no denser than green and red
+    sphere(sh.n, (x, y, z) => add(x, y, z, x < -0.34 ? GRN : x > 0.34 ? RED : SIL, 1, sh.size,
+      x < -0.34 || x > 0.34 ? undefined : { g0: sh.wGain0 ?? 1, ta: sh.wTrail ?? 1 }));
   } else {
     sphere(sh.n, (x, y, z) => add(x, y, z, sh.color, 1, sh.size));
   }
   if (sh.pistil) sphere(sh.pistilN || 36, (x, y, z) => add(x, y, z, sh.pistil, sh.pistilR || 0.42, sh.size * 0.8));
+  // crackle: some stars burn to a point and pop into a tiny star of white-gold sparks
+  if (sh.crackle) for (const st of sh.stars) {
+    if (st.child || R() > sh.crackle) continue;
+    st.pop = st.life * st.die * (0.5 + 0.4 * R()); st.popA = R() * TAU; st.popV = 0.75 + 0.5 * R();
+  }
   sh.densN = sh.kind === 'crossette' ? sh.n : sh.stars.length;
   sh.span = 0;
   for (const st of sh.stars) {
     st.css = st.col.join(','); st.tcss = (sh.tailColor || st.col).join(',');
     st.gain = st.col === SIL || st.col === WARM ? 0.85 : 1.15;
-    sh.span = Math.max(sh.span, st.t0 + st.life * st.die);
+    sh.span = Math.max(sh.span, st.t0 + st.life * st.die, st.pop ? st.pop + 0.3 : 0);
   }
   sh.span += (sh.glitter ? (sh.glitterLife || 0.55) : 0) + 0.1;
   // sparks shed by the rising comet
@@ -110,8 +122,9 @@ function starBright(sh, st, s) {
   const u = s - st.t0, life = st.life * st.die;
   if (u < 0 || u > life) return 0;
   let b = smooth(0, st.fin, u) * (1 - smooth(life * st.fo, life, u)) * st.gain * sh.gain;
+  if (st.g0 !== 1) b *= lerp(st.g0, 1, smooth(0.05, 0.4, u));
+  if (st.pop) b *= 1 - smooth(st.pop - 0.03, st.pop, u);
   if (sh.flick) b *= 1 - sh.flick * smooth(life * 0.3, life * 0.65, u) * (0.5 + 0.5 * Math.sin(st.ph + u * sh.flickW));
-  if (sh.kind === 'strobe') b *= smooth(0.15, 0.85, 0.5 + 0.5 * Math.sin(st.ph * 3 + u * sh.flickW)) * smooth(0.25, 0.5, u);
   return b;
 }
 
@@ -162,19 +175,33 @@ function drawShell(c, sh, t, A) {
     const b = starBright(sh, st, s) * A * (st.child ? 1 : dens);
     if (b > 0.006) {
       const head = starPos(sh, st, s), u = s - st.t0, life = st.life * st.die;
-      if (sh.tau > 0 && sh.kind !== 'strobe') {
+      if (sh.tau > 0) {
         c.beginPath(); c.moveTo(head[0], head[1]);
         let q = head;
         // streak back over the last tau seconds, but never into the inner half of the burst
         const tl = Math.min(sh.tau, u * (st.child ? 0.9 : 0.5));
         for (let j = 1; j <= NS; j++) { q = starPos(sh, st, s - tl * j / NS); c.lineTo(q[0], q[1]); }
         const g = c.createLinearGradient(head[0], head[1], q[0] + 0.01, q[1]);
-        const ta = b * sh.trailA;
+        const ta = b * sh.trailA * st.ta;
         g.addColorStop(0, `rgba(${st.tcss},${ta})`); g.addColorStop(0.45, `rgba(${st.tcss},${ta * 0.4})`); g.addColorStop(1, `rgba(${st.tcss},0)`);
         c.strokeStyle = g; c.lineWidth = sh.width * st.sz / 11; c.stroke();
       }
       const sz = st.sz * (1 - 0.35 * smooth(0, life, u));
       HG.dot(c, st.col, head[0], head[1], sz, b);
+    }
+    // crackle: the star pops into a tiny white-gold star of sparks
+    if (st.pop) {
+      const u = s - st.t0 - st.pop;
+      if (u >= 0 && u < 0.3) {
+        const life = st.life * st.die, env = (1 - smooth(life * st.fo, life, st.pop)) * sh.gain * A * (sh.crackleGain || 1);
+        const p = starPos(sh, st, st.t0 + st.pop);
+        HG.dot(c, WARM, p[0], p[1], 13 + 26 * u, 0.9 * env * (1 - smooth(0, 0.07, u)));
+        const d = 270 * st.popV * (1 - Math.exp(-9 * u)) / 9, f = (1 - u / 0.3) * (1 - u / 0.3) * env;
+        for (let j = 0; j < 5; j++) {
+          const a = st.popA + j * TAU / 5;
+          HG.dot(c, j & 1 ? GOLD : WARM, p[0] + Math.cos(a) * d, p[1] + Math.sin(a) * d + 60 * u * u, 6.5, 0.95 * f);
+        }
+      }
     }
     // glitter shed along the path: twinkling points that hang and fall
     if (sh.glitter) {
@@ -187,7 +214,7 @@ function drawShell(c, sh, t, A) {
         if (bb < 0.02) continue;
         const p = starPos(sh, st, sk), f = 1 - age / gl;
         const tw = 0.55 + 0.45 * Math.sin(h * 97 + age * 26);
-        HG.dot(c, sh.glitterColor || WARM, p[0] + (hash(k, i) - 0.5) * 12, p[1] + 14 * age + 45 * age * age, 4.5 + 3 * h, f * f * tw * bb * A * 0.9);
+        HG.dot(c, sh.glitterColor || WARM, p[0] + (hash(k, i) - 0.5) * 12, p[1] + 14 * age + 45 * age * age, 4.5 + 3 * h, f * f * tw * bb * A * 0.9 * (sh.glitterGain || 1));
       }
     }
   }
@@ -204,51 +231,170 @@ function drawHaze(sh, t, A) {
   ctx.fillStyle = g; ctx.fillRect(sh.x - r, y - r, 2 * r, 2 * r);
 }
 
-// ---------- choreography (tb = burst time; comets rise for `rise` seconds before)
-// Act I: singles, left -> right, green / white / red, then a small low brocade
-shell({ tb: 0.82, rise: 0.7, x: 350, y: 440, R: 232, color: GRN, n: 170, pistil: SIL, pistilN: 48, life: 1.95, cometSize: 1.3 });
-shell({ tb: 1.78, rise: 0.8, x: 540, y: 372, R: 262, color: SIL, n: 150, tau: 0.6, k: 3.6, g: 260, flick: 0.5, life: 2.15,
-        trailA: 0.62, width: 2.8, size: 13, tailColor: BROCADE, hazeColor: BROCADE, fan: 0 });
-shell({ tb: 2.74, rise: 0.75, x: 730, y: 440, R: 232, color: RED, n: 170, pistil: SIL, pistilN: 48, life: 1.95 });
-shell({ tb: 3.34, rise: 0.52, x: 540, y: 702, R: 128, n: 88, color: SIL, life: 1.45, size: 13, tau: 0.22, glitter: 0.24,
-        glitterColor: GOLD, glitterLife: 0.6, haze: 0.05, flash: 0.8, fan: 0 });
-// Act II: mirrored pairs on a 0.7 s beat, alternating high and low
-const pair = (tb, xo, y, a, b) => { shell(Object.assign({ tb, x: C - xo, y }, a)); shell(Object.assign({ tb, x: C + xo, y }, b)); };
-pair(3.85, 200, 352, { color: GRN, R: 182, n: 120, pistil: SIL, pistilN: 34, life: 1.65, rise: 0.68 },
-                     { color: RED, R: 182, n: 120, pistil: SIL, pistilN: 34, life: 1.65, rise: 0.68 });
-const X = { kind: 'crossette', color: SIL, n: 16, R: 126, R2: 80, k: 3.4, g: 220, split: 0.44, life2: 1.05, size: 14, size2: 13,
-            tau: 0.24, trailA: 0.72, width: 3.0, rise: 0.64, haze: 0.04, flash: 0.7 };
-pair(4.55, 250, 655, Object.assign({ color2: GRN, hazeColor: GRN }, X), Object.assign({ color2: RED, hazeColor: RED }, X));
-// (their comets climb diagonally from near the centre, so they never line up under the crossettes as 'stems')
-pair(5.25, 175, 300, { color: RED, R: 162, n: 115, pistil: SIL, pistilN: 32, life: 1.6, rise: 0.72, fan: 0.45 },
-                     { color: GRN, R: 162, n: 115, pistil: SIL, pistilN: 32, life: 1.6, rise: 0.72, fan: 0.45 });
-const GL = { color: SIL, R: 165, n: 110, tau: 0.3, k: 4.0, flick: 0.7, life: 1.75, rise: 0.6, glitter: 0.22, glitterColor: SIL };
-shell(Object.assign({ tb: 5.92, x: C - 238, y: 592 }, GL));
-shell(Object.assign({ tb: 6.04, x: C + 238, y: 552 }, GL));
-// Act III: crescendo. Fan salvo sweeping over the top, left -> right (short-lived, so the wreath can take over)
-[[160, GRN], [125, SIL], [90, RED], [55, SIL], [20, GRN]].forEach(([deg, col], i) => {
-  const a = deg * Math.PI / 180;
-  shell({ tb: 6.55 + i * 0.12, x: C + 272 * Math.cos(a), y: 575 - 272 * Math.sin(a), R: 138, n: 96, color: col, life: 1.0,
-          rise: 0.62, from: [C + Math.cos(a) * 40, 1120], haze: 0.05, flash: 0.8, size: 14 });
-});
-// a wreath of shells starting at the bottom (where the frame is empty) and chasing clockwise round
-// the circle, gaps shrinking 0.14 s -> 0.06 s; earlier shells live longer so the ring closes and holds
-for (let i = 0, tb = 7.3; i < 8; i++) {
-  const a = Math.PI / 2 + i * TAU / 8;
-  shell({ tb, x: C + 285 * Math.cos(a), y: 522 + 285 * Math.sin(a), R: 122, n: 80, color: [GRN, SIL, RED][i % 3],
-          life: 1.3 + 0.1 * (7 - i), rise: 0.55, from: [C + Math.cos(a) * 60, 1120], haze: 0.045, flash: 0.7, size: 13 });
-  tb += 0.14 - 0.08 * i / 6;
+// ---------- the eagle, traced in burning gold sparks (a castillo set piece)
+// EAGLE: the outline of the 13-aguila-nopal eagle cut-out (beak tip first; `skip` leaves a notch so the
+// hooked beak stands clear of the wing behind it), the eye and a few hand-placed strokes (lower beak,
+// chest, feathers of the far wing) and a jittered grid of points inside the silhouette (`fill`);
+// 600 px wide around (540, 480). Built by polish/12-finale/tools/eagle_contour.py + eagle_data.py.
+const EAGLE = {"fill":[[626,286],[665,278],[697,285],[712,283],[738,281],[620,304],[641,307],[658,300],[677,295],[698,306],[727,296],[745,301],[766,303],[434,320],[456,321],[590,325],[612,313],[626,317],[645,321],[674,317],[696,323],[708,322],[738,315],[755,321],[777,314],[798,321],[412,336],[427,338],[446,334],[469,337],[487,340],[602,334],[616,342],[640,333],[659,342],[679,340],[697,340],[726,341],[746,336],[760,338],[789,333],[275,357],[295,362],[319,360],[380,359],[434,360],[461,354],[482,358],[501,360],[572,351],[589,360],[613,351],[623,362],[645,351],[671,355],[695,352],[718,352],[737,350],[754,350],[773,353],[799,355],[812,362],[276,374],[298,370],[328,374],[341,376],[363,374],[384,374],[455,370],[466,369],[498,379],[555,379],[570,371],[598,368],[615,373],[644,377],[664,377],[684,378],[704,377],[720,370],[747,370],[770,375],[784,379],[803,374],[269,396],[295,394],[319,391],[333,394],[360,390],[379,388],[398,395],[433,398],[460,391],[484,392],[505,387],[550,386],[565,394],[587,386],[609,388],[625,397],[646,391],[674,394],[692,396],[712,393],[738,394],[756,391],[776,390],[800,390],[297,409],[328,411],[346,412],[368,411],[386,406],[405,407],[428,416],[448,409],[469,411],[498,415],[512,407],[539,410],[557,405],[581,408],[597,406],[617,414],[643,410],[663,410],[679,411],[698,408],[726,413],[738,413],[769,409],[780,412],[331,423],[354,432],[379,424],[393,426],[422,428],[445,430],[462,432],[485,426],[499,427],[523,424],[544,430],[561,424],[582,426],[613,422],[624,424],[649,422],[670,424],[689,432],[708,430],[732,427],[758,424],[781,433],[799,422],[347,447],[372,448],[385,447],[402,449],[431,445],[454,450],[469,441],[487,442],[510,446],[539,444],[560,449],[580,445],[591,450],[615,442],[643,449],[656,444],[686,444],[705,442],[727,442],[744,440],[379,461],[400,462],[418,469],[439,462],[458,459],[478,462],[498,459],[523,461],[548,470],[563,466],[587,459],[603,469],[628,468],[644,466],[675,469],[685,465],[711,468],[728,462],[346,483],[391,478],[409,486],[428,480],[448,483],[473,484],[487,487],[518,478],[531,479],[559,488],[570,481],[593,482],[623,477],[635,483],[660,486],[680,478],[700,489],[353,504],[437,504],[457,496],[481,502],[508,496],[526,501],[540,507],[568,496],[592,496],[602,499],[634,495],[655,502],[665,502],[691,502],[448,521],[467,514],[494,522],[510,521],[528,518],[556,516],[574,520],[621,514],[645,515],[657,515],[687,516],[316,531],[331,543],[456,542],[479,535],[497,541],[526,538],[546,532],[562,538],[592,541],[644,533],[673,541],[472,552],[496,549],[516,552],[534,562],[556,550],[575,558],[591,552],[477,578],[508,569],[517,571],[540,570],[566,573],[586,570],[610,571],[474,588],[494,595],[513,597],[534,592],[552,597],[574,594],[596,597],[624,586],[645,593],[486,614],[507,604],[526,606],[542,608],[567,612],[592,604],[604,608],[632,611],[650,613],[470,630],[497,632],[509,628],[534,634],[550,628],[581,627],[594,629],[616,634],[634,625],[655,631],[678,633],[707,634],[444,648],[463,649],[476,641],[502,641],[546,648],[560,643],[592,642],[608,641],[634,642],[648,647],[673,652],[694,644],[707,649],[580,667],[640,666],[659,661],[684,664],[705,663],[582,684]],"outer":[[386,338],[390,334],[393,329],[398,325],[403,322],[409,320],[414,317],[419,314],[424,312],[430,310],[436,308],[442,308],[448,308],[454,309],[460,311],[465,312],[471,314],[476,318],[480,322],[485,325],[489,329],[494,334],[498,338],[499,344],[502,349],[506,354],[507,359],[510,364],[513,369],[514,375],[516,381],[520,385],[525,388],[531,390],[536,386],[541,382],[545,378],[549,374],[552,369],[556,364],[560,359],[562,354],[565,349],[567,343],[569,337],[571,332],[574,326],[575,320],[577,315],[580,310],[585,307],[590,304],[595,300],[600,296],[604,293],[609,289],[614,285],[618,281],[623,278],[629,276],[634,277],[639,281],[645,279],[650,276],[655,273],[660,270],[665,267],[671,265],[676,269],[680,273],[685,272],[691,270],[697,268],[703,267],[704,272],[706,277],[712,278],[718,276],[724,274],[730,273],[735,272],[741,270],[747,270],[748,275],[746,280],[750,284],[756,283],[762,281],[767,278],[772,276],[776,279],[773,284],[770,289],[769,294],[775,296],[781,295],[787,294],[792,296],[792,301],[787,305],[786,311],[791,314],[797,314],[802,315],[808,316],[814,317],[820,319],[822,323],[818,326],[812,328],[808,332],[811,337],[816,340],[817,344],[812,347],[811,352],[816,355],[822,357],[828,360],[833,362],[838,366],[836,371],[831,373],[825,374],[820,377],[822,383],[828,385],[833,388],[830,391],[824,391],[819,393],[820,399],[824,404],[827,408],[824,412],[818,413],[812,412],[807,414],[807,420],[811,424],[809,429],[803,431],[797,431],[791,431],[787,435],[784,440],[779,441],[774,444],[769,447],[763,448],[760,453],[756,457],[750,459],[746,462],[741,466],[740,472],[737,477],[731,479],[729,484],[725,489],[720,492],[715,495],[715,501],[716,507],[716,513],[713,518],[708,522],[702,524],[697,526],[695,531],[692,536],[687,540],[682,542],[678,547],[673,551],[668,550],[662,550],[656,550],[650,547],[644,546],[639,548],[633,546],[629,542],[625,538],[621,533],[619,528],[616,522],[614,517],[610,513],[604,513],[599,517],[601,522],[605,527],[607,532],[612,536],[613,540],[610,544],[612,549],[617,553],[621,557],[624,562],[628,567],[633,570],[637,574],[642,578],[646,582],[651,586],[655,589],[660,594],[665,597],[669,601],[675,604],[680,606],[685,609],[691,612],[696,615],[701,618],[706,620],[712,623],[717,626],[722,628],[728,631],[732,635],[731,640],[725,641],[720,644],[721,650],[722,656],[717,659],[714,663],[713,669],[707,671],[703,674],[698,678],[692,679],[687,681],[681,683],[676,686],[671,689],[666,691],[661,695],[655,694],[652,689],[652,683],[652,677],[648,673],[642,672],[636,673],[630,675],[626,673],[624,667],[623,662],[618,659],[612,658],[606,657],[600,659],[595,662],[594,667],[596,673],[598,678],[600,684],[597,689],[591,691],[586,693],[580,693],[574,694],[572,688],[569,683],[566,678],[565,672],[563,666],[561,660],[559,655],[555,650],[552,654],[549,658],[544,655],[538,653],[533,650],[527,648],[523,652],[520,657],[515,660],[513,655],[512,650],[507,646],[502,648],[497,652],[491,654],[486,655],[480,653],[474,653],[469,656],[464,657],[458,656],[452,656],[446,658],[440,656],[435,654],[429,655],[423,657],[421,654],[423,648],[427,644],[432,640],[437,639],[443,638],[449,636],[454,633],[458,628],[461,623],[461,617],[460,611],[460,605],[460,599],[458,593],[456,588],[455,582],[454,576],[453,570],[451,564],[450,558],[450,552],[449,546],[448,541],[445,535],[440,532],[437,527],[432,523],[430,518],[425,514],[420,510],[417,505],[414,500],[410,496],[404,496],[402,502],[403,508],[403,514],[402,520],[401,526],[399,531],[397,537],[395,542],[392,548],[389,553],[387,559],[385,564],[384,570],[383,576],[380,574],[379,568],[380,562],[381,556],[382,550],[384,544],[386,539],[388,533],[390,527],[391,521],[391,516],[391,510],[390,504],[389,498],[388,492],[385,487],[381,482],[377,478],[372,474],[367,471],[363,466],[360,461],[355,458],[352,463],[352,469],[353,475],[356,480],[358,486],[360,491],[363,497],[365,502],[366,508],[367,514],[368,520],[367,526],[365,532],[362,537],[359,542],[355,546],[349,549],[344,550],[338,550],[332,549],[326,548],[320,546],[314,545],[310,541],[307,536],[307,530],[310,526],[316,523],[322,522],[328,522],[334,521],[340,522],[346,523],[349,518],[348,512],[347,507],[345,501],[342,495],[340,490],[338,484],[337,478],[336,472],[335,467],[334,461],[334,455],[333,449],[330,444],[328,438],[323,435],[317,435],[311,434],[307,430],[301,428],[296,426],[290,423],[285,422],[279,419],[279,413],[277,408],[271,406],[265,406],[260,403],[262,398],[263,392],[258,388],[253,385],[248,382],[244,378],[241,373],[247,371],[253,370],[257,367],[256,362],[251,358],[246,354],[246,349],[251,347],[257,348],[262,344],[267,343],[273,344],[278,341],[281,337],[287,338],[292,339],[298,341],[304,342],[310,343],[316,344],[322,346],[328,347],[333,349],[339,351],[344,353],[350,356],[355,358],[360,355],[361,349],[364,344],[368,340],[374,338],[380,338]],"skip":[472,473,474],"eye":[435,327],"strokes":{"beak":[[388,339],[390,346],[395,351],[402,351],[409,350],[416,348],[423,346],[430,344]],"chest":[[426,362],[424,369],[422,375],[419,382],[417,389],[416,395],[415,402],[414,409],[413,416],[412,423],[412,430],[412,437],[413,444],[413,451],[413,458],[414,465],[415,472],[416,479],[417,486],[419,493],[421,500],[422,506],[424,513],[426,520]],"f1":[[606,440],[612,436],[618,432],[623,428],[629,424],[635,421],[641,417],[646,413],[652,409],[658,405],[664,401],[669,397],[675,393],[681,389],[686,385],[692,381],[698,377],[703,373],[709,368],[714,364],[720,360],[725,356],[731,352],[737,348],[742,343],[748,339],[753,335],[759,331],[764,327],[770,323],[776,319],[782,315],[788,312],[793,308],[799,304],[805,300]],"f2":[[612,462],[619,460],[625,457],[632,455],[639,453],[646,451],[652,448],[659,446],[666,444],[673,441],[679,439],[686,437],[693,434],[699,432],[706,430],[713,427],[719,425],[726,422],[733,419],[739,417],[746,414],[752,412],[759,409],[766,407],[772,404],[779,402],[786,400],[793,398],[800,396],[806,394],[813,392],[820,390]],"f3":[[612,486],[619,486],[626,486],[633,487],[640,487],[647,487],[653,487],[660,487],[667,488],[674,488],[681,488],[688,487],[695,486],[702,485],[708,484],[715,484],[722,483],[729,482],[736,481],[743,480],[750,479],[756,477],[763,476],[770,474],[777,473],[783,471],[790,470]]}};
+const EX = 540, EY = 478, ES = 1.08;
+const T_TRACE = 7.75, D_TRACE = 0.8, T_BOOM = 9.3, BOOM = [540, 462];
+const T_FILL = T_TRACE + D_TRACE - 0.2, HEART = [505, 470];
+const EPTS = [], EFILL = [], EOUT = EAGLE.outer.map(p => [EX + (p[0] - 540) * ES, EY + (p[1] - 480) * ES]);
+(() => {
+  const n = EOUT.length, half = n / 2, dtp = D_TRACE / half;
+  const put = (p, rt, sz, i) => EPTS.push({ x: p[0], y: p[1], rt, sz, ph: hash(i, 3) * TAU, h: hash(i, 4), drip: hash(i, 5) });
+  EOUT.forEach((p, i) => { if (!EAGLE.skip.includes(i)) put(p, T_TRACE + dtp * Math.min(i, n - i), 12, i); });
+  const ep = p => [EX + (p[0] - 540) * ES, EY + (p[1] - 480) * ES];
+  const line = (pts, t0, sz, id) => pts.forEach((p, j) => put(ep(p), t0 + dtp * j, sz, 1000 * id + j));
+  const S = EAGLE.strokes;
+  line(S.beak, T_TRACE + 0.01, 10, 1);
+  line(S.chest, T_TRACE + 0.14, 10, 3);
+  line(S.f1, T_TRACE + 0.3, 10, 5);
+  line(S.f2, T_TRACE + 0.36, 10, 6);
+  line(S.f3, T_TRACE + 0.42, 10, 7);
+  put(ep(EAGLE.eye), T_TRACE + 0.1, 22, 9999);
+  // the fill shimmers in from the heart outward once the outline has closed
+  const F = EAGLE.fill.map(ep), md = Math.max(...F.map(p => Math.hypot(p[0] - HEART[0], p[1] - HEART[1])));
+  F.forEach((p, i) => EFILL.push({ x: p[0], y: p[1], rt: T_FILL + 0.4 * Math.hypot(p[0] - HEART[0], p[1] - HEART[1]) / md,
+    ph: hash(i, 13) * TAU, h: hash(i, 14) }));
+})();
+function eaglePos(p, t) {
+  if (t <= T_BOOM) return [p.x, p.y];
+  // the burst blows the outline outward a little, then it falls
+  const u = t - T_BOOM, dx = p.x - BOOM[0], dy = p.y - BOOM[1], r = Math.hypot(dx, dy) || 1, d = 110 * (1 - Math.exp(-4 * u));
+  return [p.x + dx / r * d, p.y + dy / r * d + 170 * u * u];
 }
-// the great tricolour shell: it holds longer (later fade-out) so the flag is still clear when the gold opens
-shell({ tb: 8.3, rise: 0.78, kind: 'tricolor', x: 540, y: 490, R: 345, n: 300, k: 4.2, g: 260, tau: 0.24, life: 2.3, size: 16,
-        fo: 0.52, from: [540, 1120], hazeColor: SIL, haze: 0.06, cometSize: 1.2 });
-// Finale: one heavy comet and a gold-white willow with glitter
-shell({ tb: 9.3, rise: 0.85, kind: 'willow', x: 540, y: 455, R: 385, n: 240, k: 2.9, g: 400, tau: 0.8, life: 2.45, size: 15, width: 3.2,
+function drawEagle(c, t, A) {
+  if (t < T_TRACE || t > T_BOOM + 1.3) return;
+  const swell = 1 + 0.4 * smooth(T_BOOM - 0.4, T_BOOM, t);
+  // fill: a golden shimmer inside the silhouette (a castillo panel), so the eagle reads as a shape
+  for (const f of EFILL) {
+    const age = t - f.rt;
+    if (age < 0) continue;
+    const fade = t > T_BOOM ? 1 - smooth(0, 0.3 + 0.4 * f.h, t - T_BOOM) : 1;
+    if (fade <= 0) continue;
+    const tw = Math.pow(0.5 + 0.5 * Math.sin(f.ph + t * (8 + 7 * f.h)), 3);
+    const [x, y] = eaglePos(f, t);
+    HG.dot(c, f.h < 0.55 ? GOLD : WARM, x, y, 8.5, smooth(0, 0.15, age) * (0.2 + 0.6 * tw) * fade * swell * A);
+  }
+  for (let i = 0; i < EPTS.length; i++) {
+    const p = EPTS[i], age = t - p.rt;
+    if (age < 0) continue;
+    const fade = t > T_BOOM ? 1 - smooth(0, 0.45 + 0.5 * p.h, t - T_BOOM) : 1;
+    if (fade <= 0) continue;
+    const flare = 1 + 1.4 * (1 - smooth(0, 0.35, age));
+    const tw = 0.78 + 0.22 * Math.sin(p.ph + t * 21);
+    const b = smooth(0, 0.03, age) * tw * fade * swell * A;
+    const [x, y] = eaglePos(p, t);
+    HG.dot(c, GOLD, x, y, p.sz * (1 + 0.25 * (flare - 1)), 0.8 * b * Math.min(flare, 1.6));
+    if (flare > 1.02) HG.dot(c, WARM, x, y, p.sz * 1.6, 0.35 * (flare - 1) * b);
+    // drips: burning sparks that fall from the lance
+    if (p.drip < 0.55) {
+      const m0 = Math.max(0, Math.floor((age - 0.9) / 0.3)), m1 = Math.floor((age - 0.05) / 0.3);
+      for (let m = m0; m <= m1; m++) {
+        const te = p.rt + 0.05 + 0.3 * m + 0.3 * hash(i, m + 7), a = t - te, life = 0.45 + 0.3 * hash(m, i);
+        if (a < 0 || a > life || te > T_BOOM) continue;
+        const f = 1 - a / life;
+        HG.dot(c, hash(i, m) < 0.5 ? GOLD : EMBER, x + (hash(i + 3, m) - 0.5) * 16 * a, y + 20 * a + 160 * a * a, 5.5, 0.75 * f * f * A);
+      }
+    }
+  }
+  // the two tracer sparks running round the outline, spraying sparks like sparklers
+  const n = EOUT.length, half = n / 2, dtp = D_TRACE / half;
+  const headAt = (tt, dir) => {
+    const f = clamp((tt - T_TRACE) / dtp, 0, half), i0 = Math.floor(f), w = f - i0;
+    const a = EOUT[(dir * i0 + n) % n], b = EOUT[(dir * (i0 + 1) + n) % n];
+    return [lerp(a[0], b[0], w), lerp(a[1], b[1], w)];
+  };
+  if (t < T_TRACE + D_TRACE + 0.4) for (const dir of [1, -1]) {
+    const on = smooth(T_TRACE, T_TRACE + 0.05, t) * (1 - smooth(T_TRACE + D_TRACE - 0.02, T_TRACE + D_TRACE + 0.08, t)) * A;
+    if (on > 0.01) {
+      const h = headAt(t, dir);
+      HG.dot(c, GOLD, h[0], h[1], 70, 0.3 * on);
+      HG.dot(c, WARM, h[0], h[1], 30, 0.95 * on);
+    }
+    const dk = 0.012;
+    for (let k = Math.max(0, Math.ceil((t - T_TRACE - 0.32) / dk)); k * dk <= Math.min(t - T_TRACE, D_TRACE); k++) {
+      const te = T_TRACE + k * dk, a = t - te, life = 0.22 + 0.12 * hash(k, dir + 9);
+      if (a > life) continue;
+      const h = headAt(te, dir), an = hash(k, dir + 20) * TAU, v = 160 + 200 * hash(k, dir + 30), d = v * (1 - Math.exp(-5 * a)) / 5, f = 1 - a / life;
+      HG.dot(c, k & 1 ? WARM : GOLD, h[0] + Math.cos(an) * d, h[1] + Math.sin(an) * d + 200 * a * a, 6, 0.9 * f * f * A);
+    }
+  }
+}
+
+// ---------- white strobes winking in a band round the willow's rim (they frame the portal ring)
+const T_STROBE = 9.75;
+function drawStrobes(c, t, A) {
+  if (t < T_STROBE || t > 11.2) return;
+  const env = smooth(T_STROBE, T_STROBE + 0.2, t) * (1 - smooth(10.6, 11.1, t)) * A;
+  for (let i = 0; i < 46; i++) {
+    const a = (i + 0.6 * hash(i, 5)) / 46 * TAU, r = 300 + 75 * hash(i, 6);
+    const x = 540 + Math.cos(a) * r, y = 505 + Math.sin(a) * r + 35 * (t - T_STROBE);
+    const w = smooth(0.62, 0.92, 0.5 + 0.5 * Math.sin(hash(i, 7) * TAU + TAU * (4 + 3 * hash(i, 8)) * t));
+    HG.dot(c, SIL, x, y, 17, 0.9 * w * env);
+  }
+}
+
+// ---------- choreography (tb = burst time; comets rise for `rise` seconds before)
+// mirrored pair; fromDx launches both comets from near the centre line (they climb diagonally outward)
+const pair = (tb, xo, y, a, b) => {
+  const l = Object.assign({ tb, x: C - xo, y }, a), r = Object.assign({ tb, x: C + xo, y }, b);
+  if (a.fromDx !== undefined) l.from = [C - a.fromDx, 1120];
+  if (b.fromDx !== undefined) r.from = [C + b.fromDx, 1120];
+  shell(l); shell(r);
+};
+const PEONY = { R: 240, n: 175, pistil: SIL, pistilN: 50, life: 2.0, rise: 0.72 };
+// Each pair sits at a different height and spread from the one before, so no two stack into columns.
+// Act I: green + red open together as the portal clears (their comets climb from the centre, inside the portal)
+pair(0.9, 178, 440, Object.assign({ color: GRN, fromDx: 40, cometSize: 1.25 }, PEONY), Object.assign({ color: RED, fromDx: 40, cometSize: 1.25 }, PEONY));
+// a pair of low, wide silver brocade crowns: long gold tails droop into the lower half
+const BRO = { color: SIL, R: 240, n: 160, tau: 0.6, k: 3.6, g: 250, flick: 0.5, life: 2.35, trailA: 0.62, width: 2.8, size: 13,
+              tailColor: BROCADE, hazeColor: BROCADE, rise: 0.58, gain: 0.85, fan: 1.0, haze: 0.08 };
+pair(1.72, 258, 680, BRO, BRO);
+// red + green high and close
+const HI = { R: 205, n: 150, pistil: SIL, pistilN: 40, life: 1.95, rise: 0.6, fan: 0.4 };
+pair(2.55, 160, 290, Object.assign({ color: RED }, HI), Object.assign({ color: GRN }, HI));
+// Act II: pairs on a 0.55 s beat. Crossettes wide at mid height: silver comets break straight into crosses
+const X = { kind: 'crossette', color: SIL, n: 20, R: 150, R2: 104, k: 3.4, g: 220, split: 0.42, life2: 1.25, size: 15, size2: 15,
+            tau: 0.24, trailA: 0.72, width: 3.0, rise: 0.55, haze: 0.06, flash: 0.7 };
+pair(3.25, 285, 515, Object.assign({ color2: GRN, hazeColor: GRN }, X), Object.assign({ color2: RED, hazeColor: RED }, X));
+// low and close: short comets, so nothing climbs through the shells above
+const LO = { R: 195, n: 135, pistil: SIL, pistilN: 36, life: 1.9, rise: 0.45, fan: 1.0 };
+pair(3.8, 128, 775, Object.assign({ color: GRN }, LO), Object.assign({ color: RED }, LO));
+// white glitter shells high and wide, staggered (softer: they were the hottest white outside the climax)
+const GL = { color: SIL, R: 195, n: 120, tau: 0.3, k: 4.0, flick: 0.7, life: 1.85, rise: 0.5, glitter: 0.22, glitterColor: SIL, gain: 0.8,
+             glitterGain: 0.85, fan: 1.15 };
+shell(Object.assign({ tb: 4.35, x: C - 255, y: 330 }, GL));
+shell(Object.assign({ tb: 4.47, x: C + 255, y: 355 }, GL));
+// Act III: crescendo. Wave A sweeps over the top with gold glitter...
+[[162, GRN], [126, RED], [90, SIL], [54, GRN], [18, RED]].forEach(([deg, col], i) => {
+  const a = deg * Math.PI / 180;
+  shell({ tb: 4.95 + i * 0.09, x: C + 300 * Math.cos(a), y: 575 - 300 * Math.sin(a), R: 190, n: 125, color: col, life: 1.5,
+          rise: 0.5, from: [C + Math.cos(a) * 320, 1120], haze: 0.07, flash: 0.8, size: 14, glitter: 0.16, glitterColor: GOLD, glitterLife: 0.6,
+          gain: col === SIL ? 0.85 : 1 });
+});
+// ...wave B: seven large crackling shells fill the lower half, so a dozen burst together...
+[[540, 850, SIL, 5.6], [330, 772, GRN, 5.68], [750, 772, RED, 5.68], [215, 588, RED, 5.76], [865, 588, GRN, 5.76],
+ [415, 622, GRN, 5.86], [665, 622, RED, 5.86]].forEach(([x, y, col, tb], i) => {
+  const inner = i >= 5;
+  shell({ tb, x, y, R: inner ? 180 : 210, n: inner ? 105 : 130, color: col, life: inner ? 1.35 : 1.75, fo: 0.72, crackle: 0.6,
+          rise: 0.5, from: [C + (x - C) * 0.35, 1120], haze: 0.08, flash: 0.75, size: 14, gain: col === SIL ? 0.8 : 1 });
+});
+// ...and wave C keeps the sides and shoulders burning into the tricolour (top centre stays clear for it)
+[[300, 335, GRN, 6.3], [780, 335, RED, 6.3], [195, 470, GRN, 6.42], [885, 470, RED, 6.42]].forEach(([x, y, col, tb]) => {
+  shell({ tb, x, y, R: 185, n: 115, color: col, life: 1.45, fo: 0.7, crackle: 0.5, glitter: 0.14, glitterColor: GOLD, glitterLife: 0.55,
+          rise: 0.5, from: [C + (x - C) * 1.1, 1120], haze: 0.07, flash: 0.75, size: 14 });
+});
+// the great tricolour shell opens through their crackle; its white band opens softer
+// it hangs (low gravity, long life) so the gold eagle is traced over a fading flag
+shell({ tb: 7.0, rise: 0.75, kind: 'tricolor', x: 540, y: 490, R: 345, n: 300, k: 4.2, g: 190, tau: 0.24, life: 2.6, size: 16,
+        fo: 0.48, flick: 0.3, flickW: 16, from: [540, 1120], hazeColor: SIL, haze: 0.06, cometSize: 1.2, wGain0: 0.72, wTrail: 0.55 });
+// Finale: one heavy comet climbs into the eagle's heart and it bursts into a gold-white willow with glitter
+shell({ tb: T_BOOM, rise: 0.7, kind: 'willow', x: BOOM[0], y: BOOM[1], R: 385, n: 240, k: 2.9, g: 400, tau: 0.8, life: 2.45, size: 15, width: 3.2,
         trailA: 0.62, color: GOLD, pistil: WARM, pistilN: 70, pistilR: 0.55, glitter: 0.3, glitterLife: 0.75, flick: 0.35, flickW: 18,
         from: [540, 1120], hazeColor: GOLD, haze: 0.1, cometSize: 1.6, flash: 1.0 });
-// white strobes winking in the opened, dimming heart of the willow
-shell({ tb: 10.15, kind: 'strobe', x: 540, y: 420, R: 250, n: 64, k: 4.2, g: 80, tau: 0, life: 1.6, size: 17, color: SIL,
-        comet: 0, flash: 0, haze: 0, flickW: 21 });
 
 // ---------- bloom compositing
 const L = HG.layer();
@@ -274,6 +420,8 @@ HG.start({
     ctx.restore();
     const c = L.ctx; HG.reset(c); c.clearRect(0, 0, W, W); c.globalCompositeOperation = 'lighter';
     for (const sh of P) { drawComet(c, sh, t, A); drawShell(c, sh, t, A); }
+    drawEagle(c, t, A);
+    drawStrobes(c, t, A);
     HG.reset(c);
     compose();
   },

@@ -3,10 +3,11 @@
 <body><canvas id="c" width="1080" height="1080"></canvas>
 <script src="../engine.js"></script>
 <script>
-// Talavera de Puebla: one hand-painted tile draws itself in light and glazes over with a glint;
-// its glaze melts away and the painting becomes a turning kaleidoscope, a mirrored band fans open
-// from under it and small tiles slide out into a ring. Layers turn against each other, sheen and
-// sparkles cross the glaze, then everything folds back under the single tile and fades.
+// Talavera de Puebla: a bare tile of warm tin glaze rises out of the dark and four brushes sweep the cobalt
+// painting onto it; a glint crosses the glaze, then the glaze melts away and the painting becomes a turning
+// kaleidoscope, a mirrored band fans open from under it like petals and small tiles slide out into a ring.
+// Layers turn against each other, the glaze glows back in the heart, sheen and sparkles cross it; then
+// everything folds back under the single tile, its glaze dissolves and the painting floats alone and fades.
 const { C, ctx, clamp, lerp, smooth, ease, rgba, COLORS } = HG;
 const TAU = Math.PI * 2;
 const COBALT = [70, 120, 255], BLADE = [120, 165, 255], GLAZE = [200, 220, 255], GOLD = [255, 196, 90];
@@ -116,24 +117,14 @@ function arcsGlow(g, r, arcs, col, { width = 4, blur = 8, alpha = 1 } = {}) {
 }
 const arcGlow = (g, r, a0, sweep, col, o) => sweep > 0.001 && arcsGlow(g, r, [[a0, a0 + sweep]], col, o);
 
-// glowing radial blade edges (ribs of a hand fan) at the given angles, between radii r0..r1
-function ribs(g, angles, r0, r1, col, alpha) {
-  if (alpha <= 0.003) return;
-  const path = () => { g.beginPath(); for (const th of angles) { g.moveTo(C + Math.cos(th) * r0, C + Math.sin(th) * r0); g.lineTo(C + Math.cos(th) * r1, C + Math.sin(th) * r1); } };
-  g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = rgba(col, 1); g.lineCap = 'round';
-  g.globalAlpha = alpha * 0.6; g.lineWidth = 7; g.filter = 'blur(6px)'; path(); g.stroke();
-  g.filter = 'none'; g.globalAlpha = alpha; g.lineWidth = 1.6; path(); g.stroke();
-  g.restore();
-}
-
 // four-point glint star
-function star(g, x, y, s, a, rot = 0, col = GLAZE) {
+function star(g, x, y, s, a, rot = 0, col = GLAZE, arm = 0.09) {
   if (a <= 0.003 || s <= 0) return;
   const sp = HG.sprite(col);
   g.save(); g.globalCompositeOperation = 'lighter'; g.translate(x, y); g.rotate(rot);
   g.globalAlpha = Math.min(1, a);
-  g.drawImage(sp, -s / 2, -s * 0.045, s, s * 0.09);
-  g.drawImage(sp, -s * 0.045, -s / 2, s * 0.09, s);
+  g.drawImage(sp, -s / 2, -s * arm / 2, s, s * arm);
+  g.drawImage(sp, -s * arm / 2, -s / 2, s * arm, s);
   g.globalAlpha = Math.min(1, a * 0.8);
   g.drawImage(sp, -s * 0.16, -s * 0.16, s * 0.32, s * 0.32);
   g.restore();
@@ -160,70 +151,145 @@ function tinted(img) {
   return (smallTint = c);
 }
 
+// warm milky tin glaze: the bare glaze and the glaze between the painted strokes get the same ivory tint
+// (a touch dimmer than the photo), the paint keeps its colour. Built once from the assets (deterministic).
+const IVORY = 'rgb(252,242,208)';
+let warm = null;
+function warmAssets(A) {
+  if (warm) return warm;
+  const mk = img => { const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; return c; };
+  const bare = mk(A.bare), bg = bare.getContext('2d');
+  bg.drawImage(A.bare, 0, 0);
+  bg.globalCompositeOperation = 'multiply'; bg.fillStyle = IVORY; bg.fillRect(0, 0, bare.width, bare.height);
+  bg.globalCompositeOperation = 'destination-in'; bg.drawImage(A.bare, 0, 0);
+  const x = mk(A.tile), xg = x.getContext('2d');                    // ivory everywhere the ink isn't
+  xg.fillStyle = IVORY; xg.fillRect(0, 0, x.width, x.height);
+  xg.globalCompositeOperation = 'destination-out'; xg.drawImage(A.ink, 0, 0, x.width, x.height);
+  const tl = mk(A.tile), tg = tl.getContext('2d');
+  tg.drawImage(A.tile, 0, 0);
+  tg.globalCompositeOperation = 'multiply'; tg.drawImage(x, 0, 0);
+  tg.globalCompositeOperation = 'destination-in'; tg.drawImage(A.tile, 0, 0);
+  return (warm = { bare, tile: tl });
+}
+
+// the painted region of the opening: 4 brushes sweep round the centre from the 4 corners, each a quarter
+// turn (sw 0..1), with a soft edge that curls back a little towards the rim like a dragged brush.
+// a0..a1 (fractions of the quarter) picks a slice of each sector (used for the wet-ink band at the brush).
+function brushSectors(g, sw0, sw1, rot, R, blur) {
+  HG.reset(g); g.clearRect(0, 0, HG.W, HG.W);
+  if (sw1 - sw0 <= 0.0005) return;
+  const Q = Math.PI / 2, CURL = 0.55, N = 28;
+  g.beginPath();
+  for (let k = 0; k < 4; k++) {
+    const a0 = rot + k * Q + sw0 * Q, a1 = rot + k * Q + sw1 * Q;
+    g.moveTo(C, C);
+    for (let j = 1; j <= N; j++) { const u = j / N, r = R * u, a = a0 - CURL * u * u; g.lineTo(C + Math.cos(a) * r, C + Math.sin(a) * r); }
+    for (let j = N; j >= 1; j--) { const u = j / N, r = R * u, a = a1 - CURL * u * u; g.lineTo(C + Math.cos(a) * r, C + Math.sin(a) * r); }
+    g.closePath();
+  }
+  g.fillStyle = '#000'; g.filter = `blur(${blur}px)`; g.fill(); g.filter = 'none';
+}
+
+// keep only what lies inside radius r of layer g (soft edge of width w)
+function keepInside(g, r, w) {
+  g.save(); HG.reset(g); g.globalCompositeOperation = 'destination-in';
+  const r1 = Math.max(1, r + w / 2), r0 = Math.max(0, r - w / 2);
+  const kg = g.createRadialGradient(C, C, 0, C, C, r1);
+  kg.addColorStop(0, '#000'); kg.addColorStop(r0 / r1, '#000'); kg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = kg; g.fillRect(0, 0, HG.W, HG.W);
+  g.restore();
+}
+
+// the warm glaze under the cobalt in the core: lit from within, ivory in the heart, warming to amber as it
+// thins out towards the rim (so it never passes through a dull grey on black)
+function coreGlaze(g, img, opts, alpha) {
+  if (alpha <= 0.003) return;
+  const k = K.ctx; HG.reset(k); k.clearRect(0, 0, HG.W, HG.W);
+  kaleido(k, img, opts);
+  const R = opts.r1;
+  k.globalCompositeOperation = 'multiply';
+  const cg = k.createRadialGradient(C, C, 0, C, C, R);
+  cg.addColorStop(0, 'rgb(255,255,255)'); cg.addColorStop(0.4, 'rgb(255,240,210)'); cg.addColorStop(0.75, 'rgb(255,205,140)'); cg.addColorStop(1, 'rgb(255,180,100)');
+  k.fillStyle = cg; k.fillRect(C - R, C - R, 2 * R, 2 * R);
+  k.globalCompositeOperation = 'destination-in';
+  const rg = k.createRadialGradient(C, C, 0, C, C, R);
+  rg.addColorStop(0, 'rgba(0,0,0,1)'); rg.addColorStop(0.3, 'rgba(0,0,0,0.9)'); rg.addColorStop(0.55, 'rgba(0,0,0,0.45)'); rg.addColorStop(0.8, 'rgba(0,0,0,0.1)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+  k.fillStyle = rg; k.fillRect(0, 0, HG.W, HG.W); HG.reset(k);
+  g.save(); HG.reset(g); g.globalAlpha = alpha; g.drawImage(K.cv, 0, 0); g.restore();
+}
+
 // ---------- choreography (all radii at camera scale 1; Z pushes the camera in for the single-tile acts)
 const SIZE = 440;                       // seed tile side; its inscribed circle becomes the kaleidoscope core
 const RC = SIZE / 2;                    // core radius
 const B0 = 238, B1 = 338;               // mirrored band
 const NT = 20, RT = 404, TS = 82;       // ring of small tiles
 const BA = TAU / 16;                    // band blade angle
-const WAVE = [0, 2, 1, 3];              // tile ring builds in 4 balanced waves of 5 (every 72 deg)
+const WAVE = [0, 2, 4, 1, 3];           // tile ring builds in 5 waves of 4 tiles, 90 deg apart (the mandala's 4/8-fold)
 const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
+const P = HG.layer(), U = HG.layer();   // brush mask, bare-glaze sheet
 
 HG.start({
   duration: 12,
   assets: {
     tile: '../assets/14-talavera_glaze.png', ink: '../assets/14-talavera_ink.png',
-    lines: '../assets/14-talavera_lines.png', small: '../assets/14-talavera_small.png',
+    bare: '../assets/14-talavera_bare.png', small: '../assets/14-talavera_small.png',
   },
   render(t, A) {
+    const W8 = warmAssets(A);
     // camera: close on the single tile, pulls back as the mandala opens, pushes in again as it folds
-    const zIntro = 1.24 - 0.06 * (1 - ease.out3(t / 3.2));                  // slow push-in on the drawing
-    const Z = lerp(1, zIntro, 1 - ease.inOut3((t - 3.3) / 1.9)) + 0.24 * ease.inOut3((t - 8.9) / 1.7);
-    const breath = Math.sin((t - 4) * 1.6) * bump(t, 4.2, 5.6, 8.0, 9.0);
-    const rc = Math.PI / 4 + (Math.PI / 2) * ease.inOut3((t - 1.0) / 10.2);   // core turns a quarter (tile looks the same)
-    const brot = -0.16 * t - 0.45 * ease.inOut3((t - 3) / 7);                // the band turns against the core
-    const end = smooth(11.0, 11.85, t);                                      // final dissolve
-    const endScale = 1 - 0.05 * ease.in3((t - 10.8) / 1.2);
+    const zIntro = 1.24 - 0.06 * (1 - ease.out3(t / 3.0));                  // slow push-in on the bare tile
+    const Z = lerp(1, zIntro, 1 - ease.inOut3((t - 3.05) / 1.9)) + 0.24 * ease.inOut3((t - 8.25) / 1.5);
+    const breath = Math.sin((t - 4) * 1.6) * bump(t, 3.95, 5.3, 7.4, 8.4);
+    const rc = Math.PI / 4 + (Math.PI / 2) * ease.inOut3((t - 1.0) / 9.6);    // core turns a quarter (tile looks the same)
+    const brot = -0.16 * t - 0.45 * ease.inOut3((t - 2.8) / 6.6);            // the band turns against the core
+    const end = smooth(10.0, 11.3, t);                                       // final dissolve (the painting alone by then)
+    const endScale = 1 - 0.05 * ease.in3((t - 9.9) / 1.1);
     const S1 = SIZE * Z * endScale;                                          // seed tile on screen
 
     // background haze: a faint cobalt breath held close behind the mandala
-    const haze = smooth(0.8, 3.5, t) * (1 - smooth(9.6, 11.5, t));
+    const haze = smooth(0.6, 3.2, t) * (1 - smooth(8.9, 10.4, t));
     if (haze > 0) {
       const hg = ctx.createRadialGradient(C, C, 40, C, C, 440 * Z);
       hg.addColorStop(0, rgba([20, 40, 120], 0.15 * haze)); hg.addColorStop(0.7, rgba([10, 20, 70], 0.07 * haze)); hg.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = hg; ctx.fillRect(0, 0, HG.W, HG.W);
     }
 
-    // ---------- band: fans open from under the core, later folds shut and tucks back under it
-    const open = ease.inOut3((t - 3.3) / 1.4) * (1 - ease.inOut3((t - 8.65) / 0.9));
-    const zb = lerp(0.62, 1, ease.out3((t - 3.3) / 1.3)) * lerp(1, 0.62, ease.inOut3((t - 8.95) / 0.9));
-    const bandA = 0.95 * smooth(0, 0.12, open + 0.12 * smooth(8.6, 8.7, t)) * (1 - smooth(9.65, 9.85, t));
+    // ---------- band: fans open from under the core like soft petals, later folds shut and tucks back under it
+    const open = ease.inOut3((t - 3.05) / 1.4) * (1 - ease.inOut3((t - 7.95) / 0.85));
+    const zb = lerp(0.62, 1, ease.out3((t - 3.05) / 1.3)) * lerp(1, 0.62, ease.inOut3((t - 8.25) / 0.85));
+    const bandA = 0.95 * smooth(0, 0.12, open + 0.12 * smooth(7.9, 8.0, t)) * (1 - smooth(8.95, 9.15, t));
     const bg = B.ctx; HG.reset(bg); bg.clearRect(0, 0, HG.W, HG.W);
     if (bandA > 0.003) {
       kaleido(bg, A.ink, {
         n: 16, r0: B0 * Z, r1: B1 * Z, rot: brot, sRot: -0.18 * t, sScale: 0.78 * Z * (1 + 0.03 * breath),
-        open: Math.max(open, 0.002), groups: 8, zoom: zb, feather: 12 * Z, sideFeather: 0.45 * BA * (1 - open),
+        open: Math.max(open, 0.002), groups: 8, zoom: zb, feather: 12 * Z, sideFeather: 0.8 * BA * (1 - open),
       });
-      // cobalt rims on each blade pair, folding with the petals; light ribs on the blade sides while the fan moves
-      const half = (BA / 2) * (1 + open), arcs = [], sides = [];
-      for (let j = 0; j < 8; j++) { const gc = brot + j * TAU / 8; arcs.push([gc - half, gc + half]); sides.push(gc - half, gc + half); }
-      arcsGlow(bg, (B1 + 10) * Z * zb, arcs, COBALT, { width: 4, blur: 8, alpha: 0.5 });
-      ribs(bg, sides, (B0 - 4) * Z * zb, (B1 + 6) * Z * zb, BLADE, 0.55 * smooth(0, 0.1, open) * (1 - smooth(0.7, 1, open)));
+      // cobalt rim of the band: only once the fan is (nearly) open, so the half-open blades never read as cog teeth
+      const rimA = 0.5 * smooth(0.8, 1, open);
+      if (rimA > 0.003) {
+        const half = (BA / 2) * (1 + open), arcs = [];
+        for (let j = 0; j < 8; j++) { const gc = brot + j * TAU / 8; arcs.push([gc - half, gc + half]); }
+        arcsGlow(bg, (B1 + 10) * Z * zb, arcs, COBALT, { width: 4, blur: 8, alpha: rimA });
+      }
       hole(bg, RC * Z - 2, 8);                 // the core sits on top: whatever is under it is gone
     }
 
-    // ---------- small tiles slide out from under the band edge into a ring, and back under at the end
+    // ---------- small tiles slide out from under the band edge into a ring, and back under at the end.
+    // The swirl is shared by all tiles (no per-tile delay), so neighbours keep their 18 deg spacing and never
+    // collide; the waves differ only in radius and scale.
     const tg = T.ctx; HG.reset(tg); tg.clearRect(0, 0, HG.W, HG.W);
     const rr = 0.16 * t, small = tinted(A.small);
+    const pA = ease.out3((t - 3.65) / 1.6) * (1 - ease.inOut3((t - 7.5) / 1.2));
+    const swirl = 1.1 * (1 - pA) * (t < 7.5 ? -1 : 1);
     let anyTile = false;
     for (let i = 0; i < NT; i++) {
-      const dl = 0.1 * WAVE[i % 4];
-      const pOut = ease.out3((t - 3.9 - dl) / 1.3);
-      const pIn = ease.inOut3((t - 8.05 - dl) / 0.9);
+      const dl = 0.08 * WAVE[i % 5];
+      const pOut = ease.out3((t - 3.65 - dl) / 1.3);
+      const pIn = ease.inOut3((t - 7.5 - dl) / 0.9);
       const p = pOut * (1 - pIn);
       if (p <= 0.002) continue;
       anyTile = true;
-      const th = i * TAU / NT + rr - 1.1 * (1 - p) * (pIn > 0 ? -1 : 1);
+      const th = i * TAU / NT + rr + swirl;
       const r = lerp(250, RT + 3 * breath, p) * Z;
       tile(tg, small, TS * Z * lerp(0.35, 1, p), th + Math.PI / 4 + 2.2 * (1 - p), { x: C + Math.cos(th) * r, y: C + Math.sin(th) * r });
     }
@@ -235,26 +301,66 @@ HG.start({
     if (bandA > 0.003) { g.globalAlpha = bandA; g.drawImage(B.cv, 0, 0); g.globalAlpha = 1; }
 
     // gold ring: grows out of the four tile corners as they round off, retracts into them at the end
-    const ringHW = (Math.PI / 4) * ease.inOut3((t - 3.15) / 1.1) * (1 - ease.inOut3((t - 9.25) / 0.95));
+    const ringHW = (Math.PI / 4) * ease.inOut3((t - 2.95) / 1.1) * (1 - ease.inOut3((t - 8.55) / 0.85));
     if (ringHW > 0.001) {
       const arcs = [];
       for (let j = 0; j < 4; j++) { const ca = rc + Math.PI / 4 + j * Math.PI / 2; arcs.push([ca - ringHW, ca + ringHW]); }
-      arcsGlow(g, (RC + 9) * Z, arcs, GOLD, { width: 4, blur: 7, alpha: 0.55 * (1 - smooth(9.9, 10.25, t)) });
+      arcsGlow(g, (RC + 9) * Z, arcs, GOLD, { width: 4, blur: 7, alpha: 0.55 * (1 - smooth(9.2, 9.5, t)) });
     }
 
-    // seed tile (glazed): fills in after the line drawing, returns at the end
-    const glazeIn = smooth(1.25, 2.4, t);
-    const round = smooth(2.85, 3.5, t) * (1 - smooth(9.95, 10.5, t));
-    const k8 = smooth(2.45, 2.85, t) * (1 - smooth(9.92, 10.12, t));
+    // seed tile: bare tin glaze rises out of the dark, the cobalt painting is brushed onto it, then it rounds off;
+    // at the end it returns, its glaze dissolves and the painting floats alone before fading
+    const round = smooth(2.65, 3.3, t) * (1 - smooth(9.2, 9.65, t));
+    const k8 = smooth(2.3, 2.7, t) * (1 - smooth(9.22, 9.42, t));
     // the glaze melts away from the centre outward (and closes back in at the end)
-    const melt = ease.inOut3((t - 3.55) / 0.95) * (1 - ease.inOut3((t - 9.2) / 0.75));
+    const melt = ease.inOut3((t - 3.3) / 0.95) * (1 - ease.inOut3((t - 8.5) / 0.72));
     const MF = 46 * Z, RCZ = RC * Z, meltR = melt * (RCZ + MF);
-    const seedA = glazeIn * (1 - end) * (round < 0.999 && melt <= 0.001 ? 1 : 0);
-    tile(g, A.tile, S1, rc, { round, alpha: seedA });
+    const seedOn = round < 0.999 && melt <= 0.001;
+    const gIn = ease.out3((t - 0.15) / 1.0);                                // the bare glaze pools out from the centre
+    const sw = ease.inOut3((t - 0.75) / 1.4);                              // the brushes
+    const gOut = smooth(9.7, 10.15, t);                                     // the glaze dissolves, the painting stays
+    if (seedOn && gIn > 0 && end < 0.999) {
+      const s = S.ctx; HG.reset(s); s.clearRect(0, 0, HG.W, HG.W);
+      if (sw < 0.999) {
+        const Sg = S1 * lerp(0.94, 1, gIn), R = S1 * 0.78;
+        // painted part
+        brushSectors(P.ctx, 0, sw, rc + Math.PI / 4, R, 16);
+        if (sw > 0.0005) {
+          tile(s, W8.tile, Sg, rc, { round });
+          s.globalCompositeOperation = 'destination-in'; s.drawImage(P.cv, 0, 0); s.globalCompositeOperation = 'source-over';
+        }
+        // bare part (exact complement of the painted part, so the glaze itself never changes as the brush passes)
+        const u = U.ctx; HG.reset(u); u.clearRect(0, 0, HG.W, HG.W);
+        tile(u, W8.bare, Sg, rc, { round });
+        if (sw > 0.0005) { u.globalCompositeOperation = 'destination-out'; u.drawImage(P.cv, 0, 0); u.globalCompositeOperation = 'source-over'; }
+        s.globalCompositeOperation = 'lighter'; s.drawImage(U.cv, 0, 0); s.globalCompositeOperation = 'source-over';
+        if (gIn < 0.999) keepInside(s, gIn * (Sg * 0.74 + 0.35 * Sg), 0.35 * Sg * 2);
+        // wet ink: the strokes just behind each brush glow brighter for a moment
+        const wet = Math.sin(Math.PI * clamp(sw / 0.999));
+        if (wet > 0.01) {
+          brushSectors(P.ctx, Math.max(0, sw - 0.22), sw, rc + Math.PI / 4, R, 14);
+          const pc = P.ctx; pc.globalCompositeOperation = 'source-in';
+          pc.save(); pc.translate(C, C); pc.rotate(rc); pc.drawImage(A.ink, -Sg / 2, -Sg / 2, Sg, Sg); pc.restore();
+          HG.reset(pc);
+          s.globalCompositeOperation = 'lighter'; s.globalAlpha = 0.55 * wet; s.drawImage(P.cv, 0, 0); HG.reset(s);
+        }
+      } else if (gOut < 0.001) {
+        tile(s, W8.tile, S1, rc, { round });
+      } else {
+        // linear crossfade (in premultiplied light) from the glazed tile to the painting alone
+        tile(s, W8.tile, S1, rc, { round, alpha: 1 - gOut });
+        s.globalCompositeOperation = 'lighter';
+        tile(s, A.ink, S1, rc, { round, alpha: gOut });
+        HG.reset(s);
+      }
+      // the blank glaze is held a little below full so the bare tile is never the brightest thing in the piece
+      const lit = lerp(0.86, 1, smooth(0.5, 2.0, t));
+      g.save(); g.globalAlpha = (1 - end) * lit; g.drawImage(S.cv, 0, 0); g.restore();
+    }
 
     // core kaleidoscope: identical to the tile at rest, then it turns, zooms and wanders
-    const evo = ease.inOut3((t - 3.3) / 6.4);
-    const bloom = bump(t, 3.6, 6.2, 7.4, 9.7);
+    const evo = ease.inOut3((t - 3.05) / 6.1);
+    const bloom = bump(t, 3.35, 5.9, 6.9, 9.0);
     const coreScale = SIZE / 1024 * (1 + 0.55 * bloom + 0.04 * breath);
     const wander = 70 * bloom;
     const core = {
@@ -262,19 +368,19 @@ HG.start({
       sx: wander * Math.cos(t * 0.9), sy: wander * Math.sin(t * 0.9), feather: 6,
     };
     if (k8 > 0.003) {
-      // a milky tin-glaze tone returns under the cobalt at the peak, so it reads as Talavera, not just blue
-      const tone = 0.3 * bump(t, 4.9, 6.2, 7.9, 9.0) * (melt > 0.001 ? 1 : 0);
+      // the warm tin glaze glows back under the cobalt at the peak, brightest in the middle, so it reads as Talavera
+      const tone = bump(t, 4.4, 5.7, 7.3, 8.45) * (melt > 0.001 ? 1 : 0);
       if (melt > 0.001) {
-        kaleidoA(g, A.tile, core, tone);
+        coreGlaze(g, W8.bare, core, tone);
         kaleido(g, A.ink, core);
       }
       if (meltR < RCZ + MF - 1) {
         if (k8 < 0.999) {
           // crossfade with the seed tile underneath: build the core sheet in S, then lay it down once
           const s = S.ctx; HG.reset(s); s.clearRect(0, 0, HG.W, HG.W);
-          kaleido(s, A.tile, { ...core, r0: meltR, featherIn: MF });
+          kaleido(s, W8.tile, { ...core, r0: meltR, featherIn: MF });
           g.save(); g.globalAlpha = k8; g.drawImage(S.cv, 0, 0); g.restore();
-        } else kaleido(g, A.tile, { ...core, r0: meltR, featherIn: MF });
+        } else kaleido(g, W8.tile, { ...core, r0: meltR, featherIn: MF });
       }
     }
 
@@ -286,18 +392,6 @@ HG.start({
 
     // a ring of light rides the melting edge of the glaze
     if (melt > 0.001 && melt < 0.999) arcGlow(ctx, Math.max(0, meltR - MF * 0.55), 0, TAU, GLAZE, { width: 5, blur: 10, alpha: 0.45 * Math.sin(Math.PI * melt) });
-
-    // line drawing of the tile: draws itself first, lingers faintly, glows again as the tile dissolves
-    const lk = ease.out3((t - 0.3) / 1.7);
-    const lineA = lerp(1, 0.3, smooth(1.5, 2.4, t)) * (1 - smooth(2.4, 3.2, t)) + 0.8 * bump(t, 10.75, 11.15, 11.45, 12.0);
-    for (let j = 0; j < 2; j++) HG.lineReveal(A.lines, C, C, S1, lk, { rotation: rc, color: GLAZE, alpha: lineA * (j ? 0.7 : 1) });
-    // a faint glaze ring leads the drawing outward (echoes the opening ring of the Piedra del Sol)
-    if (lk > 0 && lk < 1) {
-      const rho = lk * (S1 / Math.SQRT2 + 90), tip = S1 / Math.SQRT2;
-      const ra = 0.42 * smooth(0.3, 0.5, t) * (1 - smooth(tip - 40, tip + 50, rho));
-      arcGlow(ctx, rho - 14, 0, TAU, GLAZE, { width: 5, blur: 12, alpha: ra });
-      for (let j = 0; j < 8; j++) { const th = rc + j * TAU / 8 + 0.35 * lk; star(ctx, C + Math.cos(th) * (rho - 14), C + Math.sin(th) * (rho - 14), 46, ra * 1.3, th); }
-    }
 
     // glint sweeping across the glaze from a fixed light (start and end), with a star on the corner it leaves
     const GL = Math.PI / 3, vx = Math.cos(GL), vy = Math.sin(GL);
@@ -316,11 +410,21 @@ HG.start({
       const su = (u - 0.55) / 0.45, cr = S1 / Math.SQRT2 * 0.96;
       if (su > 0) star(ctx, C + Math.cos(best) * cr, C + Math.sin(best) * cr, 120 * Math.sin(Math.PI * su), 0.9 * Math.sin(Math.PI * su), su * 0.5);
     };
-    glint(2.0, 1.1);
-    glint(10.3, 1.0);
+    glint(1.95, 1.0);
+    glint(9.25, 0.9);
+    // a broad soft reflection drifts across the bare glaze as it rises, so it reads as glossy, not a flat card
+    const gl0 = (t - 0.2) / 1.6;
+    if (gl0 > 0 && gl0 < 1) {
+      const e = ease.inOut3(gl0), d = S1 * 0.75, ox = C + vx * d * lerp(-1, 1, e), oy = C + vy * d * lerp(-1, 1, e);
+      sheen(s => {
+        const lg = s.createLinearGradient(ox - vx * 230, oy - vy * 230, ox + vx * 230, oy + vy * 230);
+        lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(0.5, 'rgba(0,0,0,1)'); lg.addColorStop(1, 'rgba(0,0,0,0)');
+        return lg;
+      }, 0.2 * Math.sin(Math.PI * gl0));
+    }
 
     // rotating sheen over the mandala while it turns
-    const sh = bump(t, 4.8, 5.8, 8.2, 9.0);
+    const sh = bump(t, 4.5, 5.5, 7.5, 8.3);
     if (sh > 0) sheen(s => {
       const cg = s.createConicGradient(rc + 0.9 * t, C, C);
       for (let i = 0; i < 4; i++) {
@@ -330,13 +434,13 @@ HG.start({
     }, 0.28 * sh);
 
     // kaleidoscopic sparkles: bursts of glints mirrored around the circle [t0, r, count, offset, size, which layer]
-    const bursts = [[5.1, 120, 8, 0.0, 70, 'core'], [6.1, 290, 16, 0.5, 120, 'band'], [7.0, 170, 8, 0.2, 75, 'core'], [7.6, 405, 20, 0.5, 80, 'ring']];
+    const bursts = [[4.85, 120, 8, 0.0, 90, 'core'], [5.75, 290, 16, 0.5, 155, 'band'], [6.45, 170, 8, 0.2, 95, 'core'], [6.75, 405, 20, 0.5, 105, 'ring']];
     for (const [t0, r, n, off, size, wh] of bursts) {
       const u = (t - t0) / 0.9; if (u <= 0 || u >= 1) continue;
       const a = Math.sin(Math.PI * u), s = size * Math.sin(Math.PI * Math.pow(u, 0.7));
       for (let i = 0; i < n; i++) {
         const th = (i + off) * TAU / n + (wh === 'ring' ? rr : wh === 'band' ? brot : rc);
-        star(ctx, C + Math.cos(th) * r * Z, C + Math.sin(th) * r * Z, s * 0.8, a * 0.9, u * 0.6);
+        star(ctx, C + Math.cos(th) * r * Z, C + Math.sin(th) * r * Z, s * 0.8, a * 0.9, u * 0.6, GLAZE, 0.125);
       }
     }
   },

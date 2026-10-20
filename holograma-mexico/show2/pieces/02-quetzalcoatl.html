@@ -3,51 +3,79 @@
 <body><canvas id="c" width="1080" height="1080"></canvas>
 <script src="../engine.js"></script>
 <script>
-// Quetzalcóatl, the Feathered Serpent (dawn).
-// The dawn feathers of the pyramid drift up from below and a serpent of light rises among them:
-// a body of overlapping quetzal feathers with golden belly plates (as the feathered serpents are
-// carved and painted in Mesoamerica), long plumes trailing. It glides in a wide S, sweeps clockwise
-// around the circle and curls its neck into the centre. There its head of light swells and turns
-// to stone: the carved head of the Temple of the Feathered Serpent at Teotihuacan, its crest of
-// light opening into the round feather collar while the coil's plumes flare out like a sun of
-// feathers. The obsidian eyes glint, wind ripples along the feathers. Then the light leaves the
-// stone, the serpent dives down out of the circle and its coil unwinds into falling turquoise
-// drops, toward the water of the cenote.
+// Quetzalcóatl, the Feathered Serpent (dawn) — Artesanías y Tesoros, between Cabeza Olmeca and
+// Piedra del Sol.
+// A serpent of light (quetzal-green feathers, golden ventral plates, a gold rattle with quetzal
+// plumes at the tail: Quetzalcóatl is a feathered RATTLESNAKE) glides in from the left, sweeps
+// clockwise over the top and down the right of the circle and spirals its neck into the centre.
+// There its head swells and turns to gold: the carved head of the Temple of the Feathered Serpent
+// at Teotihuacan (open jaws, ringed eyes, carved scroll at the back of the head) and its round
+// collar — a single ring of broad carved feather petals — fans open behind it like a sunrise.
+// Molten gold cools into carved stone from the eye outward, a narrow rim of dawn light rings the
+// medallion, the coil's plumes flare into a sun of feathers, the obsidian eye glints. Then the
+// spirit of light lifts off the stone and rises out of the sky; the stone flares at its edges and
+// is gone, and the coil dissolves into a turning ring of gold sparks (the calendar wheel that the
+// next piece, the Piedra del Sol, gathers into).
+// Composition keeps the lower band (y > ~780) calm from ~2 s to ~9.7 s for the shared title.
 // The body follows its own path (every point of the body travels the curve the head drew), so the
 // motion is a real serpent's glide. Everything is a pure function of t.
-// Asset: prepare.py on out-show2/images/serpiente-emplumada-2.png -> 02-quetzalcoatl-head;
-// derived dawn-gold grade 02-quetzalcoatl-head_gold and silhouette 02-quetzalcoatl-head_sil.
-const { W, C, ctx, clamp, lerp, smooth, ease, rgba, COLORS } = HG;
+// Asset: show2/assets/02-quetzalcoatl-stone_{gold,sil,edge}.png, cut from
+// out-show2/images/serpiente-emplumada-1.png (head only, 1:1 source pixels at --size 2160),
+// see work/02-quetzalcoatl/scripts/make_stone.py. The petal collar is drawn here.
+const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
 const TAU = Math.PI * 2;
 const DEBUG = new URLSearchParams(location.search).has('debug');   // ?debug draws the serpent's path
 
 // ---------- palette (dawn: quetzal green and turquoise lit by rose, peach and gold)
 const JADE_D = [8, 58, 48], EMER = [14, 120, 80], QUETZ = [40, 215, 120], TURQ = [40, 215, 225],
-  AQUA = [130, 255, 235], GOLD = [255, 196, 90], WARM = [255, 228, 170], PEACH = [255, 170, 120],
-  ROSE = [255, 105, 140], TONGUE = [255, 70, 100];
+  AQUA = [130, 255, 235], GOLD = [255, 196, 90], WARM = [255, 228, 170], PEACH = [255, 190, 150],
+  ROSE = [255, 110, 140], TONGUE = [255, 70, 100];
+
+// ---------- composition
+const CX = 540, CY = 495;                 // centre of the coil and the medallion (lifted above the title band)
+const R_RING = 315;
+const Y_CALM = 770;                       // nothing bright below this while the title shows
+const calmY = t => lerp(1600, Y_CALM, smooth(1.5, 2.3, t) * (1 - smooth(9.6, 10.1, t)));
 
 // ---------- timeline
-const T_ARR = 5.9, T_DECEL = 1.7;        // the head glides in and comes to rest in the centre
-const T_STONE = 5.55;                    // light head swells and turns to stone
-const T_GO = 8.75, V_EXIT = 1150, T_ACC = 0.95;   // the dive
-const T_DIS = 8.95, V_DIS = 2000;        // the coil dissolves into drops, tail first
+const T_ARR = 5.2, T_DEC = 2.0;           // the head glides in and comes to rest in the centre
+const T_GOLD = 5.42;                      // the head turns to molten gold, the collar fans open
+const T_GO = 8.45, V_EXIT = 1100, T_ACC = 0.6;   // the spirit lifts off and rises
+const T_OUT = 9.0, D_OUT = 0.3;           // the stone flares to molten gold and is gone
+const exitHeat = t => smooth(T_OUT - 0.2, T_OUT + 0.02, t);
+// then it burns away from the centre outward behind a gold edge (no frame shows it as a dim image)
+const R_BURN = 330, BURN_FEA = 60;
+const burnR = t => R_BURN * ease.inOut3((t - T_OUT) / D_OUT);
+const burnT = r => { let lo = 0, hi = 1; for (let k = 0; k < 24; k++) { const m = (lo + hi) / 2; if (R_BURN * ease.inOut3(m) < r) lo = m; else hi = m; } return T_OUT + D_OUT * lo; };
+function burn(c, t) {
+  const rb = burnR(t); if (rb <= 0.5) return;
+  HG.reset(c); c.globalCompositeOperation = 'destination-out';
+  const g = c.createRadialGradient(CX, CY, 0, CX, CY, rb);
+  g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(Math.max(0, 1 - BURN_FEA / rb), 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = g; c.fillRect(0, 0, W, W); HG.reset(c);
+}
+const T_DIS = 8.9, V_DIS = 1800;          // the coil dissolves into gold sparks, tail first
 
-// ---------- the stone head (mirrored so it faces the way the serpent arrives)
-const SW = 556, SK = SW / 1024;
-const stonePt = (u, v) => [C - (u - 512) * SK, C + (v - 512) * SK];
-const EYE = stonePt(528, 355), EYE2 = stonePt(309, 331);
+// ---------- the stone head (crop 980 px, centred on the old medallion centre, mirrored to face right)
+const SW = 490, SK = SW / 980;
+const stonePt = (u, v) => [CX - (u - 490) * SK, CY + (v - 490) * SK];
+const EYE = stonePt(435, 337), FANG = stonePt(225, 555);
+const K_STONE = 1.62;                     // light head scale that matches the carved head
 
 // ---------- the path the serpent travels (centripetal Catmull-Rom, resampled every 2 px)
-const R_RING = 362, TH_J = -2.25, TURN = 0.8, TH_E = TH_J + TURN * TAU;
-const ringPt = th => [C + R_RING * Math.cos(th), C + R_RING * Math.sin(th)];
-const HS = 1.4;                                   // light head scale
-const HEAD_EYE = [46, -17];                        // eye in head-local units
+const pol = (th, r) => [CX + r * Math.cos(th), CY + r * Math.sin(th)];
+const DEG = Math.PI / 180, TH_A = 150 * DEG, TH_B = 395 * DEG;
+const HS = 1.55;                                  // light head scale while it travels
+const HEAD_EYE = [46, -17];                       // eye in head-local units
 const REST = [EYE[0] - HEAD_EYE[0] * HS, EYE[1] - HEAD_EYE[1] * HS];
-const ENTRY = [[712, 1400], [700, 1180], [668, 1000], [598, 858], [478, 760], [362, 652], [302, 512], [296, 380]];
-const RING = []; for (let k = 0; k <= 16; k++) RING.push(ringPt(TH_J + (k / 16) * (TH_E - TH_J)));
-const NECK = [[214, 592], [262, 528], [338, 490], [414, 474], REST];
-const EXIT = [[566, 490], [616, 566], [626, 690], [608, 830], [588, 970], [576, 1120], [570, 1400]];
-const CTRL = [...ENTRY, ...RING, ...NECK, ...EXIT];
+// in from the left rim, a hook up into the tail end of the ring (the tail curls there at rest)
+const ENTRY = [[-190, 680], [-60, 684], [70, 696], [176, 722], [262, 736], [316, 714], [324, 686]];
+const RING = []; for (let k = 0; k <= 14; k++) RING.push(pol(TH_A + (k / 14) * (TH_B - TH_A), R_RING));
+// the neck spirals inward along the bottom (above the title band) and up behind the medallion
+const SPIRAL = [[738, 674], [676, 642], [612, 620], [540, 618], [470, 604], [428, 560], [414, 500], [440, 450]];
+// the exit: up through the sky with a serpent's S-sway
+const EXIT = [[552, 436], [598, 404], [624, 350], [630, 285], [610, 218], [578, 150], [572, 80], [600, 0], [636, -80], [612, -180], [588, -300], [600, -520]];
+const CTRL = [...ENTRY, ...RING, ...SPIRAL, REST, ...EXIT];
 const STEP = 2;
 const PATH = (() => {
   const d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -89,19 +117,11 @@ const PATH = (() => {
     const dx = X[b] - X[a], dy = Y[b] - Y[a], l = Math.hypot(dx, dy) || 1;
     TX[i] = dx / l; TY[i] = dy / l;
   }
-  const nearest = p => { let bi = 0, bd = 1e9; for (let i = 0; i < N; i++) { const q = Math.hypot(X[i] - p[0], Y[i] - p[1]); if (q < bd) { bd = q; bi = i; } } return bi * STEP; };
+  const nearest = (p, from = 0) => { let bi = from, bd = 1e9; for (let i = from; i < N; i++) { const q = Math.hypot(X[i] - p[0], Y[i] - p[1]); if (q < bd) { bd = q; bi = i; } } return bi * STEP; };
   return { X, Y, TX, TY, N, LEN: (N - 1) * STEP, nearest };
 })();
-// the coil turns slowly like a sun disc while the stone is lit (the whole path turns about the centre)
-const rho = t => 0.22 * ease.inOut3((t - 5.5) / 3.6);
-function at(s, t = 0) {
-  const p = atRaw(s), r = rho(t);
-  if (r === 0) return p;
-  const c = Math.cos(r), sn = Math.sin(r), x = p[0] - C, y = p[1] - C;
-  return [C + x * c - y * sn, C + x * sn + y * c, p[2] * c - p[3] * sn, p[2] * sn + p[3] * c];
-}
 // position and unit direction of travel at arc length s (straight extrapolation past the ends)
-function atRaw(s) {
+function at(s) {
   const { X, Y, TX, TY, N, LEN } = PATH;
   if (s <= 0) return [X[0] + TX[0] * s, Y[0] + TY[0] * s, TX[0], TY[0]];
   if (s >= LEN) return [X[N - 1] + TX[N - 1] * (s - LEN), Y[N - 1] + TY[N - 1] * (s - LEN), TX[N - 1], TY[N - 1]];
@@ -109,20 +129,31 @@ function atRaw(s) {
   const tx = TX[i] + (TX[i + 1] - TX[i]) * k, ty = TY[i] + (TY[i + 1] - TY[i]) * k, l = Math.hypot(tx, ty) || 1;
   return [X[i] + (X[i + 1] - X[i]) * k, Y[i] + (Y[i + 1] - Y[i]) * k, tx / l, ty / l];
 }
-const S_REST = PATH.nearest(REST), S_JOIN = PATH.nearest(RING[0]);
-const BODY_L = S_REST - S_JOIN - 30;          // fully on the ring when the head rests
+const S_JOIN = PATH.nearest(RING[0]);
+const S_REST = PATH.nearest(REST, S_JOIN / STEP);
+const BODY_L = S_REST - S_JOIN - 26;          // tail just past the ring's start when the head rests
 
-// head arc length over time: steady glide, smooth stop, rest, then an accelerating dive
-const V_IN = S_REST / ((T_ARR - T_DECEL) + T_DECEL / 2);
+// head arc length over time: steady glide, smooth stop, rest, then an accelerating rise
+const V_IN = S_REST / ((T_ARR - T_DEC) + T_DEC / 2);
 function headS(t) {
-  if (t < T_ARR - T_DECEL) return V_IN * t;
-  if (t < T_ARR) { const x = (t - (T_ARR - T_DECEL)) / T_DECEL; return V_IN * (T_ARR - T_DECEL) + V_IN * T_DECEL * (x - (x * x * x - x * x * x * x / 2)); }
+  if (t < T_ARR - T_DEC) return V_IN * t;
+  if (t < T_ARR) { const x = (t - (T_ARR - T_DEC)) / T_DEC; return V_IN * (T_ARR - T_DEC) + V_IN * T_DEC * (x - (x * x * x - x * x * x * x / 2)); }
   if (t < T_GO) return S_REST;
   const dt = t - T_GO;
   if (dt < T_ACC) { const x = dt / T_ACC; return S_REST + V_EXIT * T_ACC * (x * x * x - x * x * x * x / 2); }
   return S_REST + V_EXIT * (T_ACC * 0.5 + dt - T_ACC);
 }
 function headV(t) { return (headS(t + 0.01) - headS(t - 0.01)) / 0.02; }
+// the head is rigid and about 200 px long: aim it along the chord to the path ahead, so it stays on
+// the curve instead of sticking out tangentially (near rest and at lift-off it follows the tangent,
+// so it lines up with the carved head)
+function headPose(sh) {
+  const p = at(sh), q = at(sh + 150);
+  let cx = q[0] - p[0], cy = q[1] - p[1]; const l = Math.hypot(cx, cy) || 1; cx /= l; cy /= l;
+  const w = sh <= S_REST ? smooth(S_REST - 420, S_REST - 60, sh) : 1 - smooth(S_REST + 60, S_REST + 260, sh);
+  let dx = lerp(cx, p[2], w), dy = lerp(cy, p[3], w); const m = Math.hypot(dx, dy) || 1;
+  return [p[0], p[1], dx / m, dy / m];
+}
 
 // ---------- feather sprites (drawn once, high resolution)
 function featherSprite({ len = 320, wid = 104, base, mid, tip, rim, rachis, rimA = 0.95, shine = false }) {
@@ -168,24 +199,32 @@ const SPR = {
   under: featherSprite({ base: [6, 50, 60], mid: [18, 120, 135], tip: [40, 185, 215], rim: [110, 230, 250], rimA: 0.6, rachis: [190, 250, 235] }),
   gold: featherSprite({ base: [120, 50, 20], mid: [240, 160, 70], tip: [255, 225, 160], rim: [255, 240, 200], rachis: [255, 250, 230] }),
   shine: featherSprite({ mid: TURQ, tip: [255, 225, 150], shine: true }),
+  shineGold: featherSprite({ mid: GOLD, tip: WARM, shine: true }),
   plume: featherSprite({ len: 400, wid: 92, base: [8, 80, 60], mid: [34, 200, 120], tip: [255, 205, 110], rim: [190, 255, 210], rachis: [255, 230, 160] }),
 };
 function feather(c, spr, x, y, ux, uy, len, wid, alpha = 1) {
-  if (alpha <= 0.01) return;
+  if (alpha <= 0.01 || len < 2) return;
   c.save(); c.translate(x, y); c.rotate(Math.atan2(uy, ux)); c.globalAlpha = Math.min(1, alpha);
   c.drawImage(spr, 0, -wid / 2, len, wid); c.restore();
+}
+// keep a feather's tip above the calm line (the title band): shorten it softly if it points down into it
+function calmLen(y, uy, len, ylim) {
+  if (uy <= 0.02) return len;
+  const room = (ylim - y) / uy;
+  if (room >= len) return len;
+  return Math.max(len * 0.25, room - 6 * (1 - room / len));
 }
 
 // ---------- body geometry
 const ROW = 12;
-const halfW = u => 31 * (0.7 + 0.3 * smooth(0, 380, u)) * (1 - 0.78 * Math.pow(smooth(0.6 * BODY_L, BODY_L, u), 1.1));
-const swim = t => lerp(9, 4, smooth(4.5, 6.5, t)) * (1 - 0.5 * smooth(8.8, 9.6, t));
+const halfW = u => 31 * (0.7 + 0.3 * smooth(0, 380, u)) * (1 - 0.74 * Math.pow(smooth(0.72 * BODY_L, BODY_L, u), 1.1));
+const swim = t => lerp(9, 3.5, smooth(4.2, 6.2, t)) * (1 - 0.5 * smooth(8.8, 9.6, t));
 // body frame at distance u behind the head: position (with a travelling sideways undulation),
 // direction of travel d and the back-side normal n (the feathered side; outward on the ring)
 function frame(t, u, sh) {
-  const p = at(sh - u, t);
+  const p = at(sh - u);
   const nx = p[3], ny = -p[2];
-  const off = swim(t) * Math.sin(TAU * u / 560 - 5.2 * t) * smooth(0, 240, u);
+  const off = swim(t) * Math.sin(TAU * u / 560 - 5.2 * t) * smooth(0, 240, u) * (1 - smooth(BODY_L - 120, BODY_L, u) * 0.6);
   return { x: p[0] + nx * off, y: p[1] + ny * off, dx: p[2], dy: p[3], nx, ny };
 }
 // wind: a wave of lifted, iridescent feathers running from head to tail
@@ -193,16 +232,20 @@ const lift = (u, t) => 0.5 + 0.5 * Math.sin(TAU * u / 400 - 5.6 * t);
 // a pulse of iridescent light running from the head to the tail while the coil holds
 function pulse(u, t) {
   let p = 0;
-  for (const t0 of [6.3, 7.55]) { const c = (t - t0) * 1500; p += Math.exp(-Math.pow((u - c) / 150, 2)); }
-  return p * smooth(5.8, 6.4, t) * (1 - smooth(8.7, 9.1, t));
+  for (const t0 of [6.15, 7.4]) { const c = (t - t0) * 1500; p += Math.exp(-Math.pow((u - c) / 150, 2)); }
+  return p * smooth(5.7, 6.2, t) * (1 - smooth(8.6, 9.0, t));
 }
 // the coil's plumes flare out into a sun of feathers while the stone is lit
-const flareAt = t => ease.inOut3((t - 5.9) / 1.4) * (1 - smooth(8.7, 9.3, t));
-const rowFade = (u, t) => 1 - smooth(0, 0.28, t - (T_DIS + (BODY_L - u) / V_DIS));
+const flareAt = t => ease.inOut3((t - 5.75) / 1.4) * (1 - smooth(8.45, 9.05, t));
+const dissolveT = u => T_DIS + (BODY_L - u) / V_DIS;
+const rowFade = (u, t) => 1 - smooth(0, 0.22, t - dissolveT(u));
 
-const LB = HG.layer(), LH = HG.layer(), LS = HG.layer();
+const LB = HG.layer(), LH = HG.layer(), LS = HG.layer(), LP = HG.layer(), LG = HG.layer();
 
-// bloom a layer onto c: same pixel-aligned compositing as HG.drawLayer, with a resolution-scaled blur
+// bloom a layer onto c. HG.drawLayer cannot carry a blur (it sets filter 'none'), so this draws the
+// layer canvas under the engine transform set by HG.reset (scale S): its SIZE x SIZE pixels land
+// on the W x W (1080) box, i.e. exactly 1:1 onto the canvas pixels at any ?size, with a blur
+// expressed through HG.blur so the glow scales with the render size.
 function bloom(c, L, px, alpha) {
   if (alpha <= 0) return;
   HG.reset(c); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, alpha); c.filter = HG.blur(px);
@@ -213,7 +256,6 @@ function bloom(c, L, px, alpha) {
 function plume(c, x, y, ux, uy, len, wid, bend, t, ph, alpha, cols = [EMER, QUETZ, TURQ]) {
   if (alpha <= 0.01 || len < 4) return;
   const px = -uy, py = ux, M = 12, L = [], R = [];
-  let cx = x, cy = y;
   const pts = [];
   for (let i = 0; i <= M; i++) {
     const v = i / M;
@@ -234,46 +276,90 @@ function plume(c, x, y, ux, uy, len, wid, bend, t, ph, alpha, cols = [EMER, QUET
   for (let i = 1; i <= M; i++) c.lineTo(L[i][0], L[i][1]);
   for (let i = M; i >= 0; i--) c.lineTo(R[i][0], R[i][1]);
   c.closePath(); c.fillStyle = g; c.fill();
-  c.strokeStyle = rgba([180, 255, 220], 0.8); c.lineWidth = 1.6; c.stroke();
+  c.strokeStyle = rgba([180, 255, 220], 0.8); c.lineWidth = 2; c.stroke();
   c.beginPath(); c.moveTo(pts[0][0], pts[0][1]);
   for (let i = 1; i < M; i++) c.lineTo(pts[i][0], pts[i][1]);
-  c.strokeStyle = rgba(WARM, 0.85); c.lineWidth = 2; c.stroke();
+  c.strokeStyle = rgba(WARM, 0.85); c.lineWidth = 2.4; c.stroke();
+  c.restore();
+}
+
+// a broad rounded ventral plate between body distances u0 (head side) and u1 (tail side)
+function ventralPlate(c, t, sh, u0, u1, a) {
+  const K = 4, inner = [], outer = [];
+  for (let k = 0; k <= K; k++) {
+    const u = lerp(u0, u1, k / K), F = frame(t, u, sh), h = halfW(u);
+    inner.push([F.x - F.nx * h * 0.32, F.y - F.ny * h * 0.32]); outer.push([F.x - F.nx * h * 0.93, F.y - F.ny * h * 0.93]);
+  }
+  const Ft = frame(t, u1, sh), Fh = frame(t, u0, sh), ht = halfW(u1);
+  // trailing (tail-side) edge bulges toward the tail: the overlapping free edge of the scute
+  const bx = -Ft.dx * ht * 0.42, by = -Ft.dy * ht * 0.42;
+  c.beginPath(); c.moveTo(inner[0][0], inner[0][1]);
+  for (let k = 1; k <= K; k++) c.lineTo(inner[k][0], inner[k][1]);
+  const mx = (inner[K][0] + outer[K][0]) / 2 + bx, my = (inner[K][1] + outer[K][1]) / 2 + by;
+  c.quadraticCurveTo(inner[K][0] + bx * 1.1, inner[K][1] + by * 1.1, mx, my);
+  c.quadraticCurveTo(outer[K][0] + bx * 1.1, outer[K][1] + by * 1.1, outer[K][0], outer[K][1]);
+  for (let k = K - 1; k >= 0; k--) c.lineTo(outer[k][0], outer[k][1]);
+  c.closePath();
+  // soft shading: shadowed where it tucks under the plate ahead, bright toward its free edge
+  const gb = 0.85 + 0.15 * Math.sin(TAU * u0 / 300 - 3.1 * t);
+  const g = c.createLinearGradient(Fh.x, Fh.y, Ft.x + bx, Ft.y + by);
+  g.addColorStop(0, rgba([168, 100, 34], 1)); g.addColorStop(0.32, rgba([246, Math.round(184 * gb), 76], 1));
+  g.addColorStop(0.76, rgba([255, Math.round(222 * gb), Math.round(150 * gb)], 1)); g.addColorStop(1, rgba([255, 240, 204], 1));
+  c.globalAlpha = a; c.fillStyle = g; c.fill();
+}
+
+// the rattle (3 gold segments plus the button) and the quetzal plumes springing from it
+function drawTail(c, t, sh, a, ylim) {
+  if (a <= 0.01) return;
+  const u = BODY_L, F = frame(t, u, sh), B = frame(t, u - 40, sh);
+  // continue the body's curvature backward, curling a little more inward so it stays off the title band
+  const a1 = Math.atan2(-F.dy, -F.dx), a2 = Math.atan2(-B.dy, -B.dx);
+  let dA = a1 - a2; dA -= TAU * Math.round(dA / TAU);
+  const kap = clamp(dA / 40, -0.012, 0.012);
+  let x = F.x, y = F.y, ang = a1;
+  const segs = [[24, 15], [22, 14], [19, 13], [15, 11], [10, 8]];
+  c.save(); c.globalAlpha = a;
+  for (let i = 0; i < segs.length; i++) {
+    const [w, l] = segs[i];
+    const cx = x + Math.cos(ang) * l * 0.5, cy = y + Math.sin(ang) * l * 0.5;
+    c.save(); c.translate(cx, cy); c.rotate(ang);
+    const g = c.createLinearGradient(0, -w / 2, 0, w / 2);
+    g.addColorStop(0, rgba([196, 120, 44], 1)); g.addColorStop(0.35, rgba([255, 226, 150], 1)); g.addColorStop(0.7, rgba([246, 170, 70], 1)); g.addColorStop(1, rgba([150, 78, 28], 1));
+    c.fillStyle = g; c.beginPath(); c.ellipse(0, 0, l * 0.6, w * 0.5, 0, 0, TAU); c.fill();
+    c.strokeStyle = 'rgba(70,28,6,0.7)'; c.lineWidth = 2.5; c.stroke();
+    c.restore();
+    x += Math.cos(ang) * l * 0.86; y += Math.sin(ang) * l * 0.86; ang += kap * l;
+  }
+  // plumes
+  for (const [k, len, sp] of [[0, 150, -0.55], [1, 196, -0.05], [2, 132, 0.4]]) {
+    const pts = [[x, y]], M = 14, st = len / M;
+    let px = x, py = y, pa = ang + sp * 0.5;
+    for (let j = 1; j <= M; j++) {
+      const v = j / M;
+      pa += kap * st * 1.3 + sp * 0.05 + 0.07 * Math.sin(t * 4.6 + k * 1.9 - v * 4.5) * v;
+      px += Math.cos(pa) * st; py += Math.sin(pa) * st;
+      if (py > ylim - 4) { py = lerp(py, ylim - 4, 0.8); }
+      pts.push([px, py]);
+    }
+    c.lineCap = 'round';
+    for (let j = 0; j < M; j++) {
+      const v = j / M, col = j < 9 ? QUETZ : TURQ;
+      c.strokeStyle = rgba(col.map((q, i) => Math.round(lerp(EMER[i], q, Math.min(1, v * 1.6)))), 1);
+      c.lineWidth = lerp(8, 3.5, v) * (k === 1 ? 1.15 : 1);
+      c.beginPath(); c.moveTo(pts[j][0], pts[j][1]); c.lineTo(pts[j + 1][0], pts[j + 1][1]); c.stroke();
+    }
+    const e = pts[M], q = pts[M - 2], l = Math.hypot(e[0] - q[0], e[1] - q[1]) || 1;
+    feather(c, SPR.plume, q[0], q[1], (e[0] - q[0]) / l, (e[1] - q[1]) / l, 54, 19, a);
+  }
   c.restore();
 }
 
 // ---------- the serpent's body: from the tail to the head, so feathers overlap like shingles
 function drawBody(c, t) {
   const sh = headS(t);
-  const fl = flareAt(t);
+  const fl = flareAt(t), ylim = calmY(t);
   c.lineJoin = 'round';
-  // tail streamers (they follow the path behind the tail)
-  const tailU = BODY_L;
-  const tf = frame(t, tailU, sh), tailA = rowFade(tailU, t);
-  if (tailA > 0.01) {
-    const tb = frame(t, tailU - 50, sh);
-    const a1 = Math.atan2(-tf.dy, -tf.dx), a2 = Math.atan2(-tb.dy, -tb.dx);
-    let dA = a1 - a2; dA -= TAU * Math.round(dA / TAU);
-    const kap = clamp(dA / 50, -0.0045, 0.0045);
-    for (const [k, len, sp] of [[0, 210, -0.32], [1, 270, 0], [2, 190, 0.3]]) {
-      const pts = [[tf.x, tf.y]], M = 14, st = len / M;
-      let x = tf.x, y = tf.y, ang = a1 + sp * 0.35;
-      for (let j = 1; j <= M; j++) {
-        const v = j / M;
-        ang += kap * st + sp * 0.05 + 0.07 * Math.sin(t * 4.6 + k * 1.9 - v * 4.5) * v;
-        x += Math.cos(ang) * st; y += Math.sin(ang) * st; pts.push([x, y]);
-      }
-      c.save(); c.globalAlpha = tailA; c.lineCap = 'round';
-      for (let j = 0; j < M; j++) {
-        const v = j / M, col = j < 9 ? QUETZ : TURQ;
-        c.strokeStyle = rgba(col.map((q, i) => Math.round(lerp(EMER[i], q, Math.min(1, v * 1.6)))), 1);
-        c.lineWidth = lerp(9, 3.5, v) * (k === 1 ? 1.15 : 1);
-        c.beginPath(); c.moveTo(pts[j][0], pts[j][1]); c.lineTo(pts[j + 1][0], pts[j + 1][1]); c.stroke();
-      }
-      const e = pts[M], q = pts[M - 2], l = Math.hypot(e[0] - q[0], e[1] - q[1]) || 1;
-      feather(c, SPR.plume, q[0], q[1], (e[0] - q[0]) / l, (e[1] - q[1]) / l, 58, 20, tailA);
-      c.restore();
-    }
-  }
+  drawTail(c, t, sh, rowFade(BODY_L, t), ylim);
   const rows = [];
   for (let u = 6; u < BODY_L - 2; u += ROW) rows.push(u);
   for (let r = rows.length - 1; r >= 0; r--) {
@@ -289,37 +375,33 @@ function drawBody(c, t) {
     c.moveTo(F.x - F.nx * h * 0.95, F.y - F.ny * h * 0.95); c.lineTo(F.x + F.nx * h * 0.6, F.y + F.ny * h * 0.6);
     c.lineTo(G.x + G.nx * h2 * 0.6, G.y + G.ny * h2 * 0.6); c.lineTo(G.x - G.nx * h2 * 0.95, G.y - G.ny * h2 * 0.95);
     c.closePath(); c.fill();
-    // golden belly band, softly segmented like the ventral plates of the carved serpents
-    const gb = 0.8 + 0.2 * Math.sin(TAU * u / 300 - 3.1 * t);
-    c.fillStyle = rgba([255, Math.round(178 + 34 * gb), Math.round(90 + 40 * gb)], 0.95);
-    c.beginPath();
-    c.moveTo(F.x - F.nx * h * 0.9, F.y - F.ny * h * 0.9); c.lineTo(F.x - F.nx * h * 0.34, F.y - F.ny * h * 0.34);
-    c.lineTo(G.x - G.nx * h2 * 0.34, G.y - G.ny * h2 * 0.34); c.lineTo(G.x - G.nx * h2 * 0.9, G.y - G.ny * h2 * 0.9);
-    c.closePath(); c.fill();
-    if (r % 2 === 0) {
-      c.strokeStyle = 'rgba(70,30,10,0.4)'; c.lineWidth = 2.2;
-      c.beginPath(); c.moveTo(F.x - F.nx * h * 0.88, F.y - F.ny * h * 0.88); c.lineTo(F.x - F.nx * h * 0.38, F.y - F.ny * h * 0.38); c.stroke();
-    }
+    // golden ventral plates, broad and rounded, one every three rows (36 px)
+    if (r % 3 === 0) ventralPlate(c, t, sh, u - 2, Math.min(BODY_L - 4, u + 3 * ROW + 1), a);
     // feathers: an outer (turquoise) layer, then the quetzal-green layer on top
     const bx = -F.dx, by = -F.dy;              // toward the tail
     const hv = Math.sin(u * 12.9898) * 43758.5453, hr = hv - Math.floor(hv), hr2 = (hv * 7.31) - Math.floor(hv * 7.31);
     const ao = 0.95 + 0.28 * lf + 0.35 * fl + (hr2 - 0.5) * 0.22, ai = 0.5 + 0.24 * lf + 0.12 * fl;
     const uo = [bx * Math.cos(ao) + F.nx * Math.sin(ao), by * Math.cos(ao) + F.ny * Math.sin(ao)];
     const ui = [bx * Math.cos(ai) + F.nx * Math.sin(ai), by * Math.cos(ai) + F.ny * Math.sin(ai)];
-    feather(c, SPR.under, F.x + F.nx * h * 0.45, F.y + F.ny * h * 0.45, uo[0], uo[1], h * (1.6 + 0.5 * hr + 0.35 * fl), h * 0.8, a);
-    feather(c, SPR.body, F.x + F.nx * h * 0.05, F.y + F.ny * h * 0.05, ui[0], ui[1], h * (2.05 + 0.25 * lf), h * 0.9, a);
-    // iridescent sheen as the wind lifts the feather
+    const ox = F.x + F.nx * h * 0.45, oy = F.y + F.ny * h * 0.45, ix = F.x + F.nx * h * 0.05, iy = F.y + F.ny * h * 0.05;
+    const lo = calmLen(oy, uo[1], h * (1.6 + 0.5 * hr + 0.35 * fl), ylim), li = calmLen(iy, ui[1], h * (2.05 + 0.25 * lf), ylim);
+    feather(c, SPR.under, ox, oy, uo[0], uo[1], lo, h * 0.8, a);
+    feather(c, SPR.body, ix, iy, ui[0], ui[1], li, h * 0.9, a);
+    // iridescent sheen as the wind lifts the feather (kept low near the head, where rows crowd)
+    const nearHead = smooth(40, 130, u);
     c.globalCompositeOperation = 'lighter';
-    feather(c, SPR.shine, F.x + F.nx * h * 0.05, F.y + F.ny * h * 0.05, ui[0], ui[1], h * (2.05 + 0.25 * lf), h * 0.9, a * 0.55 * Math.pow(lf, 2.2));
+    feather(c, SPR.shine, ix, iy, ui[0], ui[1], li, h * 0.9, a * 0.5 * Math.pow(lf, 2.2) * nearHead);
     c.globalCompositeOperation = 'source-over';
     // long fringe feathers every few rows; they flare outward into a sun of feathers while the stone is lit
     if (r % 4 === 1) {
+      const fl = flareAt(t) * smooth(420, 560, u);
       const ap = 0.55 + 0.98 * fl + (0.1 + 0.12 * fl) * Math.sin(t * 3.1 - u * 0.012) + (hr - 0.5) * 0.12 - 0.25 * pu * fl;
       const up = [bx * Math.cos(ap) + F.nx * Math.sin(ap), by * Math.cos(ap) + F.ny * Math.sin(ap)];
-      const pl = h * (2.5 + 0.4 * hr2 + 1.15 * fl) * (0.92 + 0.08 * Math.sin(t * 2.2 + u * 0.02));
-      feather(c, SPR.plume, F.x + F.nx * h * 0.35, F.y + F.ny * h * 0.35, up[0], up[1], pl, h * (0.62 + 0.3 * fl), a);
+      const px = F.x + F.nx * h * 0.35, py = F.y + F.ny * h * 0.35;
+      const pl = calmLen(py, up[1], h * (2.5 + 0.4 * hr2 + 1.15 * fl) * (0.92 + 0.08 * Math.sin(t * 2.2 + u * 0.02)), ylim);
+      feather(c, SPR.plume, px, py, up[0], up[1], pl, h * (0.62 + 0.3 * fl), a);
       c.globalCompositeOperation = 'lighter';
-      feather(c, SPR.shine, F.x + F.nx * h * 0.35, F.y + F.ny * h * 0.35, up[0], up[1], pl, h * (0.62 + 0.3 * fl), a * 0.35 * Math.pow(lf, 2));
+      feather(c, SPR.shine, px, py, up[0], up[1], pl, h * (0.62 + 0.3 * fl), a * 0.35 * Math.pow(lf, 2) * nearHead);
       c.globalCompositeOperation = 'source-over';
     }
   }
@@ -328,8 +410,9 @@ function drawBody(c, t) {
 
 // ---------- the head of light, in profile (x forward, y toward the belly), drawn like the codex
 // and Teotihuacan serpents: upturned curled snout, great ringed eye under a heavy brow, open jaws
-// with a curved fang, forked tongue, plumes sweeping back from the crown and a ruff at the neck
-function drawHead(c, x, y, dx, dy, k, alpha, t) {
+// with a curved fang, forked tongue, plumes sweeping back from the crown and a ruff at the neck.
+// crest: 0..1 length of the crown plumes (shortened when they would hang into the title band)
+function drawHead(c, x, y, dx, dy, k, alpha, t, crest = 1) {
   if (alpha <= 0.01) return;
   c.save();
   // scale about the eye so the eye stays put while the head swells
@@ -339,13 +422,13 @@ function drawHead(c, x, y, dx, dy, k, alpha, t) {
   const A = Math.min(1, alpha);
   // crown plumes sweeping back
   for (const [ax, ay, ang, len, ph] of [[18, -38, -2.72, 118, 0], [10, -34, -2.92, 140, 1.7], [4, -28, -3.1, 104, 3.1]]) {
-    plume(c, ax, ay, Math.cos(ang + 0.05 * Math.sin(t * 2.6 + ph)), Math.sin(ang + 0.05 * Math.sin(t * 2.6 + ph)), len * Math.pow(k, -0.8), 15, -0.25, t, ph, A,
+    plume(c, ax, ay, Math.cos(ang + 0.05 * Math.sin(t * 2.6 + ph)), Math.sin(ang + 0.05 * Math.sin(t * 2.6 + ph)), len * Math.pow(k, -0.8) * crest, 15, -0.25, t, ph, A,
       [[200, 140, 60], [60, 210, 130], [70, 230, 215]]);
   }
   // ruff of feathers at the neck
   for (let i = 6; i >= 0; i--) {
     const v = i / 6, ang = lerp(-2.45, -3.75, v) + 0.06 * Math.sin(t * 4 + i);
-    feather(c, i % 2 ? SPR.body : SPR.gold, 2, -4 + v * 12, Math.cos(ang), Math.sin(ang), 58 - 10 * Math.abs(v - 0.5), 22, A);
+    feather(c, i % 2 ? SPR.body : SPR.gold, 2, -4 + v * 12, Math.cos(ang), Math.sin(ang), (58 - 10 * Math.abs(v - 0.5)) * lerp(0.75, 1, crest), 22, A);
   }
   const jaw = 0.2 + 0.07 * Math.sin(t * 2.3);
   const rj = (px, py) => [22 + (px - 22) * Math.cos(jaw) - (py - 8) * Math.sin(jaw), 8 + (px - 22) * Math.sin(jaw) + (py - 8) * Math.cos(jaw)];
@@ -380,7 +463,7 @@ function drawHead(c, x, y, dx, dy, k, alpha, t) {
   sg.addColorStop(0, rgba([60, 215, 150], 1)); sg.addColorStop(0.55, rgba([18, 120, 88], 1)); sg.addColorStop(1, rgba([10, 66, 52], 1));
   c.fillStyle = sg; c.fill(); c.strokeStyle = rgba(GOLD, 1); c.lineWidth = 3.2; c.stroke();
   // carved lip line
-  c.strokeStyle = rgba([255, 215, 130], 0.8); c.lineWidth = 2.2;
+  c.strokeStyle = rgba([255, 215, 130], 0.8); c.lineWidth = 2.4;
   c.beginPath(); c.moveTo(36, -3); c.bezierCurveTo(60, -5, 90, -6, 108, -8); c.stroke();
   // upper fang and teeth
   c.fillStyle = rgba(WARM, 1);
@@ -408,187 +491,385 @@ function drawHead(c, x, y, dx, dy, k, alpha, t) {
   c.restore();
 }
 
-// ---------- particles
-// falling turquoise drops; spawn (x, y, vx, vy) at time t0; a bright head with a short streak
-function drop(t, t0, x, y, vx, vy, size, life, col) {
-  const a = t - t0; if (a < 0 || a > life) return;
-  const g = 860, k = 1 - a / life;
-  const env = smooth(0, 0.1, a) * Math.pow(k, 1.3) * (0.85 + 0.15 * Math.sin(t * 17 + x)) * (1 - smooth(10.45, 11.2, t));
-  const px = x + vx * a, py = y + vy * a + 0.5 * g * a * a;
-  const ux = vx, uy = vy + g * a, sp = Math.hypot(ux, uy) || 1;
-  const sl = Math.min(70, 8 + sp * 0.06);
-  const tx = px - ux / sp * sl, ty = py - uy / sp * sl;
-  const gr = ctx.createLinearGradient(tx, ty, px, py);
-  gr.addColorStop(0, rgba(col, 0)); gr.addColorStop(1, rgba(col, 0.75 * env));
-  ctx.strokeStyle = gr; ctx.lineWidth = size * 0.32; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(px, py); ctx.stroke();
-  HG.dot(ctx, col, px, py, size * 1.6, env * 0.55);
-  HG.dot(ctx, AQUA, px, py, size, env);
+// ---------- the collar: one ring of broad carved feather petals around the head
+const NP = 16, P_R0 = 70, P_R1 = 200, P_W = 74;
+const TH_CROWN = 244 * DEG;                // the crown of the head: the collar fans open from here
+const LIGHT = [-0.56, -0.83];              // dawn key light from the upper left
+function petalPath(c, L, w) {
+  c.beginPath(); c.moveTo(0, -w * 0.16);
+  c.bezierCurveTo(L * 0.3, -w * 0.5, L * 0.6, -w * 0.56, L * 0.84, -w * 0.4);
+  c.bezierCurveTo(L * 0.97, -w * 0.28, L * 1.01, -w * 0.1, L, 0);
+  c.bezierCurveTo(L * 1.01, w * 0.1, L * 0.97, w * 0.28, L * 0.84, w * 0.4);
+  c.bezierCurveTo(L * 0.6, w * 0.56, L * 0.3, w * 0.5, 0, w * 0.16);
+  c.closePath();
+}
+const angDist = (a, b) => { let d = a - b; d -= TAU * Math.round(d / TAU); return Math.abs(d); };
+// per petal: final angle, unfold progress, carved-stone amount and light amount at time t
+function petalState(i, t) {
+  const th = 6 * DEG + i * TAU / NP + 0.012 * Math.sin(t * 1.3 + i);
+  const d = 0.3 * angDist(th, TH_CROWN) / Math.PI;
+  const p = ease.out3((t - (T_GOLD - 0.12 + d)) / 0.5);
+  const carve = smooth(T_GOLD + 0.22 + d, T_GOLD + 0.62 + d, t) * (1 - exitHeat(t));
+  return { th, p, carve, d };
+}
+function petalPose(i, t) {
+  const s = petalState(i, t);
+  // sweep the short way round from the crown
+  let dth = s.th - TH_CROWN; dth -= TAU * Math.round(dth / TAU);
+  const ang = TH_CROWN + dth * s.p;
+  return { ...s, ang, len: (P_R1 - P_R0) * lerp(0.5, 1, s.p), w: P_W * lerp(0.6, 1, s.p) };
+}
+// carved petals (shaded gold stone) into layer L
+function drawPetalsCarved(c, t) {
+  for (let i = 0; i < NP; i++) {
+    const P = petalPose(i, t);
+    if (P.p <= 0.001 || P.carve <= 0.001) continue;
+    const ux = Math.cos(P.ang), uy = Math.sin(P.ang);
+    const lit = -uy * LIGHT[0] + ux * LIGHT[1];              // which long side faces the light
+    const face = 0.86 + 0.14 * (ux * LIGHT[0] + uy * LIGHT[1]); // petals toward the light are brighter
+    const L = P.len, w = P.w;
+    c.save(); c.translate(CX + ux * P_R0, CY + uy * P_R0); c.rotate(P.ang); c.globalAlpha = P.carve;
+    // a soft dark gap where it overlaps its neighbour
+    c.shadowColor = 'rgba(10,3,1,0.9)'; c.shadowBlur = HG.px(9); c.shadowOffsetX = HG.px(2 * Math.sign(lit || 1)); c.shadowOffsetY = 0;
+    petalPath(c, L, w); c.fillStyle = 'rgb(170,98,40)'; c.fill();
+    c.shadowColor = 'rgba(0,0,0,0)'; c.shadowBlur = 0; c.shadowOffsetX = 0;
+    // across the petal: shadowed side to lit side
+    const s = lit >= 0 ? 1 : -1, m = 0.5 + 0.5 * Math.min(1, Math.abs(lit) * 1.6);
+    const g = c.createLinearGradient(0, -s * w / 2, 0, s * w / 2);
+    const sc = col => col.map(v => Math.round(v * face));
+    g.addColorStop(0, rgba(sc([lerp(232, 168, m), lerp(160, 92, m), lerp(70, 36, m)]), 1));
+    g.addColorStop(0.42, rgba(sc([255, 186, 82]), 1));
+    g.addColorStop(0.78, rgba(sc([255, 218, 136]), 1));
+    g.addColorStop(1, rgba(sc([255, lerp(226, 240, m), lerp(160, 200, m)]), 1));
+    petalPath(c, L, w); c.fillStyle = g; c.fill();
+    // shade toward the base, where it tucks under the head
+    const bg = c.createLinearGradient(0, 0, L, 0);
+    bg.addColorStop(0, 'rgba(26,8,2,0.7)'); bg.addColorStop(0.36, 'rgba(26,8,2,0)');
+    petalPath(c, L, w); c.fillStyle = bg; c.fill();
+    // the carved rachis: a broad soft groove with a lit ridge beside it
+    c.filter = HG.blur(2.2); c.lineCap = 'round';
+    c.strokeStyle = 'rgba(110,44,10,0.42)'; c.lineWidth = 7;
+    c.beginPath(); c.moveTo(L * 0.14, 0); c.quadraticCurveTo(L * 0.5, -1, L * 0.86, 0); c.stroke();
+    c.strokeStyle = 'rgba(255,244,214,0.5)'; c.lineWidth = 4;
+    c.beginPath(); c.moveTo(L * 0.2, s * 6); c.quadraticCurveTo(L * 0.5, s * 5, L * 0.8, s * 4); c.stroke();
+    c.filter = 'none';
+    c.restore();
+  }
+}
+// petals as plain shapes (for the molten-gold light and the edge flare)
+function drawPetalsFlat(c, t, mode, alphaOf) {
+  for (let i = 0; i < NP; i++) {
+    const P = petalPose(i, t), a = alphaOf(P);
+    if (P.p <= 0.001 || a <= 0.003) continue;
+    c.save(); c.translate(CX + Math.cos(P.ang) * P_R0, CY + Math.sin(P.ang) * P_R0); c.rotate(P.ang); c.globalAlpha = Math.min(1, a);
+    petalPath(c, P.len, P.w);
+    if (mode === 'fill') {
+      const g = c.createLinearGradient(0, 0, P.len, 0);
+      g.addColorStop(0, 'rgba(255,255,255,0.55)'); g.addColorStop(0.7, 'rgba(255,255,255,1)'); g.addColorStop(1, 'rgba(255,255,255,0.9)');
+      c.fillStyle = g; c.fill();
+      c.globalCompositeOperation = 'destination-out'; c.globalAlpha = 0.85; c.strokeStyle = '#000'; c.lineWidth = 4; c.stroke();
+      c.globalCompositeOperation = 'source-over';
+    } else { c.strokeStyle = '#fff'; c.lineWidth = 6; c.stroke(); }
+    c.restore();
+  }
+}
+function tint(c, inner, outer, cx = CX, cy = CY, r = 260) {
+  HG.reset(c); c.globalCompositeOperation = 'source-in';
+  const g = c.createRadialGradient(cx, cy, 0, cx, cy, r);
+  g.addColorStop(0, rgba(inner, 1)); g.addColorStop(1, rgba(outer, 1));
+  c.fillStyle = g; c.fillRect(0, 0, W, W); HG.reset(c);
+}
+let stoneSc = 1;
+function stoneImage(c, img, sc = stoneSc) {
+  c.save(); c.translate(CX, CY); c.scale(-sc, sc); c.drawImage(img, -SW / 2, -SW / 2, SW, SW); c.restore();
+}
+
+// ---------- the rim of dawn light around the medallion: narrow, luminous, ignites from the crown
+function dawnRim(t) {
+  const a = smooth(T_GOLD + 0.2, T_GOLD + 0.6, t) * (1 - smooth(T_OUT - 0.05, T_OUT + 0.25, t));
+  if (a <= 0.003) return;
+  const span = Math.PI * ease.inOut3((t - (T_GOLD + 0.12)) / 0.75);
+  if (span <= 0.01) return;
+  const R0 = 216;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(CX, CY, R0 - 22, CX, CY, R0 + 26);
+  g.addColorStop(0, rgba(PEACH, 0)); g.addColorStop(0.2, rgba([255, 214, 176], 0.6 * a)); g.addColorStop(0.36, rgba([255, 194, 152], 1 * a));
+  g.addColorStop(0.52, rgba([255, 168, 150], 0.82 * a)); g.addColorStop(0.7, rgba(ROSE, 0.3 * a)); g.addColorStop(1, rgba(ROSE, 0));
+  ctx.strokeStyle = g; ctx.lineWidth = 48; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(CX, CY, R0, TH_CROWN - span, TH_CROWN + span); ctx.stroke();
+  // a brighter glint travelling round the rim
+  const ga = TH_CROWN + 0.9 * (t - T_GOLD) * 1.1;
+  ctx.filter = HG.blur(6); ctx.lineWidth = 10; ctx.strokeStyle = rgba(WARM, 0.55 * a * smooth(T_GOLD + 0.6, T_GOLD + 1.0, t));
+  ctx.beginPath(); ctx.arc(CX, CY, R0 - 4, ga - 0.35, ga + 0.35); ctx.stroke();
+  ctx.restore();
+}
+
+// ---------- gold sparks: the coil, the collar and the rising head turn into a turning ring of light
+const ringC = t => { const k = ease.inOut3((t - 9.5) / 1.5); return [CX, lerp(CY, 540, k), lerp(R_RING, 352, k)]; };
+const endFade = t => 1 - smooth(10.45, 11.15, t);
+function spark(t, tb, x0, y0, om, jit, size, col, tw, settle = 0.75) {
+  const a = t - tb; if (a < 0) return;
+  const env = smooth(0, 0.08, a) * endFade(t);
+  if (env <= 0.003) return;
+  const [cx, cy, rr] = ringC(t);
+  const r0 = Math.hypot(x0 - CX, y0 - CY), th0 = Math.atan2(y0 - CY, x0 - CX);
+  const k = ease.out3(a / settle);
+  const th = th0 + om * a;
+  const r = lerp(r0, rr + jit, k);
+  const ox = lerp(CX, cx, k), oy = lerp(CY, cy, k);
+  const x = ox + Math.cos(th) * r, y = oy + Math.sin(th) * r;
+  const twk = 0.6 + 0.4 * Math.sin(t * 9 + tw);
+  HG.dot(ctx, col, x, y, size * 1.8, env * 0.35 * twk);
+  HG.dot(ctx, col, x, y, size, env * twk);
 }
 
 function render(t, A) {
   const sh = headS(t);
-  const H = at(sh, t);
-  const stoneA = smooth(T_STONE + 0.15, T_STONE + 1.1, t) * (1 - smooth(T_GO - 0.1, T_GO + 0.85, t));
-  const lightK = 1 + 0.6 * ease.inOut3((t - T_STONE) / 0.75) * (1 - ease.inOut3((t - (T_GO - 0.45)) / 0.55));
-  const headA = (1 - smooth(T_STONE + 0.35, T_STONE + 0.9, t)) + smooth(T_GO - 0.5, T_GO - 0.1, t);
-  const flare = flareAt(t);
+  const H = headPose(sh);
+  const ylim = calmY(t);
+  const stoneOut = 1 - smooth(T_OUT + D_OUT - 0.04, T_OUT + D_OUT, t);
+  const stoneOn = t > T_GOLD - 0.2 && stoneOut > 0.001;
+  stoneSc = 1 + 0.06 * ease.out3((t - T_OUT) / D_OUT);
 
-  // dawn halo between the stone and the coil (rose, peach and gold)
-  const haloA = smooth(5.2, 6.8, t) * (1 - smooth(8.8, 9.8, t));
-  if (haloA > 0) {
-    ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    const sc = 0.9 + 0.1 * ease.out3((t - T_STONE) / 1.6), r0 = 262 * sc;
-    const g = ctx.createRadialGradient(C, C, r0, C, C, r0 + 90);
-    g.addColorStop(0, rgba(WARM, 0)); g.addColorStop(0.24, rgba(PEACH, 0.6 * haloA)); g.addColorStop(0.42, rgba(ROSE, 0.26 * haloA));
-    g.addColorStop(0.7, rgba([150, 70, 220], 0.06 * haloA)); g.addColorStop(1, rgba([150, 70, 220], 0));
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, W); ctx.restore();
-  }
+  // the light head: swells to the size of the carved head as it comes to rest, then gives way to gold
+  const lightK = t < T_GO
+    ? 1 + (K_STONE - 1) * ease.inOut3((t - (T_ARR - 0.3)) / 0.62)
+    : lerp(K_STONE, 1, ease.inOut3((t - T_GO) / 0.7));
+  const headA = t < T_GO - 0.5 ? 1 - smooth(T_GOLD - 0.02, T_GOLD + 0.1, t) : 1;
 
-  // the serpent's body (and its head while it travels in)
+  // narrow rim of dawn light (beneath the coil and the medallion)
+  dawnRim(t);
+
+  // the serpent's body
   const bc = LB.ctx; HG.reset(bc); bc.clearRect(0, 0, W, W);
   drawBody(bc, t);
-  if (t < T_GO - 1) drawHead(bc, H[0], H[1], H[2], H[3], lightK, headA, t);
   HG.reset(bc);
-  bloom(ctx, LB, 9, 0.75);
+  bloom(ctx, LB, 9, 0.7);
   HG.drawLayer(ctx, LB);
 
-  // the carved stone head (mirrored to face the serpent's way)
-  if (stoneA > 0) {
-    const sc = 0.9 + 0.1 * ease.out3((t - T_STONE) / 1.6);
-    const sc2 = sc * (1 - 0.05 * smooth(T_GO - 0.1, T_GO + 0.9, t));
-    const sl = LS.ctx; HG.reset(sl); sl.clearRect(0, 0, W, W);
-    sl.translate(C, C); sl.scale(-sc2, sc2); sl.drawImage(A.gold, -SW / 2, -SW / 2, SW, SW); HG.reset(sl);
-    bloom(ctx, LS, 12, stoneA * 0.2);
-    HG.drawLayer(ctx, LS, { alpha: stoneA });
-    // warm key light of the sunrise from the upper left, keeping the carved texture
-    HG.reset(sl); sl.globalCompositeOperation = 'destination-in';
-    const kl = sl.createRadialGradient(C - 170, C - 190, 40, C - 170, C - 190, 520);
-    kl.addColorStop(0, 'rgba(0,0,0,1)'); kl.addColorStop(0.55, 'rgba(0,0,0,0.35)'); kl.addColorStop(1, 'rgba(0,0,0,0)');
-    sl.fillStyle = kl; sl.fillRect(0, 0, W, W); HG.reset(sl);
-    HG.drawLayer(ctx, LS, { alpha: stoneA * 0.45, op: 'lighter' });
-    // molten gold as the light turns to stone
-    const molten = Math.sin(Math.PI * clamp((t - T_STONE) / 1.5)) * (t < T_GO ? 1 : 0);
-    if (molten > 0.01) {
+  if (stoneOn) {
+    // carved petals (stone), then the carved head resolving from the eye outward
+    const pc = LP.ctx; HG.reset(pc); pc.clearRect(0, 0, W, W);
+    pc.translate(CX, CY); pc.scale(stoneSc, stoneSc); pc.translate(-CX, -CY);
+    drawPetalsCarved(pc, t); HG.reset(pc); burn(pc, t);
+    HG.drawLayer(ctx, LP, { alpha: stoneOut });
+    const front = 430 * ease.out3((t - (T_GOLD + 0.06)) / 0.42), FEA = 80;
+    const sl = LS.ctx;
+    if (front > 1) {
       HG.reset(sl); sl.clearRect(0, 0, W, W);
-      sl.translate(C, C); sl.scale(-sc2, sc2); sl.drawImage(A.gold, -SW / 2, -SW / 2, SW, SW); HG.reset(sl);
-      sl.globalCompositeOperation = 'source-in'; sl.fillStyle = rgba(GOLD, 1); sl.fillRect(0, 0, W, W); HG.reset(sl);
-      bloom(ctx, LS, 30, molten * 0.22);
-      HG.drawLayer(ctx, LS, { alpha: molten * 0.12, op: 'lighter' });
+      stoneImage(sl, A.gold);
+      if (front < 430) {
+        sl.globalCompositeOperation = 'destination-in';
+        const g = sl.createRadialGradient(EYE[0], EYE[1], 0, EYE[0], EYE[1], front);
+        g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(Math.max(0, 1 - FEA / front), 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        sl.fillStyle = g; sl.fillRect(0, 0, W, W);
+      }
+      HG.reset(sl); burn(sl, t);
+      const texA = stoneOut * (1 - 0.5 * exitHeat(t));
+      bloom(ctx, LS, 12, 0.18 * texA);
+      HG.drawLayer(ctx, LS, { alpha: texA });
+      // just after it resolves the carving is still molten-hot, then it cools (and heats again to leave)
+      const hot = Math.max(0.85 * (1 - smooth(T_GOLD + 0.12, T_GOLD + 0.8, t)), 0.45 * exitHeat(t));
+      if (hot > 0.01) { HG.drawLayer(ctx, LS, { alpha: hot * stoneOut, op: 'lighter' }); bloom(ctx, LS, 20, 0.5 * hot * stoneOut); }
+      // warm key light of the sunrise from the upper left (keeps the carved texture)
+      const keyA = 0.24 * stoneOut * smooth(T_GOLD + 0.5, T_GOLD + 0.9, t) * (1 - exitHeat(t));
+      if (keyA > 0.01) {
+        HG.reset(sl); sl.clearRect(0, 0, W, W); stoneImage(sl, A.gold);
+        sl.globalCompositeOperation = 'destination-in';
+        const kl = sl.createRadialGradient(CX - 150, CY - 170, 30, CX - 150, CY - 170, 470);
+        kl.addColorStop(0, 'rgba(0,0,0,1)'); kl.addColorStop(0.55, 'rgba(0,0,0,0.35)'); kl.addColorStop(1, 'rgba(0,0,0,0)');
+        sl.fillStyle = kl; sl.fillRect(0, 0, W, W); HG.reset(sl); burn(sl, t);
+        HG.drawLayer(ctx, LS, { alpha: keyA, op: 'lighter' });
+      }
+      // a band of dawn light sweeps across the carving
+      const sw = (t - 6.65) / 1.3;
+      if (sw > 0 && sw < 1) {
+        HG.reset(sl); sl.clearRect(0, 0, W, W); stoneImage(sl, A.gold);
+        sl.globalCompositeOperation = 'destination-in';
+        const bx = lerp(CX - 300, CX + 380, ease.inOut3(sw));
+        const sg = sl.createLinearGradient(bx - 120, CY - 120, bx + 120, CY + 120);
+        sg.addColorStop(0, 'rgba(0,0,0,0)'); sg.addColorStop(0.5, 'rgba(0,0,0,1)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
+        sl.fillStyle = sg; sl.fillRect(0, 0, W, W); HG.reset(sl);
+        HG.drawLayer(ctx, LS, { alpha: 0.5 * Math.sin(Math.PI * sw) * stoneOut, op: 'lighter' });
+      }
     }
-    // a band of dawn light sweeps across the carving
-    const sw = (t - 6.55) / 1.3;
-    if (sw > 0 && sw < 1) {
-      HG.reset(sl); sl.clearRect(0, 0, W, W);
-      sl.translate(C, C); sl.scale(-sc2, sc2); sl.drawImage(A.gold, -SW / 2, -SW / 2, SW, SW); HG.reset(sl);
-      sl.globalCompositeOperation = 'source-in';
-      const bx = lerp(C - 420, C + 420, ease.inOut3(sw));
-      const g = sl.createLinearGradient(bx - 140, C - 140, bx + 140, C + 140);
-      g.addColorStop(0, rgba(WARM, 0)); g.addColorStop(0.5, rgba(WARM, 0.85)); g.addColorStop(1, rgba(WARM, 0));
-      sl.fillStyle = g; sl.fillRect(0, 0, W, W); HG.reset(sl);
-      HG.drawLayer(ctx, LS, { alpha: stoneA * 0.42 * Math.sin(Math.PI * sw), op: 'lighter' });
+
+    // molten gold: the head's silhouette and the collar's petals as bright gold light, which the
+    // carved texture resolves out of (the gold recedes outward behind the resolving front)
+    const silA = smooth(T_GOLD - 0.04, T_GOLD + 0.1, t);
+    const gc = LG.ctx; HG.reset(gc); gc.clearRect(0, 0, W, W);
+    let any = false;
+    const ex = exitHeat(t);
+    if (ex > 0.003) { gc.globalAlpha = 0.55 * ex; stoneImage(gc, A.sil); HG.reset(gc); any = true; }
+    else if (silA > 0.003 && front < 430 + FEA) {
+      gc.globalAlpha = silA; stoneImage(gc, A.sil); HG.reset(gc);
+      if (front > 1) {
+        gc.globalCompositeOperation = 'destination-out';
+        const g = gc.createRadialGradient(EYE[0], EYE[1], 0, EYE[0], EYE[1], front);
+        g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(Math.max(0, 1 - (FEA * 0.6) / front), 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        gc.fillStyle = g; gc.fillRect(0, 0, W, W); HG.reset(gc);
+      }
+      any = true;
+    }
+    gc.translate(CX, CY); gc.scale(stoneSc, stoneSc); gc.translate(-CX, -CY);
+    drawPetalsFlat(gc, t, 'fill', P => (1 - P.carve) * smooth(0, 0.25, P.p) * 0.95);
+    HG.reset(gc); burn(gc, t);
+    if (any || t < T_GOLD + 1.4 || ex > 0.003) {
+      tint(gc, [255, 222, 146], [255, 168, 58], EYE[0], EYE[1], 330);
+      bloom(ctx, LG, 24, 0.55 * stoneOut);
+      HG.drawLayer(ctx, LG, { alpha: stoneOut });
+      bloom(ctx, LG, 7, 0.3 * stoneOut);
+      // the burning edge: the gold just outside the front flares
+      const rb = burnR(t);
+      if (rb > 0.5 && stoneOut > 0.001) {
+        HG.reset(gc); gc.globalCompositeOperation = 'destination-in';
+        const g = gc.createRadialGradient(CX, CY, Math.max(0, rb - 20), CX, CY, rb + 60);
+        g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.3, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        gc.fillStyle = g; gc.fillRect(0, 0, W, W); HG.reset(gc);
+        tint(gc, GOLD, [255, 150, 50]);
+        bloom(ctx, LG, 14, 0.55 * stoneOut);
+        HG.drawLayer(ctx, LG, { alpha: 0.4 * stoneOut, op: 'lighter' });
+      }
+    }
+
+    // the exit: a gold flare along the head's outline and the petals' edges, then gone
+    const fe = Math.exp(-Math.pow((t - (T_OUT - 0.02)) / 0.12, 2)) * stoneOut;
+    if (fe > 0.01) {
+      HG.reset(gc); gc.clearRect(0, 0, W, W);
+      stoneImage(gc, A.edge); HG.reset(gc);
+      tint(gc, WARM, GOLD);
+      bloom(ctx, LG, 14, 0.6 * fe);
+      HG.drawLayer(ctx, LG, { alpha: 0.45 * fe, op: 'lighter' });
     }
   }
 
-  // the crest of light opens into the round feather collar, then settles into the stone
-  const cb = ease.out3((t - (T_STONE + 0.05)) / 1.1), cbA = smooth(T_STONE, T_STONE + 0.3, t) * (1 - smooth(T_STONE + 0.9, T_STONE + 1.7, t));
-  if (cbA > 0.01) {
-    const hc = LH.ctx; HG.reset(hc); hc.clearRect(0, 0, W, W);
-    const NC = 30, base = -2.3;   // from the back of the head's crest (upper left) all around
-    for (let i = 0; i < NC; i++) {
-      const v = i / NC, ang = base + (v - 0.5) * TAU * lerp(0.18, 1, cb) + 0.05 * Math.sin(t * 3 + i);
-      const r0 = lerp(70, 150, cb), len = lerp(60, 140, cb) * (i % 2 ? 0.9 : 1);
-      feather(hc, i % 2 ? SPR.body : SPR.gold, C + Math.cos(ang) * r0, C + Math.sin(ang) * r0, Math.cos(ang), Math.sin(ang), len, 40, 1);
-    }
-    HG.reset(hc);
-    bloom(ctx, LH, 10, cbA * 0.45);
-    HG.drawLayer(ctx, LH, { alpha: cbA * 0.7 });
-  }
-
-  // obsidian eyes glint
-  for (const [tg, amp] of [[7.0, 1], [8.25, 0.75]]) {
-    const g = Math.exp(-Math.pow((t - tg) / 0.16, 2)) * amp * stoneA;
+  // the obsidian eye glints, and the great fang catches the light
+  for (const [tg, amp] of [[6.45, 1], [7.6, 0.75]]) {
+    const g = Math.exp(-Math.pow((t - tg) / 0.16, 2)) * amp * stoneOut * smooth(T_GOLD + 0.5, T_GOLD + 0.7, t);
     if (g < 0.01) continue;
-    for (const [e, s] of [[EYE, 1], [EYE2, 0.6]]) {
+    for (const [e, s, dt] of [[EYE, 1, 0], [FANG, 0.55, 0.12]]) {
+      const gg0 = Math.exp(-Math.pow((t - tg - dt) / 0.16, 2)) * amp * stoneOut;
+      if (gg0 < 0.01) continue;
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(e[0], e[1]); ctx.rotate(0.3 + (t - tg) * 0.6);
-      for (const [rx, ry] of [[70 * s, 4.5 * s], [4.5 * s, 70 * s]]) {
+      for (const [rx, ry] of [[64 * s, 4.5 * s], [4.5 * s, 64 * s]]) {
         const gg = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-        gg.addColorStop(0, rgba(WARM, g)); gg.addColorStop(1, rgba(GOLD, 0));
+        gg.addColorStop(0, rgba(WARM, gg0)); gg.addColorStop(1, rgba(GOLD, 0));
         ctx.save(); ctx.scale(rx, ry); ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(0, 0, 1, 0, TAU); ctx.fill(); ctx.restore();
       }
       ctx.restore();
-      HG.dot(ctx, WARM, e[0], e[1], 34 * s, g * 0.9);
+      HG.dot(ctx, WARM, e[0], e[1], 30 * s, gg0 * 0.85);
     }
   }
 
-  // the head leaves the stone and dives (drawn above the stone)
-  if (t >= T_GO - 1) {
+  // the head of light: travelling, then (after the stone) the spirit lifting off
+  const crest = 1 - 0.6 * smooth(0, 0.8, -H[2]) * smooth(560, 700, H[1]) * (ylim < 1000 ? 1 : 0);
+  if (t < T_GOLD + 0.3) {
     const hc = LH.ctx; HG.reset(hc); hc.clearRect(0, 0, W, W);
-    drawHead(hc, H[0], H[1], H[2], H[3], lightK, headA, t);
+    drawHead(hc, H[0], H[1], H[2], H[3], lightK, headA, t, crest);
     HG.reset(hc);
-    bloom(ctx, LH, 9, 0.75);
+    bloom(ctx, LH, 9, 0.7 + 0.25 * smooth(T_ARR - 0.4, T_GOLD, t));
     HG.drawLayer(ctx, LH);
+  } else if (t > T_GO - 0.4) {
+    const hc = LH.ctx; HG.reset(hc); hc.clearRect(0, 0, W, W);
+    drawHead(hc, H[0], H[1], H[2], H[3], lightK, 1, t, 1);
+    HG.reset(hc);
+    // additive ghost of light over the stone, solid only once it has cleared the medallion
+    const ghost = smooth(T_GO - 0.4, T_GO - 0.05, t);
+    const solid = smooth(S_REST + 150, S_REST + 300, sh);
+    bloom(ctx, LH, 22, ghost * (0.42 - 0.15 * solid));
+    bloom(ctx, LH, 8, ghost * 0.25);
+    HG.drawLayer(ctx, LH, { alpha: ghost * 0.3 * (1 - solid), op: 'lighter' });
+    HG.drawLayer(ctx, LH, { alpha: solid });
   }
 
-  // turquoise drops: shed by the diving head, then by the dissolving coil
+  // gold sparks: the coil dissolving tail first, the collar's petals, the head's trail
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
-  const R = HG.rng(91);
-  for (let j = 0; j < 46; j++) {
-    const t0 = T_GO + 0.2 + j * 0.03 + R() * 0.02, s0 = headS(t0), p = at(s0 - 20 - R() * 60, t0), v = headV(t0);
-    const vx = p[2] * v * 0.18 + (R() - 0.5) * 160, vy = p[3] * v * 0.18 + 20 - R() * 110;
-    drop(t, t0, p[0] + (R() - 0.5) * 40, p[1] + (R() - 0.5) * 40, vx, vy, 13 + R() * 9, 0.9 + R() * 0.7, R() < 0.55 ? TURQ : [70, 190, 255]);
-  }
   const R2 = HG.rng(57);
   for (let u = 6; u < BODY_L - 2; u += ROW) {
-    const td = T_DIS + (BODY_L - u) / V_DIS;
-    // a soft sparkle where the feathers turn to water
-    const fa = t - td;
-    if (fa > -0.05 && fa < 0.2) {
-      const F = frame(td, u, headS(td));
-      HG.dot(ctx, AQUA, F.x, F.y, 46, 0.2 * Math.sin(Math.PI * (fa + 0.05) / 0.25));
+    const td = dissolveT(u);
+    for (let m = 0; m < 3; m++) {
+      const dt0 = R2() * 0.12, oy = R2(), om = R2(), jit = R2(), sz = R2(), cc = R2(), tw = R2() * 6.28;
+      const tb = td + dt0;
+      if (t < tb) continue;
+      const F = frame(tb, u, headS(tb)), h = halfW(u), off = (oy - 0.4) * h * 2.2;
+      const col = cc < 0.5 ? GOLD : cc < 0.8 ? WARM : cc < 0.93 ? PEACH : AQUA;
+      spark(t, tb, F.x + F.nx * off, F.y + F.ny * off, -0.25 + om * 1.45, (jit - 0.5) * 30, 10 + sz * 9, col, tw);
     }
-    for (let m = 0; m < 2; m++) {
-      const t0 = td + R2() * 0.3, sx = R2(), sy = R2(), sz = R2(), lf = R2(), cc = R2(), vv = R2(), skip = R2();
-      if (t < t0 || skip < 0.2) continue;
-      const F = frame(t0, u, headS(t0)), h = halfW(u), v = headV(t0);
-      const off = (sy - 0.4) * h * 2.6;
-      drop(t, t0, F.x + F.nx * off, F.y + F.ny * off, F.dx * v * 0.2 + (sx - 0.5) * 200, F.dy * v * 0.2 + 30 - vv * 120,
-        11 + sz * 11, 1.0 + lf * 0.7, cc < 0.6 ? TURQ : cc < 0.85 ? [70, 190, 255] : QUETZ);
+  }
+  const R3 = HG.rng(77);
+  for (let i = 0; i < NP; i++) {
+    for (let m = 0; m < 3; m++) {
+      const P = petalPose(i, T_OUT), f = 0.55 + R3() * 0.5, om = (R3() - 0.3) * 1.2, jit = (R3() - 0.5) * 40, sz = R3(), tw = R3() * 6.28;
+      const r = P_R0 + (P_R1 - P_R0) * f, a = P.ang + (R3() - 0.5) * 0.25, dl = R3() * 0.04;
+      spark(t, burnT(r) + dl, CX + Math.cos(a) * r, CY + Math.sin(a) * r, om, jit, 8 + sz * 7, R3() < 0.6 ? GOLD : WARM, tw, 0.9);
     }
+  }
+  // a faint band of light along the ring of sparks, so it reads as one wheel of light
+  const ringA = smooth(9.35, 10.0, t) * endFade(t);
+  if (ringA > 0.003) { const [rcx, rcy, rr] = ringC(t); HG.ring(ctx, rcx, rcy, rr, GOLD, { width: 10, blur: 14, alpha: 0.22 * ringA }); }
+  // the rising head sheds a few sparks of its own
+  const R4 = HG.rng(31);
+  for (let j = 0; j < 40; j++) {
+    const tb = T_GO + 0.15 + j * 0.022, p = at(headS(tb) - 30 - R4() * 50), om = (R4() - 0.4) * 1.2, jit = (R4() - 0.5) * 40, sz = R4(), tw = R4() * 6.28;
+    spark(t, tb, p[0] + (R4() - 0.5) * 30, p[1] + (R4() - 0.5) * 30, om, jit, 8 + sz * 7, R4() < 0.5 ? GOLD : AQUA, tw, 1.1);
   }
   ctx.restore();
 
-  // dawn feathers drifting up from the pyramid (continuing the previous piece)
+  // the opening: quetzal feathers and gold motes drifting up in the centre as the portal opens
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const RF = HG.rng(23);
-  for (let i = 0; i < 16; i++) {
-    const t0 = -0.4 + RF() * 1.3, life = 1.9 + RF() * 0.8, x0 = 330 + RF() * 470, sp = 330 + RF() * 200,
-      ph = RF() * TAU, rot = (RF() - 0.5) * 3, sz = 46 + RF() * 34, gold = RF() < 0.4;
+  for (let i = 0; i < 12; i++) {
+    const t0 = -0.6 + RF() * 1.2, life = 2.0 + RF() * 0.8, x0 = 380 + RF() * 330, y0 = 560 + RF() * 160, sp = 110 + RF() * 90,
+      ph = RF() * TAU, rot = (RF() - 0.5) * 2.4, sz = 44 + RF() * 30, gold = RF() < 0.45;
     const a = t - t0; if (a < 0 || a > life) continue;
-    const env = smooth(0, 0.35, a) * (1 - smooth(life * 0.55, life, a)) * smooth(0.1, 0.5, t);
-    const x = x0 + Math.sin(a * 2.2 + ph) * 46, y = 1120 - sp * a;
+    const env = smooth(0, 0.4, a) * (1 - smooth(life * 0.55, life, a)) * smooth(0.15, 0.6, t);
+    if (env <= 0.003) continue;
+    const x = x0 + Math.sin(a * 2.0 + ph) * 40, y = y0 - sp * a;
     const ang = ph + rot * a + 0.5 * Math.sin(a * 3 + ph);
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.filter = HG.blur(5);
-    feather(ctx, gold ? SPR.gold : SPR.body, x, y, Math.cos(ang), Math.sin(ang), sz, sz * 0.36, env * 0.6);
+    // all additive: a fading feather dims as light instead of turning into a dark smudge
+    ctx.filter = HG.blur(5);
+    feather(ctx, gold ? SPR.shineGold : SPR.shine, x, y, Math.cos(ang), Math.sin(ang), sz, sz * 0.36, env * 0.55);
     ctx.filter = 'none';
-    feather(ctx, gold ? SPR.gold : SPR.body, x, y, Math.cos(ang), Math.sin(ang), sz, sz * 0.36, env * 0.9);
-    ctx.restore();
+    feather(ctx, gold ? SPR.gold : SPR.body, x, y, Math.cos(ang), Math.sin(ang), sz, sz * 0.36, env);
   }
-
-  // motes of dawn light
-  const dA = smooth(5.6, 7.2, t) * (1 - smooth(8.8, 9.8, t));
-  if (dA > 0) HG.dust(t, { n: 60, colors: [GOLD, PEACH, ROSE], alpha: 0.4 * dA, size: 7, r: 490, seed: 5 });
+  const RM = HG.rng(41);
+  for (let i = 0; i < 70; i++) {
+    const a0 = RM() * TAU, r0 = 40 + Math.sqrt(RM()) * 300, sp = 0.15 + RM() * 0.25, up = 20 + RM() * 40, s = 5 + RM() * 7, tw = RM() * 6.28, col = RM() < 0.7 ? GOLD : WARM;
+    const env = smooth(0.1, 0.6, t) * (1 - smooth(1.8, 2.8, t));
+    if (env <= 0.003) break;
+    const ang = a0 + sp * t, x = 540 + Math.cos(ang) * r0, y = 540 + Math.sin(ang) * r0 * 0.9 - up * t;
+    HG.dot(ctx, col, x, y, s, env * 0.7 * (0.5 + 0.5 * Math.sin(t * 5 + tw)));
+  }
+  // motes of dawn light while the stone is lit (kept out of the title band)
+  const dA = smooth(5.7, 7.0, t) * (1 - smooth(8.7, 9.6, t));
+  if (dA > 0.003) {
+    const RD = HG.rng(5);
+    for (let i = 0; i < 46; i++) {
+      const x0 = 120 + RD() * 840, sp = 14 + RD() * 26, ph = RD() * 1000, s = 5 + RD() * 5, col = [GOLD, PEACH, ROSE][Math.floor(RD() * 3)];
+      const y = 760 - ((ph + sp * t) % 700), x = x0 + Math.sin(t * 0.7 + ph) * 20;
+      if (Math.hypot(x - CX, y - CY) < 236 || Math.hypot(x - C, y - C) > 480) continue;
+      HG.dot(ctx, col, x, y, s, dA * 0.5 * (0.5 + 0.5 * Math.sin(t * 3 + ph)) * smooth(60, 160, y));
+    }
+  }
+  ctx.restore();
 
   if (DEBUG) {
     HG.reset(ctx); ctx.strokeStyle = 'rgba(255,0,0,0.8)'; ctx.lineWidth = 2; ctx.beginPath();
     for (let i = 0; i < PATH.N; i += 4) i ? ctx.lineTo(PATH.X[i], PATH.Y[i]) : ctx.moveTo(PATH.X[i], PATH.Y[i]); ctx.stroke();
     ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.arc(C, C, 540, 0, TAU); ctx.stroke();
     ctx.beginPath(); ctx.arc(C, C, 470, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,0,255,0.6)'; ctx.beginPath(); ctx.moveTo(0, Y_CALM); ctx.lineTo(W, Y_CALM); ctx.stroke();
+    ctx.fillStyle = '#f0f'; for (const p of [EYE, FANG, REST]) { ctx.beginPath(); ctx.arc(p[0], p[1], 5, 0, TAU); ctx.fill(); }
   }
 }
 
 HG.start({
   duration: 12,
-  assets: { gold: '../assets/02-quetzalcoatl-head_gold.png' },
+  assets: {
+    gold: '../assets/02-quetzalcoatl-stone_gold.png',
+    sil: '../assets/02-quetzalcoatl-stone_sil.png',
+    edge: '../assets/02-quetzalcoatl-stone_edge.png',
+  },
   render,
 });
 </script></body></html>

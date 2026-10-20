@@ -5,15 +5,17 @@
 <script>
 // Las Posadas: a candle-lit procession on a dark plaza, seen in perspective (a real 3D ground plane:
 // every lantern is placed in the world and projected through a slowly craning, orbiting camera).
-// In the dark a first candle is lit and the flame passes hand to hand down the line, revealing
-// a procession of paper-cup candles (papel china in posada colours) walking in from the rim along
-// a curving path, bobbing with the walkers' steps, each pooling its light on the ground. The line
-// curls into a circle and closes. Then every candle sends a spark of its light to the centre: the
-// sparks gather into a bud that rises from the ground and unfurls into a nochebuena (cuetlaxochitl),
-// its red bracts unwinding from a twist around the small yellow flowers; a wreath of smaller
-// nochebuenas blooms on the ground in a wave inside the ring of candles, and golden sparks drift up.
-// At the end each flame leaves its lantern and rises, shrinking into a star, while the camera tilts
-// up to the night sky; the stars twinkle and fade.
+// In the dark the leading pair's candles are lit and the flame passes hand to hand back along the
+// line and up the hill, while small farolitos light the route: ten pairs of paper-cup candles (papel
+// china in posada colours) walk two by two down a winding path from the top of the circle and along
+// the plaza, bobbing with their steps and pooling light on the ground. The double line then unzips
+// into a circle (front walkers step forward, back walkers step back) and each pair sets its candles
+// down. Every candle sends a spark of light to the centre; the sparks gather into a bud that rises
+// and unfurls into a nochebuena (cuetlaxochitl), its red bracts unwinding from a twist around the
+// small yellow flowers, and a wreath of nochebuenas blooms between the candles in a wave from the
+// back. At the end each flame leaves its candle and rises to become a star while the camera tilts
+// up to the sky; the nochebuena dissolves into red and gold sparks and its golden heart rises as
+// the brightest star; the stars twinkle and fade.
 // Assets: prepare.py on out-show2/images/vela-1.png and nochebuena-1/-2.png, then derive.py
 // (scratchpad/work/14-posadas): flame painted out of the lantern (drawn live here), paper lit from
 // inside and re-dyed, bracts graded for the LEDs.
@@ -23,69 +25,90 @@ const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
 const mix = (a, b, k) => [0, 1, 2].map(i => Math.round(lerp(a[i], b[i], k)));
 const GOLD = [255, 196, 90], FLAME = [255, 170, 60], NIGHT = [16, 26, 86];
 
-// ---------- the procession: seven pairs walk down a winding path from the hill, split at the back
-// of the plaza and walk round both sides of a circle until the leading pair meets at the front
-const NP = 10, N = 2 * NP, R = 370, DEL = TAU / N, SPC = DEL * R;   // pairs, lanterns, ring radius, spacing
-const ZS = 490, OFF = 38;                          // where the pairs split (behind the ring); half the pair's width
-const H = 96, LS = 98;                             // lantern height above the ground while walking, lantern size (world)
+// ---------- the procession: ten pairs walk two by two down a winding path from the hill (top of the
+// circle), turn along the plaza, and then the double line opens like an eye into a circle: the
+// front walkers step forward, the back walkers step back, to their places on the ring
+const NP = 10, N = 2 * NP, R = 370, DEL = TAU / N;  // pairs, lanterns, ring radius, angular spacing
+const SPM = 81, OFF = 34;                           // spacing between pairs along the path; half the pair's width
+const H = 96, LS = 98;                              // lantern height above the ground while walking, lantern size (world)
 const PAPER = ['pink', 'yellow', 'turq', 'orange', 'purple', 'red', 'green'];
 const PAPER_RGB = { pink: [255, 70, 150], yellow: [255, 220, 60], turq: [60, 230, 220], orange: [255, 140, 40], purple: [180, 90, 255], red: [255, 60, 60], green: [70, 230, 110] };
-const LCOL = ['pink', 'yellow', 'orange', 'turq', 'red', 'purple', 'yellow', 'pink', 'green', 'orange', 'purple', 'red', 'turq', 'yellow', 'pink', 'orange', 'red', 'green', 'yellow', 'purple'];
-const T_LIGHT = 0.3, DT_LIGHT = 0.05;              // the leading candle is lit, then the flame passes back, zig-zag
-const VMAX = 200, VB = 4.9;                         // walking speed; the ring closes at VB       // walking speed: steady, then slows as the ring closes
-// they stand still while the candles are lit, set off, and slow to a stop as the circle closes
-const speed = t => VMAX * smooth(0.25, 1.75, t) * (1 - smooth(3.1, VB, t));
+const LCOL = ['pink', 'yellow', 'orange', 'turq', 'red', 'purple', 'yellow', 'pink', 'green', 'orange', 'red', 'yellow', 'turq', 'pink', 'orange', 'red', 'yellow', 'purple', 'orange', 'pink'];
+const T_LIGHT = 0.3, DT_LIGHT = 0.04;               // the leading pair is lit, then the flame passes back, zig-zag
+const TG = 2.2, DG = 1.75, WG = 0.15;               // the line unzips into the circle, leading pair first
+const TDOWN = 1.45;                                 // ...and each pair sets its candles down on the ground
+// walking: they stand while the candles are lit, set off, and slow as they reach their places
+const VMAX = 150;
+const speed = t => VMAX * smooth(0.5, 1.6, t) * (1 - smooth(3.4, 5.2, t));
 const travel = t => {                                // distance walked by time t (Simpson; a pure function of t)
-  const T = clamp(t, 0, VB), n = 96, h = T / n; let a = speed(0) + speed(T);
+  const T = clamp(t, 0, 5.2), n = 96, h = T / n; let a = speed(0) + speed(T);
   for (let i = 1; i < n; i++) a += (i & 1 ? 4 : 2) * speed(i * h);
-  return a * h / 3 + 0;
+  return a * h / 3;
 };
-const TRAVEL = travel(VB);
-const S0 = (NP - 1) * SPC - TRAVEL;                 // the last pair reaches the ring exactly at VB
-const lead = t => S0 + travel(t);
-// side b = -1 (left, -X) or +1 (right): ring entry, and the branch from the split point onto the ring
-const thE = b => Math.PI / 2 - b * DEL / 2;
-const BR = [-1, 1].map(b => {
-  const th = thE(b), E = [R * Math.cos(th), R * Math.sin(th)], tg = [b * Math.sin(th), -b * Math.cos(th)];
-  const P = [[b * OFF, ZS], [b * OFF, ZS - 75], [E[0] - tg[0] * 50, E[1] - tg[1] * 50], E];
-  const pts = [], n = 80; let len = 0;
-  for (let i = 0; i <= n; i++) {
-    const u = i / n, q = 1 - u, w = [q * q * q, 3 * q * q * u, 3 * q * u * u, u * u * u];
-    const x = w.reduce((s, k, j) => s + k * P[j][0], 0), z = w.reduce((s, k, j) => s + k * P[j][1], 0);
-    if (i) len += Math.hypot(x - pts[i - 1][0], z - pts[i - 1][1]);
-    pts.push([x, z, len]);
-  }
-  return { pts, len };
-});
-// the hill path behind the split: a steep winding way up into the dark (tabulated by arc length)
-const HILL = (() => {
-  const pts = [], n = 500; let len = 0, prev = null;
-  for (let i = 0; i <= n; i++) {
-    const u = 1.8 * i / n;
-    const p = [150 * Math.sin(u * TAU * 0.95) * smooth(0, 0.25, u), 430 * Math.pow(u, 1.45), ZS + 320 * u];
-    if (prev) len += Math.hypot(p[0] - prev[0], p[1] - prev[1], p[2] - prev[2]);
-    pts.push([...p, len]); prev = p;
+const S_END = 0;                                    // the leading pair's column position when the line opens
+const lead = t => S_END - travel(3.0) + travel(t);
+// the path, from the hill top down to the plaza and across it (Catmull-Rom, tabulated by arc length)
+const JP = [[160, 760, 1550], [60, 620, 1300], [-120, 420, 900], [-300, 230, 560], [-390, 80, 250], [-330, 0, 40], [-170, 0, -70], [0, 0, -50], [190, 0, 40], [370, 0, 60], [700, 0, 60]];
+const PATH = (() => {
+  const pts = []; let len = 0, prev = null;
+  for (let i = 0; i < JP.length - 1; i++) {
+    const p0 = JP[Math.max(0, i - 1)], p1 = JP[i], p2 = JP[i + 1], p3 = JP[Math.min(JP.length - 1, i + 2)];
+    for (let k = 0; k < 60; k++) {
+      const u = k / 60, u2 = u * u, u3 = u2 * u;
+      const p = [0, 1, 2].map(j => 0.5 * (2 * p1[j] + (-p0[j] + p2[j]) * u + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * u2 + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * u3));
+      if (prev) len += Math.hypot(p[0] - prev[0], p[1] - prev[1], p[2] - prev[2]);
+      pts.push([...p, len]); prev = p;
+    }
   }
   return pts;
 })();
-function hill(h) {                                   // point at arc length h along the hill path
-  const p = HILL; let lo = 0, hi = p.length - 1;
-  if (h >= p[hi][3]) return p[hi].slice(0, 3);
-  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (p[mid][3] < h) lo = mid; else hi = mid; }
-  const k = (h - p[lo][3]) / Math.max(1e-6, p[hi][3] - p[lo][3]);
-  return [0, 1, 2].map(i => lerp(p[lo][i], p[hi][i], k));
+const A_PLAZA = (() => { let best = 0, bd = 1e9; for (const p of PATH) { const d = Math.hypot(p[0] - 370, p[2] - 60); if (d < bd) { bd = d; best = p[3]; } } return best; })();
+const A_EDGE = (() => { let best = 0, bd = 1e9; for (const p of PATH) { const d = Math.hypot(p[0] + 330, p[2] - 40); if (d < bd) { bd = d; best = p[3]; } } return best; })();
+function pathAt(a) {                                 // point and unit tangent at arc length a
+  const p = PATH; let lo = 0, hi = p.length - 1;
+  a = clamp(a, 0, p[hi][3] - 0.01);
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (p[mid][3] < a) lo = mid; else hi = mid; }
+  const k = (a - p[lo][3]) / Math.max(1e-6, p[hi][3] - p[lo][3]);
+  const q = [0, 1, 2].map(i => lerp(p[lo][i], p[hi][i], k));
+  const tx = p[hi][0] - p[lo][0], tz = p[hi][2] - p[lo][2], tl = Math.hypot(tx, tz) || 1;
+  return [q, tx / tl, tz / tl];
 }
-function pathXYZ(s, b) {
-  if (s >= 0) { const th = thE(b) - b * s / R; return [R * Math.cos(th), 0, R * Math.sin(th)]; }
-  const br = BR[b < 0 ? 0 : 1], d = br.len + s;
-  if (d >= 0) {
-    const p = br.pts; let i = 1; while (i < p.length - 1 && p[i][2] < d) i++;
-    const k = (d - p[i - 1][2]) / Math.max(1e-6, p[i][2] - p[i - 1][2]);
-    return [lerp(p[i - 1][0], p[i][0], k), 0, lerp(p[i - 1][1], p[i][1], k)];
+// column position s (0 = the plaza's right end, negative = further back) -> arc length; up the hill they walk faster
+function arcOf(s) {
+  const a = A_PLAZA + s;
+  if (a >= A_EDGE) return a;
+  const e = A_EDGE - a;
+  return A_EDGE - e * (1 + e / 330);
+}
+function columnXYZ(s, b) {                           // b = -1: the walker on the back side, +1: the front side
+  const [q, tx, tz] = pathAt(arcOf(s));
+  return [q[0] + b * OFF * tz, q[1], q[2] - b * OFF * tx];
+}
+const slotTheta = (m, b) => (b < 0 ? 1 : -1) * (m + 0.5) * DEL;
+// where the flames end up as stars: an even (sunflower) scatter over the sky, handed out left to right
+const LEAD = [C, 150];
+const STARS = Array.from({ length: N }, (_, i) => {
+  const r = Math.sqrt((i + 0.6) / N), a = i * 2.39996 + 0.9;
+  let x = C + Math.cos(a) * r * 410, y = 395 + Math.sin(a) * r * 285;
+  if (Math.hypot(x - LEAD[0], y - LEAD[1]) < 80) x += x < C ? -90 : 90;
+  return [x, y];
+}).sort((p, q) => p[0] - q[0]);
+const RANK = (() => {
+  const ks = Array.from({ length: N }, (_, k) => k).sort((p, q) => Math.cos(slotTheta(p >> 1, p & 1 ? 1 : -1)) - Math.cos(slotTheta(q >> 1, q & 1 ? 1 : -1)));
+  const r = []; ks.forEach((k, i) => r[k] = i); return r;
+})();
+
+// farolitos: small paper-bag lights on both edges of the route, from the plaza up the hill
+const FAROL = (() => {
+  const out = [], a0 = A_PLAZA - 40, step = 80, R_ = HG.rng(23);
+  for (let i = 0; a0 - i * step > 140; i++) {
+    for (const side of [-1, 1]) {
+      const a = a0 - i * step + (R_() - 0.5) * 34, [q, tx, tz] = pathAt(a), w = 86 + (R_() - 0.5) * 22;
+      out.push({ a, i, side, X: q[0] + side * w * tz, Y: q[1], Z: q[2] - side * w * tx, br: 0.7 + 0.3 * R_() });
+    }
   }
-  const w = -d, [x, y, z] = hill(w + w * w / 800);    // further up the hill they walk a little faster
-  return [x + b * OFF, y, z];
-}
+  return out;
+})();
 
 // ---------- camera: a pinhole looking at the plaza centre; cranes up a little, orbits slowly, tilts to the sky at the end
 const F = 1500;
@@ -94,8 +117,8 @@ function camera(t) {
   const ph = (lerp(15, 25, ease.inOut3(t / 7.5)) - 9 * up) * Math.PI / 180;
   const ps = -0.06 + 0.34 * ease.inOut3((t - 3) / 9);
   const D = lerp(1420, 1560, ease.inOut3(t / 8));
-  const down = 1 - ease.inOut3((t - 0.2) / 3.4);      // opening: looking up the hill, tilting down with the procession
-  return { sp: Math.sin(ph), cp: Math.cos(ph), sy: Math.sin(ps), cy: Math.cos(ps), D, yT: 545 + 290 * down + 380 * up };
+  const down = 1 - ease.inOut3((t - 0.2) / 3.6);      // opening: tilting down a little with the procession
+  return { sp: Math.sin(ph), cp: Math.cos(ph), sy: Math.sin(ps), cy: Math.cos(ps), D, yT: 520 + 70 * down + 380 * up };
 }
 function proj(K, X, Y, Z) {
   const dx = X + K.sy * K.cp * K.D, dy = Y - K.sp * K.D, dz = Z + K.cy * K.cp * K.D;
@@ -164,7 +187,7 @@ function bloomFlower(g, img, cx0, cy0, x, y, Rpx, b, rot, { twist = 1.5, alpha =
   const rho = x_ => Rpx * sc * Math.pow(x_, gam);
   for (let i = NB - 1; i >= 0; i--) {
     const xa = i / NB, xb = (i + 1) / NB, xm = (i + 0.5) / NB;
-    const a = alpha * smooth(xm - 0.18, xm + 0.04, b * 1.22);
+    const a = alpha * Math.pow(smooth(xm - 0.32, xm + 0.06, b * 1.3), 1.3);
     if (a <= 0.003) continue;
     const ra = rho(xa), rb = rho(xb), k = rho(xm) / (xm * Rs);
     g.save();
@@ -195,22 +218,29 @@ HG.start({
     }
 
     // ---------- lanterns: where everyone is
-    const s0 = lead(t), sP = lead(t - 0.08), walk = clamp(speed(t) / 150);
+    const s0 = lead(t), walk = clamp(speed(t) / 140 + bump(t, TG, TG + 0.5, TG + WG * 9 + DG - 0.4, TG + WG * 9 + DG + 0.3));
+    const where = (k, t_, s_) => {                   // world position of lantern k (column, then its place on the ring)
+      const m = k >> 1, b = k & 1 ? 1 : -1;
+      const [cx, cy, cz] = columnXYZ(s_ - m * SPM - (b > 0 ? 30 : 0), b);   // the front walker half a step behind
+      const g_ = ease.inOut3((t_ - (TG + WG * m)) / DG);
+      const th = slotTheta(m, b);
+      return [lerp(cx, R * Math.cos(th), g_), cy * (1 - g_), lerp(cz, R * Math.sin(th), g_)];
+    };
     const L = [];
     for (let k = 0; k < N; k++) {
-      const m = k >> 1, b = k & 1 ? 1 : -1, s = s0 - m * SPC;
-      const [X, Y, Z] = pathXYZ(s, b);
+      const m = k >> 1, b = k & 1 ? 1 : -1;
+      const [X, Y, Z] = where(k, t, s0);
       const ph = k * 2.1 + (b > 0 ? 1.4 : 0);
-      const bob = 6 * walk * (0.5 - 0.5 * Math.cos(TAU * 1.6 * t + ph));
-      const down = ease.inOut3((t - (VB - 0.15 + 0.07 * m)) / 0.8);          // the candles are set down on the ground
-      const hh = lerp(H, LS * 0.47, down);
+      const bob = 8 * walk * (0.5 - 0.5 * Math.cos(TAU * 1.6 * t + ph));
       const sway = 0.06 * walk * Math.sin(Math.PI * 1.6 * t + ph);
+      const down = ease.inOut3((t - (TG + WG * m + TDOWN)) / 0.75);   // set down on the ground
+      const hh = lerp(H, LS * 0.47, down);
       const tl = T_LIGHT + k * DT_LIGHT;
       const lit = smooth(tl, tl + 0.3, t);
-      const ord = (k * 5) % N;                                   // order in which the flames leave (end)
-      const lift = smooth(9.2 + 0.055 * ord, 9.2 + 0.055 * ord + 1.7, t);
+      const ord = (k * 7) % N;                                   // order in which the flames leave (end)
+      const lift = smooth(9.1 + 0.035 * ord, 9.1 + 0.035 * ord + 1.35, t);
       const P = proj(K, X, Y + hh + bob, Z), G = proj(K, X, Y, Z);
-      const [X2, Y2, Z2] = pathXYZ(sP - m * SPC, b), P2 = proj(K, X2, Y2 + hh, Z2);
+      const [X2, Y2, Z2] = where(k, t - 0.08, lead(t - 0.08)), P2 = proj(K, X2, Y2 + hh, Z2);
       L.push({ j: k, k, m, b, X, Y, Z, P, G, tl, lit, lift, ord, sway, hh, vx: (P.x - P2.x) / 0.08, col: LCOL[k] });
     }
 
@@ -224,6 +254,21 @@ HG.start({
       g.drawImage(tinted(mix(FLAME, PAPER_RGB[l.col], 0.35)), l.G.x - rx, l.G.y - ry, 2 * rx, 2 * ry);
     }
     g.restore();
+    // farolitos along the route: lit as the flame runs back up the line, gone once the circle has formed
+    const farA = (1 - smooth(3.6, 4.8, t)) * end;
+    if (farA > 0) {
+      g.save(); g.globalCompositeOperation = 'lighter';
+      for (const f of FAROL) {
+        const tl = T_LIGHT + 0.12 + f.i * 0.055, a = farA * smooth(tl, tl + 0.25, t);
+        if (a <= 0.003) continue;
+        const G = proj(K, f.X, f.Y, f.Z), B = proj(K, f.X, f.Y + 16, f.Z), fk = 0.85 + 0.15 * Math.sin(t * 9 + f.i * 1.7 + f.side);
+        const rx = 46 * G.s, ry = rx * K.sp * 1.2;
+        g.globalAlpha = 0.28 * a * fk; g.drawImage(tinted([255, 160, 70]), G.x - rx, G.y - ry, 2 * rx, 2 * ry);
+        HG.dot(g, [255, 175, 80], B.x, B.y, 34 * B.s, 0.75 * a * fk * f.br);
+        HG.dot(g, [255, 235, 190], B.x, B.y, 11 * B.s, 0.8 * a * fk * f.br);
+      }
+      g.restore();
+    }
     // the plaza glows warm inside the ring once it is complete
     const plaza = smooth(4.6, 6.5, t) * (1 - smooth(9.3, 10.6, t));
     if (plaza > 0) {
@@ -233,7 +278,8 @@ HG.start({
     }
 
     // ---------- the nochebuena's place: a bud of gathered light rises from the plaza and unfurls
-    const HB = smooth(5.75, 7.9, t) * (1 - ease.inOut3((t - 9.25) / 1.45));       // folds shut into its heart at the end
+    const HB = smooth(5.75, 7.9, t);
+    const GONE = smooth(9.7, 10.35, t);                                            // at the end it dissolves into light
     const Hh = lerp(40, 215, ease.inOut3((t - 5.5) / 2.3));
     const HP = proj(K, 0, Hh, 0);
 
@@ -241,7 +287,7 @@ HG.start({
     const items = [];
     const NW = N, RW = R - 6;
     for (let i = 0; i < NW; i++) {
-      const th0 = i * DEL + Math.PI / 2;                     // between the candles
+      const th0 = i * DEL;                                   // between the candles
       const X = RW * Math.cos(th0), Z = RW * Math.sin(th0);
       // bloom wave: starts at the back (behind the nochebuena), runs down both sides to the front
       const back = Math.abs(Math.atan2(Math.sin(th0 - Math.PI / 2), Math.cos(th0 - Math.PI / 2))) / Math.PI;
@@ -257,7 +303,7 @@ HG.start({
       if (it.kind === 'w') {
         const { G, u, i } = it;
         if (u <= 0) continue;
-        const e = ease.outBack(u), a = smooth(0, 0.35, u) * (1 - smooth(9.5, 10.5, t)) * end;
+        const e = ease.outBack(u), a = smooth(0, 0.35, u) * (1 - smooth(9.75, 10.45, t)) * end;
         if (a <= 0.003) continue;
         const sz = 132 * G.s * e * (1 + 0.03 * Math.sin(t * 1.3 + i));
         g.save(); g.translate(G.x, G.y); g.scale(1, K.sp * 1.4); g.rotate(i * 1.3 - 1.4 * (1 - ease.out3(u)) + 0.04 * t);
@@ -300,12 +346,12 @@ HG.start({
         const fade = 1;
         if (HB > 0 && fade * end > 0.003) {
           const fg = FL.ctx; HG.reset(fg); fg.clearRect(0, 0, W, W);
-          const Rpx = 250 * HP.s * (1 + 0.015 * Math.sin(t * 1.4));
+          const Rpx = 250 * HP.s * (1 + 0.015 * Math.sin(t * 1.4)) * (1 + 0.07 * smooth(9.55, 10.4, t));
           const rot = 0.05 * t - 0.3;
           bloomFlower(fg, A.flor, 495, 469, HP.x, HP.y, Rpx, HB, rot, { twist: 1.6, alpha: 1 });
           HG.reset(fg);
-          HG.drawLayer(g, FL, { alpha: fade * end });
-          bloom(g, FL, 22, 0.34 * fade * end * smooth(0.1, 0.6, HB));
+          HG.drawLayer(g, FL, { alpha: fade * end * (1 - GONE) });
+          bloom(g, FL, 22, (0.34 + 0.45 * smooth(9.5, 9.95, t)) * (1 - smooth(9.95, 10.55, t)) * fade * end * smooth(0.1, 0.6, HB));
         }
         // the bud of light (sparks arriving) before the bracts open
         const bud = bump(t, 5.45, 5.85, 5.95, 6.8);
@@ -332,11 +378,11 @@ HG.start({
       // arc that swirls in (all the same way round), rising above the plaza first
       const dx = HP.x - x0, dy = HP.y - y0;
       const cx = x0 + dx * 0.5 - dy * 0.45, cy = y0 + dy * 0.5 + dx * 0.25 - 140;
-      for (let q = 0; q < 9; q++) {
-        const uu = clamp(ease.inOut3(clamp(u)) - q * 0.03);
+      for (let q = 0; q < 14; q++) {
+        const uu = clamp(ease.inOut3(clamp(u)) - q * 0.022);
         const w = 1 - uu, x = w * w * x0 + 2 * w * uu * cx + uu * uu * HP.x, y = w * w * y0 + 2 * w * uu * cy + uu * uu * HP.y;
-        const a = (1 - q / 9) * smooth(0, 0.08, u) * (1 - smooth(0.92, 1.15, u));
-        HG.dot(ctx, q ? GOLD : [255, 240, 200], x, y, (q ? 20 : 30) * (1 - q / 11), 0.9 * a);
+        const a = (1 - q / 14) * smooth(0, 0.08, u) * (1 - smooth(0.92, 1.15, u));
+        HG.dot(ctx, q ? GOLD : [255, 240, 205], x, y, (q ? 26 : 40) * (1 - q / 18), a);
       }
     }
     ctx.restore();
@@ -367,19 +413,33 @@ HG.start({
       }
     }
 
+    // ---------- the nochebuena dissolves into rising sparks of red and gold
+    if (t > 9.6 && t < 11.6) {
+      const Rd = HG.rng(19), Rpx = 250 * HP.s;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 90; i++) {
+        const a = Rd() * TAU, r = Math.sqrt(0.04 + 0.96 * Rd()) * Rpx * 0.92, t0 = 9.7 + Rd() * 0.55, life = 0.9 + Rd() * 0.6;
+        const col = Rd() < 0.62 ? [255, 70, 55] : GOLD, sz = 9 + Rd() * 12, dr = 30 + Rd() * 70, up = 120 + Rd() * 200, tw = Rd() * 6;
+        const u = (t - t0) / life; if (u <= 0 || u >= 1) continue;
+        const e = ease.out3(u);
+        const x = HP.x + Math.cos(a) * (r + dr * e) + Math.sin(u * 4 + tw) * 8, y = HP.y + Math.sin(a) * (r + dr * e) - up * e;
+        HG.dot(ctx, col, x, y, sz * (1 - 0.5 * u), Math.sin(Math.PI * Math.min(1, u * 1.6 + 0.0)) * (1 - u) * 1.3 * (0.7 + 0.3 * Math.sin(t * 9 + tw)));
+      }
+      ctx.restore();
+    }
+
     // ---------- the flames rise and become stars; the nochebuena's golden heart becomes the brightest
     const Rs = HG.rng(77);
     const fadeS = 1 - smooth(11.05, 11.85, t);
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     for (const l of L) {
-      const jx = (Rs() - 0.5) * 150, up = 300 + Rs() * 260, tw = Rs() * 6;
+      const tw = Rs() * 6;
       if (l.lift <= 0) continue;
       const u = l.lift, e = ease.inOut3(u);
       const hp = LS * l.P.s, wx = l.P.x + Math.sin(l.sway) * hp * 0.72, wy = l.P.y - hp * 0.21;
-      // star position: risen well above where the candle stood, spread a little wider, inside the circle
-      let tx = C + (wx - C) * 1.08 + jx, ty = Math.max(110, wy - up - 380 * smooth(9.2, 11.6, t));
-      const dd = Math.hypot(tx - C, ty - C); if (dd > 450) { tx = C + (tx - C) * 450 / dd; ty = C + (ty - C) * 450 / dd; }
-      const x = lerp(wx, tx, e) + Math.sin(u * 5 + l.j) * 16 * Math.sin(Math.PI * u), y = lerp(wy, ty, e);
+      // each flame rises (straight up first, then drifting aside) to its own place in the sky
+      const [tx, ty] = STARS[RANK[l.k]];
+      const x = lerp(wx, tx, smooth(0.12, 1, u)) + Math.sin(u * 5 + l.j) * 14 * Math.sin(Math.PI * u), y = lerp(wy, ty, e);
       const fh = hp * 0.22 * flick(t, l.j) * (1 - smooth(0.05, 0.55, u));
       flame(ctx, x, y + fh * 0.25, fh, 0.12 * Math.sin(u * 7 + l.j), fadeS);
       const star = smooth(0.25, 0.85, u) * fadeS * (0.75 + 0.25 * Math.sin(t * 6 + tw));
@@ -388,9 +448,9 @@ HG.start({
       glint(ctx, x, y, 64 * star, 0.75 * star, 0.25 * Math.sin(t * 0.8 + tw), [255, 230, 190]);
     }
     // the heart of the nochebuena
-    const hu = ease.inOut3((t - 9.5) / 1.6);
+    const hu = ease.inOut3((t - 9.95) / 1.3);
     if (hu > 0 && fadeS > 0) {
-      const x = lerp(HP.x, C, hu), y = lerp(HP.y, 165, hu);
+      const x = lerp(HP.x, C, hu), y = lerp(HP.y, LEAD[1], hu);
       const st = smooth(0.3, 1, hu) * fadeS;
       HG.dot(ctx, [255, 200, 90], x, y, lerp(110, 60, hu), 0.7 * fadeS * smooth(0, 0.2, hu));
       HG.dot(ctx, [255, 245, 220], x, y, 22, 0.95 * fadeS * smooth(0, 0.2, hu));

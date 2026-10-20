@@ -29,6 +29,12 @@ const hash = (i, s = 0) => {
   h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 };
 const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
+// piecewise-linear profile through [x, y] knots, held flat beyond the ends
+const pwl = (x, K) => {
+  if (x <= K[0][0]) return K[0][1];
+  for (let i = 1; i < K.length; i++) if (x <= K[i][0]) return lerp(K[i - 1][1], K[i][1], (x - K[i - 1][0]) / (K[i][0] - K[i - 1][0]));
+  return K[K.length - 1][1];
+};
 const sine = x => 0.5 - 0.5 * Math.cos(Math.PI * clamp(x));
 // near-constant speed with short eased ends (trapezoidal velocity), 0..1 -> 0..1
 function trap(u, e = 0.18) {
@@ -77,10 +83,10 @@ function silAt(ax, ay) {
 const WP = DATA.wing.pivot, WU = DATA.wing.axis, WA = Math.atan2(WU[1], WU[0]), WN = [WU[1], -WU[0]];
 const TP = DATA.tail.pivot;
 function flap(t) {
-  const amp = bump(t, 5.2, 6.0, 8.9, 9.45), ph = TAU * (t - 5.2) / 1.75;
+  const amp = bump(t, 5.2, 6.0, 8.45, 9.15), ph = TAU * (t - 5.2) / 1.75;
   const v = 0.5 - 0.5 * Math.cos(ph);
-  const tamp = bump(t, 5.0, 6.0, 8.7, 9.45);
-  return { s: 1 - 0.15 * amp * v, th: -0.08 * amp * Math.sin(ph - 0.9), amp, v, tail: 0.06 * tamp * Math.sin(TAU * (t - 5.0) / 3.1), tamp };
+  const tamp = bump(t, 5.0, 6.0, 8.4, 9.15);
+  return { s: 1 - 0.2 * amp * v, th: -0.11 * amp * Math.sin(ph - 0.9), amp, v, tail: 0.06 * tamp * Math.sin(TAU * (t - 5.0) / 3.1), tamp };
 }
 function flapPt(x, y, F, w, tw = 0) {
   if (tw > 0 && F.tamp > 0) {
@@ -120,23 +126,44 @@ const CP = Float32Array.from(DATA.paths[0].pts), CW = DATA.paths[0].w, CTW = DAT
 const nearest = (x, y) => { let b = 0, bd = 1e9; for (let i = 0; i < NP; i++) { const d = Math.hypot(CP[2 * i] - x, CP[2 * i + 1] - y); if (d < bd) { bd = d; b = i; } } return b; };
 const PEN0 = nearest(230, 45);                       // top of the head, between the ears
 const PENN = NP / 2;                                 // each pen draws half the outline
-const PEN_T0 = 0.62, PEN_D = 2.6, PEN_END = PEN_T0 + PEN_D;
+const PEN_T0 = 0.92, PEN_D = 2.3, PEN_END = PEN_T0 + PEN_D;
 const penAt = t => sine((t - PEN_T0) / PEN_D);         // pens' progress (0..1) along their halves
 const POI = DATA.poi;
 const FACE = [175, 205];                             // pattern lines spread out from the face
 
 // dissolve: a front rises from the paws (low q) to the ears (high q)
-const DD = [-0.5, -0.866], qOf = (x, y) => (x - 512) * DD[0] + (y - 512) * DD[1];
+// Above the neck (raw q > QK) the burn runs at double speed in space, so the head starts turning into lines
+// while the neck is still burning and the two convert together instead of leaving a painted head behind.
+const DD = [-0.5, -0.866], QK = 200, QS = 0.5;
+const warp = q => q < QK ? q : QK + (q - QK) * QS;
+const qOf = (x, y) => warp((x - 512) * DD[0] + (y - 512) * DD[1]);
+// a canvas mask along the burn direction whose alpha is fn(warped q), sampled finely enough to follow the warp
+const QR0 = -900, QR1 = 760, QN = 110;
+function burnMask(g, fn) {
+  const gr = g.createLinearGradient(512 + DD[0] * QR0, 512 + DD[1] * QR0, 512 + DD[0] * QR1, 512 + DD[1] * QR1);
+  for (let i = 0; i <= QN; i++) gr.addColorStop(i / QN, `rgba(0,0,0,${clamp(fn(warp(lerp(QR0, QR1, i / QN)))).toFixed(3)})`);
+  return gr;
+}
 let QMIN = 1e9, QMAX = -1e9; for (let i = 0; i < NP; i++) { const q = qOf(CP[2 * i], CP[2 * i + 1]); QMIN = Math.min(QMIN, q); QMAX = Math.max(QMAX, q); }
-const DS0 = 9.45, DS1 = 11.3, DF = 260;              // DF: width of the paint's fade behind the front
-// the front starts below the paws and accelerates, so the neck and the face go almost together
-const front = t => { const u = clamp((t - DS0) / (DS1 - DS0)); return lerp(QMIN - 300, QMAX + 40, 0.5 * u + 0.5 * u * u); };
+const DS0 = 9.15, DS1 = 10.7, DF = 260;              // DF: width of the paint's fade behind the front
+// the front starts below the paws and moves almost steadily; the painted face is gone by ~10.5 s (before the
+// portal ring can reach it) and the front runs on past the ears so no line is left behind
+const front = t => { const u = clamp((t - DS0) / (DS1 - DS0)); return lerp(QMIN - 300, QMAX + 120, 0.8 * u + 0.2 * u * u); };
 const frontTime = q => { let a = DS0, b = DS1; for (let k = 0; k < 30; k++) { const m = (a + b) / 2; if (front(m) < q) a = m; else b = m; } return (a + b) / 2; };
 const quant = c => c.map(v => Math.min(255, Math.round(v / 24) * 24));
-const PARTS = DATA.parts.filter((_, i) => hash(i, 9) < 0.085).map(([x, y, r, g, b], i) => {
-  const t0 = frontTime(qOf(x, y)), P0 = pose(t0), [sx, sy] = map(x, y, P0);
-  const c = [r, g, b];
-  return { sx, sy, col: quant(c), hot: quant(c.map((v, k) => lerp(v, [255, 200, 110][k], 0.65))), t0, h: [hash(i, 1), hash(i, 2), hash(i, 3), hash(i, 4), hash(i, 5)] };
+// embers take the hue of the paint they burn from, pushed to full saturation (greyish or cream paint burns gold)
+const vivid = c => {
+  const hi = Math.max(...c), lo = Math.min(...c);
+  if (hi - lo < 40) return GOLD;
+  return c.map(v => Math.round(lerp(255 * (v - lo) / (hi - lo), 255, 0.12)));
+};
+// the head sheds a denser cloud of longer-lived embers: they keep rising outside the portal ring as it opens
+const headK = (x, y) => smooth(QK - 40, QK + 120, qOf(x, y));
+const PARTS = DATA.parts.filter(([x, y], i) => hash(i, 9) < 0.085 + 0.075 * headK(x, y)).map(([x, y, r, g, b], i) => {
+  // each ember leaves while the paint around it is still burning out (about a quarter left)
+  const t0 = frontTime(qOf(x, y) - 90), P0 = pose(t0), [sx, sy] = map(x, y, P0);
+  const v = vivid([r, g, b]), hc = hash(i, 6) < 0.62 ? GOLD : COLORS.pink;
+  return { sx, sy, col: quant(v), core: quant(mixQ(v, hc, 0.5)), hot: quant(mixQ(hc, WARM, 0.35)), t0, life: 0.45 + 0.35 * headK(x, y), h: [hash(i, 1), hash(i, 2), hash(i, 3), hash(i, 4), hash(i, 5)] };
 });
 const SPARK = DATA.spark.map(([x, y, r, g, b], i) => {
   const m = Math.max(r, g, b, 1), k = 255 / m;
@@ -208,8 +235,10 @@ function radial(g, c, r0, r1, inner = 1, outer = 0) {
 }
 
 // ---------- opening: gold sparks spiral in to the top of the head and ignite the pens
+const GATHER_D = 0.3;
 function gather(t, P) {
-  if (t > 1.05) return;
+  t -= GATHER_D;
+  if (t <= 0 || t > 1.05) return;
   const [tx, ty] = map(CP[2 * PEN0], CP[2 * PEN0 + 1], P);
   const R = HG.rng(17);
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
@@ -245,7 +274,7 @@ const OC = [548, 556];
 function cometAt(c, tau) {
   const u = (tau - c.t0) / 2.0; if (u <= 0) return null;
   const k = ease.out3(u);
-  const out = ease.in3((tau - 10.2) / 1.6);             // at the end the orbits widen and fade
+  const out = ease.in3((tau - 9.8) / 1.5);             // at the end the orbits widen and fade
   const th = c.th + c.w * (tau - c.t0);
   const rr = (1 + 0.8 * (1 - k) * (1 - k)) * (1 + 0.12 * out);
   const lx = c.a * rr * Math.cos(th), ly = c.b * rr * Math.sin(th);
@@ -294,27 +323,28 @@ function drift(t, end) {
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (const p of PARTS) {
     const u0 = t - p.t0; if (u0 <= 0) continue;
-    const life = 0.45 + 0.45 * p.h[2]; if (u0 > life) continue;
+    const life = p.life + 0.45 * p.h[2]; if (u0 > life) continue;
     const vx = (p.h[0] - 0.5) * 80, vy = -(110 + 130 * p.h[1]);
     const pos = u => [p.sx + vx * u + 18 * Math.sin(3.4 * u + p.h[3] * 9) * Math.min(1, u * 2.5),
                       p.sy + vy * u - 240 * u * u];
     const [x, y] = pos(u0);
     const edge = 1 - smooth(405, 468, Math.hypot(x - C, y - C));
-    const a = smooth(0, 0.06, u0) * Math.pow(1 - u0 / life, 1.5) * end * edge * (0.82 + 0.18 * Math.sin(t * 13 + p.h[4] * 30));
+    const a = smooth(0, 0.06, u0) * Math.pow(1 - u0 / life, 1.2) * end * edge * (0.82 + 0.18 * Math.sin(t * 13 + p.h[4] * 30));
     if (a <= 0.003) continue;
-    const s = (20 + 18 * p.h[4] * p.h[4]) * (1 - 0.45 * u0 / life);
-    const col = u0 < 0.4 * life ? p.hot : p.col;
-    HG.dot(ctx, col, x, y, s, a);
+    // a soft coloured halo with a small, hot, saturated core (reads as a spark on the LEDs, not as a grey disc)
+    const v = u0 / life, s = (17 + 14 * p.h[4] * p.h[4]) * (1 - 0.4 * v);
+    HG.dot(ctx, p.col, x, y, s * 1.5, 0.3 * a);
+    HG.dot(ctx, v < 0.35 ? p.hot : p.core, x, y, 9 + 4 * p.h[3], Math.min(1, 1.15 * a));
     for (let j = 1; j <= 2; j++) {           // a short streak trailing below each ember
       if (u0 - j * 0.04 <= 0) break;
       const [xx, yy] = pos(u0 - j * 0.04);
-      HG.dot(ctx, col, xx, yy, s * (1 - 0.22 * j), a * (0.42 - 0.14 * j));
+      HG.dot(ctx, p.core, xx, yy, (8 + 3 * p.h[3]) * (1 - 0.2 * j), a * (0.5 - 0.17 * j));
     }
   }
   ctx.restore();
 }
 
-const WAVES = [[5.8, 1], [7.6, -1]], WAVE_T = 2.0;   // sparkle waves: start time, direction (head->tail = 1)
+const WAVES = [[5.7, 1], [7.15, -1]], WAVE_T = 2.0;   // sparkle waves: start time, direction (head->tail = 1)
 
 HG.start({
   duration: 12,
@@ -332,24 +362,25 @@ HG.start({
 
     // ---------- timing
     const penK = penAt(t);                                      // pens trace the outline
-    const inkK = ease.out3((t - 0.85) / 2.7);                   // pattern lines spread from the face
+    const inkK = ease.out3((t - 1.05) / 2.5);                   // pattern lines spread from the face
     const paintU = (t - 3.3) / 1.7;                             // paint travels outward from the chest flower
     const paintK = trap(paintU);
     const FB = 230, rho = paintK * (900 + FB);                  // paint front radius (asset px) and its feather
     const inkA = 1 - smooth(4.75, 5.25, t);
     const rimA = lerp(1, 0.42, smooth(3.9, 5.1, t));
-    const goldK = 1 - smooth(0.9, 2.1, t);                      // line light starts gold, flows into the fiesta colours
+    const goldK = 1 - smooth(1.15, 2.3, t);                      // line light starts gold, flows into the fiesta colours
     const presence = (ax, ay) => dissolving ? smooth(f + 30, f + 30 + DF, qOf(ax, ay)) : 1;
 
     gather(t, P);
 
     // ---------- behind the creature
-    const cometA = 1 - smooth(10.4, 11.4, t);
+    const cometA = 1 - smooth(10.0, 11.0, t);
     comets(t, P, false, cometA, presence);
 
     // ---------- a soft, warm fill in the face during the line-art phase so it reads friendly
-    const ghost = bump(t, 0.9, 2.1, 4.0, 4.6);
-    if (ghost > 0.003) lightBand(A, P, F, s => radial(s, [178, 230], 70, 250), 0.3 * ghost, 3, false);
+    // (it is already warm when the incoming portal ring uncovers the face, ~0.85 s in the show)
+    const ghost = bump(t, 0.25, 1.0, 4.0, 4.6);
+    if (ghost > 0.003) lightBand(A, P, F, s => radial(s, [178, 230], 70, 250), 0.32 * ghost, 3, false);
 
     // ---------- painted creature
     if (paintU > 0 && (!dissolving || f < QMAX + 40)) {
@@ -361,13 +392,10 @@ HG.start({
       }
       if (dissolving) {
         c.globalCompositeOperation = 'destination-in';
-        const o = [512 + DD[0] * (f + 30), 512 + DD[1] * (f + 30)], o2 = [512 + DD[0] * (f + 30 + DF), 512 + DD[1] * (f + 30 + DF)];
-        const g = c.createLinearGradient(o[0], o[1], o2[0], o2[1]);
-        g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, '#000');
-        c.fillStyle = g; c.fillRect(-1600, -1600, 4200, 4200);
+        c.fillStyle = burnMask(c, q => (q - f - 30) / DF); c.fillRect(-1600, -1600, 4200, 4200);
       }
       HG.reset(c);
-      const live = smooth(4.2, 5.4, t) * (1 - smooth(9.5, 10.7, t));
+      const live = smooth(4.2, 5.4, t) * (1 - smooth(9.15, 10.3, t));
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       if (live > 0.003) { ctx.globalAlpha = 0.24 * live; ctx.filter = 'blur(46px)'; ctx.drawImage(CR.cv, 0, 0); }   // soft aura in its own colours
@@ -391,7 +419,7 @@ HG.start({
           const g = s.createLinearGradient(o[0], o[1], o2[0], o2[1]);
           g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.5, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
           return g;
-        }, 0.26 * Math.sin(Math.PI * u), 8);
+        }, 0.2 * Math.sin(Math.PI * u), 8);
       }
     }
 
@@ -422,18 +450,12 @@ HG.start({
     // during the dissolve only a band of light just ahead of the front remains (the rest of the
     // rim eases down to 40%), and the pattern lines light up inside it
     if (dissolving) {
-      const far = lerp(1, 0.4, dis), B0 = f - 60, BL = 560, at = q => clamp((q - B0) / BL);
-      const o = [512 + DD[0] * B0, 512 + DD[1] * B0], o2 = [512 + DD[0] * (B0 + BL), 512 + DD[1] * (B0 + BL)];
+      const far = lerp(1, 0.4, dis);
       setPose(lg, P); lg.globalAlpha = 1; lg.globalCompositeOperation = 'destination-in';
-      const g = lg.createLinearGradient(o[0], o[1], o2[0], o2[1]);
-      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(at(f + 20), 'rgba(0,0,0,1)'); g.addColorStop(at(f + 170), 'rgba(0,0,0,1)');
-      g.addColorStop(at(f + 330), `rgba(0,0,0,${far})`); g.addColorStop(1, `rgba(0,0,0,${far})`);
-      lg.fillStyle = g; lg.fillRect(-1600, -1600, 4200, 4200);
+      lg.fillStyle = burnMask(lg, q => pwl(q - f, [[-60, 0], [20, 1], [170, 1], [330, far]])); lg.fillRect(-1600, -1600, 4200, 4200);
       const s2 = S2.ctx; HG.reset(s2); s2.clearRect(0, 0, W, W); setPose(s2, P); s2.globalAlpha = dis; s2.drawImage(A.ink, 0, 0, 1024, 1024);
       s2.globalAlpha = 1; s2.globalCompositeOperation = 'destination-in';
-      const g2 = s2.createLinearGradient(o[0], o[1], o2[0], o2[1]);
-      g2.addColorStop(0, 'rgba(0,0,0,0)'); g2.addColorStop(at(f + 20), 'rgba(0,0,0,1)'); g2.addColorStop(at(f + 150), 'rgba(0,0,0,0.9)'); g2.addColorStop(at(f + 330), 'rgba(0,0,0,0)'); g2.addColorStop(1, 'rgba(0,0,0,0)');
-      s2.fillStyle = g2; s2.fillRect(-1600, -1600, 4200, 4200); HG.reset(s2);
+      s2.fillStyle = burnMask(s2, q => pwl(q - f, [[-60, 0], [20, 1], [150, 0.9], [330, 0]])); s2.fillRect(-1600, -1600, 4200, 4200); HG.reset(s2);
       HG.reset(lg); lg.globalCompositeOperation = 'destination-over'; lg.drawImage(S2.cv, 0, 0);
     }
     HG.reset(lg);
@@ -456,7 +478,7 @@ HG.start({
 
     // ---------- pen heads, each throwing off a sparkler fizz: sparks shed along the path,
     // flung outward and falling as they burn out
-    if (t > 0.62 && t < PEN_END + 0.5) {
+    if (t > PEN_T0 && t < PEN_END + 0.5) {
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       for (const dir of [1, -1]) {
         const seed = dir > 0 ? 0 : 50;
@@ -517,8 +539,8 @@ HG.start({
     }
 
     // ---------- sparkles travelling across the patterns
-    if (t > 5.0 && t < 10.0) {
-      const amb = bump(t, 5.0, 5.7, 9.2, 9.8);
+    if (t > 5.0 && t < 9.2) {
+      const amb = bump(t, 5.0, 5.7, 8.6, 9.15);
       for (let i = 0; i < SPARK.length; i++) {
         const p = SPARK[i];
         let a = 0;

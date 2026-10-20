@@ -31,12 +31,6 @@
       "transition": "body=sun&sx=-0.58&tint=255,190,125"
     },
     {
-      "src": "show2/pieces/13-cdmx-noche.html",
-      "name": "Ciudad de México",
-      "place": "Ángel de la Independencia · Bellas Artes",
-      "transition": "body=sun&sx=-0.45&tint=255,215,145"
-    },
-    {
       "src": "show/pieces/06-ajolote.html",
       "name": "Ajolote",
       "place": "Xochimilco, Ciudad de México",
@@ -95,6 +89,12 @@
       "name": "Tacos al Pastor",
       "place": "Ciudad de México",
       "transition": "body=sun&sx=0.90&tint=215,105,240"
+    },
+    {
+      "src": "show2/pieces/13-cdmx-noche.html",
+      "name": "Ciudad de México",
+      "place": "Ángel de la Independencia · Bellas Artes",
+      "transition": "body=moon&sx=-0.72&tint=135,155,255"
     },
     {
       "src": "show2/pieces/14-posadas.html",

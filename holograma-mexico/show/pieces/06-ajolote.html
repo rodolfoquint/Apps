@@ -3,16 +3,14 @@
 <body><canvas id="c" width="1080" height="1080"></canvas>
 <script src="../engine.js"></script>
 <script>
-// Ajolote: a glowing bubble rises out of the dark and pops against the axolotl's face; the
-// coral ring of the pop is the front of the line drawing, which spreads over the creature.
-// A band of coral light then sweeps from the face across the body and leaves the skin in
-// full colour behind it. The axolotl floats in deep water under a surface where cempasúchil
-// drift (Xochimilco): light pulses run up its six gill fronds in waves, caustics play over its
-// skin, it breathes out a trio of bubbles and big soft bubbles pass in front. At the end the
-// light band sweeps back into the face, the drawing folds into it, and a last bubble carries
-// the light away.
-// Assets: prepare.py on out/images/ajolote-1.png -> assets/06-ajolote(.png, _lines.png) and on
-// out-show/images/cempasuchil-1.png -> assets/06-ajolote-flor.png.
+// Ajolote: out of the deep, a small teal shape swims up toward us, its tail sweeping. The
+// water's colour falls away as it comes close, and on arrival its six gill fronds flush
+// coral-pink behind a wave of light. It floats in clear water under a shimmering surface:
+// light pulses run up the gills, caustics play over its skin, it breathes out a trio of
+// bubbles and big bubbles drift past. Then it tips head-down and dives back into the deep,
+// leaving a trail of bubbles; the dive is still in view when the show's portal ring sweeps
+// outward over it.
+// Asset: prepare.py on out/images/ajolote-1.png -> assets/06-ajolote.png.
 const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
 const TAU = Math.PI * 2;
 
@@ -22,20 +20,18 @@ function hash(a, b) {
   return (h >>> 0) / 4294967296;
 }
 const sm = x => { x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * (3 - 2 * x); };
-const out2 = x => 1 - Math.pow(1 - clamp(x), 2);
 const sine = x => 0.5 - 0.5 * Math.cos(Math.PI * clamp(x));
 const bell = (x, w) => Math.exp(-(x / w) * (x / w));
 
 // ---------- palette
-const CORAL = [255, 112, 140];     // the neon drawing
-const HOT = [255, 196, 208];       // the bright front of the drawing
-const BAND = [255, 146, 166];      // the light band that colours the skin in
-const FILL = [10, 4, 6];           // the faint coral body of the drawing (~3%)
-const AQUA = [120, 228, 255];
+const TEAL = [0.30, 0.95, 1.05];   // the deep-water tint, as multipliers of the skin's luminance
+const LAV = [0.82, 0.62, 1.08];    // the colour passes through lavender on its way back (not through grey)
+const PULSE = [255, 98, 132];      // gill pulses push the filaments toward this coral
+const GLOW = [255, 62, 110];       // and bloom in this saturated pink (so the cores stay coral)
+const S_PINK = [255, 128, 140], S_DEEP = [40, 185, 215], AQUA_S = [120, 228, 255];
 
 // ---------- artwork geometry (asset pixels of the 1024 cut-out)
 const PIV = [504, 568];          // centre of the creature's enclosing circle (radius ~600)
-const FACE = [318, 440];         // where the light enters and leaves
 const MOUTH = [176, 481];        // left corner of the smile
 const EYES = [[193, 405, 0.85], [428, 416, 1]];
 const FRONDS = [                 // gill fronds: base, tip, half-width, phase
@@ -55,25 +51,36 @@ const LEGS = [
 ];
 
 // ---------- timeline
-const T_POP = 1.0;                                   // the first bubble pops against the face
-const WAVES = [5.0, 6.75, 8.5];                      // gill light pulses
-function lineR(t) {                                  // radius of the drawing, asset px from the face
-  if (t < T_POP) return -200;
-  if (t < 6) return 45 + 935 * out2((t - T_POP) / 2.1);
-  return lerp(980, -140, ease.inOut3((t - 10.3) / 0.9));
-}
-function skinR(t) {                                  // radius of the coloured skin
-  if (t < 6) return lerp(-90, 980, sine((t - 3.0) / 1.7));
-  return lerp(980, -90, sine((t - 9.2) / 1.3));
-}
-const ambient = t => smooth(0.45, 2.4, t) * (1 - smooth(10.0, 11.3, t));
+const T_IN0 = 0.12, T_IN1 = 3.0;      // the swim up out of the deep
+const T_ARR = 2.45;                   // arrival: the gills flush pink
+const WAVES = [4.6, 6.35, 8.1];       // gill light pulses through the float
+const T_OUT0 = 9.25, T_OUT1 = 11.9;   // the dive back into the deep
+const IN_D = [70, 235], OUT_D = [-50, 290];   // where the deep lies, on screen, for the way in / out
+// z: distance into the deep (0 = here); the creature's scale is 1 / (1 + z)
+const zIn = t => 4.6 * Math.pow(1 - clamp((t - T_IN0) / (T_IN1 - T_IN0)), 2.2);
+const vOut = t => clamp((t - T_OUT0) / (T_OUT1 - T_OUT0));
+const zOut = t => 0.4 * sine((t - T_OUT0) / 1.4) + 5 * Math.pow(vOut(t), 4.5);     // slow to leave, then gone: still large when the portal ring passes
+const swimAt = t => smooth(0, 0.35, t) * (1 - smooth(2.2, 3.1, t)) + smooth(8.85, 9.45, t);
+const deepBody = t => 1 - smooth(1.15, 2.35, t) + sm((zOut(t) - 1.0) / 3.2);
+const deepGill = t => Math.max(deepBody(t), t < 6 ? 1 - smooth(T_ARR - 0.2, T_ARR + 0.3, t) : 0);
+const fadeAt = t => smooth(0.06, 0.75, t) * (1 - smooth(11.0, 11.85, t));
+const ambient = t => smooth(0.3, 2.0, t) * (1 - smooth(10.9, 11.9, t));
 
-// ---------- motion: a slow underwater float (pure functions of t)
-const scaleAt = t => 0.71 * (1 + 0.065 * sine((t - 3.4) / 6.6));    // ~6.5% push-in through the float
+// ---------- motion: swim in, a slow underwater float, dive out (pure functions of t)
+const sFloat = t => 0.71 * (1 + 0.04 * sine((t - 3.0) / 6.2));    // a gentle push-in through the float
 const offX = t => 10 * Math.sin(TAU * t / 7.4 + 0.6);
 const offY = t => 14 * Math.sin(TAU * t / 5.2 - 0.9);
 const rotAt = t => 0.03 + 0.03 * Math.sin(TAU * t / 5.6 - 2.0);
-function xf(t) { return { s: scaleAt(t), r: rotAt(t), x: C + offX(t), y: C + offY(t) }; }
+function xf(t) {
+  const zi = zIn(t), zo = zOut(t), k = 1 / (1 + zi + zo), fi = 1 - 1 / (1 + zi), fo = sine((t - T_OUT0) / 2.0);
+  const sw = swimAt(t);
+  return {
+    s: sFloat(t) * k,
+    r: rotAt(t) + 0.22 * fi - 0.5 * fo + 0.055 * sw * Math.sin(TAU * t / 0.8 - 0.6),
+    x: C + offX(t) * k + IN_D[0] * fi + OUT_D[0] * fo + 12 * sw * k * Math.sin(TAU * t / 0.8 + 0.9),
+    y: C + offY(t) * k + IN_D[1] * fi + OUT_D[1] * fo,
+  };
+}
 function toCanvas(p, t) {
   const f = xf(t), dx = (p[0] - PIV[0]) * f.s, dy = (p[1] - PIV[1]) * f.s;
   return [f.x + dx * Math.cos(f.r) - dy * Math.sin(f.r), f.y + dx * Math.sin(f.r) + dy * Math.cos(f.r)];
@@ -83,71 +90,35 @@ function applyXf(c, t) {
   c.translate(f.x, f.y); c.rotate(f.r); c.scale(f.s, f.s); c.translate(-PIV[0], -PIV[1]);
 }
 
-// ---------- work buffers, built once from the assets
+// ---------- work buffers, built once from the asset
 const N = 800, Q = N / 1024, NN = N * N;
 let WK = null;
 function buildWork(A) {
   const mk = n => { const c = document.createElement('canvas'); c.width = c.height = n; return c; };
-  const read = (img, n, blur = 0) => {
-    const c = mk(n), g = c.getContext('2d', { willReadFrequently: true });
-    g.imageSmoothingQuality = 'high'; if (blur) g.filter = `blur(${blur}px)`;
-    g.drawImage(img, 0, 0, n, n); return g.getImageData(0, 0, n, n).data;
-  };
+  const g0 = mk(N).getContext('2d', { willReadFrequently: true });
+  g0.imageSmoothingQuality = 'high'; g0.drawImage(A.photo, 0, 0, N, N);
+  const photo = g0.getImageData(0, 0, N, N).data;
 
-  // 1. a clean neon contour, at full resolution: weak hatching (tail, gill bases) drops out,
-  //    the face keeps its eyes, nostrils and smile, and the cut-out's silhouette adds a firm outline
-  const M = 1024, lin = read(A.lines, M), sil = read(A.photo, M, 1.5);
-  const lc1 = mk(M), lg1 = lc1.getContext('2d'), ld1 = lg1.createImageData(M, M);
-  for (let y = 1; y < M - 1; y++) for (let x = 1; x < M - 1; x++) {
-    const i = y * M + x, a = lin[i * 4 + 3] / 255;
-    const face = 1 - sm((Math.hypot((x - 330) / 250, (y - 430) / 150) - 0.75) / 0.35);
-    const b = sm((a - (0.30 - 0.20 * face)) / 0.32);
-    const gx = (sil[(i + 1) * 4 + 3] - sil[(i - 1) * 4 + 3]) / 255, gy = (sil[(i + M) * 4 + 3] - sil[(i - M) * 4 + 3]) / 255;
-    const v = Math.max(b, 0.85 * clamp(Math.hypot(gx, gy) / 0.35));
-    ld1.data[i * 4] = ld1.data[i * 4 + 1] = ld1.data[i * 4 + 2] = 255; ld1.data[i * 4 + 3] = v * 255;
-  }
-  lg1.putImageData(ld1, 0, 0);
-  const lines = read(lc1, N), photo = read(A.photo, N);
-
-  // 2. colour grade: the pale lavender fin edge warms toward coral, and a soft highlight knee
-  //    (hue preserved) leaves headroom for the light band, pulses and caustics
-  const baseA = new Float32Array(NN), baseL = new Float32Array(NN), gm = new Float32Array(NN);
+  // colour grade: the pale lavender fin edge warms toward coral, and a soft highlight knee
+  // (hue preserved) leaves headroom for the pulses and caustics
+  const gm = new Float32Array(NN);
   for (let i = 0; i < NN; i++) {
     const o = i * 4;
     let r = photo[o], g = photo[o + 1], b = photo[o + 2];
     if (b > g) { const k = smooth(70, 150, (r + g + b) / 3); b = g + (b - g) * (1 - 0.6 * k); r = r + (255 - r) * 0.25 * k * (b - g) / 60; }
     const m = Math.max(r, g, b);
-    if (m > 182) { const f = (182 + (m - 182) * 0.45) / m; r *= f; g *= f; b *= f; }
+    if (m > 176) { const f = (176 + (m - 176) * 0.42) / m; r *= f; g *= f; b *= f; }
     photo[o] = r; photo[o + 1] = g; photo[o + 2] = b;
-    baseA[i] = photo[o + 3] / 255; baseL[i] = lines[o + 3] / 255;
-    gm[i] = sm(((r - Math.max(g, b)) / 255 - 0.3) / 0.28) * baseA[i];      // saturated coral = gill filaments
+    gm[i] = sm(((r - Math.max(g, b)) / 255 - 0.3) / 0.28) * photo[o + 3] / 255;   // saturated coral = gill filaments
   }
 
-  // 3. distance from the face: a clean circle for the drawing, a softly irregular one for the skin
-  const Dl = new Float32Array(NN), Dp = new Float32Array(NN);
-  const vn = (x, y, s, seed) => {          // smooth value noise
-    const gx = x / s, gy = y / s, x0 = Math.floor(gx), y0 = Math.floor(gy), fx = sm(gx - x0), fy = sm(gy - y0);
-    const h = (a, b) => hash(a * 7 + seed, b * 13 - seed);
-    return lerp(lerp(h(x0, y0), h(x0 + 1, y0), fx), lerp(h(x0, y0 + 1), h(x0 + 1, y0 + 1), fx), fy);
-  };
-  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-    const X = x / Q, Y = y / Q, i = y * N + x;
-    Dl[i] = Math.hypot(X - FACE[0], Y - FACE[1]);
-    Dp[i] = Dl[i] + 46 * (vn(X, Y, 120, 3) - 0.5) + 22 * (vn(X, Y, 46, 9) - 0.5);
-  }
+  // output layers: P the skin, K the gill-pulse light, S the silhouette (bloom and caustic mask)
+  const layer = col => { const c = mk(N), g = c.getContext('2d'), d = g.createImageData(N, N);
+    if (col) for (let i = 0; i < NN; i++) { d.data[i * 4] = col[0]; d.data[i * 4 + 1] = col[1]; d.data[i * 4 + 2] = col[2]; }
+    return { c, g, d }; };
+  const P = layer(null), K = layer(GLOW), S = layer(S_PINK);
 
-  // 4. output layers
-  const layer = () => { const c = mk(N), g = c.getContext('2d'), d = g.createImageData(N, N); return { c, g, d }; };
-  const P = layer(), L = layer(), G = layer(), S = layer(), K = layer();
-  for (let i = 0; i < NN; i++) {
-    const o = i * 4;
-    L.d.data[o] = CORAL[0]; L.d.data[o + 1] = CORAL[1]; L.d.data[o + 2] = CORAL[2];
-    G.d.data[o] = 255; G.d.data[o + 1] = 92; G.d.data[o + 2] = 124;
-    S.d.data[o] = 255; S.d.data[o + 1] = 128; S.d.data[o + 2] = 140;
-    K.d.data[o] = 255; K.d.data[o + 1] = 104; K.d.data[o + 2] = 132;
-  }
-
-  // 5. regions of influence for the displacement field: (pixel, u along the limb, signed width, weight)
+  // regions of influence for the displacement field: (pixel, u along the limb, signed width, weight)
   const touched = new Uint8Array(NN);
   function region(seg, beyond) {
     const ax = seg.a[0] * Q, ay = seg.a[1] * Q, bx = seg.b[0] * Q, by = seg.b[1] * Q, hw = seg.hw * Q;
@@ -167,46 +138,60 @@ function buildWork(A) {
   }
   const fr = FRONDS.map(f => region(f, 0.3)), tail = region(TAIL, 0.15), legs = LEGS.map(l => region(l, 0.15));
   const list = []; for (let i = 0; i < NN; i++) if (touched[i]) list.push(i);
-  WK = { photo, baseA, baseL, gm, Dl, Dp, P, L, G, S, K, fr, tail, legs, list: Int32Array.from(list),
-    cur: new Uint8ClampedArray(photo), curL: Float32Array.from(baseL), pulse: new Float32Array(NN),
+
+  // which pixels are gill (they keep the deep tint a moment longer, then flush pink)
+  const GW = new Float32Array(NN);
+  for (const R of fr) for (let k = 0; k < R.idx.length; k++) {
+    const i = R.idx[k], v = R.w[k] * sm((R.u[k] + 0.05) / 0.3) * clamp(0.3 + 1.2 * gm[i]);
+    if (v > GW[i]) GW[i] = v;
+  }
+  WK = { photo, gm, GW, P, K, S, fr, tail, legs, list: Int32Array.from(list),
+    cur: new Uint8ClampedArray(photo), gcur: Float32Array.from(GW), pulse: new Float32Array(NN),
     dx: new Float32Array(NN), dy: new Float32Array(NN), sh: new Float32Array(NN) };
 }
 
-// gill pulses: for frond f, the fronts (position along the frond, strength) alive at t
+// gill pulses: for frond f, the fronts (position along the frond, strength, width) alive at t
 function pulseFronts(f, t) {
   const rank = ORDER.indexOf(f), out = [];
   for (const w of WAVES) {
     const age = t - (w + rank * 0.13);
-    if (age > -0.02 && age < 1.3) out.push([-0.2 + 1.5 * age, smooth(0, 0.12, age) * (1 - smooth(0.85, 1.3, age))]);
+    if (age > -0.02 && age < 1.3) out.push([-0.2 + 1.5 * age, smooth(0, 0.12, age) * (1 - smooth(0.85, 1.3, age)), 0.13]);
   }
+  // the arrival flush: one broad, quick wave through all six fronds together
+  const age = t - (T_ARR + rank * 0.04);
+  if (age > -0.02 && age < 1.0) out.push([-0.25 + 1.8 * age, 1.1 * smooth(0, 0.1, age) * (1 - smooth(0.5, 1.0, age)), 0.24]);
   return out;
 }
 
-// ---------- the living creature: displacement field, then the per-pixel reveal
+// ---------- the living creature: displacement field, then the per-pixel colour
 function animate(t) {
-  const { dx, dy, sh, list, pulse } = WK;
+  const { dx, dy, sh, list, pulse } = WK, sw = swimAt(t);
   for (let k = 0; k < list.length; k++) { const i = list[k]; dx[i] = 0; dy[i] = 0; sh[i] = 0; }
-  // gill fronds: a slow wave runs along each frond, the filaments fluff out and relax,
-  // and the light pulses travel from base to tip
+  // gill fronds: a slow wave runs along each frond (quicker while swimming), the filaments
+  // fluff out and relax, and the light pulses travel from base to tip
   for (let f = 0; f < 6; f++) {
-    const R = WK.fr[f], { idx, u, p, w, nx, ny, ph } = R, a1 = 11 * Q, a2 = 7 * Q, fronts = pulseFronts(f, t);
+    const R = WK.fr[f], { idx, u, p, w, nx, ny, ph } = R, a1 = 11 * Q, a2 = 7 * Q, a3 = 9 * Q * sw, fronts = pulseFronts(f, t);
     for (let k = 0; k < idx.length; k++) {
       const uu = u[k], g = Math.pow(clamp(uu, 0, 1.25), 1.4), i = idx[k];
-      const sway = a1 * g * Math.sin(TAU * t / 3.3 - 2.3 * uu + ph);
+      let sway = a1 * g * Math.sin(TAU * t / 3.3 - 2.3 * uu + ph);
+      if (a3 > 0) sway += a3 * g * Math.sin(TAU * t / 0.8 - 2.8 * uu + ph);
       const fluff = a2 * p[k] * g * (0.5 + 0.5 * Math.sin(TAU * t / 1.9 - 3.2 * uu + ph * 1.7));
       const d = (sway + fluff) * w[k];
       dx[i] += nx * d; dy[i] += ny * d;
       if (fronts.length) {
         let s = 0;
-        for (const [fp, fa] of fronts) { const z = (uu - fp) / 0.13; s += fa * Math.exp(-z * z); }
+        for (const [fp, fa, fw] of fronts) { const z = (uu - fp) / fw; s += fa * Math.exp(-z * z); }
         sh[i] += w[k] * sm((uu + 0.15) / 0.3) * s;
       }
     }
   }
-  { // tail: a lazy sweep with a lag toward the tip
-    const { idx, u, w, nx, ny } = WK.tail, a = 13 * Q;
+  { // tail: a lazy sweep with a lag toward the tip, and strong quick beats while swimming
+    const { idx, u, w, nx, ny } = WK.tail, a = 13 * Q, aS = 62 * Q * sw;
     for (let k = 0; k < idx.length; k++) {
-      const uu = clamp(u[k], 0, 1.15), d = a * Math.pow(uu, 1.6) * Math.sin(TAU * t / 3.1 - 2.4 * uu - 0.5) * w[k];
+      const uu = clamp(u[k], 0, 1.15);
+      let d = a * Math.pow(uu, 1.6) * Math.sin(TAU * t / 3.1 - 2.4 * uu - 0.5);
+      if (aS > 0) d += aS * Math.pow(uu, 1.3) * Math.sin(TAU * t / 0.8 - 3.0 * uu - 0.5);
+      d *= w[k];
       dx[idx[k]] += nx * d; dy[idx[k]] += ny * d;
     }
   }
@@ -217,8 +202,8 @@ function animate(t) {
       dx[idx[k]] += nx * d; dy[idx[k]] += ny * d;
     }
   }
-  // resample photo, line art and gill mask through the field (inverse mapping, bilinear)
-  const src = WK.photo, la = WK.baseL, gm = WK.gm, po = WK.cur, lo = WK.curL;
+  // resample photo, gill weight and gill mask through the field (inverse mapping, bilinear)
+  const src = WK.photo, GW = WK.GW, gm = WK.gm, po = WK.cur, go = WK.gcur;
   for (let k = 0; k < list.length; k++) {
     const i = list[k], x = i % N, y = (i - x) / N;
     let sx = x - dx[i], sy = y - dy[i];
@@ -230,47 +215,34 @@ function animate(t) {
     po[o + 1] = src[a + 1] * w00 + src[b + 1] * w10 + src[c + 1] * w01 + src[d + 1] * w11;
     po[o + 2] = src[a + 2] * w00 + src[b + 2] * w10 + src[c + 2] * w01 + src[d + 2] * w11;
     po[o + 3] = src[a + 3] * w00 + src[b + 3] * w10 + src[c + 3] * w01 + src[d + 3] * w11;
-    lo[i] = la[j] * w00 + la[j + 1] * w10 + la[j + N] * w01 + la[j + N + 1] * w11;
+    go[i] = GW[j] * w00 + GW[j + 1] * w10 + GW[j + N] * w01 + GW[j + N + 1] * w11;
     const s = sh[i];
     pulse[i] = s > 0.002 ? s * (0.3 + 0.7 * (gm[j] * w00 + gm[j + 1] * w10 + gm[j + N] * w01 + gm[j + N + 1] * w11)) : 0;
   }
 
-  // per-pixel reveal. Every pixel is one of: neon line (+ the faint coral body of the drawing),
-  // full-brightness skin, or — only inside the narrow feather between them — the coral light band.
-  const rL = lineR(t), rP = skinR(t), fL = 80, fP = 40, bw = 62;
-  const ampL = smooth(-100, 0, rL) * (1 - smooth(880, 980, rL)), ampP = smooth(-90, 90, rP) * (1 - smooth(860, 980, rP));
-  const cur = WK.cur, cl = WK.curL, Dl = WK.Dl, Dp = WK.Dp;
-  const PO = WK.P.d.data, LO = WK.L.d.data, GO = WK.G.d.data, SO = WK.S.d.data, KO = WK.K.d.data, pul = WK.pulse;
-  const bc = rP - fP * 0.5, lc = rL - fL * 0.45, lw = fL * 0.5;
+  // per-pixel colour: the deep-water tint (the gills keep it a moment longer), the depth
+  // dimming, and the gill pulses pulling the filaments toward coral
+  const dB = deepBody(t), dG = deepGill(t), z = zIn(t) + zOut(t), br = 1 - 0.2 * sm(z / 4);
+  const cur = WK.cur, gc = WK.gcur, pul = WK.pulse;
+  const PO = WK.P.d.data, KO = WK.K.d.data, SO = WK.S.d.data;
+  const s0 = lerp(S_PINK[0], S_DEEP[0], dB), s1 = lerp(S_PINK[1], S_DEEP[1], dB), s2 = lerp(S_PINK[2], S_DEEP[2], dB);
   for (let i = 0, o = 0; i < NN; i++, o += 4) {
-    const a = cur[o + 3] / 255, l = cl[i];
-    if (a < 0.003 && l < 0.003) { PO[o + 3] = 0; LO[o + 3] = 0; GO[o + 3] = 0; SO[o + 3] = 0; KO[o + 3] = 0; continue; }
-    const dl = Dl[i], dp = Dp[i];
-    const mL = sm((rL - dl) / fL), mP = sm((rP - dp) / fP);
-    // skin, or the drawing's faint body
-    const fA = mL * (1 - mP), tot = mP + fA;
-    let bp = 0;
-    if (tot > 0.002) {
-      const k = mP / tot;
-      let r = FILL[0] + (cur[o] - FILL[0]) * k, g = FILL[1] + (cur[o + 1] - FILL[1]) * k, b = FILL[2] + (cur[o + 2] - FILL[2]) * k;
-      if (ampP > 0) {
-        const z = (dp - bc) / bw; bp = ampP * Math.exp(-z * z);
-        if (bp > 0.004) { const m = bp * 0.82; r += (BAND[0] - r) * m; g += (BAND[1] - g) * m; b += (BAND[2] - b) * m; }
-      }
-      PO[o] = r; PO[o + 1] = g; PO[o + 2] = b; PO[o + 3] = 255 * a * tot;
-    } else PO[o + 3] = 0;
-    // neon line: full outside the skin, a faint rim over it; whiter at the travelling front
-    let bl = 0;
-    if (ampL > 0) { const z = (dl - lc) / lw; bl = ampL * Math.exp(-z * z); }
-    LO[o + 1] = CORAL[1] + (HOT[1] - CORAL[1]) * bl; LO[o + 2] = CORAL[2] + (HOT[2] - CORAL[2]) * bl;
-    LO[o + 3] = 255 * Math.min(1, l * mL * (1 - 0.8 * mP) * (1 + 0.7 * bl));
-    // additive light: the band (for its bloom) and the gill pulses
-    GO[o + 3] = 255 * Math.min(1, 0.46 * bp * a);
-    KO[o + 3] = 255 * Math.min(1, pul[i] * mP);
-    SO[o + 3] = 255 * a * mP;
+    const a = cur[o + 3];
+    if (a < 1) { PO[o + 3] = 0; KO[o + 3] = 0; SO[o + 3] = 0; continue; }
+    let r = cur[o], g = cur[o + 1], b = cur[o + 2];
+    const d = dB + (dG - dB) * gc[i];
+    if (d > 0.002) {   // skin -> lavender -> teal
+      const L = 0.36 * r + 0.5 * g + 0.14 * b;
+      if (d < 0.5) { const m = 2 * d; r += (L * LAV[0] - r) * m; g += (L * LAV[1] - g) * m; b += (L * LAV[2] - b) * m; }
+      else { const m = 2 * d - 1; r = L * (LAV[0] + (TEAL[0] - LAV[0]) * m); g = L * (LAV[1] + (TEAL[1] - LAV[1]) * m); b = L * (LAV[2] + (TEAL[2] - LAV[2]) * m); }
+    }
+    const p = pul[i];
+    if (p > 0.002) { const m = Math.min(0.8, 0.75 * p); r += (PULSE[0] - r) * m; g += (PULSE[1] - g) * m; b += (PULSE[2] - b) * m; }
+    PO[o] = r * br; PO[o + 1] = g * br; PO[o + 2] = b * br; PO[o + 3] = a;
+    KO[o + 3] = 255 * Math.min(1, p);
+    SO[o] = s0; SO[o + 1] = s1; SO[o + 2] = s2; SO[o + 3] = a;
   }
-  WK.P.g.putImageData(WK.P.d, 0, 0); WK.L.g.putImageData(WK.L.d, 0, 0);
-  WK.G.g.putImageData(WK.G.d, 0, 0); WK.S.g.putImageData(WK.S.d, 0, 0); WK.K.g.putImageData(WK.K.d, 0, 0);
+  WK.P.g.putImageData(WK.P.d, 0, 0); WK.K.g.putImageData(WK.K.d, 0, 0); WK.S.g.putImageData(WK.S.d, 0, 0);
 }
 
 // ---------- caustics: the classic water-caustic iteration, evaluated on a coarse grid
@@ -294,28 +266,18 @@ function caustics(t) {
   caux.putImageData(cauD, 0, 0);
 }
 
-// ---------- soft light helpers (no white-hot core)
+// ---------- soft light (no white-hot core)
 function soft(c, col, x, y, r, a) {
   if (a <= 0.003 || r <= 0) return;
   const g = c.createRadialGradient(x, y, 0, x, y, r);
   g.addColorStop(0, rgba(col, a)); g.addColorStop(0.3, rgba(col, a * 0.55)); g.addColorStop(0.6, rgba(col, a * 0.18)); g.addColorStop(1, rgba(col, 0));
   c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.restore();
 }
-// a ring of light with a bright crest and a soft trailing wake
-function softRing(c, x, y, R, w, col, crest, a) {
-  if (a <= 0.003) return;
-  const r0 = Math.max(0, R - w), r1 = R + w * 0.3, span = r1 - r0;
-  const g = c.createRadialGradient(x, y, r0, x, y, r1);
-  g.addColorStop(0, rgba(col, 0)); g.addColorStop(clamp((R - w * 0.45 - r0) / span), rgba(col, 0.32 * a));
-  g.addColorStop(clamp((R - r0) / span), rgba(crest, a)); g.addColorStop(1, rgba(col, 0));
-  c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.beginPath(); c.arc(x, y, r1, 0, TAU); c.fill(); c.restore();
-}
 
 // ---------- bubbles
-function bubbleSprite(size, blur) {
-  const s = document.createElement('canvas'); s.width = s.height = size; const g = s.getContext('2d');
-  const h = size / 2, r = h * 0.78;
-  if (blur) g.filter = `blur(${blur}px)`;
+function bubbleSprite() {
+  const s = document.createElement('canvas'); s.width = s.height = 128; const g = s.getContext('2d');
+  const h = 64, r = h * 0.78;
   const body = g.createRadialGradient(h, h, 0, h, h, r * 1.18);
   body.addColorStop(0, 'rgba(140,220,255,0.05)'); body.addColorStop(0.62, 'rgba(150,225,255,0.08)');
   body.addColorStop(0.78, 'rgba(175,235,255,0.45)'); body.addColorStop(0.84, 'rgba(225,248,255,0.88)');
@@ -335,27 +297,46 @@ function bubbleSprite(size, blur) {
   g.fillStyle = sp2; g.beginPath(); g.arc(h + r * 0.42, h + r * 0.38, r * 0.14, 0, TAU); g.fill();
   return s;
 }
-const BUB = bubbleSprite(128, 0), BOKEH = bubbleSprite(128, 7);
+// the big bubbles that drift past close to us: a clear aqua rim with a soft glow, a curved
+// window highlight and a warm reflection (no grey haze inside)
+function bigBubbleSprite() {
+  const n = 256, s = document.createElement('canvas'); s.width = s.height = n; const g = s.getContext('2d');
+  const h = n / 2, r = h * 0.78 * 0.84;          // rim radius, matching the small sprite's proportions
+  g.globalCompositeOperation = 'lighter';
+  g.filter = 'blur(5px)'; g.strokeStyle = 'rgba(70,200,255,0.55)'; g.lineWidth = 12; g.beginPath(); g.arc(h, h, r, 0, TAU); g.stroke();
+  g.filter = 'none';
+  const rim = g.createRadialGradient(h, h, r * 0.86, h, h, r * 1.05);
+  rim.addColorStop(0, 'rgba(90,205,255,0)'); rim.addColorStop(0.55, 'rgba(110,215,255,0.55)');
+  rim.addColorStop(0.8, 'rgba(150,232,255,0.95)'); rim.addColorStop(1, 'rgba(100,210,255,0)');
+  g.fillStyle = rim; g.beginPath(); g.arc(h, h, r * 1.05, 0, TAU); g.fill();
+  const inner = g.createRadialGradient(h, h, 0, h, h, r);
+  inner.addColorStop(0, 'rgba(90,200,255,0.03)'); inner.addColorStop(0.8, 'rgba(90,200,255,0.06)'); inner.addColorStop(1, 'rgba(90,200,255,0.16)');
+  g.fillStyle = inner; g.beginPath(); g.arc(h, h, r, 0, TAU); g.fill();
+  // a warm reflection of the axolotl, low on the right
+  g.save(); g.beginPath(); g.arc(h, h, r * 0.97, 0, TAU); g.clip();
+  g.strokeStyle = 'rgba(255,130,155,0.6)'; g.lineWidth = 5; g.filter = 'blur(2px)';
+  g.beginPath(); g.arc(h, h, r * 0.86, 0.25, 1.35); g.stroke(); g.restore(); g.filter = 'none';
+  // window highlight: a short bright arc inside the upper-left rim, and a small dot
+  g.strokeStyle = 'rgba(225,248,255,0.85)'; g.lineCap = 'round'; g.lineWidth = 7; g.filter = 'blur(1.5px)';
+  g.beginPath(); g.arc(h, h, r * 0.74, Math.PI * 1.08, Math.PI * 1.42); g.stroke(); g.filter = 'none';
+  const dt = g.createRadialGradient(h - r * 0.2, h - r * 0.64, 0, h - r * 0.2, h - r * 0.64, r * 0.09);
+  dt.addColorStop(0, 'rgba(235,250,255,0.8)'); dt.addColorStop(1, 'rgba(200,240,255,0)');
+  g.fillStyle = dt; g.beginPath(); g.arc(h - r * 0.2, h - r * 0.64, r * 0.09, 0, TAU); g.fill();
+  return s;
+}
+const BUB = bubbleSprite(), BIG = bigBubbleSprite();
 // size = outer diameter of the drawn bubble (its bright rim is ~0.84 of it)
 function bubble(c, x, y, size, alpha, t, ph, img = BUB) {
   if (alpha <= 0.004 || size <= 0) return;
-  const edge = 1 - smooth(400, 468, Math.hypot(x - C, y - C));
+  const edge = 1 - smooth(400 - 0.45 * size, 470 - 0.6 * size, Math.hypot(x - C, y - C));   // the whole bubble stays inside
   if (edge <= 0) return;
   const q = 0.05 * Math.sin(t * 5.3 + ph);       // the surface tension wobble
   c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, alpha * edge);
   c.translate(x, y); c.rotate(0.3 * Math.sin(t * 1.3 + ph)); c.scale(size / 100 * (1 + q), size / 100 * (1 - q));
   c.drawImage(img, -64, -64, 128, 128); c.restore();
 }
-// the hero bubble that opens and closes the piece: aqua-rimmed, with a coral heart and a halo
-function heroBubble(x, y, size, alpha, t, heart = 1) {
-  if (alpha <= 0.004) return;
-  soft(ctx, [70, 190, 255], x, y, size * 2.1, 0.30 * alpha);
-  soft(ctx, [255, 110, 145], x + size * 0.05, y + size * 0.08, size * 0.62, 0.62 * alpha * heart);
-  softRing(ctx, x, y, size * 0.44, size * 0.22, [90, 210, 255], [170, 240, 255], 0.55 * alpha);
-  bubble(ctx, x, y, size, alpha, t, 0.4);
-}
 
-// ---------- the water: surface, shafts, small bubbles, flowers; all fading out before the rim
+// ---------- the water: surface shimmer, shafts, small bubbles, motes; all inside r ~380
 const WL = HG.layer(), BL = HG.layer(), RL = HG.layer(), CL = HG.layer();
 const RAY_SRC = [C - 300, -700];
 const RAYS = [[-0.30, 0.014, 0.0], [-0.17, 0.022, 1.7], [-0.06, 0.012, 3.1], [0.05, 0.026, 4.4], [0.16, 0.015, 5.6], [0.27, 0.02, 2.4], [0.36, 0.011, 0.9]];
@@ -364,40 +345,22 @@ const LANES = (() => {
   for (let i = 0; i < 20; i++) out.push({ i, P: 6 + 5 * R(), off: R() * 20, size: 10 + 14 * Math.pow(R(), 1.6), ph: R() * TAU, wob: 6 + 10 * R(), wf: 0.6 + 0.6 * R() });
   return out;
 })();
-const FLOWERS = [[372, 212, 56, 0.2], [500, 190, 44, 2.1], [614, 222, 50, 4.0], [440, 240, 24, 5.3], [562, 208, 20, 1.2]];
 const MOTES = (() => { const R = HG.rng(66), o = []; for (let i = 0; i < 46; i++) o.push([R() * W, R() * 1000, 12 + 26 * R(), R() * TAU, 3 + 4 * R(), R() < 0.6]); return o; })();
-let FLOR = null;
-function water(t, amb, A) {
+function water(t, amb) {
   const c = WL.ctx; HG.reset(c); c.clearRect(0, 0, W, W);
-  // the surface: caustic ripples in a band near the top, dimmer than the creature
+  // the surface: caustic ripples in a band under the top of the circle
   {
     const b = BL.ctx; HG.reset(b); b.clearRect(0, 0, W, W);
-    b.drawImage(CAU, -160, 90, 1400, 340);
+    b.drawImage(CAU, -160, 130, 1400, 330);
     b.globalCompositeOperation = 'destination-in';
-    const g = b.createLinearGradient(0, 90, 0, 430);
-    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.22, 'rgba(0,0,0,1)'); g.addColorStop(0.5, 'rgba(0,0,0,0.45)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    const g = b.createLinearGradient(0, 130, 0, 440);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.3, 'rgba(0,0,0,1)'); g.addColorStop(0.55, 'rgba(0,0,0,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)');
     b.fillStyle = g; b.fillRect(0, 0, W, W);
-    b.globalCompositeOperation = 'source-in'; b.fillStyle = rgba(AQUA, 1); b.fillRect(0, 0, W, W);
+    b.globalCompositeOperation = 'source-in'; b.fillStyle = rgba(AQUA_S, 1); b.fillRect(0, 0, W, W);
     HG.reset(b);
-    c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.4; c.drawImage(BL.cv, 0, 0);
-    c.filter = 'blur(12px)'; c.globalAlpha = 0.42; c.drawImage(BL.cv, 0, 0); HG.reset(c);
+    c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.62; c.drawImage(BL.cv, 0, 0);
+    c.filter = 'blur(10px)'; c.globalAlpha = 0.6; c.drawImage(BL.cv, 0, 0); HG.reset(c);
   }
-  // cempasúchil floating on the surface: the canals of Xochimilco, the axolotl's only home
-  if (!FLOR) {
-    FLOR = document.createElement('canvas'); FLOR.width = FLOR.height = 128;
-    const f = FLOR.getContext('2d'), mid = document.createElement('canvas'); mid.width = mid.height = 256;
-    const m = mid.getContext('2d'); m.imageSmoothingQuality = 'high'; m.drawImage(A.flor, 0, 0, 256, 256);
-    f.imageSmoothingQuality = 'high'; f.drawImage(mid, 0, 0, 128, 128);
-  }
-  c.globalCompositeOperation = 'lighter';
-  for (const [x0, y0, sz, ph] of FLOWERS) {
-    const x = x0 + 9 * Math.sin(t * 0.21 + ph) + 1.6 * t, y = y0 + 3.5 * Math.sin(t * 1.05 + ph), rot = ph + 0.07 * t;
-    c.save(); c.translate(x, y); c.scale(1, 0.84); c.rotate(rot);           // seen at a slight slant on the surface
-    c.globalAlpha = 0.22; c.filter = 'blur(6px)'; c.drawImage(FLOR, -sz * 0.7, -sz * 0.7, sz * 1.4, sz * 1.4);
-    c.filter = 'none'; c.globalAlpha = 0.5; c.drawImage(FLOR, -sz / 2, -sz / 2, sz, sz);
-    c.restore();
-  }
-  HG.reset(c);
   // light shafts from the surface, each breathing on its own
   {
     const r = RL.ctx; HG.reset(r); r.clearRect(0, 0, W, W); r.globalCompositeOperation = 'lighter';
@@ -440,115 +403,88 @@ function water(t, amb, A) {
     HG.dot(c, aq ? [140, 225, 245] : [255, 150, 170], x, y, sz, 0.2 * (0.5 + 0.5 * Math.sin(t * 2.2 + tw)));
   }
   HG.reset(c);
-  // vignette: everything in the water fades out between r 380 and 468, so the circle edge stays black
+  // vignette: everything in the water fades out between r 340 and 440, so the circle edge stays black
   c.globalCompositeOperation = 'destination-in';
-  const v = c.createRadialGradient(C, C, 0, C, C, 468);
-  v.addColorStop(0, 'rgba(0,0,0,1)'); v.addColorStop(380 / 468, 'rgba(0,0,0,1)'); v.addColorStop(425 / 468, 'rgba(0,0,0,0.4)'); v.addColorStop(1, 'rgba(0,0,0,0)');
+  const v = c.createRadialGradient(C, C, 0, C, C, 440);
+  v.addColorStop(0, 'rgba(0,0,0,1)'); v.addColorStop(340 / 440, 'rgba(0,0,0,1)'); v.addColorStop(395 / 440, 'rgba(0,0,0,0.4)'); v.addColorStop(1, 'rgba(0,0,0,0)');
   c.fillStyle = v; c.fillRect(0, 0, W, W); HG.reset(c);
   HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = amb; ctx.drawImage(WL.cv, 0, 0); HG.reset(ctx);
 }
-
 // ---------- the creature
 function creature(t, amb) {
-  // a warm coral bloom around the coloured skin, then the skin / drawing body itself
+  const fa = fadeAt(t), dB = deepBody(t), ks = xf(t).s / 0.71;
+  // a soft bloom around the skin (aqua in the deep, coral up close), then the skin itself
   ctx.save(); applyXf(ctx, t);
-  ctx.globalCompositeOperation = 'lighter'; ctx.filter = 'blur(22px)'; ctx.globalAlpha = 0.3; ctx.drawImage(WK.S.c, 0, 0, 1024, 1024);
-  ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.drawImage(WK.P.c, 0, 0, 1024, 1024);
+  ctx.globalCompositeOperation = 'lighter'; ctx.filter = 'blur(22px)'; ctx.globalAlpha = (0.3 + 0.3 * dB) * fa; ctx.drawImage(WK.S.c, 0, 0, 1024, 1024);
+  ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = fa; ctx.drawImage(WK.P.c, 0, 0, 1024, 1024);
   ctx.restore(); HG.reset(ctx);
   // caustics playing over the skin (projected from the surface, so they slide as it floats)
   if (amb > 0) {
-    const c = CL.ctx, CX = [-60, -80, 1200, 1200];
+    const c = CL.ctx, CX = [-60, -80, 1200, 1200], a = amb * fa;
     // shade: the skin dims a little between the bright caustic lines, so the web reads
     HG.reset(c); c.clearRect(0, 0, W, W); c.fillStyle = 'rgb(226,206,212)'; c.fillRect(0, 0, W, W);
     c.filter = 'blur(4px)'; c.drawImage(CAU, ...CX); c.drawImage(CAU, ...CX); c.filter = 'none';
     c.globalCompositeOperation = 'destination-in'; c.save(); applyXf(c, t); c.drawImage(WK.S.c, 0, 0, 1024, 1024); c.restore();
     HG.reset(c);
-    ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = amb; ctx.drawImage(CL.cv, 0, 0); HG.reset(ctx);
+    ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = a; ctx.drawImage(CL.cv, 0, 0); HG.reset(ctx);
     // light: soft aqua-white caustic lines added on the skin
     HG.reset(c); c.clearRect(0, 0, W, W);
     c.filter = 'blur(2.5px)'; c.drawImage(CAU, ...CX); c.filter = 'none';
-    c.globalCompositeOperation = 'source-in'; c.fillStyle = 'rgb(205,240,252)'; c.fillRect(0, 0, W, W);
+    c.globalCompositeOperation = 'source-in'; c.fillStyle = 'rgb(150,228,255)'; c.fillRect(0, 0, W, W);
     c.globalCompositeOperation = 'destination-in'; c.save(); applyXf(c, t); c.drawImage(WK.S.c, 0, 0, 1024, 1024); c.restore();
     HG.reset(c);
-    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.46 * amb; ctx.drawImage(CL.cv, 0, 0); HG.reset(ctx);
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.32 * a; ctx.drawImage(CL.cv, 0, 0); HG.reset(ctx);
   }
-  // additive light: the colour band's bloom and the gill pulses
+  // light running up the gill fronds: soft saturated bloom only, so the cores stay coral
   ctx.save(); applyXf(ctx, t); ctx.globalCompositeOperation = 'lighter';
-  ctx.filter = 'blur(18px)'; ctx.globalAlpha = 0.95; ctx.drawImage(WK.G.c, 0, 0, 1024, 1024);
-  ctx.filter = 'blur(5px)'; ctx.globalAlpha = 0.5; ctx.drawImage(WK.G.c, 0, 0, 1024, 1024);
-  ctx.filter = 'none'; ctx.globalAlpha = 0.25; ctx.drawImage(WK.G.c, 0, 0, 1024, 1024);
-  // light running up the gill fronds
-  ctx.filter = 'blur(16px)'; ctx.globalAlpha = 1; ctx.drawImage(WK.K.c, 0, 0, 1024, 1024);
-  ctx.filter = 'blur(6px)'; ctx.globalAlpha = 0.85; ctx.drawImage(WK.K.c, 0, 0, 1024, 1024);
-  ctx.filter = 'none'; ctx.globalAlpha = 0.55; ctx.drawImage(WK.K.c, 0, 0, 1024, 1024);
-  // the neon drawing
-  ctx.filter = 'blur(14px)'; ctx.globalAlpha = 0.45; ctx.drawImage(WK.L.c, 0, 0, 1024, 1024);
-  ctx.filter = 'blur(4px)'; ctx.globalAlpha = 0.8; ctx.drawImage(WK.L.c, 0, 0, 1024, 1024);
-  ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.drawImage(WK.L.c, 0, 0, 1024, 1024);
+  ctx.filter = 'blur(16px)'; ctx.globalAlpha = 0.95 * fa; ctx.drawImage(WK.K.c, 0, 0, 1024, 1024);
+  ctx.filter = 'blur(6px)'; ctx.globalAlpha = 0.45 * fa; ctx.drawImage(WK.K.c, 0, 0, 1024, 1024);
   ctx.restore(); HG.reset(ctx);
   // a glint at each frond tip as a pulse arrives
-  for (let f = 0; f < 6; f++) for (const [fp, fa] of pulseFronts(f, t)) {
-    const g = fa * bell(fp - 1.05, 0.16) * smooth(4.6, 5.0, t);
-    if (g > 0.01) { const p = toCanvas(FRONDS[f].b, t); soft(ctx, [255, 120, 150], p[0], p[1], 46, 0.42 * g); soft(ctx, [255, 186, 200], p[0], p[1], 12, 0.32 * g); }
+  for (let f = 0; f < 6; f++) for (const [fp, fpa] of pulseFronts(f, t)) {
+    const g = fpa * bell(fp - 1.05, 0.16) * fa;
+    if (g > 0.01) { const p = toCanvas(FRONDS[f].b, t); soft(ctx, [255, 100, 140], p[0], p[1], 46 * ks, 0.42 * g); soft(ctx, [255, 170, 190], p[0], p[1], 12 * ks, 0.3 * g); }
   }
-  // catch-lights in the eyes, lit as the colour reaches them
-  const rP = skinR(t);
-  ctx.save(); ctx.globalCompositeOperation = 'lighter';
-  for (const [ex, ey, k] of EYES) {
-    const a = sm((rP - Math.hypot(ex - FACE[0], ey - FACE[1]) - 30) / 60);
-    if (a <= 0.01) continue;
-    const p = toCanvas([ex - 6 * k, ey - 7 * k], t), q = toCanvas([ex + 5 * k, ey + 6 * k], t), tw = 0.85 + 0.15 * Math.sin(t * 2.1 + ex);
-    HG.dot(ctx, [200, 240, 255], p[0], p[1], 14 * k, 0.35 * a * tw);
-    ctx.globalAlpha = 0.85 * a * tw; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p[0], p[1], 3.3 * k, 0, TAU); ctx.fill();
-    ctx.globalAlpha = 0.45 * a * tw; ctx.beginPath(); ctx.arc(q[0], q[1], 1.6 * k, 0, TAU); ctx.fill();
-  }
-  ctx.restore(); HG.reset(ctx);
-}
-
-// ---------- the opening: a bubble rises, pops against the face and launches the drawing
-function opening(t) {
-  const Fp = toCanvas(FACE, T_POP);
-  const path = tt => {
-    const x = clamp((tt - 0.05) / (T_POP - 0.05)), k = 0.45 * x + 0.55 * out2(x);
-    return [lerp(Fp[0] + 190, Fp[0], k) + 22 * Math.sin(x * 5.2) * (1 - k), lerp(905, Fp[1], k)];
-  };
-  if (t < T_POP + 0.12) {
-    const p = path(Math.min(t, T_POP)), pop = clamp((t - T_POP) / 0.1);
-    const a = smooth(0.05, 0.5, t) * (1 - pop);
-    // tiny followers in its wake
-    for (let j = 1; j <= 4; j++) {
-      const q = path(Math.min(t, T_POP) - 0.09 * j);
-      bubble(ctx, q[0] + 6 * Math.sin(t * 5 + j), q[1] + 34 + 4 * j, 22 - 3.5 * j, 0.75 * a * smooth(0.15 + 0.08 * j, 0.55 + 0.08 * j, t), t, j);
+  // catch-lights in the eyes, once it is out of the deep
+  const ea = sm((0.55 - dB) / 0.4) * fa;
+  if (ea > 0.01) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (const [ex, ey, k] of EYES) {
+      const p = toCanvas([ex - 6 * k, ey - 7 * k], t), q = toCanvas([ex + 5 * k, ey + 6 * k], t), tw = (0.85 + 0.15 * Math.sin(t * 2.1 + ex)) * ea, kk = k * ks;
+      HG.dot(ctx, [200, 240, 255], p[0], p[1], 14 * kk, 0.35 * tw);
+      ctx.globalAlpha = 0.85 * tw; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p[0], p[1], 3.3 * kk, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 0.45 * tw; ctx.beginPath(); ctx.arc(q[0], q[1], 1.6 * kk, 0, TAU); ctx.fill();
     }
-    heroBubble(p[0], p[1], 76 * (1 + 0.4 * pop), a, t, 1 + 0.5 * smooth(0.75, T_POP, t));
-  }
-  const dt = t - T_POP;
-  if (dt > 0 && dt < 1.2) {
-    const F = toCanvas(FACE, t), R = Math.max(34, lineR(t) * scaleAt(t));
-    // soft coral burst at the pop (no white)
-    const fk = clamp(dt / 0.5);
-    soft(ctx, [255, 110, 145], F[0], F[1], 150 + 170 * fk, 0.55 * (1 - fk) * (1 - fk));
-    // the ring: it is the front of the drawing, bright until r~250, then hands over to the lines
-    const ra = smooth(0, 0.04, dt) * (1 - smooth(180, 300, R));
-    if (ra > 0) {
-      ctx.save(); ctx.filter = 'blur(8px)';
-      softRing(ctx, F[0], F[1], R, 46 + 0.16 * R, [255, 105, 140], [255, 150, 172], 0.7 * ra);
-      ctx.restore(); HG.reset(ctx);
-      softRing(ctx, F[0], F[1], R, 26 + 0.08 * R, [255, 120, 150], [255, 196, 208], 0.85 * ra);
-    }
-  }
-  if (dt > 0 && dt < 0.5) {   // the bubble breaks into droplets that ride out on the ring and fade with it
-    const F = toCanvas(FACE, t), R = Math.max(34, lineR(t) * scaleAt(t));
-    for (let j = 0; j < 10; j++) {
-      const ang = (j / 10) * TAU + 0.3 + 0.35 * (hash(j, 3) - 0.5), d = R * (0.8 + 0.14 * hash(j, 9));
-      bubble(ctx, F[0] + Math.cos(ang) * d, F[1] + Math.sin(ang) * d - 30 * dt, 12 + 7 * hash(j, 5), 0.9 * smooth(0, 0.05, dt) * (1 - smooth(0.18, 0.45, dt)), t, j);
-    }
+    ctx.restore(); HG.reset(ctx);
   }
 }
 
-// ---------- the float: a trio of bubbles from the smile, big soft bubbles passing in front
+// ---------- bubbles shed by the creature: a few while it swims up, a trail as it dives away
+const SHED = (() => {
+  const o = [];
+  for (let j = 0; j < 8; j++) o.push({ te: 0.55 + j * 0.2, j, a: 0.55 });
+  for (let j = 0; j < 44; j++) o.push({ te: 9.15 + j * 0.05 + 0.025 * hash(j, 1), j: j + 50, a: 1 });
+  return o;
+})();
+const SHED_SRC = [[300, 300], MOUTH, [560, 330], [215, 360], [300, 300], [600, 420]];   // gill bases and the smile
+function shed(t) {
+  const fade = 1 - smooth(11.5, 11.95, t);
+  for (const { te, j, a } of SHED) {
+    const age = t - te; if (age < 0) continue;
+    const h1 = hash(j, 21), h2 = hash(j, 22), h3 = hash(j, 23), life = 1.5 + 0.7 * h3;
+    if (age > life) continue;
+    const src = SHED_SRC[j % SHED_SRC.length], ks = xf(te).s / 0.71;
+    const o = toCanvas([src[0] + (h1 - 0.5) * 40, src[1] + (h2 - 0.5) * 30], te);
+    const x = o[0] + (h1 - 0.5) * 40 * age + (4 + 7 * age) * Math.sin(age * 4.2 + h3 * 6);
+    const y = o[1] - (140 + 80 * h2) * age - 45 * age * age;
+    const size = (16 + 20 * h3 * h3) * (0.45 + 0.55 * ks) * (0.55 + 0.45 * smooth(0, 0.3, age));
+    bubble(ctx, x, y, size, a * smooth(0, 0.1, age) * (1 - smooth(life - 0.5, life, age)) * fade, t, h1 * 9);
+  }
+}
+
+// ---------- the float: a trio of bubbles from the smile, big bubbles passing in front
 function trio(t) {
-  for (const [te, sz, ph] of [[6.05, 25, 0.3], [6.45, 30, 1.9], [6.95, 34, 3.6]]) {
+  for (const [te, sz, ph] of [[5.6, 25, 0.3], [6.0, 30, 1.9], [6.5, 34, 3.6]]) {
     const age = t - te; if (age < 0 || age > 3.0) continue;
     const m = toCanvas(MOUTH, te);
     const x = m[0] - 58 * ease.out3(age / 0.9) - 9 * age + 5 * Math.sin(age * 3.4 + ph);
@@ -556,49 +492,28 @@ function trio(t) {
     bubble(ctx, x, y, sz * (0.45 + 0.55 * ease.out3(age / 0.35)), 0.95 * smooth(0, 0.18, age) * (1 - smooth(2.1, 3.0, age)), t, ph);
   }
 }
-function bokeh(t) {
-  for (const [t0, dur, x0, x1, size, a, ph] of [[4.4, 5.6, 712, 640, 160, 0.42, 0.7], [5.7, 4.9, 214, 176, 124, 0.36, 2.9]]) {
-    const k = (t - t0) / dur; if (k <= 0 || k >= 1) continue;
-    const x = lerp(x0, x1, k) + 14 * Math.sin(t * 0.9 + ph), y = lerp(1010, 120, k);
-    bubble(ctx, x, y, size, a, t, ph, BOKEH);
+// one rises behind the axolotl (so its rim never turns white over the skin), one passes in front
+function bigBubbles(t, front) {
+  for (const [t0, dur, x0, x1, size, a, ph, fr] of [[4.1, 5.4, 716, 650, 128, 0.9, 0.7, false], [5.8, 4.8, 222, 186, 104, 0.9, 2.9, true]]) {
+    const k = (t - t0) / dur; if (fr !== front || k <= 0 || k >= 1) continue;
+    const x = lerp(x0, x1, k) + 14 * Math.sin(t * 0.9 + ph), y = lerp(990, 130, k);
+    bubble(ctx, x, y, size, a * smooth(0, 0.1, k), t, ph, BIG);
   }
-}
-
-// ---------- the ending: the light gathers in the face and a last bubble carries it away
-function finale(t) {
-  const T_END = 10.95, F = toCanvas(FACE, t);
-  const gather = smooth(10.55, 10.95, t) * (1 - smooth(10.95, 11.35, t));
-  soft(ctx, [255, 110, 145], F[0], F[1], 120, 0.5 * gather); soft(ctx, [255, 180, 196], F[0], F[1], 34, 0.6 * gather);
-  const age = t - T_END; if (age <= 0) return;
-  const F0 = toCanvas(FACE, T_END);
-  const pos = a => [F0[0] + 12 * Math.sin(a * 3.4), F0[1] - 50 * a - 300 * a * a];
-  const fade = 1 - smooth(0.55, 0.98, age);
-  // a faint coral sparkle trail
-  for (let j = 0; j < 30; j++) {
-    const te = 0.06 + j * 0.028, sa = age - te, life = 0.62; if (sa < 0 || sa > life) continue;
-    const p = pos(te), h1 = hash(j, 41), h2 = hash(j, 43), k = 1 - sa / life;
-    const x = p[0] + (h1 - 0.5) * 34 + (h1 - 0.5) * 40 * sa, y = p[1] + 28 + 12 * h2 + 22 * sa;
-    const tw = 0.6 + 0.4 * Math.sin(t * 29 + j * 2.3);
-    soft(ctx, [255, 120, 150], x, y, 11 + 7 * h2, 0.6 * k * tw * fade);
-    soft(ctx, [255, 205, 215], x, y, 3, 0.85 * k * tw * fade);
-  }
-  const p = pos(age);
-  heroBubble(p[0], p[1], 66 * (0.35 + 0.65 * ease.outBack(age / 0.35)), smooth(0, 0.18, age) * fade, t);
 }
 
 HG.start({
   duration: 12,
-  assets: { photo: '../assets/06-ajolote.png', lines: '../assets/06-ajolote_lines.png', flor: '../assets/06-ajolote-flor.png' },
+  assets: { photo: '../assets/06-ajolote.png' },
   render(t, A) {
     if (!WK) buildWork(A);
     const amb = ambient(t);
-    if (amb > 0) { caustics(t); water(t, amb, A); }
-    animate(t);
-    creature(t, amb);
-    opening(t);
+    if (amb > 0 || fadeAt(t) > 0) caustics(t);
+    if (amb > 0) water(t, amb);
+    bigBubbles(t, false);
+    if (fadeAt(t) > 0) { animate(t); creature(t, amb); }
+    shed(t);
     trio(t);
-    bokeh(t);
-    finale(t);
+    bigBubbles(t, true);
   },
 });
 </script></body></html>

@@ -3,15 +3,16 @@
 <body><canvas id="c" width="1080" height="1080"></canvas>
 <script src="../engine.js"></script>
 <script>
-// Día de Muertos: cempasúchil petals spiral in on a warm vortex from beyond the rim. Some
-// drain into a single point of candle light; the rest settle into a slowly turning wreath.
-// From that light La Catrina is drawn in white and marigold line art, then candle light
-// spreads over her (an amber wash leads, true colour follows) and she glows, breathing,
-// lit by a soft flicker. One slow golden sheen crosses her; then the marigolds on her hat
-// glow like candles and let go of a handful of petals. The wreath lets go petal by petal
-// and they drift down around her. At the end the colour recedes into the drawing, the
-// drawing folds into the light, the petals spiral back into it (the opening in reverse),
-// and the light becomes a small candle flame that goes out.
+// Día de Muertos: a small ember glows in the dark and a path of cempasúchil petals is strewn
+// from it toward us, the camino that guides the souls home. A light walks the path, lighting
+// it as it goes, and becomes one candle light. From that light La Catrina is drawn in white and
+// marigold line art while the path's petals rise and part into two arms that close around her
+// as a wreath; candle light spreads over her (an amber wash leads, true colour follows) and she
+// glows, breathing, lit by a soft flicker. One slow golden sheen crosses her; then the marigolds
+// on her hat glow like candles and throw a handful of petals up and out onto the dark. The
+// wreath lets go petal by petal and they drift down around her. At the end the colour recedes
+// into the drawing, the drawing folds into the light, the petals spiral back into it at the
+// centre, and the light opens like a marigold, its petals flying out to the rim.
 // Assets: prepare.py on out/images/catrina-3.png and out-show/images/cempasuchil-1.png,
 // then derive scripts (photo knee, warm grade, designed line art, marigold glow, petal sprites).
 const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
@@ -48,45 +49,95 @@ const centreAt = t => at([512, 512], t);
 const FLOWERS = [[262, 276], [362, 220], [437, 231], [492, 167], [557, 250], [667, 247], [668, 301], [782, 337], [342, 450], [678, 462]];
 
 // ---------- timeline
-const T_CORE = 1.9;                                          // the drained petals become one light
+const T_SOUL = 0.85, T_CORE = 2.1;                           // a light walks the petal path and arrives: one light
 const RMAX = 830;                                            // a wash this wide covers all of her (she reaches ~525 px from FACE; feather 300)
-const lineK = t => t < 8 ? ease.out3((t - 1.95) / 2.7) : 1 - inOut2((t - 9.6) / 1.0);
-const lineA = t => 1 - 0.8 * smooth(4.4, 5.8, t) + 0.65 * smooth(8.9, 9.6, t) - 0.5 * smooth(9.75, 10.3, t);
+const lineK = t => t < 8 ? ease.out3((t - 2.05) / 2.4) : 1 - inOut2((t - 9.3) / 0.8);
+const lineA = t => 1 - 0.8 * smooth(3.3, 4.6, t) + 0.65 * smooth(8.5, 9.2, t) - 0.5 * smooth(9.45, 10.05, t);
 // the amber wash recedes so that its light falls off evenly in time instead of dropping all at once
 // through her bright middle: wash radius (px) at which 0, 5, .. 100 % of the amber's light is still shown
 // (computed from the warm asset with the 260 px feather)
 const RB = [0, 162, 235, 280, 309, 334, 357, 377, 396, 415, 432, 450, 468, 485, 504, 524, 545, 569, 598, 637, RMAX];
 const rhoOfB = b => { const x = clamp(b) * 20, i = Math.min(19, Math.floor(x)); return lerp(RB[i], RB[i + 1], x - i); };
-const rhoW = t => t < 8 ? lerp(40, RMAX, inOut2((t - 3.35) / 2.1)) : rhoOfB(1 - smooth(8.95, 10.5, t));
-const rhoP = t => t < 8 ? lerp(0, RMAX, inOut2((t - 3.85) / 2.1)) : lerp(RMAX, 0, sine((t - 8.8) / 1.25));
-const coreA = t => smooth(0.7, T_CORE + 0.1, t) * (1 - smooth(2.3, 4.0, t));
-const glowLife = t => smooth(4.2, 6.2, t) * (1 - smooth(8.9, 10.3, t));   // candle wash and aura
+// the drawing only leads the colour by a beat: amber follows it in ~0.7 s, true colour ~0.45 s later
+const rhoW = t => t < 8 ? lerp(40, RMAX, inOut2((t - 2.3) / 2.0)) : rhoOfB(1 - smooth(8.75, 10.1, t));
+const rhoP = t => t < 8 ? lerp(0, RMAX, inOut2((t - 2.75) / 2.0)) : lerp(RMAX, 0, sine((t - 8.55) / 1.3));
+// the ember at the end of the path (soft from the start, so the portal opens onto warm light), then the arrival
+const coreA = t => (0.5 * smooth(0.1, 0.5, t) + 0.5 * smooth(1.75, 2.15, t)) * (1 - smooth(2.35, 3.3, t));
+const glowLife = t => smooth(3.4, 5.0, t) * (1 - smooth(8.7, 10.0, t));   // candle wash and aura
 const petalOut = t => 1 - smooth(11.0, 11.75, t);
 const OMEGA = 0.2;                                             // the wreath turns clockwise, rad/s
-const SWEEP0 = 6.0, SWEEP_D = 1.7;                             // golden sheen
-const T_BURST = 7.95;                                          // the hat marigolds glow and let go of petals
-const bloomEnv = t => smooth(7.6, 8.05, t) * (1 - smooth(8.2, 9.0, t));
+const SWEEP0 = 5.1, SWEEP_D = 1.7;                             // golden sheen
+const T_BURST = 7.15;                                          // the hat marigolds glow and throw petals
+const bloomEnv = t => smooth(6.8, 7.25, t) * (1 - smooth(7.4, 8.2, t));
+const T_OPEN = 10.15;                                          // the gathered light swells as the next piece opens from it
+// where the light lives at the end: it moves from her brow to the exact centre, where the next piece opens
+const GP = t => { const [fx, fy] = at(FACE, t), k = sine((t - 9.7) / 0.55); return [lerp(fx, C, k), lerp(fy, C, k)]; };
+
+// ---------- the cempasúchil path: a carpet of petals on the ground, seen in perspective, from beyond
+// the near rim (depth z = 1) to the light at the far end (z = ZF). u = 1 - log(z) / log(ZF): 0 at the light, 1 near us
+const ZF = 24, HP = 610;
+const F0 = at(FACE, 0), VY = F0[1] - 25;                       // the vanishing line, just above the light
+const zOf = u => Math.pow(ZF, 1 - clamp(u));
+const meander = z => 0.5 * Math.sin(TAU * (z - 1) / 6.5 - 0.4); // the road winds (ground units)
+const PX0 = F0[0] - HP * meander(ZF) / ZF;
+const HWG = 0.31;                                               // half width of the road (ground units)
+// centre of the road at u, and the screen scale there (px per ground unit)
+function pathAt(u) { const z = zOf(u), k = HP / z; return [PX0 + k * meander(z), VY + k, k]; }
+const psz = u => 48 * Math.pow(zOf(u), -0.55);                  // petal size shrinks into the distance
+const layAt = u => 0.2 + 0.8 * Math.pow(u, 0.85);              // strewn from the light toward us
+const uLaid = t => Math.pow(clamp((t - 0.2) / 0.8), 1 / 0.85);
+// the walking light: from just beyond the near rim to the light, quick near us, slowing into the distance
+const usAt = t => { const x = clamp((t - T_SOUL) / (T_CORE - T_SOUL)); return 1.04 - 1.04 * (1 - Math.pow(1 - x, 1.25)); };
+const soulBump = (u, t) => (t < T_SOUL || t > T_CORE + 0.3) ? 0 : Math.exp(-Math.pow((u - usAt(t) - 0.03) / 0.05, 2));
 
 // ---------- petals (all parameters fixed up front; positions are pure functions of t)
 const SW = 96, SH = 128, NSPR = 6;
 const R = HG.rng(1102);
-const HALO = [], DRAIN = [], RAIN = [], NEAR = [], BURST = [];
+const HALO = [], RAIN = [], NEAR = [], BURST = [];
 for (let i = 0; i < 200; i++) {
   const flor = i < 8, inner = R() < 0.16, z = R();
   // a designed wreath: most petals in a narrow band at r 430..468, a sparse few inside it
   const rt = inner ? 340 + R() * 70 : 449 + 19 * (R() + R() - 1);
+  const u = flor ? 0.18 + 0.75 * (i + 0.3 + 0.4 * R()) / 8 : Math.pow(R(), 0.85);
   HALO.push({
-    a0: R() * TAU, r0: 640 + R() * 320, rt, d: 0.05 + R() * 1.75, dur: 2.2 + R() * 0.9,
-    spin: 1.7 + R() * 1.6, z, s: flor ? 40 + R() * 14 : lerp(13, 34, z), img: Math.floor(R() * NSPR), flor,
-    rot0: R() * TAU, rs: (R() - 0.5) * 2.6, fs: 1.0 + R() * 2.2, fph: R() * TAU, front: flor ? R() < 0.5 : z > 0.5,
+    u, lat: (R() + R() - 1) * HWG * (flor ? 0.35 : 1), lay: layAt(u) + 0.05 * R(),
+    L: T_CORE - 0.1 + 0.6 * Math.min(1 - u, 2.2 * u) + 0.12 * R(), D: 1.2 + 0.35 * R(), f0: 0.55 + 0.45 * R(),   // both ends first: her face clears
+    rt, z, s: flor ? 40 + R() * 14 : lerp(13, 34, z), img: Math.floor(R() * NSPR), flor,
+    rot0: R() * TAU, rs: (R() - 0.5) * 2.6, fs: 1.0 + R() * 2.2, front: flor ? R() < 0.5 : z > 0.5,
     tr: 5.4 + R() * 3.8, vt: 60 + R() * 70, fa: 16 + R() * 30, ff: 0.3 + R() * 0.4, fp: R() * TAU, bph: R() * TAU,
   });
 }
-for (let i = 0; i < 90; i++) {
-  DRAIN.push({
-    a0: R() * TAU, r0: 600 + R() * 300, d: 0.1 + R() * 0.95, dur: 1.2 + R() * 0.7, s: 18 + R() * 16, img: Math.floor(R() * NSPR),
-    rot0: R() * TAU, rs: (R() - 0.5) * 4, fs: 2 + R() * 3, fph: R() * TAU, sw: 1.4 + R() * 1.4,
-  });
+// more petals that only carpet the road; they fade into the light once it has arrived
+const CARPET = [];
+for (let i = 0; i < 190; i++) {
+  const u = Math.pow(R(), 0.7), lat = (2 * R() - 1) * HWG * 0.95, [x, y, k] = pathAt(u);
+  CARPET.push({ u, px: x + k * lat, py: y, lay: layAt(u) + 0.05 * R(), size: psz(u) * (0.8 + 0.35 * R()), img: Math.floor(R() * NSPR),
+    rot0: R() * TAU, f0: 0.55 + 0.45 * R(), out: T_CORE + 0.05 + 0.6 * Math.min(1 - u, 2.2 * u) + 0.15 * R(), front: R() < 0.5 });
+}
+function carpetAt(p, t) {
+  if (t < p.lay || t > p.out + 0.5) return null;
+  const k = clamp((t - p.lay) / 0.32), e = ease.out3(k), hop = soulBump(p.u, t);
+  const lit = t > T_CORE ? 1 : smooth(0, 0.06, p.u - usAt(t)), base = 0.42 + 0.4 * Math.pow(1 - p.u, 4);
+  return { x: p.px, y: p.py - 24 * (1 - e) - 12 * hop, a: p.rot0 + 0.9 * (1 - e) + 0.5 * hop, f: p.f0, sq: lerp(1, 0.6, e), sc: 0.55 + 0.45 * ease.outBack(k),
+    al: clamp(k * 2) * Math.min(1, base + (1 - base) * lit + 0.3 * hop) * (1 - smooth(p.out, p.out + 0.5, t)) };
+}
+// the path parts into two arms that rise around her and meet above: each petal's place in the wreath
+{
+  for (const p of HALO) {
+    const [x, y, k] = pathAt(p.u);
+    p.px = x + k * p.lat; p.py = y; p.left = p.lat < 0;
+  }
+  for (const side of [true, false]) {
+    const arm = HALO.filter(p => p.left === side).sort((a, b) => b.u - a.u);
+    arm.forEach((p, k) => { const q = (k + 0.5) / arm.length; p.th = Math.PI / 2 + (side ? 1 : -1) * Math.PI * q; });
+  }
+  for (const p of HALO) {
+    const th0 = p.th + OMEGA * (p.L - 3.0), ths = Math.atan2(p.py - C, p.px - C);
+    let d = th0 - ths; d = ((d % TAU) + TAU + Math.PI) % TAU - Math.PI;
+    if (p.left && d < -0.6) d += TAU;
+    if (!p.left && d > 0.6) d -= TAU;
+    p.rs0 = Math.hypot(p.px - C, p.py - C); p.d0 = d;
+  }
 }
 for (let i = 0; i < 60; i++) {
   const z = R();
@@ -104,40 +155,58 @@ for (let i = 0; i < 3; i++) {
     rot0: R() * TAU, rs: (R() - 0.5) * 1.6, fs: 1.2 + R() * 0.9, fph: R() * TAU, fa: 10 + R() * 8, ff: 0.3 + R() * 0.2, fp: R() * TAU,
   });
 }
-// the burst: petals let go by the hat marigolds, thrown up and out, then joining the fall
-for (let i = 0; i < 26; i++) {
-  const f = FLOWERS[i % FLOWERS.length], out = f[0] < 512 ? -1 : 1;
-  const a = -Math.PI / 2 + out * (0.25 + R() * 0.75) + (R() - 0.5) * 0.5, v = 110 + R() * 150;
+// the burst: a handful of large, bright petals thrown by the hat marigolds up and out, past the feathers and
+// the wreath, to points on the dark near the rim (a fan over her upper half), then drifting down
+const RBu = HG.rng(4711);
+for (let i = 0; i < 14; i++) {
+  const th = (-174 + i * 168 / 13 + (RBu() - 0.5) * 6) * Math.PI / 180, r = 478 + RBu() * 26;
+  const ax = C + Math.cos(th) * r, ay = C + Math.sin(th) * r;
+  let best = 0, bd = 1e9;            // thrown by the hat flower whose direction from her centre is closest
+  FLOWERS.slice(0, 8).forEach((f, j) => { const [x, y] = at(f, T_BURST), d = Math.abs(Math.atan2(Math.sin(Math.atan2(y - C, x - C) - th), Math.cos(Math.atan2(y - C, x - C) - th))); if (d < bd) { bd = d; best = j; } });
   BURST.push({
-    f, t0: T_BURST + R() * 0.3, vx: Math.cos(a) * v, vy: Math.sin(a) * v, T0: 0.55 + R() * 0.3, vt: 55 + R() * 45,
-    s: 18 + R() * 14, img: Math.floor(R() * NSPR), rot0: R() * TAU, rs: (R() - 0.5) * 3, fs: 1.5 + R() * 2.5, fph: R() * TAU,
-    fa: 12 + R() * 22, ff: 0.3 + R() * 0.35, fp: R() * TAU, front: true, z: 0.8,
+    f: FLOWERS[best], ax, ay, t0: T_BURST + RBu() * 0.12, T0: 0.32 + RBu() * 0.06,
+    vt: 36 + RBu() * 24, s: 34 + RBu() * 10, img: Math.floor(RBu() * NSPR), rot0: RBu() * TAU, rs: (RBu() - 0.5) * 3, fs: 1.5 + RBu() * 2,
+    fph: RBu() * TAU, fa: 10 + RBu() * 12, ff: 0.3 + RBu() * 0.3, fp: RBu() * TAU,
   });
 }
+const focus = t => smooth(6.95, 7.3, t) * (1 - smooth(8.0, 8.8, t));   // the wreath steps back a little while they fly
 
 // the finale: every petal still in view is drawn back into the light on a clockwise spiral
 const RG = HG.rng(2207);
-for (const p of HALO.concat(RAIN, BURST)) { p.g0 = 9.85 + RG() * 0.5; p.gd = 1.0 + RG() * 0.25; p.gs = 1.5 + RG() * 1.1; }
+for (const p of HALO.concat(RAIN, BURST)) { p.g0 = 9.45 + RG() * 0.6; p.gd = 0.95 + RG() * 0.4; p.gs = 1.5 + RG() * 1.1; }
 function gathered(p, base, t) {
   const st = base(p, t);
   if (!st || t < p.g0) return st;
   const s0 = base(p, p.g0);
   if (!s0 || Math.hypot(s0.x - C, s0.y - C) > 600) return null;   // already gone below the rim
-  const w = ease.inOut3((t - p.g0) / p.gd);
-  const [gx, gy] = at(FACE, t);
+  const x = clamp((t - p.g0) / p.gd), w = x * x;
+  const [gx, gy] = GP(t);
   const dx = st.x - gx, dy = st.y - gy, rr = Math.hypot(dx, dy) * (1 - w), th = Math.atan2(dy, dx) + p.gs * w;
-  return { x: gx + Math.cos(th) * rr, y: gy + Math.sin(th) * rr, a: st.a, f: st.f, al: st.al * (1 - smooth(0.68, 1, w)), sc: (st.sc ?? 1) * (1 - 0.6 * w) };
+  return { ...st, x: gx + Math.cos(th) * rr, y: gy + Math.sin(th) * rr, al: st.al * (1 - smooth(0.6, 0.97, w)), sc: (st.sc ?? 1) * (1 - 0.6 * w) };
 }
 const haloG = (p, t) => gathered(p, haloAt, t), rainG = (p, t) => gathered(p, fallAt, t), burstG = (p, t) => gathered(p, burstAt, t);
 
-// wreath petal state at time t: x, y, angle, flip, alpha
+// wreath petal: its place in the turning wreath
+function wreathPolar(p, t) {
+  const th = p.th + OMEGA * (t - 3.0), r = p.rt + 7 * Math.sin(0.8 * t + p.bph);
+  return [C + Math.cos(th) * r, C + Math.sin(th) * r, th, r];
+}
+const depthA = p => p.z === undefined ? 1 : lerp(0.5, 1, p.z);
+// wreath petal state at time t: strewn on the path, lit by the walking light, lifted into the wreath, let go
 function haloAt(p, t) {
-  const k = (t - p.d) / p.dur;
-  if (k <= 0) return null;
+  if (t < p.lay) return null;
+  if (t < p.L) {
+    const k = clamp((t - p.lay) / 0.32), e = ease.out3(k), hop = soulBump(p.u, t);
+    const lit = t > T_CORE ? 1 : smooth(0, 0.06, p.u - usAt(t));
+    const base = 0.45 + 0.4 * Math.pow(1 - p.u, 4);               // unlit until the walking light passes; the far end glows in the ember's light
+    return { x: p.px, y: p.py - 24 * (1 - e) - 12 * hop, a: p.rot0 + 0.9 * (1 - e) + 0.5 * hop, f: p.f0, sq: lerp(1, 0.6, e),
+      size: psz(p.u) * (p.flor ? 1.6 : 1), al: clamp(k * 2) * Math.min(1, base + (1 - base) * lit + 0.3 * hop), sc: 0.55 + 0.45 * ease.outBack(k) };
+  }
+  const e = clamp((t - p.L) / p.D), size = lerp(psz(p.u) * (p.flor ? 1.6 : 1), p.s, e), al = lerp(1, depthA(p), e);
+  const a = p.rot0 + p.rs * (t - p.L), f = Math.cos(p.fs * (t - p.L) + Math.acos(p.f0));
   const polar = tt => {
-    const ke = ease.out3((tt - p.d) / p.dur);
-    const r = lerp(p.r0, p.rt, ke) + 7 * Math.sin(0.8 * tt + p.bph) * ke;
-    const th = p.a0 + OMEGA * tt + p.spin * ke;
+    const [, , thw, rw] = wreathPolar(p, tt), ee = clamp((tt - p.L) / p.D);
+    const r = lerp(p.rs0, rw, inOut2(ee)), th = thw - p.d0 * (1 - inOut2(Math.min(1, ee * 1.08)));
     return [C + Math.cos(th) * r, C + Math.sin(th) * r, th, r];
   };
   let x, y;
@@ -145,21 +214,12 @@ function haloAt(p, t) {
   else {
     // let go: keep the orbital velocity, drag settles it into a slow fall with flutter
     const [x0, y0, th, r] = polar(p.tr), tau = t - p.tr, T0 = 1.2;
-    const e = T0 * (1 - Math.exp(-tau / T0)), v = OMEGA * r;
+    const ee = T0 * (1 - Math.exp(-tau / T0)), v = OMEGA * r;
     const ramp = Math.pow(1 - Math.exp(-tau / 0.9), 2);
-    x = x0 - Math.sin(th) * v * e + p.fa * ramp * Math.sin(TAU * p.ff * tau + p.fp) - p.fa * ramp * Math.sin(p.fp);
-    y = y0 + Math.cos(th) * v * e + p.vt * (tau - e);
+    x = x0 - Math.sin(th) * v * ee + p.fa * ramp * Math.sin(TAU * p.ff * tau + p.fp) - p.fa * ramp * Math.sin(p.fp);
+    y = y0 + Math.cos(th) * v * ee + p.vt * (tau - ee);
   }
-  return { x, y, a: p.rot0 + p.rs * t, f: Math.cos(p.fs * t + p.fph), al: clamp(k * 2.5) };
-}
-function drainAt(p, t) {
-  const k = (t - p.d) / p.dur;
-  if (k <= 0 || k >= 1) return null;
-  const [fx, fy] = at(FACE, T_CORE);
-  const r = p.r0 * Math.pow(1 - k, 1.45);
-  const th = p.a0 + OMEGA * t + p.sw * (k + 1.8 * k * k * k);
-  return { x: fx + Math.cos(th) * r, y: fy + Math.sin(th) * r, a: p.rot0 + p.rs * t, f: Math.cos(p.fs * t + p.fph),
-    al: clamp(k * 3) * (1 - smooth(0.72, 1, k)), sc: 0.35 + 0.65 * Math.sqrt(1 - k) };
+  return { x, y, a, f, size, al, sc: 1, sq: lerp(0.6, 1, smooth(0, 0.35, e)) };
 }
 function fallAt(p, t) {
   const tau = t - p.ts;
@@ -172,32 +232,28 @@ function burstAt(p, t) {
   const tau = t - p.t0;
   if (tau <= 0) return null;
   const [ox, oy] = at(p.f, p.t0);
-  const e = p.T0 * (1 - Math.exp(-tau / p.T0));
-  const ramp = smooth(0.3, 1.6, tau);
-  const y = oy + p.vy * e + p.vt * (tau - e);
+  const E = 1 - Math.exp(-tau / p.T0), ramp = smooth(0.4, 1.5, tau);
+  const y = oy + (p.ay - oy) * E + p.vt * (tau - p.T0 * E);
   if (y > W + 80) return null;
-  return { x: ox + p.vx * e + p.fa * ramp * Math.sin(TAU * p.ff * tau + p.fp), y, a: p.rot0 + p.rs * t, f: Math.cos(p.fs * t + p.fph),
-    al: smooth(0, 0.22, tau), sc: 0.35 + 0.65 * smooth(0, 0.45, tau) };
+  return { x: ox + (p.ax - ox) * E + p.fa * ramp * Math.sin(TAU * p.ff * tau + p.fp) - p.fa * ramp * Math.sin(p.fp), y,
+    a: p.rot0 + p.rs * t, f: Math.cos(p.fs * t + p.fph), al: smooth(0, 0.12, tau), sc: 0.45 + 0.55 * smooth(0, 0.35, tau) };
 }
-
 // draw one petal (or a whole small blossom) onto c
 function petal(c, A, s, p, size, a) {
   if (!s || a <= 0.01) return;
   if (p.flor) {
-    const ca = Math.cos(s.a * 0.3), sa = Math.sin(s.a * 0.3), sq = 0.82 + 0.18 * Math.abs(s.f);
-    c.setTransform(ca, sa, -sa * sq, ca * sq, s.x, s.y);
+    const ca = Math.cos(s.a * 0.3), sa = Math.sin(s.a * 0.3), sq = 0.82 + 0.18 * Math.abs(s.f), v = s.sq ?? 1;
+    c.setTransform(ca, sa * v, -sa * sq, ca * sq * v, s.x, s.y);
     c.globalAlpha = a;
     c.drawImage(A.flor, -size / 2, -size / 2, size, size);
   } else {
-    const ca = Math.cos(s.a), sa = Math.sin(s.a), f = s.f;
-    c.setTransform(ca, sa, -sa * f, ca * f, s.x, s.y);
+    const ca = Math.cos(s.a), sa = Math.sin(s.a), f = s.f, v = s.sq ?? 1;
+    c.setTransform(ca, sa * v, -sa * f, ca * f * v, s.x, s.y);
     c.globalAlpha = a * (f < 0 ? 0.78 : 1);
     c.drawImage(A.petals, p.img * SW, 0, SW, SH, -size * 0.375, -size * 0.5, size * 0.75, size);
   }
   c.setTransform(1, 0, 0, 1, 0, 0);
 }
-// depth: far petals are smaller and dimmer (and go on the softened back layer)
-const depthA = p => p.z === undefined ? 1 : lerp(0.5, 1, p.z);
 
 // a tapered ribbon of light along the path a petal just travelled, filled as ONE polygon
 // (no per-segment caps, so no bright beads at the joints); bright only while it moves fast
@@ -254,68 +310,65 @@ function composite(L, { alpha = 1, bloom = 0.4, blur = 10, op = 'source-over', s
   ctx.drawImage(L.cv, 0, 0);
   HG.reset(ctx);
 }
-// a small candle flame, base of the bulb at (x, y), height h
-function flame(c, x, y, h, a, t) {
-  if (a <= 0.003 || h <= 0.5) return;
-  const sway = 0.07 * flick(1.6 * t + 3), H = h * (1 + 0.05 * Math.sin(TAU * 2.7 * t) + 0.03 * Math.sin(TAU * 4.3 * t + 1));
-  glow(c, x, y - 0.32 * h, 5.5 * h, [255, 120, 30], 0.32 * a);
-  glow(c, x, y - 0.32 * h, 1.9 * h, [255, 176, 90], 0.42 * a);
-  c.save(); c.globalCompositeOperation = 'lighter'; c.translate(x, y); c.transform(1, 0, -sway, 1, 0, 0);
-  c.filter = 'blur(1.2px)';
-  const g = c.createRadialGradient(0, -0.27 * h, 0, 0, -0.32 * h, 0.85 * H);
-  g.addColorStop(0, `rgba(255,244,222,${a})`); g.addColorStop(0.22, `rgba(255,214,140,${a})`);
-  g.addColorStop(0.55, `rgba(255,140,40,${0.85 * a})`); g.addColorStop(1, 'rgba(255,90,20,0)');
-  c.fillStyle = g;
-  c.beginPath(); c.moveTo(0, -H);
-  c.bezierCurveTo(0.2 * h, -0.62 * H, 0.36 * h, -0.2 * h, 0.28 * h, -0.12 * h);
-  c.bezierCurveTo(0.2 * h, 0.04 * h, -0.2 * h, 0.04 * h, -0.28 * h, -0.12 * h);
-  c.bezierCurveTo(-0.36 * h, -0.2 * h, -0.2 * h, -0.62 * H, 0, -H);
-  c.fill(); c.restore();
-}
 
-const LB = HG.layer(), LF = HG.layer(), LN = HG.layer(), LW = HG.layer(), LP = HG.layer(), LT = HG.layer();
+const LB = HG.layer(), LF = HG.layer(), LN = HG.layer(), LW = HG.layer(), LP = HG.layer(), LT = HG.layer(), LU = HG.layer();
 
 HG.start({
   duration: 12,
   assets: { photo: AS + 'catrina_photo.png', warm: AS + 'catrina_warm.png', lines: AS + 'catrina_lines3.png', mglow: AS + 'catrina_mglow.png',
     petals: AS + 'petals.png', flor: AS + 'flor_s.png' },
   render(t, A) {
-    const fl = flick(t), pout = petalOut(t);
+    const fl = flick(t), pout = petalOut(t), fo = focus(t);
     const [fx, fy] = at(FACE, t), [cx, cy] = centreAt(t), f = pose(t);
-    const closing = t > 9.6;                     // the return spiral draws half as many trails
+    const closing = t > 9.4;                     // the return spiral draws half as many trails
 
     // ---- aura of candle light behind her
     const gl = glowLife(t);
     glow(ctx, cx, cy - 40, 560, [255, 105, 20], gl * (0.16 + 0.025 * fl));
     glow(ctx, fx, fy, 300, [255, 150, 60], gl * (0.10 + 0.02 * fl));
 
+    // ---- the path's own warm glow under its petals, brighter where the light has walked
+    const pg = smooth(0.2, 0.9, t) * (1 - smooth(T_CORE - 0.1, T_CORE + 0.7, t));
+    if (pg > 0.003) {
+      const lt = LT.ctx; HG.reset(lt); lt.clearRect(0, 0, W, W);
+      const ul = uLaid(t - 0.2), us = t > T_CORE ? -1 : usAt(t);
+      let [x0, y0, k0] = pathAt(0);
+      for (let u = 0.02; u <= ul + 1e-6; u += 0.02) {
+        const [x1, y1, k1] = pathAt(u), lit = smooth(us, us + 0.05, u), hw0 = 0.8 * HWG * k0, hw1 = 0.8 * HWG * k1;
+        lt.fillStyle = rgba([Math.round(lerp(110, 255, lit)), Math.round(lerp(42, 132, lit)), Math.round(lerp(8, 34, lit))], 1);
+        lt.beginPath(); lt.moveTo(x0 - hw0, y0 - 0.5); lt.lineTo(x0 + hw0, y0 - 0.5); lt.lineTo(x1 + hw1, y1 + 0.5); lt.lineTo(x1 - hw1, y1 + 0.5); lt.fill();
+        x0 = x1; y0 = y1; k0 = k1;
+      }
+      HG.reset(ctx); ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.3 * pg; ctx.filter = 'blur(22px)'; ctx.drawImage(LT.cv, 0, 0); HG.reset(ctx);
+    }
+
     // ---- petals: far ones on the back layer (behind her, softened), near ones in front
     const lb = LB.ctx, lf = LF.ctx; HG.reset(lb); lb.clearRect(0, 0, W, W); HG.reset(lf); lf.clearRect(0, 0, W, W);
     for (const p of HALO) {
       const st = haloG(p, t); if (!st) continue;
-      petal(p.front ? lf : lb, A, st, p, p.s * (st.sc ?? 1), st.al * pout * depthA(p));
+      petal(p.front ? lf : lb, A, st, p, st.size * (st.sc ?? 1), st.al * pout * (1 - 0.3 * fo));
     }
+    if (t < 3.6) for (const p of CARPET) { const st = carpetAt(p, t); if (st) petal(p.front ? lf : lb, A, st, p, p.size * st.sc, st.al); }
     for (const p of RAIN) {
       const st = rainG(p, t); if (!st) continue;
-      petal(p.front ? lf : lb, A, st, p, p.s * (st.sc ?? 1), st.al * pout * depthA(p));
+      petal(p.front ? lf : lb, A, st, p, p.s * (st.sc ?? 1), st.al * pout * depthA(p) * (1 - 0.3 * fo));
     }
     composite(LB, { bloom: 0.4, blur: 9, alpha: 0.85, soft: 1.4 });
 
-    // ---- the vortex: light trails of the petals winding in (and, at the end, back out of view into the light)
-    if (t < 5.2 || closing) {
+    // ---- the return: light trails of the petals winding back into the light
+    if (closing) {
       const lt = LT.ctx; HG.reset(lt); lt.clearRect(0, 0, W, W); lt.globalCompositeOperation = 'lighter';
       const tc = [[255, 150, 40], [255, 196, 110]];
-      const fin = closing ? 0.7 : 1, J = closing ? 10 : 12;
-      HALO.forEach((p, i) => { if (!closing || i % 2 === 0) trail(lt, haloG, p, t, fin * (p.front ? 0.5 : 0.32), tc[i & 1], 3.2, J); });
-      RAIN.forEach((p, i) => { if (!closing || i % 2 === 0) trail(lt, rainG, p, t, fin * (p.front ? 0.5 : 0.32), tc[i & 1], 3.2, J); });
-      if (closing) BURST.forEach((p, i) => { if (i % 2 === 0) trail(lt, burstG, p, t, fin * 0.45, tc[i & 1], 3.0, J); });
-      if (t < 5.2) DRAIN.forEach((p, i) => trail(lt, drainAt, p, t, 0.55, tc[(i + 1) & 1], 2.6));
+      HALO.forEach((p, i) => { if (i % 2 === 0) trail(lt, haloG, p, t, 0.7 * (p.front ? 0.5 : 0.32), tc[i & 1], 3.2, 10); });
+      RAIN.forEach((p, i) => { if (i % 2 === 0) trail(lt, rainG, p, t, 0.7 * (p.front ? 0.5 : 0.32), tc[i & 1], 3.2, 10); });
+      BURST.forEach((p, i) => trail(lt, burstG, p, t, 0.7 * 0.45, tc[i & 1], 3.0, 10));
       HG.reset(lt);
       composite(LT, { bloom: 0.9, blur: 6, op: 'lighter' });
     }
 
     // ---- La Catrina: amber candle wash leads, true colour follows
-    const showP = rhoW(t) > 2 && t > 3.2;
+    const showP = rhoW(t) > 2 && t > 2.2;
     if (showP) {
       const lw = LW.ctx, lp = LP.ctx;
       HG.reset(lw); lw.clearRect(0, 0, W, W); applyPose(lw, t); lw.drawImage(A.warm, 0, 0, 1024, 1024); HG.reset(lw);
@@ -326,7 +379,7 @@ HG.start({
         radialMask(lp, fx, fy, rp, 300);
         lw.drawImage(LP.cv, 0, 0);
       }
-      composite(LW, { bloom: 0.2 + 0.04 * fl, blur: 16 });
+      composite(LW, { bloom: 0.2 + 0.04 * fl, blur: 16, alpha: 1 - smooth(9.72, 10.05, t) });   // the last of her dissolves into the light
 
       // flickering candle light over her: screen, so it warms the darks and never clips the lace
       const wash = gl * (0.16 + 0.07 * fl);
@@ -352,7 +405,7 @@ HG.start({
         ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.07 * Math.sin(Math.PI * sw); ctx.filter = 'blur(10px)'; ctx.drawImage(LP.cv, 0, 0); HG.reset(ctx);
       }
 
-      // the hat marigolds glow like candles, just before they let go of their petals
+      // the hat marigolds glow like candles, just before they throw their petals
       const be = bloomEnv(t) * (0.85 + 0.15 * fl);
       if (be > 0.004) {
         HG.reset(lp); lp.clearRect(0, 0, W, W); applyPose(lp, t); lp.drawImage(A.mglow, 0, 0, 1024, 1024); HG.reset(lp);
@@ -372,22 +425,44 @@ HG.start({
     if (k > 0) HG.lineReveal(A.lines, cx, cy, SIZE * f.s / SC, k, { rotation: f.r, color: [255, 176, 90], cx: fx, cy: fy, feather: 130,
       alpha: lineA(t) * (0.92 + 0.08 * fl * gl) });
 
-    // ---- the single light the petals drain into
+    // ---- the ember the path leads to, and the one light the walking light becomes
     const ca = coreA(t);
     if (ca > 0) {
-      const breathe = 1 + 0.08 * Math.sin(TAU * t * 1.4);
+      const breathe = 1 + 0.08 * Math.sin(TAU * t * 1.4), hot = smooth(1.6, 2.1, t);
       glow(ctx, fx, fy, 260 * breathe, [255, 120, 30], ca * 0.55);
-      glow(ctx, fx, fy, 90 * breathe, [255, 190, 110], ca * 0.75);
-      glow(ctx, fx, fy, 28, [255, 236, 200], ca * 0.8);
+      glow(ctx, fx, fy, 90 * breathe, [255, 190, 110], ca * lerp(0.45, 0.75, hot));
+      glow(ctx, fx, fy, 28, [255, 236, 200], ca * 0.8 * hot);
     }
 
-    // ---- petals in front: wreath front half, rain, the burst, and the drain into the light
-    for (const p of BURST) { const st = burstG(p, t); if (st) petal(lf, A, st, p, p.s * st.sc, st.al * pout); }
-    for (const p of DRAIN) { const st = drainAt(p, t); if (st) petal(lf, A, st, p, p.s * st.sc, st.al); }
+    // ---- petals in front: wreath front half and rain
     composite(LF, { bloom: 0.5, blur: 9 });
 
+    // ---- the burst: large bright petals with short warm trails, on their own layer in front
+    if (t > T_BURST) {
+      const lu = LU.ctx; HG.reset(lu); lu.clearRect(0, 0, W, W);
+      lu.globalCompositeOperation = 'lighter';
+      for (const p of BURST) {
+        trail(lu, burstG, p, t, 0.95, [255, 186, 90], 8, 10);
+        const st = burstG(p, t);
+        if (st) glow(lu, st.x, st.y, 1.5 * p.s * st.sc, [255, 150, 50], 0.5 * st.al * pout);
+      }
+      lu.globalCompositeOperation = 'source-over';
+      for (const p of BURST) { const st = burstG(p, t); if (st) petal(lu, A, st, p, p.s * st.sc, st.al * pout); }
+      composite(LU, { bloom: 0.8, blur: 8 });
+      HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.3; ctx.drawImage(LU.cv, 0, 0); HG.reset(ctx);
+    }
+
+    // ---- the light walking the path
+    if (t > T_SOUL && t < T_CORE + 0.15) {
+      const sa = smooth(T_SOUL, T_SOUL + 0.3, t) * (1 - smooth(T_CORE - 0.12, T_CORE + 0.12, t));
+      const [sx, sy, sk] = pathAt(usAt(t)), d = Math.pow(sk / HP, 0.5);   // 1 near us, smaller far away
+      glow(ctx, sx, sy - 20 * d, 230 * d + 60, [255, 120, 30], 0.34 * sa);
+      glow(ctx, sx, sy - 20 * d, 70 * d + 24, [255, 190, 110], 0.66 * sa);
+      glow(ctx, sx, sy - 20 * d, 20 * d + 8, [255, 236, 200], 0.5 * sa);
+    }
+
     // ---- embers rising from the candles below
-    const eA = smooth(4.5, 6.5, t) * (1 - smooth(9.6, 10.6, t));
+    const eA = smooth(3.8, 5.5, t) * (1 - smooth(9.3, 10.1, t));
     if (eA > 0) {
       const Re = HG.rng(77);
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
@@ -402,17 +477,23 @@ HG.start({
       ctx.restore();
     }
 
-    // ---- the finale: the gathered light becomes a small candle flame, then goes out
-    // as the last of her amber shrinks into the brow it hands over to a soft light the petals spiral into
-    const hand = smooth(9.95, 10.4, t) * (1 - smooth(10.75, 11.1, t));
-    if (hand > 0) { glow(ctx, fx, fy, 230, [255, 120, 30], 0.32 * hand); glow(ctx, fx, fy, 70, [255, 190, 120], 0.38 * hand); }
-    const fa = smooth(10.55, 11.0, t) * (1 - smooth(11.45, 11.85, t));
-    if (fa > 0) {
-      const settle = smooth(10.85, 11.25, t);                 // a round light that draws up into a flame
-      const out = smooth(11.45, 11.85, t);
-      glow(ctx, fx, fy, lerp(200, 120, settle) * (1 + 0.06 * fl), [255, 120, 30], fa * lerp(0.5, 0.18, settle));
-      glow(ctx, fx, fy, 60, [255, 200, 130], fa * 0.6 * (1 - settle));
-      flame(ctx, fx, fy + 18, 52 * settle * (1 - 0.55 * out), fa * settle, t);
+    // ---- the finale: one soft light at the centre takes over from her brow; the petals spiral into it,
+    // then it opens like a marigold whose petals fly out to the rim, and its glow fades last
+    const hand = smooth(9.75, 10.1, t) * (1 - smooth(11.2, 11.85, t));
+    if (hand > 0) {
+      const [hx, hy] = GP(t), op = smooth(T_OPEN - 0.1, T_OPEN + 0.9, t), br = 1 + 0.06 * fl;
+      glow(ctx, hx, hy, lerp(260, 420, op) * br, [255, 115, 25], hand * 0.38);
+      glow(ctx, hx, hy, 90 * br, [255, 186, 110], hand * 0.48 * (1 - 0.3 * op));
+      glow(ctx, hx, hy, 24, [255, 236, 200], hand * 0.3 * (1 - 0.5 * op));
+    }
+    // as it opens, a soft wave of its warmth runs out to the rim (on the fan, just outside the portal's ring)
+    const wv = smooth(T_OPEN, T_OPEN + 0.25, t) * (1 - smooth(10.95, 11.35, t));
+    if (wv > 0.003) {
+      const Rw = 800 * ease.inOut3((t - 10.2) / 1.8), r0 = Math.max(0, Rw - 30), r2 = Rw + 180;
+      const g = ctx.createRadialGradient(C, C, r0, C, C, r2);
+      g.addColorStop(0, 'rgba(255,140,40,0)'); g.addColorStop(0.3, rgba([255, 145, 45], 0.38 * wv));
+      g.addColorStop(0.6, rgba([255, 120, 30], 0.12 * wv)); g.addColorStop(1, 'rgba(255,100,20,0)');
+      HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(0, 0, W, W); HG.reset(ctx);
     }
 
     // ---- a few large petals drifting past close to the lens (defocused), in the side margins
