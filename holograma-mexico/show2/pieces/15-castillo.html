@@ -201,20 +201,29 @@ const flight = (J, s, kap, g) => {
   const E = (1 - Math.exp(-kap * s)) / kap;
   return [J.x + J.vx * E, J.y + J.vy * E + (g / kap) * (s - E), (J.z || 0) + (J.vz || 0) * E];
 };
+// Every spark gets its own streak length (0.55x to 2x `streak`), width (+-40%) and a taper from a
+// bright head to a faint tail; a share `fly` of them are flung harder, with less drag and a longer
+// life, so arms of sparks read as thrown fire rather than ruled ticks.
+const TAPER = [[1, 0.5, 0.22, 0.5, 2], [0.5, 0.18, 0.55, 0.78, 1], [0.18, 0, 1, 1, 0]];   // [from, to, alpha, width, ramp+]
 function stream(c, t, o) {
-  const { t0, t1 = 1e9, rate, life0, life1, seed, jet, map, pal, kap = 2.4, g = 240, w = 2.6, crackle = 0.08, gain = 1, head = 1, streak = 0.05, maxAge = 9 } = o;
-  const kLo = Math.max(0, Math.ceil((t - life1 - t0) * rate) - 1), kHi = Math.floor((Math.min(t, t1) - t0) * rate) + 1;
+  const { t0, t1 = 1e9, rate, life0, life1, seed, jet, map, pal, kap = 2.4, g = 240, w = 2.6, crackle = 0.08, gain = 1, head = 1, streak = 0.05, maxAge = 9,
+    fly = 0, flyLife = 1.8, flySp = 1.3 } = o;
+  const lifeMax = life1 * (fly > 0 ? flyLife : 1);
+  const kLo = Math.max(0, Math.ceil((t - lifeMax - t0) * rate) - 1), kHi = Math.floor((Math.min(t, t1) - t0) * rate) + 1;
   const P = PAL[pal];
   c.lineCap = 'round';
   for (let k = kLo; k <= kHi; k++) {
     const tau = t0 + (k + 0.9 * (hash(seed + 29, k) - 0.5)) / rate, u = t - tau;   // jittered birth: no combs
-    const h3 = hash(seed + 13, k), life = lerp(life0, life1, h3);
+    const flyer = fly > 0 && hash(seed + 47, k) < fly;
+    const h3 = hash(seed + 13, k), life = lerp(life0, life1, h3) * (flyer ? flyLife : 1);
     if (u < 0 || u > life || tau < t0 || tau > t1) continue;
     const h1 = hash(seed, k), h2 = hash(seed + 7, k);
-    const J = jet(tau, h1, h2, k);
+    let J = jet(tau, h1, h2, k);
     if (!J || J.a <= 0.01) continue;
+    let kp = kap;
+    if (flyer) { J = { ...J, vx: J.vx * flySp, vy: J.vy * flySp, vz: (J.vz || 0) * flySp }; kp = kap * 0.7; }
     const q = u / life;
-    const p1 = map(...flight(J, u, kap, g)); if (!p1) continue;
+    const p1 = map(...flight(J, u, kp, g)); if (!p1) continue;
     const A = J.a * gain * (1 - smooth(maxAge - 0.15, maxAge, u));
     if (h2 < crackle && q > 0.7 && q < 0.86) {               // crackle: a few sparks pop into a tiny star
       const pk = Math.sin(Math.PI * (q - 0.7) / 0.16);
@@ -222,11 +231,16 @@ function stream(c, t, o) {
       dot(c, P.hot, p1[0], p1[1], 13 * p1[2], 0.8 * pk * A);
       continue;
     }
-    const a = A * smooth(0, 0.035, u) * (1 - smooth(0.35, 1, q));
+    const a = A * smooth(0, 0.035, u) * (1 - smooth(0.35, 1, q)) * (flyer ? 1.15 : 1);
     if (a <= 0.01) continue;
-    const p0 = map(...flight(J, Math.max(0, u - streak), kap, g)); if (!p0) continue;
-    c.globalAlpha = Math.min(1, a); c.strokeStyle = P.ramp[Math.min(7, Math.floor(q * 8))]; c.lineWidth = w * p1[2] * (1 - 0.45 * q);
-    c.beginPath(); c.moveTo(p0[0], p0[1]); c.lineTo(p1[0] + 0.01, p1[1]); c.stroke();
+    const sl = streak * lerp(0.55, 2.0, hash(seed + 41, k)) * (flyer ? 1.3 : 1);
+    const lw = w * p1[2] * (1 - 0.45 * q) * lerp(0.6, 1.4, hash(seed + 43, k)), ri = Math.min(7, Math.floor(q * 8));
+    const pt = f => f <= 0 ? p1 : map(...flight(J, Math.max(0, u - sl * f), kp, g));
+    for (const [f0, f1, al, wk, rp] of TAPER) {             // tail -> head: faint and thin, then bright and full
+      const pa = pt(f0), pb = pt(f1); if (!pa || !pb) continue;
+      c.globalAlpha = Math.min(1, a * al); c.strokeStyle = P.ramp[Math.min(7, ri + rp)]; c.lineWidth = lw * wk;
+      c.beginPath(); c.moveTo(pa[0], pa[1]); c.lineTo(pb[0] + 0.01, pb[1]); c.stroke();
+    }
     if (head && q < 0.2) dot(c, P.main, p1[0], p1[1], 8 * p1[2] * head, a * 0.6 * (1 - q / 0.2));
   }
 }
@@ -297,9 +311,9 @@ function drawWheel(c, F, d, t, base, fire = true) {
   for (let j = 0; j < 6; j++) { const a = a0 + j * TAU / 6, q = M(d.r * Math.cos(a), d.r * Math.sin(a)); if (hub && q) { F.moveTo(hub[0], hub[1]); F.lineTo(q[0], q[1]); } }
   F.stroke();
   const env = envF(t); if (env <= 0.005 || !fire) return;
-  const J = rimJet(d.r, n, th, d.dir, 470, 0.85, envF, 0.5, 0.3);
+  const J = rimJet(d.r, n, th, d.dir, 470, 0.85, envF, 0.75, 0.5);
   for (let j = 0; j < n; j++) ribbon(c, t, { t0: d.ti, life: 0.75, n: 34, jet: s => J(s, 0.5, 0.5, j), map: M, pal: d.pal, kap: 2.6, g: 170, w: 6, a: 0.95 });
-  stream(c, t, { t0: d.ti, rate: 170, life0: 0.4, life1: 0.95, seed: 100 + d.x, pal: d.pal, kap: 2.6, g: 170, w: 2.6, streak: 0.06,
+  stream(c, t, { t0: d.ti, rate: 138, life0: 0.4, life1: 0.95, seed: 100 + d.x, pal: d.pal, kap: 2.6, g: 170, w: 2.6, streak: 0.06, fly: 0.1,
     map: M, jet: (s, h1, h2, k) => J(s, h1, h2, k % n) });
   for (let j = 0; j < n; j++) cometArc(c, M, d.r, a0 + j * TAU / n, 1.2, d.dir, P.main, 6.5, 0.9 * env);
   for (let j = 0; j < n; j++) { const a = a0 + j * TAU / n, p = M(d.r * Math.cos(a), d.r * Math.sin(a)); if (p) { dot(c, P.hot, p[0], p[1], 24 * p[2], 0.9 * env); dot(c, P.main, p[0], p[1], 60 * p[2], 0.3 * env); } }
@@ -317,10 +331,10 @@ function drawStar(c, F, d, t, base, fire = true) {
   for (let j = 0; j < 8; j++) { const a = aO + j * TAU / 8, q = M(d.r * Math.cos(a), d.r * Math.sin(a)); if (hub && q) { F.moveTo(hub[0], hub[1]); F.lineTo(q[0], q[1]); } }
   F.stroke();
   const env = envO(t); if (env <= 0.005 || !fire) return;
-  const JO = rimJet(d.r, 4, thO, 1, 340, 0.8, envO, 0.5, 0.3), JI = rimJet(rI, 5, thI, -1, 170, 0.35, envI);
+  const JO = rimJet(d.r, 4, thO, 1, 340, 0.8, envO, 0.75, 0.5), JI = rimJet(rI, 5, thI, -1, 170, 0.35, envI);
   for (let j = 0; j < 4; j++) ribbon(c, t, { t0: d.ti, life: 0.7, n: 32, jet: s => JO(s, 0.5, 0.5, j), map: M, pal: 'white', kap: 2.7, g: 150, w: 5, a: 0.8 });
   for (let j = 0; j < 5; j++) ribbon(c, t, { t0: d.ti + 0.12, life: 0.4, jet: s => JI(s, 0.5, 0.5, j), map: M, pal: 'gold2', kap: 3, g: 140, w: 3.4, a: 0.65 });
-  stream(c, t, { t0: d.ti, rate: 140, life0: 0.4, life1: 0.9, seed: 300, pal: 'white', kap: 2.7, g: 150, w: 2.5, gain: 0.8, streak: 0.055,
+  stream(c, t, { t0: d.ti, rate: 115, life0: 0.4, life1: 0.9, seed: 300, pal: 'white', kap: 2.7, g: 150, w: 2.5, gain: 0.85, streak: 0.055, fly: 0.1,
     map: M, jet: (s, h1, h2, k) => JO(s, h1, h2, k % 4) });
   stream(c, t, { t0: d.ti + 0.12, rate: 110, life0: 0.3, life1: 0.55, seed: 340, pal: 'gold2', kap: 3, g: 140, w: 2.3, gain: 0.8,
     map: M, jet: (s, h1, h2, k) => JI(s, h1, h2, k % 5) });

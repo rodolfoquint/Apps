@@ -30,11 +30,13 @@ const DEEP = [10, 70, 95], TEAL = [20, 160, 170], TURQ = [40, 220, 230], AQUA = 
 const mix = (a, b, k) => [lerp(a[0], b[0], k) | 0, lerp(a[1], b[1], k) | 0, lerp(a[2], b[2], k) | 0];
 
 // ---------- the camera: a slow crane up from the depths, through the surface, into the cave
-const RISE0 = 3.0, RISE1 = 8.4;
+// The water settles at y ~ 730-760, above the title band (y > ~790), so the glitter, pools and ripples
+// never sit behind the title; below it there is only calm, dark water.
+const RISE0 = 3.0, RISE1 = 7.6;
 const riseK = t => { const x = clamp((t - RISE0) / (RISE1 - RISE0)); return (1 - Math.cos(Math.PI * x)) / 2; };
-const off = t => lerp(-70, 860, riseK(t)) + 10 * (t - 6);    // + a slow drift so nothing is ever still
+const off = t => lerp(-70, 716, riseK(t)) + 10 * (t - 6);    // + a slow drift so nothing is ever still
 const yW = t => off(t);                                       // the water surface on screen
-const yO = t => -600 + 0.86 * off(t);                         // the opening in the dome (farther: less parallax)
+const yO = t => -477 + 0.86 * off(t);                         // the opening in the dome (farther: less parallax)
 const hToY = (h, t) => lerp(yW(t), yO(t), h);                 // height above the water: 0 water .. 1 opening
 const chord = y => Math.sqrt(Math.max(0, 540 * 540 - (y - C) * (y - C)));
 
@@ -42,14 +44,17 @@ const chord = y => Math.sqrt(Math.max(0, 540 * 540 - (y - C) * (y - C)));
 const OPX = 520, OPRX = 236, OPRY = 62;
 // an irregular, rocky outline: broad lobes, a few bites out of the rock and small sharp facets
 const BITES = [[4.2, 0.2, -0.1], [5.3, 0.15, 0.08], [1.85, 0.22, -0.08], [0.5, 0.14, 0.07], [2.8, 0.12, 0.06], [3.3, 0.1, -0.06]];
+const FACETS = (() => { const R = HG.rng(77); return Array.from({ length: 26 }, (_, i) => (R() - 0.5) * 0.075 * (i % 3 ? 1 : 1.6)); })();
 const rimR = th => {
   let r = 1.02 + 0.05 * Math.sin(2 * th + 0.9) + 0.035 * Math.sin(3 * th + 0.7) + 0.022 * Math.sin(5 * th + 2.1) + 0.012 * Math.sin(9 * th + 0.3)
     - 0.03 * Math.abs(Math.sin(7 * th + 0.4)) - 0.014 * Math.abs(Math.sin(13 * th + 1.9));
   for (const [c, wd, amp] of BITES) { let d = th - c; d -= TAU * Math.round(d / TAU); r += amp * Math.exp(-(d / wd) * (d / wd)); }
-  return r;
+  // straight facets between broken corners of rock (piecewise linear: angular, not a smooth puddle)
+  const u = (((th / TAU) % 1) + 1) % 1 * FACETS.length, i = Math.floor(u), f = u - i;
+  return r + lerp(FACETS[i], FACETS[(i + 1) % FACETS.length], f);
 };
 const rimPt = (th, t) => { const r = rimR(th); return [OPX + Math.cos(th) * OPRX * r, yO(t) + Math.sin(th) * OPRY * (1 + (r - 1) * 1.6)]; };
-const YW_F = 883, YO_F = -600 + 0.86 * 883;            // where the water and the opening settle
+const YW_F = off(RISE1), YO_F = yO(RISE1);             // where the water and the opening settle
 const circleTop = x => C - Math.sqrt(Math.max(0, 540 * 540 - (x - C) * (x - C)));
 const smax = (a, b, k) => { const h = clamp(0.5 + 0.5 * (b - a) / k); return lerp(a, b, h) + k * h * (1 - h); };
 const lipN = x => 16 * Math.sin(0.021 * x + 0.6) + 10 * Math.sin(0.057 * x + 2.2) + 6 * Math.sin(0.13 * x + 1.1);
@@ -63,6 +68,9 @@ function anchorY(x, t) {
 // ---------- ending
 const END0 = 9.3;                                  // the roots start to turn into fireflies
 const gEnd = t => 1 - smooth(10.3, 11.2, t);         // global fade to black
+// the title band: while the title shows (2.2 s .. 2.2 s before the end) the lower part of the circle stays calm
+const titleWin = t => smooth(1.9, 2.8, t) * (1 - smooth(9.5, 10.1, t));
+const calm = (y, t, k = 0.6) => 1 - k * smooth(760, 860, y) * titleWin(t);
 
 // ---------- light shafts
 // air shafts: from the opening down to the water; [x at the opening, x where it meets the water, w top, w bottom, strength, phase]
@@ -239,8 +247,10 @@ function drawCaustics(t, alpha) {
     g.closePath(); g.fill();
   }
   HG.reset(g);
-  bloom(ctx, LC, 9, alpha * 0.9);
-  bloom(ctx, LC, 1.2, alpha * 1.0);
+  // as the title arrives the floor sinks into the dark: the sharp web fades first, a soft glow stays
+  const fall = smooth(1.9, 3.1, t);
+  bloom(ctx, LC, 9, alpha * 0.9 * (1 - 0.66 * fall));
+  bloom(ctx, LC, 1.2, alpha * (1 - 0.82 * fall));
 }
 
 // ---------- roots hanging from the rim: a few braided bundles of varied thickness, some thin strands and
@@ -421,7 +431,7 @@ const RIM_LEAVES = [
 ].map(([th, pet, len, wid, tilt, splits], i) => ({ th, pet, len, wid, tilt, splits, ph: i * 1.7, far: th > Math.PI }));
 // stalactites under the lip of the dome: [x, length, base width]
 const STALS = [[270, 118, 20], [212, 76, 16], [170, 98, 18], [110, 60, 15], [74, 44, 12],
-  [774, 112, 20], [820, 72, 16], [866, 98, 18], [920, 62, 15], [962, 48, 13]].map(([x, len, w], i) => ({ x, len, w, lean: 0.08 * Math.sin(i * 2.3), ph: i * 1.31 }));
+  [774, 112, 20], [816, 62, 16], [936, 74, 18], [978, 50, 14], [1014, 38, 12]].map(([x, len, w], i) => ({ x, len, w, lean: 0.08 * Math.sin(i * 2.3), ph: i * 1.31 }));
 // the turquoise light thrown up by the water, dancing over the rock
 const refl = (x, t) => Math.pow(clamp(0.5 + 0.5 * Math.sin(0.028 * x - 2.0 * t) * Math.sin(0.011 * x + 1.2 * t + 0.6)), 1.6);
 function drawOpening(t, alpha, airB) {
@@ -455,13 +465,42 @@ function drawOpening(t, alpha, airB) {
   const g = LR.ctx;
   // the dome of the cave: the lit lip of the limestone just inside the circle, with stalactites
   const fadeX = x => 0.25 + 0.75 * Math.pow(1 - clamp((Math.abs(x - OPX) - OPRX) / 440), 1.2);
+  // the rock of the dome between the lip and the circle: dark limestone on which the water below throws
+  // slow, dancing ribbons of turquoise light (as on the ceilings of real cenotes)
+  {
+    const lip = []; for (let x = 24; x <= 1056; x += 8) lip.push([x, Math.max(anchorY(x, t), circleTop(x) + 1)]);
+    const L0 = lip[0], L1 = lip[lip.length - 1];
+    const rockPath = () => {
+      g.beginPath(); lip.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y));
+      g.arc(C, C, 539, Math.atan2(L1[1] - C, L1[0] - C), Math.atan2(L0[1] - C, L0[0] - C), true); g.closePath();
+    };
+    g.save(); rockPath();
+    const rk = g.createRadialGradient(C, C, 380, C, C, 540);
+    rk.addColorStop(0, rgba([20, 62, 62], 0.95 * alpha)); rk.addColorStop(0.6, rgba([12, 40, 42], 0.95 * alpha)); rk.addColorStop(1, rgba([4, 14, 16], 0.95 * alpha));
+    g.fillStyle = rk; g.fill(); g.clip();
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (let k = 0; k < 9; k++) {
+      const dk = 8 + k * 12, ph = k * 1.9, dir = k % 2 ? 1 : -1;
+      const P = lip.map(([x, y]) => [x, y - dk + 6 * Math.sin(0.035 * x + dir * 1.1 * t + ph) + 3 * Math.sin(0.083 * x - dir * 0.8 * t + ph * 0.7)]);
+      const lg = g.createLinearGradient(L0[0], 0, L1[0], 0);
+      for (let i = 0; i < P.length; i += 2) {
+        const x = P[i][0], b = Math.pow(clamp(1.7 * Math.sin(0.024 * x - dir * 0.7 * t + ph) * Math.sin(0.0105 * x + 0.45 * t + ph * 1.3)), 1.4);
+        lg.addColorStop((x - L0[0]) / (L1[0] - L0[0]), rgba(mix(AQUA, FOAM, 0.3 * b), b * 0.62 * alpha * (1 - k * 0.07)));
+      }
+      g.strokeStyle = lg; g.lineWidth = 3.4 - k * 0.18;
+      g.beginPath(); P.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke();
+    }
+    g.restore();
+    // the opening itself is a hole in the rock
+    g.save(); g.globalCompositeOperation = 'destination-out'; rimPath(g); g.fillStyle = '#000'; g.fill(); g.restore();
+  }
   for (const side of [-1, 1]) {
     const edge = [];
     for (let x = OPX + side * OPRX * 0.97; side < 0 ? x >= 30 : x <= 1050; x += side * 8) edge.push([x, anchorY(x, t)]);
     // one continuous stroke; its colour runs along it (pale sunlit stone, turquoise where the water light dances)
     const x0 = edge[0][0], x1 = edge[edge.length - 1][0], lg = g.createLinearGradient(x0, 0, x1, 0);
     edge.forEach(([x], i) => { if (i % 2 === 0 || i === edge.length - 1) lg.addColorStop(clamp((x - x0) / (x1 - x0)), rgba(mix(LIP, AQUA, 0.15 + 0.6 * refl(x, t)), 0.92 * alpha * fadeX(x))); });
-    g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = lg; g.lineWidth = 3.4;
+    g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = lg; g.lineWidth = 4.4;
     g.beginPath(); edge.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke();
   }
   for (const S of STALS) {
@@ -475,8 +514,9 @@ function drawOpening(t, alpha, airB) {
     };
     // a lit cylinder of stone: warm pale side toward the sun, turquoise water light on the other
     const sg = g.createLinearGradient(S.x - w / 2, 0, S.x + w / 2, 0);
-    sg.addColorStop(0, rgba(LIP, 0.95 * a)); sg.addColorStop(0.3, rgba(mix(LIP, ROCK, 0.35), 0.9 * a));
-    sg.addColorStop(0.6, rgba(mix(ROCK, TEAL, 0.25), 0.9 * a)); sg.addColorStop(1, rgba(mix(TEAL, AQUA, 0.2 + 0.8 * rf), 0.95 * a));
+    sg.addColorStop(0, rgba(LIP, 0.95 * a)); sg.addColorStop(0.25, rgba([214, 188, 146], 0.95 * a));
+    sg.addColorStop(0.55, rgba([92, 86, 70], 0.95 * a)); sg.addColorStop(0.78, rgba(mix(ROCK, TEAL, 0.45), 0.95 * a));
+    sg.addColorStop(1, rgba(mix(TEAL, AQUA, 0.2 + 0.8 * rf), 0.95 * a));
     shape(); g.fillStyle = sg; g.fill();
     g.strokeStyle = rgba(mix(LIP, AQUA, 0.6 * rf), 0.7 * a); g.lineWidth = 1.8; g.stroke();
     // a drop of water shining at the tip
@@ -719,7 +759,7 @@ function drawSchool(t) {
     flash = clamp(flash + 0.3 * smooth(1.5, 3.5, turn));
     const fade = smooth(0, 0.35, dt) * gEnd(t);
     // fish stay below the surface: fade any that rise into it
-    const below = smooth(yW(t) + 10, yW(t) + 60, p[1]);
+    const below = smooth(yW(t) + 10, yW(t) + 60, p[1]) * calm(p[1], t, 0.9);   // and they sink into the dark below
     items.push({ x: p[0], y: p[1], a: a1, L: 75 * f.sc * (0.55 + 0.45 * ease.out3(dt / 0.6)), beat: t * (9 + speed * 0.012) + f.ph, al: fade * below * (0.62 + 0.38 * f.sc), flash });
   }
   items.sort((a, b) => a.L - b.L);
@@ -760,7 +800,7 @@ function drawBubbles(t) {
         if (d < 4) continue;
         const x = bx + wa * Math.sin(wf * dt + ph) * Math.min(1, 0.3 + dt * 0.5) + dr * dt, y = d + off(t);
         if (y < -30 || y > 1100) continue;
-        bubble(x, y, sz * (1 + 0.07 * dt), env * smooth(0, 0.3, dt) * smooth(4, 30, d));
+        bubble(x, y, sz * (1 + 0.07 * dt), env * smooth(0, 0.3, dt) * smooth(4, 30, d) * calm(y, t));
       }
     }
   });
@@ -772,7 +812,7 @@ function drawBubbles(t) {
       const dt = t - tb; if (dt < 0) continue;
       const d = d0 - sp * dt; if (d < 4) continue;
       const y = d + off(t); if (y < -30 || y > 1100) continue;
-      bubble(x0 + 8 * Math.sin(3 * dt + ph), y, sz, env * smooth(0, 0.5, dt) * smooth(4, 30, d));
+      bubble(x0 + 8 * Math.sin(3 * dt + ph), y, sz, env * smooth(0, 0.5, dt) * smooth(4, 30, d) * calm(y, t));
     }
   }
   // trails behind the plunging drops
@@ -794,7 +834,7 @@ function drawBubbles(t) {
     const dt = t - tb; if (dt < 0) continue;
     const y = 1180 - 150 * dt + 0.35 * (off(t) - off(tb));
     if (y < yW(t) + 20 || y < -40) continue;
-    bubble(x0 + 14 * Math.sin(2.1 * dt + ph), y, sz, env * 0.8 * smooth(yW(t) + 20, yW(t) + 120, y));
+    bubble(x0 + 14 * Math.sin(2.1 * dt + ph), y, sz, env * 0.8 * smooth(yW(t) + 20, yW(t) + 120, y) * calm(y, t));
   }
   ctx.restore();
 }
@@ -856,7 +896,7 @@ function drawMotes(t, airB, watB) {
     const x = x0 + 10 * Math.sin(0.4 * t + ph), y = d0 + 1.08 * off(t) - 6 * t;
     if (y < ys + 8 || y > 1080) continue;
     const L = lightAt(watB, x, y);
-    HG.dot(ctx, AQUA, x, y, s, env * smooth(0.3, 1.4, t) * (0.12 + 0.75 * L) * (0.55 + 0.45 * Math.sin(2 * t + ph)));
+    HG.dot(ctx, AQUA, x, y, s, env * smooth(0.3, 1.4, t) * (0.12 + 0.75 * L) * (0.55 + 0.45 * Math.sin(2 * t + ph)) * calm(y, t));
   }
   ctx.restore();
 }
@@ -902,9 +942,9 @@ function drawDrips(t) {
       const env = gEnd(t);
       for (let k = 0; k < 4; k++) {
         const tk = dt - k * 0.22; if (tk < 0) continue;
-        const r = (20 + 360 * (1 - Math.exp(-0.8 * tk))) * D.size * (1 - k * 0.12);
+        const r = (20 + 330 * (1 - Math.exp(-0.8 * tk))) * D.size * (1 - k * 0.12);
         const a = (1 - smooth(0.2, 2.8, tk)) * smooth(0, 0.08, tk) * env * (1 - k * 0.18);
-        ctx.save(); ctx.translate(D.x, y0 + 4); ctx.scale(1, 0.17);
+        ctx.save(); ctx.translate(D.x, y0 + 3); ctx.scale(1, 0.12);
         ctx.strokeStyle = rgba(mix(AQUA, WARM, 0.4), a * 0.8); ctx.lineWidth = 16;
         ctx.filter = HG.blur(5); ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke(); ctx.filter = 'none';
         ctx.strokeStyle = rgba(FOAM, a); ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
@@ -933,7 +973,7 @@ function drawDrips(t) {
 // Colours from photos of Eumomota superciliosa: olive/ochre-green breast with rufous only on the lower belly,
 // a rufous mantle patch on the back, turquoise brow over a black mask, a straight black throat stripe edged in
 // pale turquoise, a heavy slightly decurved black bill, turquoise-blue tail with bare shafts and black-tipped rackets.
-const TOH_X = 872, TOH_H = 0.5, TOH_K = 1.3;
+const TOH_X = 872, TOH_H = 0.45, TOH_K = 1.3;
 const OCHRE = [170, 168, 92], RUFOUS = [226, 112, 50], OLIVE = [118, 166, 90], TQB = [36, 180, 222], TQ = [80, 228, 240], TQP = [160, 238, 236];
 // the bird fades in only once its head is inside the circle (otherwise its long tail would arrive alone)
 const TOH_IN = (() => { for (let t = 4; t < 9; t += 0.01) if (hToY(TOH_H, t) - 112 * TOH_K > circleTop(TOH_X - 20) + 4) return t; return 6.5; })();
@@ -996,18 +1036,18 @@ function drawToh(g, t, alpha) {
   for (const sd of [-1, 1]) {       // the shorter outer tail feathers
     g.save(); g.rotate(th * 0.9 + sd * 0.07);
     g.beginPath(); g.moveTo(-4, 0); g.quadraticCurveTo(-6, 34, -1, 66); g.quadraticCurveTo(3, 70, 5, 64); g.quadraticCurveTo(7, 32, 4, 0); g.closePath();
-    g.fillStyle = rgba([22, 118, 160], 1); g.fill(); g.strokeStyle = rgba(TQB, 1); g.lineWidth = 1.6; g.stroke();
+    g.fillStyle = rgba([24, 136, 170], 1); g.fill(); g.strokeStyle = rgba(TQB, 1); g.lineWidth = 1.6; g.stroke();
     g.restore();
   }
   for (const sd of [-1, 1]) {       // the long central feathers: turquoise-blue vane, bare shaft, racket with a black tip
     const a1 = th + sd * 0.025, a2 = th2 + sd * 0.05;
     const p1 = [-Math.sin(a1) * 70, Math.cos(a1) * 70], p2 = [p1[0] - Math.sin(a2) * 86, p1[1] + Math.cos(a2) * 86];
-    g.beginPath(); g.moveTo(0, 0); g.lineTo(p1[0], p1[1]); g.strokeStyle = rgba([30, 162, 206], 1); g.lineWidth = 8; g.stroke();
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(p1[0], p1[1]); g.strokeStyle = rgba([32, 172, 210], 1); g.lineWidth = 8; g.stroke();
     g.beginPath(); g.moveTo(p1[0], p1[1]); g.quadraticCurveTo(p1[0] - Math.sin(a1) * 40, p1[1] + Math.cos(a1) * 40, p2[0], p2[1]);
     g.strokeStyle = rgba([86, 140, 160], 1); g.lineWidth = 2.2; g.stroke();
     g.save(); g.translate(p2[0], p2[1]); g.rotate(a2);
     g.beginPath(); g.moveTo(0, -4); g.bezierCurveTo(-11, 4, -9, 22, 0, 30); g.bezierCurveTo(9, 22, 11, 4, 0, -4); g.closePath();
-    g.fillStyle = rgba(TQB, 1); g.fill(); g.strokeStyle = rgba(TQ, 1); g.lineWidth = 2; g.stroke();
+    g.fillStyle = rgba([74, 204, 226], 1); g.fill(); g.strokeStyle = rgba(TQP, 1); g.lineWidth = 2; g.stroke();
     g.beginPath(); g.moveTo(-7, 20); g.bezierCurveTo(-5, 26, -2, 29, 0, 30); g.bezierCurveTo(2, 29, 5, 26, 7, 20); g.closePath();
     g.fillStyle = rgba([10, 16, 24], 1); g.fill();
     g.restore();
@@ -1018,8 +1058,8 @@ function drawToh(g, t, alpha) {
   g.beginPath(); g.moveTo(-14, -74); g.bezierCurveTo(-24, -54, -20, -26, -6, -12); g.bezierCurveTo(2, -4, 14, -4, 22, -8);
   g.bezierCurveTo(30, -26, 30, -56, 14, -80); g.closePath();
   const bg = g.createLinearGradient(0, -78, 0, -6);
-  bg.addColorStop(0, rgba(OCHRE, 1)); bg.addColorStop(0.5, rgba(mix(OCHRE, [196, 160, 84], 0.6), 1));
-  bg.addColorStop(0.7, rgba(mix(OCHRE, RUFOUS, 0.6), 1)); bg.addColorStop(1, rgba(RUFOUS, 1));
+  bg.addColorStop(0, rgba([116, 170, 96], 1)); bg.addColorStop(0.42, rgba([146, 172, 92], 1));
+  bg.addColorStop(0.62, rgba(OCHRE, 1)); bg.addColorStop(0.8, rgba(mix(OCHRE, RUFOUS, 0.7), 1)); bg.addColorStop(1, rgba(RUFOUS, 1));
   g.fillStyle = bg; g.fill(); g.strokeStyle = rgba(WARM, 0.8); g.lineWidth = 1.8; g.stroke();
   // rufous mantle patch on the back, above the wing
   g.beginPath(); g.moveTo(4, -82); g.bezierCurveTo(16, -84, 26, -74, 26, -58); g.bezierCurveTo(20, -60, 12, -64, 7, -70); g.closePath();
@@ -1039,7 +1079,7 @@ function drawToh(g, t, alpha) {
   g.save(); g.translate(0, -74); g.rotate(look); g.translate(0, 74);
   g.beginPath(); g.arc(-3, -90, 19, 0, TAU);
   const hg = g.createLinearGradient(0, -110, 0, -72);
-  hg.addColorStop(0, rgba([138, 150, 96], 1)); hg.addColorStop(1, rgba(OCHRE, 1));
+  hg.addColorStop(0, rgba([108, 158, 100], 1)); hg.addColorStop(1, rgba([132, 168, 94], 1));
   g.fillStyle = hg; g.fill(); g.strokeStyle = rgba(WARM, 0.7); g.lineWidth = 1.6; g.stroke();
   // rufous patch behind the eye
   g.fillStyle = rgba(RUFOUS, 1); g.beginPath(); g.ellipse(9, -91, 6, 5, 0.3, 0, TAU); g.fill();
@@ -1053,10 +1093,9 @@ function drawToh(g, t, alpha) {
   g.strokeStyle = rgba(TQ, 1); g.lineWidth = 4.2; g.stroke();
   g.fillStyle = rgba([255, 255, 255], 1); g.beginPath(); g.arc(-6, -91, 1.9, 0, TAU); g.fill();
   // the throat: a straight vertical black stripe edged in pale turquoise, under the chin
-  g.lineCap = 'butt';
-  g.beginPath(); g.moveTo(-12, -80); g.lineTo(-12, -63);
-  g.strokeStyle = rgba(TQP, 1); g.lineWidth = 7.5; g.stroke();
-  g.strokeStyle = rgba([6, 8, 10], 1); g.lineWidth = 3.4; g.stroke();
+  g.beginPath(); g.moveTo(-14, -81); g.lineTo(-10, -81); g.lineTo(-10.6, -64); g.quadraticCurveTo(-12, -59.5, -13.4, -64); g.closePath();
+  g.strokeStyle = rgba(TQP, 1); g.lineWidth = 3.6; g.stroke();
+  g.fillStyle = rgba([6, 8, 10], 1); g.fill();
   g.restore();
   g.restore();
 }

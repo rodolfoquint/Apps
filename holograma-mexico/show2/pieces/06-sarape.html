@@ -9,15 +9,18 @@
 // cloth grows from the bottom up, faster and faster, its graded rainbow stripes (deep red to yellow,
 // green to turquoise and indigo, violet to rose, thin black and white lines between) and, in the
 // middle, the serrated concentric rombo appearing row by row with the stepped edges of real weaving.
-// When the last pass is done the diamond's rings light up from the centre outward and a serrated
-// diamond of light radiates out of it to the ends of the cloth, where the loose warp ends twist into
-// knotted cords. Cut free, the sarape floats: a breeze rolls in from the left, waves run through it,
-// it turns in depth and rocks gently, light runs over its folds and glints on the diamond's tips;
+// As the last pass lands the diamond's rings light up one by one from the centre outward, each in its
+// own saturated colour with its light spilling over the lines around it, while the rombo breathes out;
+// then a serrated diamond of light sweeps through the weave to the ends of the cloth, where the loose
+// warp ends twist into knotted cords. Cut free, the sarape floats: a breeze rolls in from the left,
+// waves run through it, it turns in depth (about +-18 deg) and rocks gently, a soft woollen sheen runs
+// over its folds and glints catch the cream outline of the diamond's tips;
 // a stronger gust halfway, with an echo of the rings' pulse. At the end the fringe draws in and the
 // weft threads are pulled out from both ends toward the diamond, streaming away as silky ribbons of
 // colour (top half to the right, bottom half to the left); the last threads leave the centre in a glint.
 // All procedural: the cloth is built once (stripes + woven diamond) and every frame is cut, warped
-// and lit from it as a pure function of t.
+// and lit from it as a pure function of t. The cloth and its fringe stay above y = 795 at all times,
+// clear of the title band at the bottom of the circle.
 const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
 const TAU = Math.PI * 2;
 const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
@@ -25,11 +28,11 @@ const mix = (a, b, k) => [0, 1, 2].map(i => Math.round(lerp(a[i], b[i], clamp(k)
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
 
 // ---------- the cloth (portrait, stripes across its width, fringe at both short ends)
-const CX = 540, CY = 456, CW = 412, CH = 644;
+const CX = 540, CY = 430, CW = 380, CH = 592;     // sized and lifted so the fringe stays above the title band
 const XL = CX - CW / 2, XR = CX + CW / 2, YT = CY - CH / 2, YB = CY + CH / 2;
-const FL = 46;                                    // fringe length
+const FL = 38;                                    // fringe length
 const NW = 24, WX = i => XL + 10 + i * (CW - 20) / (NW - 1);   // warp threads (paired into 12 cords)
-const DA = 172, DB = 218;                         // diamond half-width / half-height
+const DA = 158, DB = 200;                         // diamond half-width / half-height
 
 // ---------- palette (wool dyes, tuned to glow on LEDs)
 const PAL = {
@@ -103,8 +106,8 @@ const STRIPES = [], ROWS = [];
 })();
 
 // ---------- layers and the cloth texture (built once, at the render resolution)
-const P = HG.layer(), M = HG.layer(), SH = HG.layer();
-let TEX = null, RPATH = null;
+const P = HG.layer(), M = HG.layer(), SH = HG.layer(), GL = HG.layer();
+let TEX = null, RPATH = null, DALL = null;
 function ringAt(x, y) {
   const ax = Math.abs(x - CX) / DA, ay = Math.abs(y - CY) / DB, d = ax + ay;
   if (d > RINGS[0][0] * (1 + TEETH)) return -1;
@@ -129,7 +132,7 @@ function buildTex() {
     g.fillRect(XL, s.y0, CW, h);
   }
   // the diamond, woven line by line (stepped diagonals), colour runs sampled every half pixel
-  RPATH = RINGS.map(() => new Path2D());
+  RPATH = RINGS.map(() => new Path2D()); DALL = new Path2D();
   const N = Math.ceil(DB * 1.15 / LH), dx = 0.5;
   for (let j = -N; j < N; j++) {
     const y = CY + j * LH, yc = y + LH / 2;
@@ -140,7 +143,7 @@ function buildTex() {
         if (run >= 0) {
           const col = RINGS[run][1];
           g.fillStyle = col ? rgb(col) : '#000'; g.fillRect(x0, y, x - x0, LH);
-          RPATH[run].rect(x0, y, x - x0, LH);
+          RPATH[run].rect(x0, y, x - x0, LH); DALL.rect(x0, y, x - x0, LH);
         }
         run = k; x0 = x;
       }
@@ -149,18 +152,19 @@ function buildTex() {
 }
 
 // ---------- the floating cloth: travelling waves along its width, a slow turn in depth, lit from the upper left
-const K1 = TAU / 330, W1 = 2.3, K2 = TAU / 185, W2 = 3.1, FOC = 1500;
+const K1 = TAU / 330, W1 = 2.3, K2 = TAU / 185, W2 = 3.1, FOC = 1700;
 const LV = (() => { const v = [-0.55, -0.5, -1], n = Math.hypot(...v); return v.map(x => x / n); })();
 const HV = (() => { const v = [LV[0], LV[1], LV[2] - 1], n = Math.hypot(...v); return v.map(x => x / n); })();
-const ND0 = -LV[2];
+const ND0 = -LV[2], HXZ = Math.hypot(HV[0], HV[2]);
 function surface(t) {
-  const life = smooth(5.2, 6.4, t) * (1 - smooth(9.3, 10.45, t));
+  const life = smooth(5.1, 6.1, t) * (1 - smooth(9.3, 10.45, t));
   const gust = bump(t, 7.0, 7.7, 8.2, 9.0);
   const A = 30 * life * (1 + 0.4 * gust);
-  const th = 0.22 * Math.sin(0.9 * (t - 5.5)) * smooth(5.5, 6.9, t) * (1 - smooth(9.2, 10.3, t));
-  const roll = 0.065 * Math.sin(0.75 * (t - 5.7)) * smooth(5.7, 6.9, t) * (1 - smooth(8.7, 9.5, t));
-  const bob = 6 * Math.sin(1.05 * (t - 5.4)) * smooth(5.4, 6.6, t) * (1 - smooth(9.4, 10.4, t));
-  const front = -CW / 2 - 170 + 430 * (t - 5.2);
+  // (turn of about +-18 deg, roll and bob sized so the foot of the fringe never reaches the title band, y < 795)
+  const th = 0.31 * Math.sin(0.9 * (t - 5.3)) * smooth(5.3, 6.5, t) * (1 - smooth(9.2, 10.3, t));
+  const roll = 0.05 * Math.sin(0.75 * (t - 5.5)) * smooth(5.5, 6.6, t) * (1 - smooth(8.7, 9.5, t));
+  const bob = 4 * Math.sin(1.05 * (t - 5.3)) * smooth(5.3, 6.4, t) * (1 - smooth(9.4, 10.4, t));
+  const front = -CW / 2 - 170 + 430 * (t - 5.05);
   const flat = A < 0.01 && Math.abs(th) < 1e-4 && Math.abs(bob) < 0.01;
   const c = Math.cos(th), s = Math.sin(th);
   function at(u) {
@@ -173,9 +177,11 @@ function surface(t) {
     }
     const X = u * c + z * s, Z = -u * s + z * c, sc = FOC / (FOC + Z);
     const dX = c + dz * s, dZ = -s + dz * c, nl = Math.hypot(dX, dZ), nx = dZ / nl, nz = -dX / nl;
-    const shade = clamp(0.24 + 0.68 * (nx * LV[0] + nz * LV[2]) / ND0, 0.12, 1);
-    const spec = Math.pow(Math.max(0, nx * HV[0] + nz * HV[2]), 70);
-    return { x: CX + X * sc, sc, shade, spec };
+    const shade = clamp(0.3 + 0.62 * (nx * LV[0] + nz * LV[2]) / ND0, 0.18, 1);
+    // matte wool: a broad, soft sheen (not a satin highlight); the tip glints use a narrow lobe
+    const ch = Math.max(0, nx * HV[0] + nz * HV[2]) / HXZ;
+    const spec = clamp((Math.pow(ch, 24) - 0.3) / 0.7), glint = Math.pow(ch, 160);
+    return { x: CX + X * sc, sc, shade, spec, glint };
   }
   return { A, th, bob, roll, flat, at, gust, map: (x, y) => { const q = at(x - CX); return [q.x, CY + bob + (y - CY) * q.sc, q]; } };
 }
@@ -227,9 +233,10 @@ function star(g, x, y, s, a, rot = 0, col = CREAM) {
 
 // ---------- timeline
 const DU = 0.72;                                   // a pulled thread's flight
-const T_PULSE = 4.5;                               // diamond rings light up, centre outward
-const dropHead = (i, t) => lerp(YT - FL - 12, YB + FL + 4, ease.inOut3((t - 0.22 - 0.028 * Math.abs(i - (NW - 1) / 2)) / 0.78));
-const twistK = t => ease.inOut3((t - 5.1) / 0.65);
+const T_PULSE = 4.22;                              // diamond rings light up, centre outward, as the last shuttle lands
+// (the first sparks start a little below the fringe tips, away from the rim, and the strings fade in behind them)
+const dropHead = (i, t) => lerp(YT - FL + 16, YB + FL + 4, ease.inOut3((t - 0.22 - 0.028 * Math.abs(i - (NW - 1) / 2)) / 0.78));
+const twistK = t => ease.inOut3((t - 5.0) / 0.65);
 // how far from the centre the warp still shows: all of it until the unravel; then the fringe draws in
 // and the bare warp dissolves just behind the threads being pulled out (the ends first, the centre last)
 const retractR = t => {
@@ -284,16 +291,17 @@ function threadsP(p, t, st) {
       if (tw > 0.02) {
         let first = true;
         for (const [px, py, l] of pts) { if (l > l1 + 1e-6) break; if (first) { mids.moveTo(px, py); first = false; } else mids.lineTo(px, py); }
-        const k = Math.round(0.2 * segs);
-        if (l1 >= 0.2) { knots.moveTo(pts[k][0] + 3.6 * tw, pts[k][1]); knots.arc(pts[k][0], pts[k][1], 3.6 * tw, 0, TAU); }
+        // (the knot shrinks away with its cord as the fringe draws in, so no bare knot heads are left on the hem)
+        const k = Math.round(0.2 * segs), kr = 3.6 * tw * smooth(0.25, 0.75, l1);
+        if (kr > 0.15) { knots.moveTo(pts[k][0] + kr, pts[k][1]); knots.arc(pts[k][0], pts[k][1], kr, 0, TAU); }
       }
     }
   }
-  const a = 1 - 0.5 * smooth(9.05, 9.35, t);
+  const a = (1 - 0.5 * smooth(9.05, 9.35, t)) * smooth(0.2, 0.75, t);
   p.save(); p.lineCap = 'round'; p.lineJoin = 'round'; p.strokeStyle = rgba(CREAM, 1);
-  p.globalAlpha = 0.35 * a; p.lineWidth = 6; p.filter = HG.blur(3); p.stroke(lines);
-  p.filter = 'none'; p.globalAlpha = 0.8 * a; p.lineWidth = lerp(2.2, 2.6, tw); p.stroke(lines);
-  p.globalAlpha = 0.8 * a * tw; p.lineWidth = 2.2; p.stroke(mids);
+  p.globalAlpha = 0.35 * a; p.lineWidth = 7; p.filter = HG.blur(3); p.stroke(lines);
+  p.filter = 'none'; p.globalAlpha = 0.8 * a; p.lineWidth = lerp(3, 2.7, tw); p.stroke(lines);
+  p.globalAlpha = 0.8 * a * tw; p.lineWidth = 2.4; p.stroke(mids);
   p.fillStyle = rgba(GOLD, 1); p.globalAlpha = 0.95 * a; p.fill(knots);
   // the bare warp: its ends soften away near the unravelling edge
   if (R < 0.5) { p.restore(); return; }
@@ -305,8 +313,8 @@ function threadsP(p, t, st) {
   }
   // (once the ends are cords, the warp inside must not peek out past the hems)
   if (tw > 0) { p.beginPath(); p.rect(XL - 12, YT + 0.5, CW + 24, CH - 1); p.clip(); }
-  p.globalAlpha = 0.35 * a; p.lineWidth = 6; p.filter = HG.blur(3); p.stroke(warps);
-  p.filter = 'none'; p.globalAlpha = 0.8 * a; p.lineWidth = 2.2; p.stroke(warps);
+  p.globalAlpha = 0.35 * a; p.lineWidth = 7; p.filter = HG.blur(3); p.stroke(warps);
+  p.filter = 'none'; p.globalAlpha = 0.8 * a; p.lineWidth = 3; p.stroke(warps);
   p.restore();
 }
 
@@ -345,7 +353,7 @@ function streakP(p, r, t) {
   // ...and its thread slides out, stretching, thinning and rippling as it flies
   const shift = d * (40 * k + 900 * k * k), len = CW * (1 + 0.9 * k * k), xc = CX + shift;
   const xa = xc - len / 2, xb = xc + len / 2;
-  const th = Math.max(3.2, (h - 2) * lerp(1, 0.6, ease.out3(k)));
+  const th = Math.max(4.4, (h - 1) * lerp(1, 0.68, ease.out3(k)));
   const amp = 12 * Math.pow(Math.sin(Math.PI * Math.min(1, k * 1.15)), 0.8);
   const gr = p.createLinearGradient(xa, 0, xb, 0);
   for (const [f, col] of r.stops) gr.addColorStop(f, rgba(col, 1));
@@ -381,21 +389,46 @@ function rowStops() {
   }
 }
 
-// the woven diamond lights up ring by ring from its centre when the last pass is done (and echoes with the gust)
-function pulseP(p, t) {
-  p.save(); p.globalCompositeOperation = 'lighter';
-  for (const [T0, gain, dt] of [[T_PULSE, 1, 0.045], [7.45, 0.45, 0.06]]) {
+// the woven diamond lights up ring by ring from its centre when the last pass is done (and echoes with the gust):
+// each ring glows in its own saturated colour, its light spilling over the black and cream lines around it,
+// while the whole rombo breathes out a little; then a serrated diamond of light radiates to the ends of the cloth.
+// All drawn into the flat cloth, so it bends and turns with it.
+const vivid = c => { const M = Math.max(...c); return c.map(v => Math.round(255 * Math.pow(v / M, 2))); };   // same hue, more saturated
+const VIVID = RINGS.map(([, c]) => c && vivid(c));
+const PULSES = [[T_PULSE, 1, 0.045], [7.45, 0.5, 0.06]];
+const breath = t => 1 + 0.035 * smooth(T_PULSE + 0.05, T_PULSE + 0.6, t) * (1 - smooth(4.85, 5.6, t)) + 0.012 * bump(t, 7.45, 7.8, 7.95, 8.5);
+function breatheP(p, t, br) {
+  if (br < 1.0005) return;
+  p.save(); p.translate(CX, CY); p.scale(br, br); p.translate(-CX, -CY);
+  p.clip(DALL); p.drawImage(TEX.cv, 0, 0, W, W);
+  p.restore();
+}
+function pulseP(p, t, br) {
+  const g = GL.ctx, cream = new Path2D(); let lit = false, ce = 0;
+  for (const [T0, gain, dt] of PULSES) {
     if (t < T0 || t > T0 + 1.6) continue;
     for (let i = RINGS.length - 1; i >= 0; i--) {
       const col = RINGS[i][1]; if (!col) continue;
       const t0 = T0 + dt * (RINGS.length - 1 - i);
-      const e = bump(t, t0, t0 + 0.08, t0 + 0.12, t0 + 0.45) * gain;
+      // a narrow crest: about one ring at a time, so each glows in its own colour
+      const e = bump(t, t0, t0 + 0.06, t0 + 0.1, t0 + 0.38) * gain;
       if (e <= 0.003) continue;
-      p.fillStyle = rgba(mix(col, WHITE, col === CREAM ? 0 : 0.3), (col === CREAM ? 0.55 : 0.75) * e);
-      p.fill(RPATH[i]);
+      if (col === CREAM) { cream.addPath(RPATH[i]); ce = Math.max(ce, e); continue; }
+      if (!lit) { HG.reset(g); g.clearRect(0, 0, W, W); g.translate(CX, CY); g.scale(br, br); g.translate(-CX, -CY); g.globalCompositeOperation = 'lighter'; lit = true; }
+      g.fillStyle = rgba(VIVID[i], e); g.fill(RPATH[i]);
     }
   }
-  p.restore();
+  if (lit) {
+    HG.reset(g);
+    drawRolled(p, GL, 0, { op: 'lighter', alpha: 0.35, blur: 22 });
+    drawRolled(p, GL, 0, { op: 'lighter', alpha: 0.75, blur: 7 });
+    HG.drawLayer(p, GL, { op: 'lighter', alpha: 0.8 });
+  }
+  // the cream lines catch a little gold light as the crest crosses them
+  if (ce > 0) {
+    p.save(); p.translate(CX, CY); p.scale(br, br); p.translate(-CX, -CY);
+    p.globalCompositeOperation = 'lighter'; p.fillStyle = rgba(GOLD, 0.3 * ce); p.fill(cream); p.restore();
+  }
 }
 
 // the serrated outline of the diamond at scale d (same teeth as the weave)
@@ -415,15 +448,21 @@ function diamondOutline(d) {
   return path;
 }
 
-// when the weave is finished, a diamond of light radiates out of the rombo to the ends of the cloth
-function shockwave(t) {
-  const u = (t - 4.98) / 0.7; if (u <= 0 || u >= 1) return;
-  const d = 1.05 + 0.52 * ease.out3(u), a = Math.pow(1 - u, 2) * smooth(0, 0.08, u);
+// the diamond of light only sweeps through the weave: clipped to the cloth and faded out toward its long edges
+function shockwaveP(p, t) {
+  const u = (t - 4.8) / 0.8; if (u <= 0 || u >= 1) return;
+  const d = 1.12 + 0.5 * ease.out3(u), a = Math.pow(1 - u, 2) * smooth(0, 0.08, u);
   const path = diamondOutline(d);
-  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineJoin = 'round';
-  ctx.strokeStyle = rgba(GOLD, 1); ctx.globalAlpha = 0.7 * a; ctx.lineWidth = 18; ctx.filter = HG.blur(10); ctx.stroke(path);
-  ctx.filter = 'none'; ctx.strokeStyle = rgba(CREAM, 1); ctx.globalAlpha = 0.95 * a; ctx.lineWidth = 4.5; ctx.stroke(path);
-  ctx.restore();
+  const across = col => {
+    const g = p.createLinearGradient(XL, 0, XR, 0);
+    g.addColorStop(0, rgba(col, 0)); g.addColorStop(0.14, rgba(col, 1)); g.addColorStop(0.86, rgba(col, 1)); g.addColorStop(1, rgba(col, 0));
+    return g;
+  };
+  p.save(); p.beginPath(); p.rect(XL, YT, CW, CH); p.clip();
+  p.globalCompositeOperation = 'lighter'; p.lineJoin = 'round';
+  p.strokeStyle = across(GOLD); p.globalAlpha = 0.7 * a; p.lineWidth = 18; p.filter = HG.blur(10); p.stroke(path);
+  p.filter = 'none'; p.strokeStyle = across(CREAM); p.globalAlpha = 0.95 * a; p.lineWidth = 4.5; p.stroke(path);
+  p.restore();
 }
 
 // shuttles: a white-hot head with a comet tail in the colour of its thread
@@ -480,7 +519,10 @@ HG.start({
     const p = P.ctx; HG.reset(p); p.clearRect(0, 0, W, W);
     threadsP(p, t, st);
     rowsP(p, t);
-    pulseP(p, t);
+    const br = breath(t);
+    breatheP(p, t, br);
+    pulseP(p, t, br);
+    shockwaveP(p, t);
     HG.reset(p);
 
     // ---------- float it: warp into depth and light it
@@ -492,7 +534,8 @@ HG.start({
     }
     shadeLayer(L, st, cols);
 
-    drawRolled(ctx, L, st.roll, { alpha: 0.3, op: 'lighter', blur: 16 });
+    // (a softer, stronger bloom under the bundle of pulled threads, so the ribbons read as silk)
+    drawRolled(ctx, L, st.roll, { alpha: 0.3 + 0.22 * bump(t, 9.5, 9.9, 10.6, 11.0), op: 'lighter', blur: 16 });
     drawRolled(ctx, L, st.roll);
 
     // light running over the folds (and a sweep of sunlight with the gust)
@@ -503,25 +546,30 @@ HG.start({
       const gr = s.createLinearGradient(0, 0, W, 0);
       for (const c of cols) gr.addColorStop(clamp(c.x / W), `rgba(0,0,0,${Math.min(1, c.spec).toFixed(3)})`);
       s.fillStyle = gr; s.fillRect(0, 0, W, W); HG.reset(s);
-      drawRolled(ctx, SH, st.roll, { alpha: 0.75, op: 'lighter' });
+      drawRolled(ctx, SH, st.roll, { alpha: 0.32, op: 'lighter' });
     }
 
     dropSparks(t);
     shuttles(t);
-    shockwave(t);
 
     // glints where the light catches the diamond's tips
     if (cols) {
-      const life = bump(t, 5.6, 6.2, 9.0, 9.5);
-      const tips = [[CX, CY - DB], [CX + DA, CY], [CX, CY + DB], [CX - DA, CY]];
+      // (on the cream outline, not the black moat; a glint is either clearly there or absent)
+      const life = bump(t, 5.6, 6.2, 9.0, 9.5), D = 0.975;
+      const tips = [[CX, CY - DB * D], [CX + DA * D, CY], [CX, CY + DB * D], [CX - DA * D, CY]];
       tips.forEach(([x, y], i) => {
         const [mx, my, q] = st.map(x, y), [sx, sy] = rollPt(mx, my, st.roll);
-        star(ctx, sx, sy, 95 + 30 * st.gust, life * clamp(q.spec * 1.4) * (i === 2 ? 0.5 : 1), 0.3 * t, CREAM);
+        const k = life * smooth(0.45, 0.85, q.glint);
+        if (k > 0.02) star(ctx, sx, sy, (60 + 50 * k) * (1 + 0.2 * st.gust), 0.95 * k * (i === 2 ? 0.6 : 1), 0.3 * t, CREAM);
       });
     }
     // a last glint where the warp strings fold together
-    const g = bump(t, 10.5, 10.78, 10.85, 11.25);
-    if (g > 0) star(ctx, CX, CY, 120 * g, 0.9 * g, 0.6 * (t - 10.5), GOLD);
+    // (it lingers and fades slowly, a soft hand-off into the gold portal)
+    const g = bump(t, 10.5, 10.78, 10.88, 11.55);
+    if (g > 0) {
+      star(ctx, CX, CY, 120 * Math.sqrt(g), 0.9 * g, 0.6 * (t - 10.5), GOLD);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; HG.dot(ctx, GOLD, CX, CY, 150, 0.22 * g); ctx.restore();
+    }
   },
 });
 </script></body></html>

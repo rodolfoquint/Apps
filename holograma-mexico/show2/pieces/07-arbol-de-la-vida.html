@@ -15,6 +15,8 @@
 // front of it and behind it; petals and colour sparks drift down; a sheen crosses the glaze. Ending: the
 // colour recedes from the crown back down the branches, each flower releasing its petals into a swirl as the
 // edge passes it, the branches of light fold back into the seed, and the seed goes out.
+// Midday: when the crown flower opens, a gold Metepec-style sun (a ring of straight and flame rays, the
+// clay suns Metepec is famous for) blooms behind the crown with a warm halo and soft rays of light.
 // The growth uses a precomputed growth-distance map (tools/gen.py in the work folder): every pixel's distance
 // from the root along a hand-traced skeleton of the tree's branches (DATA.paths). A mask of the tree grown up
 // to distance u is one filtered drawImage of that map (brightness/contrast threshold + luminance to alpha).
@@ -24,6 +26,10 @@ const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
 const mix = (a, b, k) => [0, 1, 2].map(i => Math.round(lerp(a[i], b[i], k)));
 
 const DATA = {"dmax":1670.9,"paths":[{"n":"T","x":[768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768,768],"y":[1490,1483,1473,1461,1448,1434,1420,1406,1394,1382,1369,1357,1344,1332,1319,1306,1294,1281,1269,1256,1244,1231,1219,1206,1194,1181,1169,1156,1144,1131,1119,1106,1094,1081,1069,1056,1044,1031,1019,1006,994,981,969,956,944,931,919,906,894,881,869,856,844,831,819,806,794,781,769,756,744,731,719,706,694,681,669,656,644,631,619,606,594,581,568,555,542,530,518,506,493,481,469,457,445,433,420,408,396,384,371,358,345,333,320,308,295,282,270,258,245,232,220,207,194,181,168,155,142,131,120,104,90,78,68,60],"d":[0.0,0.0044,0.0103,0.0174,0.0252,0.0335,0.0418,0.05,0.0574,0.0647,0.0721,0.0796,0.0872,0.0948,0.1024,0.11,0.1175,0.1249,0.1324,0.1399,0.1474,0.1549,0.1623,0.1698,0.1773,0.1848,0.1923,0.1997,0.2072,0.2147,0.2222,0.2297,0.2371,0.2446,0.2521,0.2596,0.2671,0.2746,0.282,0.2895,0.297,0.3045,0.312,0.3194,0.3269,0.3344,0.3419,0.3494,0.3568,0.3643,0.3718,0.3793,0.3868,0.3942,0.4017,0.4092,0.4167,0.4242,0.4317,0.4391,0.4466,0.4541,0.4616,0.4691,0.4765,0.484,0.4915,0.499,0.5065,0.5139,0.5214,0.5289,0.5364,0.544,0.5517,0.5595,0.5671,0.5747,0.582,0.5891,0.5965,0.6041,0.6112,0.6182,0.6251,0.6325,0.6404,0.6473,0.6545,0.6619,0.6695,0.6772,0.685,0.6927,0.7002,0.7077,0.7152,0.7227,0.7301,0.7376,0.7451,0.7526,0.7601,0.7677,0.7756,0.7836,0.7915,0.7992,0.8066,0.8136,0.8199,0.8292,0.8377,0.8452,0.8513,0.8558],"w":[200,196,190,183,175,167,158,150,143,136,132,128,125,121,118,117,116,115,114,113,113,114,115,116,118,114,108,103,99,97,94,92,90,88,85,83,82,81,80,79,78,77,77,76,75,74,73,72,72,71,70,70,69,69,68,67,67,66,65,65,64,64,63,62,62,61,60,60,59,59,58,57,57,56,55,55,54,53,53,52,52,51,50,49,48,48,47,46,45,44,43,43,42,41,40,39,38,37,36,35,34,33,32,31,29,28,26,25,23,22,21,19,17,16,15,14]},{"n":"L1","x":[745,738,728,717,704,690,676,663,650,638,625,613,600,588,575,563,550,538,525,512,500,488,475,462,450,437,424,411,398,385,373,361,350,337,324,312,302,291,282,274,266,259,253,247,242,238,234,231,229,227,226,225,225,225,225,226,228,229,231,233,236,239,243,246,248,250,251,253,254,255,256,257,259,260,261,262,263,264,266,268,271,274,277,280,284,288,293,298,303,308,314,320,327,334,341,349,357,365,374,382,391,401,410,420,430,440,450,460,471,482,493,505,517,530,542,554,566,580,594,607,619,629],"y":[1185,1183,1181,1179,1176,1174,1171,1168,1166,1164,1162,1160,1159,1157,1156,1154,1153,1152,1151,1150,1149,1148,1147,1146,1145,1144,1142,1141,1139,1137,1135,1133,1130,1126,1121,1116,1110,1104,1096,1088,1079,1068,1058,1047,1036,1024,1012,1000,988,975,962,950,938,925,913,901,888,876,864,852,840,828,815,803,790,778,766,754,742,730,718,706,694,681,669,656,644,632,620,608,595,583,570,558,546,534,522,510,499,487,476,465,454,443,432,422,412,402,393,383,374,366,358,350,343,336,329,323,317,312,308,305,302,299,296,293,290,287,283,279,276,273],"d":[0.1949,0.1978,0.2017,0.2064,0.2115,0.217,0.2226,0.228,0.2332,0.2381,0.243,0.248,0.253,0.258,0.263,0.268,0.273,0.278,0.2829,0.2879,0.2928,0.2978,0.3027,0.3077,0.3126,0.3177,0.3229,0.3281,0.3333,0.3384,0.3434,0.3481,0.3526,0.3582,0.3634,0.3685,0.3733,0.3781,0.3829,0.3875,0.3922,0.397,0.4019,0.4068,0.4117,0.4165,0.4214,0.4263,0.4314,0.4364,0.4414,0.4463,0.4512,0.4561,0.4609,0.4658,0.4707,0.4756,0.4805,0.4854,0.4903,0.4952,0.5002,0.5053,0.5105,0.5151,0.5199,0.5247,0.5296,0.5345,0.5393,0.544,0.5488,0.5538,0.5587,0.5635,0.5683,0.5731,0.578,0.583,0.588,0.593,0.5981,0.6031,0.6081,0.6131,0.6182,0.6232,0.6283,0.6333,0.6383,0.6432,0.6484,0.6536,0.6587,0.6637,0.6688,0.6738,0.6788,0.6839,0.6889,0.6939,0.6989,0.7038,0.7086,0.7134,0.7181,0.7229,0.7277,0.7326,0.7373,0.7421,0.7471,0.7522,0.7571,0.762,0.7671,0.7727,0.7784,0.7838,0.7887,0.7925],"w":[34,34,34,34,33,33,33,33,33,33,32,32,32,32,32,32,31,31,31,31,31,31,30,30,30,30,30,30,29,29,29,29,29,29,28,28,28,28,28,28,27,27,27,27,27,27,26,26,26,26,26,26,25,25,25,25,25,25,24,24,24,24,24,24,23,23,23,23,23,23,23,22,22,22,22,22,22,21,21,21,21,21,21,20,20,20,20,20,20,19,19,19,19,19,19,18,18,18,18,18,18,17,17,17,17,17,17,16,16,16,16,16,16,15,15,15,15,15,15,14,14,14]},{"n":"R1","x":[791,799,809,821,834,848,863,877,890,902,915,927,940,952,965,977,990,1003,1015,1028,1041,1053,1066,1078,1090,1103,1115,1128,1140,1152,1163,1175,1187,1200,1212,1224,1235,1245,1255,1263,1270,1276,1281,1285,1288,1290,1292,1293,1293,1294,1294,1294,1293,1292,1291,1290,1288,1287,1286,1284,1282,1280,1278,1276,1275,1273,1272,1271,1269,1268,1267,1266,1266,1265,1265,1264,1264,1263,1263,1261,1260,1258,1256,1254,1251,1248,1244,1239,1233,1227,1221,1214,1207,1200,1192,1185,1176,1168,1158,1148,1138,1127,1116,1105,1094,1082,1070,1058,1046,1034,1022,1010,998,985,973,962,949,935,922,910,901],"y":[1185,1184,1181,1179,1176,1174,1171,1168,1166,1164,1162,1160,1159,1157,1155,1154,1152,1150,1149,1147,1146,1145,1143,1142,1140,1138,1137,1135,1134,1132,1130,1127,1124,1120,1115,1110,1104,1098,1090,1081,1071,1060,1049,1036,1025,1014,1001,988,976,963,950,938,925,913,900,887,875,862,850,838,826,814,802,790,778,766,753,740,728,715,703,690,678,666,654,642,630,618,606,594,581,568,556,544,532,520,508,495,484,472,461,450,439,429,419,410,400,392,383,376,368,361,355,349,344,340,335,331,328,324,322,319,317,315,313,310,306,302,298,294,291],"d":[0.1949,0.198,0.202,0.2069,0.2123,0.218,0.2238,0.2295,0.2347,0.2397,0.2447,0.2497,0.2546,0.2596,0.2646,0.2696,0.2746,0.2796,0.2846,0.2897,0.2947,0.2997,0.3047,0.3096,0.3144,0.3194,0.3244,0.3294,0.3342,0.339,0.3437,0.3482,0.3531,0.3585,0.3639,0.369,0.374,0.3787,0.3835,0.3883,0.393,0.3979,0.4029,0.4082,0.4126,0.4172,0.4222,0.4272,0.4323,0.4374,0.4424,0.4473,0.4523,0.4572,0.4622,0.4672,0.4723,0.4773,0.482,0.4868,0.4916,0.4965,0.5013,0.5061,0.5109,0.5158,0.5208,0.5258,0.5308,0.5358,0.5408,0.5457,0.5506,0.5554,0.5602,0.5649,0.5697,0.5744,0.579,0.5839,0.5889,0.5939,0.5989,0.6038,0.6087,0.6135,0.6187,0.6239,0.629,0.6342,0.6393,0.6443,0.6493,0.6542,0.6592,0.6641,0.6689,0.6736,0.6787,0.6838,0.6888,0.6939,0.699,0.7039,0.7087,0.7136,0.7185,0.7235,0.7286,0.7335,0.7383,0.7433,0.7482,0.7532,0.758,0.7626,0.768,0.7737,0.7791,0.7839,0.7877],"w":[34,34,34,34,33,33,33,33,33,32,32,32,32,32,32,31,31,31,31,31,31,30,30,30,30,30,30,29,29,29,29,29,29,28,28,28,28,28,28,27,27,27,27,27,27,27,26,26,26,26,26,26,25,25,25,25,25,24,24,24,24,24,24,24,23,23,23,23,23,23,22,22,22,22,22,22,21,21,21,21,21,21,20,20,20,20,20,20,19,19,19,19,19,19,18,18,18,18,18,18,17,17,17,17,17,17,16,16,16,16,16,16,15,15,15,15,15,15,14,14,14]},{"n":"L2","x":[752,745,735,723,711,697,684,671,659,647,636,624,612,601,589,578,566,555,543,532,521,510,500,489,478,467,458,448,440,432,424,417,411,406,402,398,396,394,393],"y":[1045,1042,1038,1034,1029,1024,1019,1014,1010,1006,1003,1000,997,993,990,986,982,977,973,968,963,958,952,945,938,930,922,914,905,895,884,874,862,851,840,826,812,800,790],"d":[0.2767,0.2806,0.2859,0.2923,0.2993,0.3066,0.3139,0.3208,0.3271,0.3334,0.3396,0.3458,0.352,0.3581,0.3642,0.3702,0.3766,0.383,0.3893,0.3955,0.4017,0.4077,0.4136,0.4203,0.427,0.4336,0.44,0.4463,0.4525,0.4591,0.4657,0.4722,0.4786,0.4848,0.4912,0.4983,0.5055,0.512,0.5172],"w":[26,26,25,25,25,24,24,23,23,22,22,22,21,21,21,20,20,19,19,19,18,18,18,17,17,16,16,15,15,15,14,14,14,13,13,12,12,11,11]},{"n":"R2","x":[784,791,801,813,826,839,853,866,878,890,902,914,927,939,950,962,974,986,998,1010,1021,1032,1042,1053,1064,1074,1083,1092,1100,1108,1115,1121,1127,1132,1136,1140,1142,1144,1145],"y":[1045,1042,1038,1033,1028,1022,1017,1012,1008,1004,1000,997,993,990,986,982,978,974,970,965,961,956,950,943,935,927,918,909,900,890,880,869,858,847,836,822,807,794,784],"d":[0.2767,0.2807,0.2861,0.2925,0.2996,0.307,0.3145,0.3216,0.3281,0.3345,0.341,0.3475,0.3539,0.3603,0.3666,0.3728,0.3793,0.3858,0.3923,0.3986,0.4048,0.4108,0.4167,0.4235,0.4302,0.4369,0.4434,0.4497,0.4558,0.4623,0.4687,0.475,0.4812,0.4872,0.4936,0.5009,0.5083,0.5151,0.5205],"w":[26,26,25,25,25,24,24,23,23,22,22,22,21,21,21,20,20,19,19,19,18,18,17,17,17,16,16,15,15,15,14,14,14,13,13,12,12,11,11]},{"n":"L3","x":[752,745,735,724,712,699,686,674,662,651,640,629,618,607,596,584,572,559,547,535,523,512,498,483,470,458,450],"y":[850,846,841,835,829,822,815,809,803,797,792,786,781,776,772,768,765,762,760,759,758,758,759,762,766,770,772],"d":[0.3926,0.3974,0.4038,0.4115,0.4199,0.4287,0.4374,0.4456,0.4532,0.4608,0.4684,0.4758,0.4831,0.4903,0.4973,0.5046,0.5122,0.5198,0.5273,0.5346,0.5416,0.5482,0.5569,0.5658,0.5742,0.5813,0.5864],"w":[22,22,21,21,20,20,19,19,18,18,17,17,16,16,16,15,15,14,14,13,13,12,12,11,11,10,10]},{"n":"R3","x":[784,791,800,811,823,836,848,860,872,883,895,906,918,929,940,953,966,979,992,1004,1016,1029,1044,1058,1070,1078],"y":[850,847,842,837,831,825,820,814,810,805,801,796,793,789,786,782,779,776,774,772,770,770,771,774,776,778],"d":[0.3926,0.3971,0.4032,0.4105,0.4185,0.4269,0.4352,0.4431,0.4504,0.4579,0.4653,0.4726,0.4798,0.487,0.494,0.5015,0.5096,0.5177,0.5257,0.5333,0.5404,0.5482,0.5571,0.5655,0.5727,0.5777],"w":[22,22,21,21,20,20,19,19,18,18,17,17,16,16,15,15,14,14,13,13,12,12,11,11,10,10]},{"n":"L4","x":[754,746,736,724,710,697,684,672,660,648,637,624,612,600,588,576,564,552,540,528,516,503,490,478,467,456,441,427,415,405],"y":[705,701,696,690,684,677,672,667,663,659,655,652,648,645,641,638,635,632,629,627,625,624,623,622,621,620,618,616,614,613],"d":[0.4775,0.4825,0.4895,0.4978,0.5067,0.5156,0.5238,0.5314,0.5389,0.5464,0.5539,0.5615,0.5692,0.5765,0.5839,0.5914,0.5989,0.6064,0.6138,0.6211,0.6286,0.6362,0.6437,0.651,0.658,0.6644,0.6732,0.6817,0.6891,0.6949],"w":[24,24,23,23,22,22,21,21,20,20,19,19,18,18,17,17,16,16,15,15,14,14,13,13,12,12,12,11,11,10]},{"n":"R4","x":[782,789,799,811,824,837,850,862,874,886,898,910,922,934,946,959,971,983,996,1008,1020,1033,1046,1058,1070,1082,1092,1107,1121,1132,1140],"y":[705,702,697,691,685,680,674,670,666,663,660,656,653,650,647,643,639,636,633,629,627,624,621,619,617,615,613,611,609,607,606],"d":[0.4775,0.4823,0.4888,0.4966,0.5051,0.5138,0.5221,0.5297,0.5371,0.5446,0.552,0.5595,0.567,0.5745,0.5821,0.5898,0.5975,0.6052,0.6128,0.6204,0.6279,0.6356,0.6434,0.6511,0.6585,0.6654,0.6717,0.6809,0.6892,0.6959,0.7007],"w":[24,24,23,23,22,22,21,21,20,20,19,19,18,18,17,17,16,16,16,15,15,14,14,13,13,12,12,11,11,10,10]},{"n":"L5","x":[756,749,740,729,717,706,696,685,675,663,652,640,629,617,604,592,580,568,554,541,528,516,506,490,478,470],"y":[560,555,547,538,529,520,513,505,498,491,485,480,476,472,469,467,464,462,460,458,457,456,455,454,453,452],"d":[0.5629,0.568,0.5752,0.5837,0.5927,0.6012,0.6087,0.6163,0.6242,0.632,0.6399,0.6474,0.6548,0.6623,0.6699,0.6775,0.6848,0.6924,0.7004,0.7084,0.7161,0.7232,0.7294,0.7389,0.7462,0.751],"w":[20,20,19,19,18,18,17,17,16,16,15,15,15,14,14,13,13,12,12,11,11,11,10,10,9,9]},{"n":"R5","x":[780,787,797,808,820,832,842,853,864,875,886,897,909,920,932,944,956,968,982,996,1009,1021,1032,1050,1062],"y":[560,554,546,537,528,520,514,507,501,496,490,486,482,478,475,472,469,467,464,462,459,458,456,454,452],"d":[0.5629,0.5682,0.5757,0.5845,0.5936,0.6021,0.6094,0.6167,0.6241,0.6316,0.6391,0.6464,0.6536,0.6609,0.6682,0.6756,0.6829,0.6905,0.6988,0.7071,0.7152,0.7227,0.729,0.7398,0.7471],"w":[20,20,19,19,18,18,17,17,16,16,16,15,15,14,14,13,13,12,12,11,11,11,10,10,9]},{"n":"L6","x":[760,755,748,739,730,722,714,707,699,692,684,677,670,663,657,650,642,633,624,615,608],"y":[425,418,407,396,383,372,362,352,342,332,322,312,302,293,283,273,263,251,240,229,221],"d":[0.6412,0.6466,0.6541,0.6629,0.6719,0.6803,0.6878,0.6953,0.7027,0.7102,0.7178,0.7249,0.7321,0.7394,0.7466,0.7538,0.7614,0.7702,0.779,0.787,0.7934],"w":[20,20,19,18,18,17,17,16,16,15,15,14,14,13,12,12,11,11,10,10,9]},{"n":"R6","x":[776,781,787,795,804,812,820,828,836,844,852,860,868,876,884,892,900,908,917,926,934,941,946],"y":[425,419,410,399,388,377,367,357,348,338,328,318,308,298,288,277,267,257,245,233,222,213,206],"d":[0.6412,0.646,0.6527,0.6605,0.6689,0.6771,0.6847,0.6922,0.6997,0.7073,0.715,0.7227,0.7304,0.7381,0.7459,0.7537,0.7614,0.7693,0.7779,0.7867,0.7951,0.8021,0.8072],"w":[20,20,19,19,18,18,17,17,16,16,15,15,14,14,13,13,12,12,11,10,10,9,9]}],"flowers":[{"x":768,"y":75,"r":70,"d":0.8482,"c":"pink"},{"x":505,"y":262,"r":52,"d":0.8075,"c":"yellow"},{"x":1022,"y":265,"r":52,"d":0.8258,"c":"yellow"},{"x":768,"y":322,"r":60,"d":0.7028,"c":"pink"},{"x":340,"y":380,"r":54,"d":0.7243,"c":"pink"},{"x":1205,"y":392,"r":57,"d":0.7048,"c":"pink"},{"x":765,"y":550,"r":74,"d":0.5669,"c":"orange"},{"x":243,"y":600,"r":56,"d":0.6206,"c":"yellow"},{"x":1300,"y":600,"r":56,"d":0.6371,"c":"yellow"},{"x":195,"y":712,"r":47,"d":0.6293,"c":"red"},{"x":1345,"y":714,"r":47,"d":0.6486,"c":"red"},{"x":357,"y":810,"r":55,"d":0.5629,"c":"turq"},{"x":1185,"y":808,"r":56,"d":0.5761,"c":"turq"},{"x":768,"y":800,"r":64,"d":0.4154,"c":"blue"},{"x":210,"y":970,"r":60,"d":0.4619,"c":"pink"},{"x":1325,"y":975,"r":62,"d":0.4795,"c":"pink"},{"x":460,"y":930,"r":46,"d":0.4445,"c":"magenta"},{"x":1075,"y":930,"r":48,"d":0.4438,"c":"magenta"},{"x":768,"y":1075,"r":72,"d":0.2508,"c":"pink"},{"x":382,"y":1155,"r":50,"d":0.3676,"c":"magenta"},{"x":1160,"y":1160,"r":50,"d":0.383,"c":"orange"},{"x":770,"y":1255,"r":62,"d":0.1425,"c":"blue"},{"x":768,"y":1398,"r":66,"d":0.0563,"c":"pink"},{"x":650,"y":1428,"r":46,"d":0.2064,"c":"orange"},{"x":895,"y":1425,"r":46,"d":0.2212,"c":"orange"},{"x":452,"y":1100,"r":36,"d":0.3824,"c":"turq"},{"x":1080,"y":1115,"r":36,"d":0.3521,"c":"turq"},{"x":425,"y":1012,"r":38,"d":0.5224,"c":"pink"},{"x":1115,"y":1020,"r":40,"d":0.5022,"c":"pink"},{"x":338,"y":1052,"r":36,"d":0.4736,"c":"red"},{"x":1197,"y":1046,"r":38,"d":0.4741,"c":"red"},{"x":450,"y":808,"r":36,"d":0.5818,"c":"red"},{"x":1077,"y":790,"r":38,"d":0.597,"c":"orange"},{"x":425,"y":435,"r":30,"d":0.7806,"c":"pink"},{"x":1118,"y":440,"r":31,"d":0.7785,"c":"pink"},{"x":772,"y":912,"r":40,"d":0.3526,"c":"orange"}],"doves":[{"x":455,"y":575,"f":1,"d":0.7329},{"x":1075,"y":580,"f":-1,"d":0.7156},{"x":590,"y":170,"f":1,"d":0.8754},{"x":960,"y":165,"f":-1,"d":0.8732}],"root":[768,1490]};
+
+// the light trunk stops at the foot of the crown flower (source y 155) and is finished there by two curls and the
+// crown rosette, instead of running on up through the flower as a spire
+{ const T = DATA.paths[0], n = T.y.findIndex(y => y < 158) + 1; for (const k of ['x', 'y', 'd', 'w']) T[k] = T[k].slice(0, n); }
 
 // ---------- placement: the 1536 px cut-out square on screen
 const SQ = 690, TX = C - SQ / 2, TY = 97, K = SQ / 1536;
@@ -40,24 +46,27 @@ const LAND = 1.15;                                                       // the 
 const growE = u => { u = clamp(u); return 0.55 * ease.inOut3(u) + 0.45 * ease.out3(u); };
 const kLight = t => 0.92 * growE((t - 1.2) / 2.45);                     // branches of light (skeleton distance)
 const uColour = t => lerp(-0.08, 1.12, ease.inOut3((t - 2.05) / 2.75));  // painted clay floods in
-const uRecede = t => lerp(1.12, -0.1, smooth(9.15, 10.6, t));            // ...and recedes at the end
-const bCut = t => lerp(730, -12, smooth(9.42, 10.8, t));                  // the light is drawn back into the seed (see seedDist)
+const T_END = 8.85;                                                       // the ending starts
+const uRecede = t => lerp(1.12, -0.1, smooth(T_END, 10.6, t));           // ...and recedes at the end
+const bCut = t => lerp(730, -12, smooth(9.2, 10.8, t));                   // the light is drawn back into the seed (see seedDist)
 const EDGE = 0.06;                                                        // soft edge of the growth front
 // time at which a monotonic f(t) crosses v (bisection; evaluated once, deterministic)
 function crossing(f, v, a, b) { const up = f(b) > f(a); for (let i = 0; i < 40; i++) { const m = (a + b) / 2; if ((f(m) < v) === up) a = m; else b = m; } return (a + b) / 2; }
 
 // pop schedule: following the colour up the tree, left and right a beat apart; the crown flower opens last
 const CROWN = 0, POP = 0.62, T_CROWN = 5.95;
+// the crown flower's pop is the climax: it swells to about 1.65x, then settles back into place with a small rebound
+const crownScale = x => x <= 0 ? 0.5 : 0.5 + 0.5 * ease.out3(x / 0.2) + 0.65 * smooth(0, 0.22, x) * (1 - smooth(0.3, 0.82, x)) - 0.045 * bump(x, 0.7, 0.82, 0.86, 1.05);
 for (const f of FL) {
   f.tArrive = crossing(uColour, f.d, 1.5, 6);
   const side = f.x < 760 ? 0 : f.x > 776 ? 0.12 : 0.06;
   f.tPop = Math.max(f.tArrive + 0.35, 2.95 + 2.45 * clamp((f.d - 0.05) / 0.8)) + side;
-  f.tRel = crossing(uRecede, f.d + 0.05, 9.0, 11.2);
+  f.tRel = crossing(uRecede, f.d + 0.05, T_END - 0.1, 11.2);
 }
 FL[CROWN].tPop = T_CROWN;
 
 // ---------- layers
-const MK = HG.layer(), MKP = HG.layer(), MK2 = HG.layer(), TL = HG.layer(), SP = HG.layer(), BR = HG.layer(), LN = HG.layer(), FX = HG.layer();
+const MK = HG.layer(), MKP = HG.layer(), MK2 = HG.layer(), TL = HG.layer(), SP = HG.layer(), BR = HG.layer(), FX = HG.layer();
 
 // alpha mask of the tree grown up to distance u (soft edge w): alpha = clamp((u - D) / w).
 // The map stores I = 1 - 0.85 D, so alpha = clamp((I - (1 - 0.85 u)) / 0.85 w), done as brightness + contrast.
@@ -73,7 +82,8 @@ function growMask(L, img, u, w = EDGE) {
 }
 function apply(g, L, op) { HG.drawLayer(g, L, { op }); }
 function clearL(L) { const g = L.ctx; HG.reset(g); g.clearRect(0, 0, W, W); return g; }
-// soft additive bloom of a layer (the layer canvas is SIZE px; drawn over the 1080 frame under the engine's scale it lands pixel-aligned)
+// soft additive bloom of a layer (the layer canvas is SIZE px; drawn over the 1080 frame under the engine's scale it lands pixel-aligned).
+// Deliberate, scale-safe exception to the HG.drawLayer rule: drawLayer cannot apply a blur filter.
 function bloomLayer(L, b, a) {
   ctx.save(); HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a;
   ctx.filter = HG.blur(b); ctx.drawImage(L.cv, 0, 0, W, W); ctx.restore();
@@ -101,8 +111,8 @@ function sprites(img) {
     g.fillStyle = gr; g.fillRect(0, 0, n, n);
     // the same flower gilded: its relief in gold light, before it is painted
     const gc = document.createElement('canvas'); gc.width = gc.height = n; const q = gc.getContext('2d');
-    q.filter = 'grayscale(1) brightness(1.6) contrast(1.12)'; q.drawImage(cv, 0, 0); q.filter = 'none';
-    q.globalCompositeOperation = 'multiply'; q.fillStyle = rgba([255, 204, 108], 1); q.fillRect(0, 0, n, n);
+    q.filter = 'grayscale(1) brightness(2.05) contrast(1.35)'; q.drawImage(cv, 0, 0); q.filter = 'none';
+    q.globalCompositeOperation = 'multiply'; q.fillStyle = rgba([255, 200, 92], 1); q.fillRect(0, 0, n, n);
     q.globalCompositeOperation = 'destination-in'; q.drawImage(cv, 0, 0);
     return { cv, gold: gc, R };
   });
@@ -201,7 +211,7 @@ const LEAVES = [];
       const nx = -Math.sin(th) * side, ny = Math.cos(th) * side;
       const leaf = { x: x1 + nx * hw, y: y1 + ny * hw, ang: th + side * (0.95 + 0.3 * R()), len, d: p.d[j] };
       leaf.tOn = crossing(t => warpK(p, kLight(t)), leaf.d + 0.01, 0.8, 4.8);
-      leaf.tOff = crossing(bCut, seedDist(leaf.x, leaf.y) + 8, 9.0, 11.2);
+      leaf.tOff = crossing(t => kAtCut(p, bCut(t)), leaf.d + 0.004, 9.0, 11.2);   // when its branch is drawn back past it
       LEAVES.push(leaf); side = -side;
     }
   });
@@ -209,7 +219,7 @@ const LEAVES = [];
 function drawLeaves(g, t) {
   g.save(); g.lineJoin = 'round';
   for (const L of LEAVES) {
-    const on = ease.outBack(clamp((t - L.tOn) / 0.42)) * (1 - ease.in3(clamp((t - L.tOff + 0.15) / 0.3)));
+    const on = ease.outBack(clamp((t - L.tOn) / 0.42)) * (1 - ease.inOut3(clamp((t - L.tOff + 0.32) / 0.3)));
     if (on <= 0.01) continue;
     const len = L.len * on, wid = len * 0.34;
     g.save(); g.translate(L.x, L.y); g.rotate(L.ang + 0.25 * (1 - Math.min(1, on)));
@@ -238,15 +248,22 @@ const CURLS = DATA.paths.filter(p => p.n !== 'T').map(p => {
   const th = Math.atan2(y - sy(p.y[n - 3]), x - sx(p.x[n - 3]));
   const sg = Math.cos(th) < 0 ? 1 : -1, arch = p.n.endsWith('1');
   const w0 = (p.w[n - 1] * K * wOf(p) * 0.55 + 0.5);
-  return { pts: spiral(x, y, th, sg, arch ? 74 : 58, 5.0), w0, tOn: crossing(t => warpK(p, kLight(t)), PEND[i] - 0.004, 0.8, 4.8), tOff: crossing(bCut, seedDist(x, y) + 24, 9.0, 11.2) };
+  return { pts: spiral(x, y, th, sg, arch ? 74 : 58, 5.0), w0, tOn: crossing(t => warpK(p, kLight(t)), PEND[i] - 0.004, 0.8, 4.8),
+    tOff: crossing(t => kAtCut(p, bCut(t)), PEND[i] - 0.03, 9.0, 11.2) };
 });
+// the trunk ends in two small curls cupping the crown flower, like the scrolls on the arms of a candelero
+{
+  const T = DATA.paths[0], n = T.x.length, x = sx(T.x[n - 1]), y = sy(T.y[n - 1]) + 2;
+  const tOn = crossing(kLight, PEND[0] - 0.004, 0.8, 4.8), tOff = crossing(t => kAtCut(T, bCut(t)), PEND[0] - 0.03, 9.0, 11.2);
+  for (const sd of [-1, 1]) CURLS.push({ pts: spiral(x + sd * 2, y, -Math.PI / 2 + sd * 1.05, sd, 42, 4.4), w0: 2.6, tOn, tOff });
+}
 // two root scrolls at the foot of the trunk, curling down toward the ground
 for (const sd of [-1, 1]) CURLS.push({ pts: spiral(ROOT[0] + sd * 10, ROOT[1] - 8, sd > 0 ? -0.25 : Math.PI + 0.25, sd, 62, 4.6), w0: 3.2,
   tOn: crossing(kLight, 0.012, 0.8, 4.8), tOff: crossing(bCut, 26, 9.0, 11.2) });
 function drawCurls(g, t) {
   g.save(); g.lineCap = 'round';
   for (const c of CURLS) {
-    const p = ease.out3(clamp((t - c.tOn) / 0.6)) * (1 - ease.in3(clamp((t - c.tOff + 0.3) / 0.3)));
+    const p = ease.out3(clamp((t - c.tOn) / 0.6)) * (1 - ease.in3(clamp((t - c.tOff + 0.32) / 0.3)));
     const m = Math.floor(p * (c.pts.length - 1)); if (m < 1) continue;
     for (let j = 1; j <= m; j++) {
       const u = j / (c.pts.length - 1), w = lerp(c.w0 * 2, 2.2, Math.pow(u, 0.7));
@@ -260,13 +277,78 @@ function drawCurls(g, t) {
   g.restore();
 }
 
+// ---------- motifs of light: a gold rosette on every clay flower and a dove outline on every clay dove, drawn in
+// the branches' stroke style as the light reaches them (they then give way to the gilded buds and the clay)
+function nearestOnPaths(x, y) {
+  let best = null;
+  for (const p of DATA.paths) for (let j = 0; j < p.x.length; j++) {
+    const e = Math.hypot(p.x[j] - x, p.y[j] - y);
+    if (!best || e < best.e) best = { e, p, d: p.d[j] };
+  }
+  return best;
+}
+const motifTimes = (x, y) => {
+  const nb = nearestOnPaths(x, y);
+  return { tOn: crossing(t => warpK(nb.p, kLight(t)), nb.d, 0.8, 4.8), tOff: crossing(t => kAtCut(nb.p, bCut(t)), nb.d + 0.004, 9.0, 11.2) };
+};
+const ROS = FL.map(f => ({ X: f.X, Y: f.Y, r: f.Rr * 0.86, n: f.r > 58 ? 10 : 8, rot: f.i * 0.7, ...motifTimes(f.x, f.y) }));
+const DOL = DATA.doves.map(d => ({ X: sx(d.x), Y: sy(d.y), f: d.f, ...motifTimes(d.x, d.y) }));
+function rosette(g, X, Y, r, n, rot) {
+  g.save(); g.translate(X, Y); g.rotate(rot);
+  g.beginPath();
+  for (let i = 0; i < n; i++) {
+    const th = i / n * TAU, c = Math.cos(th), s = Math.sin(th);
+    g.moveTo(c * r * 0.98, s * r * 0.98);
+    g.ellipse(c * r * 0.64, s * r * 0.64, r * 0.34, r * 0.17 * 10 / n * 1.25, th, 0, TAU);
+  }
+  g.moveTo(r * 0.27, 0); g.arc(0, 0, r * 0.27, 0, TAU);
+  g.globalAlpha = 0.28; g.fillStyle = rgba(GOLD, 1); g.fill();
+  g.globalAlpha = 0.95; g.strokeStyle = rgba(GOLD, 1); g.lineWidth = 2.0; g.stroke();
+  g.globalAlpha = 0.85; g.strokeStyle = rgba(WARM, 1); g.lineWidth = 0.9; g.stroke();
+  g.restore();
+}
+// a perched dove in outline (facing right when f = 1), about the size of the clay dove
+function doveOutline(g, X, Y, f, k) {
+  g.save(); g.translate(X, Y); g.scale(f * 0.74 * k, 0.74 * k); g.lineJoin = 'round'; g.lineCap = 'round';
+  g.beginPath();
+  g.moveTo(29, -16); g.lineTo(38, -12.5); g.lineTo(29, -10);                        // beak
+  g.bezierCurveTo(27, -1, 19, 9, 5, 10);                                              // breast
+  g.bezierCurveTo(-9, 12, -24, 8, -40, 7); g.lineTo(-46, 1); g.lineTo(-39, -2);       // belly and tail
+  g.bezierCurveTo(-24, -4, -8, -8, 6, -13);                                           // back
+  g.bezierCurveTo(11, -24, 25, -26, 29, -16);                                         // head
+  g.moveTo(9, -7); g.bezierCurveTo(3, -27, -15, -38, -33, -33);                       // raised wing
+  g.bezierCurveTo(-25, -24, -16, -12, -18, -3);
+  g.moveTo(-3, -11); g.quadraticCurveTo(-12, -22, -24, -27);                          // its feathers
+  g.globalAlpha = 0.95; g.strokeStyle = rgba(GOLD, 1); g.lineWidth = 2.6; g.stroke();
+  g.globalAlpha = 0.85; g.strokeStyle = rgba(WARM, 1); g.lineWidth = 1.1; g.stroke();
+  g.beginPath(); g.arc(22, -16, 1.8, 0, TAU); g.fillStyle = rgba(WARM, 1); g.fill();
+  g.restore();
+}
+function drawMotifs(g, t) {
+  g.save(); g.lineJoin = 'round';
+  for (const m of ROS) {
+    const p = clamp((t - m.tOn) / 0.55), off = 1 - ease.inOut3(clamp((t - m.tOff + 0.3) / 0.3));
+    if (p <= 0 || off <= 0) continue;
+    const k = ease.outBack(p) * (0.4 + 0.6 * off);
+    if (k > 0.02) rosette(g, m.X, m.Y, m.r * k, m.n, m.rot - 0.9 * (1 - ease.out3(p)));
+  }
+  for (const m of DOL) {
+    const p = clamp((t - m.tOn) / 0.55), off = 1 - ease.inOut3(clamp((t - m.tOff + 0.3) / 0.3));
+    if (p <= 0 || off <= 0) continue;
+    g.globalAlpha = 1; doveOutline(g, m.X, m.Y, m.f, ease.outBack(p) * (0.4 + 0.6 * off));
+  }
+  g.restore();
+}
+
 // ---------- doves of light, modelled in 3D (spheres along the spine, a fanned tail, two hinged wings with
 // fingered primaries) and seen from slightly above, so they read as doves from every side as they circle.
 // World: X right, Y up, Z toward the viewer; the camera looks down by TILT.
 const TILT = Math.asin(0.267), CT = Math.cos(TILT), ST = Math.sin(TILT);
 const D_BODY = [[36, 10, 9.5], [26, 5, 10.5], [14, 1, 13.5], [1, -1, 14], [-11, 0, 11.5], [-22, 2, 8]];
 const D_TAIL = [[-20, 3, -6], [-38, 4, -11], [-49, 4.5, -10], [-54, 5, -4], [-54, 5, 4], [-49, 4.5, 10], [-38, 4, 11], [-20, 3, 6]];
-const D_PALE = [214, 228, 248], D_RIM = [255, 218, 150], D_GLOW = [255, 236, 200];
+// doves of light: warm ivory bodies, wings shading to gold at the tips, a gold rim and a soft gold bloom, so they read
+// as light rather than as copies of the white clay doves
+const D_BODYC = [255, 238, 202], D_NEAR = [255, 240, 208], D_FAR = [236, 208, 160], D_TIP = [255, 186, 72], D_RIM = [255, 184, 64];
 // wing planform as [x, v]: leading edge out to the tip, five fingered primaries, scalloped secondaries back to the root
 const D_WING = (() => {
   const LE = v => 12 + 16 * v - 42 * v * v, TE = v => -10 - 16 * v, P = [];
@@ -303,69 +385,131 @@ function dproj(fr, x, y, z) {
 function drawDove(g, fr, ang, a) {
   if (a <= 0.003) return;
   const s = fr.s, c = dproj(fr, 0, 0, 0);
-  g.save(); g.globalCompositeOperation = 'lighter'; HG.dot(g, D_GLOW, c[0], c[1] - 4 * s, 175 * s, 0.2 * a); g.restore();
-  g.save(); g.lineJoin = 'round'; g.lineCap = 'round';
   const wing = side => {
     const pts = D_WING.map(([x, v]) => {
       const d = 58 * v, av = ang - 0.18 * v * v;
       return dproj(fr, x + 4, 7 + d * Math.sin(av), side * (5 + d * Math.cos(av)));
     });
-    return { pts, depth: dproj(fr, 0, 7 + 29 * Math.sin(ang), side * (5 + 29 * Math.cos(ang)))[2] };
+    const root = dproj(fr, 2, 7, side * 5), tip = dproj(fr, -6, 7 + 58 * Math.sin(ang - 0.18), side * (5 + 58 * Math.cos(ang - 0.18)));
+    return { pts, root, tip, depth: dproj(fr, 0, 7 + 29 * Math.sin(ang), side * (5 + 29 * Math.cos(ang)))[2] };
   };
   const wings = [wing(1), wing(-1)].sort((p, q) => p.depth - q.depth);
+  const tail = D_TAIL.map(([x, y, z]) => dproj(fr, x, y, z));
+  const body = D_BODY.map(([x, y, r]) => [dproj(fr, x, y, 0), r * s]);
+  const poly = P => { g.beginPath(); g.moveTo(P[0][0], P[0][1]); for (let i = 1; i < P.length; i++) g.lineTo(P[i][0], P[i][1]); g.closePath(); };
+  const spheres = () => { g.beginPath(); for (const [p, r] of body) { g.moveTo(p[0] + r, p[1]); g.arc(p[0], p[1], r, 0, TAU); } };
+  g.save(); g.lineJoin = 'round'; g.lineCap = 'round';
+  // a soft dark backing: invisible on black, it separates the dove from the busy painted tree behind it
+  g.globalAlpha = 0.6 * a; g.filter = HG.blur(5 * s); g.fillStyle = '#000'; g.strokeStyle = '#000'; g.lineWidth = 9 * s;
+  for (const w of wings) { poly(w.pts); g.fill(); g.stroke(); }
+  poly(tail); g.fill(); g.stroke(); spheres(); g.fill();
+  g.filter = 'none';
+  // soft gold bloom
+  g.globalCompositeOperation = 'lighter'; HG.dot(g, GOLD, c[0], c[1] - 4 * s, 150 * s, 0.2 * a); g.globalCompositeOperation = 'source-over';
   const paintWing = (w, near) => {
-    g.beginPath(); g.moveTo(w.pts[0][0], w.pts[0][1]);
-    for (let i = 1; i < w.pts.length; i++) g.lineTo(w.pts[i][0], w.pts[i][1]);
-    g.closePath();
-    g.shadowColor = rgba(D_GLOW, 0.9); g.shadowBlur = HG.px((near ? 12 : 8) * s);
-    g.globalAlpha = a * (near ? 1 : 0.85); g.fillStyle = rgba(near ? WHITE : D_PALE, 1); g.fill();
-    g.shadowBlur = 0; g.globalAlpha = a * (near ? 1 : 0.8); g.strokeStyle = rgba(D_RIM, 1); g.lineWidth = 1.5; g.stroke();
+    poly(w.pts);
+    const lg = g.createLinearGradient(w.root[0], w.root[1], w.tip[0], w.tip[1]);
+    lg.addColorStop(0, rgba(near ? D_NEAR : D_FAR, 1)); lg.addColorStop(0.45, rgba(near ? D_NEAR : D_FAR, 1)); lg.addColorStop(1, rgba(D_TIP, 1));
+    g.shadowColor = rgba(GOLD, 0.85); g.shadowBlur = HG.px((near ? 11 : 8) * s);
+    g.globalAlpha = a * (near ? 1 : 0.88); g.fillStyle = lg; g.fill();
+    g.shadowBlur = 0; g.globalAlpha = a; g.strokeStyle = rgba(D_RIM, 1); g.lineWidth = 1.9; g.stroke();
   };
   paintWing(wings[0], false);
-  // body: the tail fan, then the spheres along the spine as one silhouette
-  g.beginPath();
-  D_TAIL.forEach(([x, y, z], i) => { const p = dproj(fr, x, y, z); i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); });
-  g.closePath();
-  g.shadowColor = rgba(D_GLOW, 0.95); g.shadowBlur = HG.px(12 * s);
-  g.globalAlpha = a; g.fillStyle = rgba(mix(WHITE, D_PALE, 0.3), 1); g.fill();
-  g.beginPath();
-  for (const [x, y, r] of D_BODY) { const p = dproj(fr, x, y, 0); g.moveTo(p[0] + r * s, p[1]); g.arc(p[0], p[1], r * s, 0, TAU); }
-  g.shadowBlur = HG.px(16 * s); g.fillStyle = rgba(WHITE, 1); g.fill('nonzero');
+  // body: the tail fan, then the spheres along the spine as one silhouette, rimmed in gold
+  poly(tail);
+  g.shadowColor = rgba(GOLD, 0.9); g.shadowBlur = HG.px(11 * s);
+  g.globalAlpha = a; g.fillStyle = rgba(mix(D_BODYC, D_TIP, 0.35), 1); g.fill();
+  g.shadowBlur = 0; g.strokeStyle = rgba(D_RIM, 1); g.lineWidth = 1.6; g.stroke();
+  spheres();
+  g.shadowBlur = HG.px(13 * s); g.fillStyle = rgba(D_BODYC, 1); g.fill('nonzero');
   g.shadowBlur = 0;
   // beak and the eye on the side we can see
   const b0 = dproj(fr, 43, 12, 0), b1 = dproj(fr, 52, 9.5, 0), b2 = dproj(fr, 43, 7, 0), bl = dproj(fr, 43, 9.5, -3), br = dproj(fr, 43, 9.5, 3);
-  g.fillStyle = rgba([255, 150, 90], 1); g.beginPath(); g.moveTo(b0[0], b0[1]); g.lineTo(br[0], br[1]); g.lineTo(b1[0], b1[1]); g.lineTo(bl[0], bl[1]); g.lineTo(b2[0], b2[1]); g.closePath(); g.fill();
+  g.fillStyle = rgba([255, 150, 70], 1); g.beginPath(); g.moveTo(b0[0], b0[1]); g.lineTo(br[0], br[1]); g.lineTo(b1[0], b1[1]); g.lineTo(bl[0], bl[1]); g.lineTo(b2[0], b2[1]); g.closePath(); g.fill();
   const head = dproj(fr, 36, 10, 0);
   for (const side of [1, -1]) {
     const e = dproj(fr, 39, 13, side * 7);
-    if (e[2] > head[2] + 2 * s) { g.fillStyle = 'rgba(30,22,16,1)'; g.beginPath(); g.arc(e[0], e[1], 2.3 * s, 0, TAU); g.fill(); }
+    if (e[2] > head[2] + 2 * s) { g.fillStyle = 'rgba(60,36,14,1)'; g.beginPath(); g.arc(e[0], e[1], 2.3 * s, 0, TAU); g.fill(); }
   }
   paintWing(wings[1], true);
   g.restore();
 }
 
 // the wave of light that runs back down the tree after the crown opens (and wakes the doves as it passes them)
-const uWave = t => lerp(1.08, -0.14, smooth(T_CROWN + 0.1, T_CROWN + 2.2, t));
-// doves: two mirrored pairs (the mid perches circle the tree, the top perches circle the crown). Each takes
-// off from its clay dove with a rising hop the way it faces and swoops forward into a horizontal orbit,
-// which it joins where it perched; at the end the orbits open out and climb past the rim.
+// (it leaves the crown fast and slows toward the root)
+const uWave = t => lerp(1.08, -0.14, 1 - Math.pow(1 - clamp((t - T_CROWN - 0.08) / 1.9), 1.6));
+// doves: two pairs, each in its own horizontal orbit seen slightly from above; the mid perches circle the whole
+// tree, the top perches circle the crown the other way. The two doves of a pair fly half an orbit apart, so one
+// passes in front of the tree while the other is behind it. Each takes off from its clay dove as the wave of light
+// reaches it, swoops outward (a cubic Hermite curve from its take-off velocity to its orbit velocity) and joins
+// its orbit outside the tree's outline about 0.75 s later; at the end the orbits open out and climb past the rim.
+const OMEGA = 1.0, UJ = 0.75;
+const ORB = [{ ox: C, oy: 300, R: 360, hy: 20, s: 1.12, dir: 1 }, { ox: C, oy: 150, R: 280, hy: 30, s: 0.94, dir: -1 }];
+const JOIN = [-1.1, 1.25, -2.35, 1.0];                  // orbit angle where each dove joins (all outside the tree)
 const DV = DATA.doves.map((d, i) => {
-  const orb = i < 2 ? { ox: C, oy: 300, R: 390, s: 1.12 } : { ox: C, oy: 172, R: 240, s: 0.84 };
-  const x0 = sx(d.x), y0 = sy(d.y) - 4, Z0 = 30, X0 = x0 - orb.ox, Y0 = (orb.oy + Z0 * ST - y0) / CT;
-  return { X0, Y0, Z0, x0, y0, f: d.f, orb, lift: crossing(uWave, d.d, 5.9, 8) + (d.f < 0 ? 0.4 : 0), ph: i * 1.7, hy: d.f < 0 ? 34 : 0,
-    phi0: Math.asin(clamp(X0 / (d.f * orb.R), -0.95, 0.95)) };
+  const o = ORB[i < 2 ? 0 : 1];
+  const x0 = sx(d.x), y0 = sy(d.y) - 4, Z0 = 30, X0 = x0 - o.ox, Y0 = (o.oy + Z0 * ST - y0) / CT;
+  const sg = Math.sign(X0), v0 = i < 2 ? [sg * 150, 190, 40] : [sg * 110, 240, 20];
+  return { P0: [X0, Y0, Z0], v0, x0, y0, o, phiJ: JOIN[i], ph: i * 1.7, lift: crossing(uWave, d.d, 5.9, 8) + (d.f < 0 ? 0.08 : 0) };
 });
-const OMEGA = 1.2;
+const EXIT = 8.9;
+function orbitAt(d, u, t) {
+  const o = d.o, ex = ease.inOut3((t - EXIT) / 1.4), R = o.R * (1 + 0.7 * ex);
+  const phi = d.phiJ + o.dir * (OMEGA * (u - UJ) + 0.4 * ex);
+  return [R * Math.sin(phi), o.hy + 10 * Math.sin(1.3 * u + d.ph) + 250 * ex, R * Math.cos(phi)];
+}
 function dovePos(d, t) {
-  const u = t - d.lift, o = d.orb;
-  const ex = ease.inOut3((t - 9.0) / 1.4);
-  const R = o.R * (1 + 0.7 * ex), lift = 250 * ex;
-  const phi = d.phi0 + OMEGA * Math.max(0, u - 0.3) + 0.4 * ex;
-  const orbit = [d.f * R * Math.sin(phi), d.hy + 10 * Math.sin(1.3 * u + d.ph) + lift, R * Math.cos(phi)];
-  const lu = ease.out3(clamp(u / 0.9));
-  const hop = [d.X0 + d.f * 70 * lu, d.Y0 + 58 * lu, d.Z0 + 40 * lu];
-  const w = ease.inOut3((u - 0.15) / 1.35);
-  return [lerp(hop[0], orbit[0], w), lerp(hop[1], orbit[1], w), lerp(hop[2], orbit[2], w)];
+  const u = t - d.lift;
+  if (u >= UJ) return orbitAt(d, u, t);
+  const s = Math.max(0, u) / UJ, J = orbitAt(d, UJ, d.lift + UJ), o = d.o;
+  const vJ = [o.dir * OMEGA * o.R * Math.cos(d.phiJ), 0, -o.dir * OMEGA * o.R * Math.sin(d.phiJ)];
+  const h00 = 2 * s * s * s - 3 * s * s + 1, h10 = s * s * s - 2 * s * s + s, h01 = -2 * s * s * s + 3 * s * s, h11 = s * s * s - s * s;
+  return [0, 1, 2].map(k => h00 * d.P0[k] + h10 * UJ * d.v0[k] + h01 * J[k] + h11 * UJ * vJ[k]);
+}
+
+// ---------- the midday sun behind the crown, in the manner of a Metepec clay sun: a ring with alternating straight
+// and flame rays (its face is the crown flower in front of it), soft long rays of light and a warm halo
+const SUN_X = C, SUN_Y = sy(FL[CROWN].y) + 2;
+function sunRays(g, k, a, rot) {
+  if (a <= 0.003) return;
+  g.save(); g.globalCompositeOperation = 'lighter'; g.translate(SUN_X, SUN_Y); g.rotate(rot);
+  const R = 330 * k, gr = g.createRadialGradient(0, 0, 40, 0, 0, R);
+  gr.addColorStop(0, rgba(SUN, 0.34 * a)); gr.addColorStop(0.35, rgba(SUN, 0.16 * a)); gr.addColorStop(1, rgba(SUN, 0));
+  g.fillStyle = gr; g.filter = HG.blur(5);
+  g.beginPath();
+  for (let i = 0; i < 16; i++) {
+    const th = i / 16 * TAU, w = i % 2 ? 0.035 : 0.06, r = R * (i % 2 ? 0.78 : 1);
+    g.moveTo(Math.cos(th - w) * 40, Math.sin(th - w) * 40); g.lineTo(Math.cos(th) * r, Math.sin(th) * r); g.lineTo(Math.cos(th + w) * 40, Math.sin(th + w) * 40);
+  }
+  g.fill(); g.restore();
+}
+function sunRosette(g, k, a, rot) {
+  if (a <= 0.003 || k <= 0.02) return;
+  const N = 12;
+  const shape = () => {
+    g.beginPath();
+    for (let i = 0; i < N; i++) {
+      // straight ray
+      let th = i / N * TAU, c = Math.cos(th), s = Math.sin(th);
+      const P = (x, y) => [c * x - s * y, s * x + c * y];
+      let q = P(52, -9.5); g.moveTo(...q); q = P(122, 0); g.lineTo(...q); q = P(52, 9.5); g.lineTo(...q);
+      // flame ray between it and the next
+      th = (i + 0.5) / N * TAU; c = Math.cos(th); s = Math.sin(th);
+      const Q = (x, y) => [c * x - s * y, s * x + c * y];
+      g.moveTo(...Q(52, -8)); g.bezierCurveTo(...Q(64, -15), ...Q(70, 4), ...Q(81, -3)); g.bezierCurveTo(...Q(89, -8), ...Q(95, -4), ...Q(104, 0));
+      g.bezierCurveTo(...Q(93, 3), ...Q(87, 8), ...Q(79, 4)); g.bezierCurveTo(...Q(70, -1), ...Q(62, 13), ...Q(52, 8));
+    }
+    g.moveTo(50, 0); g.arc(0, 0, 50, 0, TAU); g.moveTo(43, 0); g.arc(0, 0, 43, 0, TAU);
+  };
+  g.save(); g.globalCompositeOperation = 'lighter'; g.translate(SUN_X, SUN_Y); g.scale(k, k); g.rotate(rot); g.lineJoin = 'round';
+  shape();
+  const gr = g.createRadialGradient(0, 0, 40, 0, 0, 124);
+  gr.addColorStop(0, rgba(GOLD, 0.55 * a)); gr.addColorStop(1, rgba(SUN, 0.12 * a));
+  g.fillStyle = gr; g.fill();
+  g.filter = HG.blur(6); g.globalAlpha = 0.55 * a; g.strokeStyle = rgba(GOLD, 1); g.lineWidth = 5; g.stroke();
+  g.filter = 'none'; g.globalAlpha = 0.9 * a; g.lineWidth = 2.2; g.stroke();
+  g.globalAlpha = 0.7 * a; g.strokeStyle = rgba(WARM, 1); g.lineWidth = 0.9; g.stroke();
+  g.restore();
 }
 
 // ---------- petals
@@ -389,21 +533,31 @@ HG.start({
   duration: 12,
   assets: {
     tree: '../assets/07-arbol-de-la-vida-tree.png',
-    lines: '../assets/07-arbol-de-la-vida-tree_lines.png',
     grow: '../assets/07-arbol-de-la-vida-tree_grow.png',
   },
   render(t, A) {
     const spr = sprites(A.tree);
-    const ending = t > 9;
+    const ending = t > T_END;
     const uMask = ending ? uRecede(t) : uColour(t);
     const kGold = ending ? 0.92 : kLight(t), cut = ending ? bCut(t) : null;
 
-    // ---------- midday sun: a warm halo behind the crown, blooming when the crown flower opens
-    const halo = 0.09 * smooth(3.0, 5.2, t) * (1 - smooth(9.2, 10.4, t)) + 0.055 * bump(t, T_CROWN, T_CROWN + 0.8, 7.4, 9.2);
+    // ---------- midday sun: a faint warm halo behind the crown while the tree grows; when the crown flower opens
+    // it swells (about 70/255 around the crown, settling to about 45) and the Metepec sun blooms behind the crown
+    const sunOut = 1 - smooth(T_END, 9.9, t);
+    const halo = (0.06 * smooth(3.0, 5.2, t) + 0.16 * smooth(T_CROWN, T_CROWN + 0.45, t) + 0.1 * bump(t, T_CROWN, T_CROWN + 0.45, T_CROWN + 0.7, T_CROWN + 2.2)) * sunOut;
     if (halo > 0.002) {
-      const hg = ctx.createRadialGradient(C, 330, 0, C, 330, 400);
-      hg.addColorStop(0, rgba(SUN, halo * 1.1)); hg.addColorStop(0.4, rgba(SUN, halo * 0.5)); hg.addColorStop(1, rgba(SUN, 0));
-      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = hg; ctx.fillRect(0, 0, W, W); ctx.restore();
+      const hg = ctx.createRadialGradient(SUN_X, SUN_Y, 0, SUN_X, SUN_Y, 350);
+      hg.addColorStop(0, rgba(SUN, halo)); hg.addColorStop(0.22, rgba(SUN, halo * 0.85)); hg.addColorStop(0.5, rgba(SUN, halo * 0.36));
+      hg.addColorStop(0.8, rgba(SUN, halo * 0.08)); hg.addColorStop(1, rgba(SUN, 0));
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = hg; ctx.fillRect(SUN_X - 350, SUN_Y - 350, 700, 700); ctx.restore();
+    }
+    {
+      const su = (t - T_CROWN - 0.04) / 0.9;
+      if (su > 0) {
+        const k = ease.outBack(su) * (1 + 0.025 * Math.sin(1.6 * t)), a = smooth(0, 0.25, su) * sunOut;
+        sunRays(ctx, 0.45 + 0.55 * ease.out3(su), a * (0.55 + 0.45 * bump(t, T_CROWN, T_CROWN + 0.4, T_CROWN + 0.8, T_CROWN + 2.4)), -0.03 * t);
+        sunRosette(ctx, 0.3 + 0.7 * k, a, 0.06 * (t - T_CROWN));
+      }
     }
 
     // ---------- doves (computed now; the ones behind the tree are drawn before it)
@@ -411,13 +565,14 @@ HG.start({
     for (const d of DV) {
       const u = t - d.lift; if (u < 0) continue;
       const p = dovePos(d, t), p0 = dovePos(d, t - 0.04), p2 = dovePos(d, t + 0.04);
-      const zr = p[2] / d.orb.R;
-      const s = d.orb.s * (1 + 0.16 * zr) * lerp(0.62, 1, smooth(0, 0.9, u));
-      const fr = doveFrame(p0, p, p2, d.orb.ox, d.orb.oy, s);
-      // flapping, with short glides (wings held up a little) once it is cruising
+      const zr = clamp(p[2] / d.o.R, -1, 1);
+      // it takes off a little larger than the clay dove (about 1.25x) and grows to its cruising size
+      const s = (1 + 0.16 * zr) * lerp(0.8, d.o.s, smooth(0, 1.0, u));
+      const fr = doveFrame(p0, p, p2, d.o.ox, d.o.oy, s);
+      // flapping, with short glides once it is cruising (wings held up in a V, never flat and edge-on)
       const glide = smooth(1.2, 1.6, u) * Math.pow(0.5 + 0.5 * Math.sin(1.4 * u + d.ph), 4);
-      const ang = lerp(0.3 + 0.95 * Math.sin(TAU * 3.0 * u + d.ph), 0.32 + 0.08 * Math.sin(TAU * 0.8 * u), glide);
-      const a = smooth(0, 0.3, u) * (0.85 + 0.15 * clamp(zr)) * (1 - smooth(9.8, 10.45, t));
+      const ang = lerp(0.35 + 0.9 * Math.sin(TAU * 3.0 * u + d.ph), 0.8 + 0.08 * Math.sin(TAU * 0.8 * u), glide);
+      const a = smooth(0, 0.3, u) * (0.88 + 0.12 * clamp(zr)) * (1 - smooth(9.75, 10.4, t));
       doves.push({ fr, ang, a, behind: p[2] < 0 });
     }
     for (const d of doves) if (d.behind) drawDove(ctx, d.fr, d.ang, d.a);
@@ -430,6 +585,7 @@ HG.start({
       drawBranches(b, kGold, cut);
       drawLeaves(b, t);
       drawCurls(b, t);
+      drawMotifs(b, t);
       if (any) apply(b, MK, 'destination-out');
     }
 
@@ -445,6 +601,7 @@ HG.start({
       // the flowers pop open; added with 'lighter' so a settled flower fills its hole exactly
       const sp = clearL(SP);
       sp.globalCompositeOperation = 'lighter';
+      let crownTop = null;
       for (const f of FL) {
         const pu = (t - f.tPop) / POP, S = spr[f.i], R = S.R * K;
         // gilded bud: waits in gold, breathing, and gives way as the painted flower opens
@@ -453,12 +610,23 @@ HG.start({
           const gs = 1 - 0.14 * smooth(0, 0.42, pu);
           sp.save(); sp.translate(f.X, f.Y); sp.scale(gs, gs); sp.globalAlpha = ga;
           sp.drawImage(S.gold, -R, -R, 2 * R, 2 * R); sp.restore();
+          // now and then a glint sweeps diagonally across the gilding
+          const sw = ((t * 0.6 + f.i * 0.37) % 1.7) / 0.75;
+          if (sw > 0 && sw < 1) {
+            const rr = f.Rr * 0.9 * gs, lg = sp.createLinearGradient(f.X - rr, f.Y - rr, f.X + rr, f.Y + rr), c = lerp(-0.1, 1.1, sw);
+            lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(clamp(c - 0.2), 'rgba(0,0,0,0)');
+            lg.addColorStop(clamp(c), rgba(WARM, 0.5 * ga * Math.sin(Math.PI * sw))); lg.addColorStop(clamp(c + 0.2), 'rgba(0,0,0,0)'); lg.addColorStop(1, 'rgba(0,0,0,0)');
+            sp.save(); sp.beginPath(); sp.arc(f.X, f.Y, rr, 0, TAU); sp.fillStyle = lg; sp.fill(); sp.restore();
+          }
         }
         if (pu <= 0) continue;
         const ru = (t - f.tRel) / 0.45;
         let sc = lerp(0.5, 1, ease.outBack(pu)), a = smooth(0, 0.28, pu), rot = -0.55 * (1 - ease.out3(pu)) * (f.i % 2 ? 1 : -1);
+        if (f.i === CROWN) sc = crownScale((t - f.tPop) / 1.35);
         if (ru > 0) { sc *= 1 - 0.45 * ease.in3(ru); a *= 1 - smooth(0, 1, ru); rot += 0.6 * ease.in3(ru); }
         if (a <= 0.003) continue;
+        // (above its own size the crown flower is drawn on top of the tree instead, so it can spill over its hole)
+        if (f.i === CROWN && sc > 1.001) { crownTop = { sc, a, rot }; sc = 1; }
         sp.save(); sp.translate(f.X, f.Y); sp.rotate(rot); sp.scale(sc, sc); sp.globalAlpha = a;
         sp.drawImage(S.cv, -R, -R, 2 * R, 2 * R); sp.restore();
       }
@@ -468,6 +636,13 @@ HG.start({
 
       bloomLayer(TL, 16, 0.32);
       HG.drawLayer(ctx, TL);
+      if (crownTop) {
+        const F = FL[CROWN], S = spr[CROWN], R = S.R * K, sw = smooth(1.0, 1.2, crownTop.sc);
+        ctx.save(); ctx.translate(F.X, F.Y); ctx.rotate(crownTop.rot); ctx.scale(crownTop.sc, crownTop.sc);
+        ctx.shadowColor = rgba(SUN, 0.9); ctx.shadowBlur = HG.px(28) * sw;
+        ctx.globalAlpha = crownTop.a; ctx.drawImage(S.cv, -R, -R, 2 * R, 2 * R);
+        ctx.restore();
+      }
 
       // the growth front glows: a ring of the clay just behind the edge, lit up (gold while receding)
       if (uMask > -EDGE && uMask < 1 + 2 * EDGE) {
@@ -482,35 +657,19 @@ HG.start({
     }
 
     // ---------- after the crown opens, a wave of light runs back down the branches from the crown to the root
-    const wv = (t - T_CROWN - 0.1) / 2.1;
+    // (a narrow band, tinted gold, so it reads as a travelling line of light rather than a wash over the tree)
+    const wv = (t - T_CROWN - 0.08) / 1.9;
     if (any && wv > 0 && wv < 1) {
       const uw = uWave(t);
-      growMask(MK2, A.grow, uw, 0.07);
+      growMask(MK2, A.grow, uw, 0.05);
       const fx = clearL(FX);
       HG.drawLayer(fx, TL); apply(fx, MK2, 'destination-in');
-      growMask(MK2, A.grow, uw - 0.12, 0.07); apply(fx, MK2, 'destination-out');
-      fx.globalCompositeOperation = 'source-atop'; fx.globalAlpha = 0.3; fx.fillStyle = rgba(WARM, 1); fx.fillRect(0, 0, W, W);
+      growMask(MK2, A.grow, uw - 0.075, 0.05); apply(fx, MK2, 'destination-out');
+      fx.globalCompositeOperation = 'source-atop'; fx.globalAlpha = 0.5; fx.fillStyle = rgba(GOLD, 1); fx.fillRect(0, 0, W, W);
       HG.reset(fx);
-      const wa = smooth(0, 0.1, wv) * smooth(0.12, 0.42, uw);       // fades out before it reaches the foot of the trunk
-      bloomLayer(FX, 12, 0.42 * wa);
-      HG.drawLayer(ctx, FX, { alpha: 0.42 * wa, op: 'lighter' });
-    }
-
-    // ---------- fine line drawing of leaves, birds and flowers, spreading behind the branches (growth only)
-    if (!ending && t < 6.4) {
-      const kl = kLight(t) * 1.08 - 0.05;
-      const l = clearL(LN);
-      if (growMask(MK2, A.grow, kl, 0.08)) {
-        l.drawImage(A.lines, TX, TY, SQ, SQ);
-        apply(l, MK2, 'destination-in');
-        if (any) apply(l, MK, 'destination-out');
-        // (inside the holes the gilded buds take over)
-        l.globalCompositeOperation = 'destination-out';
-        for (const f of FL) discGrad(l, f.X, f.Y, f.r + 2, 1);
-        HG.reset(l);
-        bloomLayer(LN, 5, 0.9);
-        HG.drawLayer(ctx, LN, { alpha: 0.9, op: 'lighter' });
-      }
+      const wa = smooth(0, 0.08, wv) * smooth(0.12, 0.42, uw);       // fades out before it reaches the foot of the trunk
+      bloomLayer(FX, 10, 0.4 * wa);
+      HG.drawLayer(ctx, FX, { alpha: 0.7 * wa, op: 'lighter' });
     }
 
     // ---------- branches of light on top, with sparks riding the growing tips
@@ -526,8 +685,9 @@ HG.start({
           if (live <= 0.01) return;
           const s = branchShape(p, kp, 1, d1); if (!s) return;
           const [x, y] = s.tip;
-          HG.dot(ctx, WARM, x, y, 46, 0.9 * live);
-          star(ctx, x, y, 58, 0.8 * live, 0.4 * t + i);
+          const arch = p.n.endsWith('1');
+          HG.dot(ctx, WARM, x, y, arch ? 46 : 34, (arch ? 0.9 : 0.7) * live);
+          star(ctx, x, y, 58, 0.8 * live * smooth(2.45, 2.8, t), 0.4 * t + i);
         });
         ctx.restore();
       }
@@ -537,16 +697,16 @@ HG.start({
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     for (const f of FL) {
       const wait = smooth(f.tArrive, f.tArrive + 0.4, t) * (1 - smooth(f.tPop + 0.05, f.tPop + 0.3, t));
-      if (wait > 0.003) HG.dot(ctx, WARM, f.X, f.Y, f.Rr * 2.4, wait * 0.25 * smooth(f.tPop - 0.5, f.tPop, t));
+      if (wait > 0.003) HG.dot(ctx, GOLD, f.X, f.Y, f.Rr * 2.6, wait * (0.12 + 0.2 * smooth(f.tPop - 0.5, f.tPop, t)));
       const u = (t - f.tPop) / 0.85; if (u <= 0 || u >= 1) continue;
-      const big = f.i === CROWN ? 1.8 : 1;
+      const cr = f.i === CROWN, big = cr ? 2.2 : 1;
       const sa = Math.sin(Math.PI * clamp(u * 1.6));
-      star(ctx, f.X, f.Y, (60 + f.Rr * 2.2) * big * sa, 0.85 * sa, f.i);
-      const R = HG.rng(31 + f.i), n = f.i === CROWN ? 18 : 9;
+      star(ctx, f.X, f.Y, (60 + f.Rr * 2.2) * big * sa, (cr ? 0.75 : 0.85) * sa, f.i, cr ? SUN : WARM);
+      const R = HG.rng(31 + f.i), n = cr ? 24 : 9;
       for (let j = 0; j < n; j++) {
         const low = f.Y > 640, a = low ? Math.PI * (1 + (j + R()) / n) : (j + R()) / n * TAU, v = (0.9 + 0.5 * R()) * big;
         const rr = f.Rr * (0.8 + 1.5 * v * ease.out3(u));
-        HG.dot(ctx, j % 3 ? f.col : WARM, f.X + Math.cos(a) * rr, f.Y + Math.sin(a) * rr + 14 * u * u, 15 * (1 - u * 0.6), 0.95 * (1 - u));
+        HG.dot(ctx, j % 3 ? f.col : cr ? GOLD : WARM, f.X + Math.cos(a) * rr, f.Y + Math.sin(a) * rr + 14 * u * u, (cr ? 24 : 15) * (1 - u * 0.6), 0.95 * (1 - u));
       }
     }
     // crown: a soft wave of sunlight opens out from the last flower
@@ -555,7 +715,7 @@ HG.start({
       if (u > 0 && u < 1) {
         const F = FL[CROWN], r0 = 30 + 280 * ease.out3(u), wd = 120, R = r0 + wd;
         const gr = ctx.createRadialGradient(F.X, F.Y, 0, F.X, F.Y, R);
-        const a = 0.2 * Math.sin(Math.PI * Math.min(1, u * 1.3)) * (1 - u);
+        const a = 0.36 * Math.sin(Math.PI * Math.min(1, u * 1.3)) * (1 - u);
         gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(Math.max(0, (r0 - wd) / R), 'rgba(0,0,0,0)');
         gr.addColorStop(r0 / R, rgba(SUN, a)); gr.addColorStop(1, rgba(SUN, 0));
         ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.fillRect(F.X - R, F.Y - R, 2 * R, 2 * R);
@@ -601,7 +761,7 @@ HG.start({
     // ---------- doves in front of the tree; the clay dove glows as its dove of light lifts off
     for (const d of doves) if (!d.behind) drawDove(ctx, d.fr, d.ang, d.a);
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    for (const d of DV) { const u = (t - d.lift) / 0.7; if (u > 0 && u < 1) HG.dot(ctx, WARM, d.x0, d.y0 + 6, 120, 0.7 * Math.sin(Math.PI * u)); }
+    for (const d of DV) { const u = (t - d.lift) / 0.7; if (u > 0 && u < 1) HG.dot(ctx, GOLD, d.x0, d.y0 + 6, 110, 0.55 * Math.sin(Math.PI * u)); }
     ctx.restore();
 
     // ---------- petals drifting down while the tree rests
@@ -613,12 +773,12 @@ HG.start({
         if (tau <= 0 || tau >= life) continue;
         const x = f.X + Math.cos(ang) * f.Rr * 0.7 + Math.sin(1.7 * tau + ph) * 22 + 14 * tau;
         const y = f.Y + Math.sin(ang) * f.Rr * 0.7 + 34 * tau + 9 * tau * tau;
-        const a = smooth(0, 0.35, tau) * (1 - smooth(life - 0.7, life, tau)) * (1 - smooth(660, 730, y)) * (1 - smooth(9.0, 9.5, t));
+        const a = smooth(0, 0.35, tau) * (1 - smooth(life - 0.7, life, tau)) * (1 - smooth(660, 730, y)) * (1 - smooth(T_END, T_END + 0.5, t));
         petal(ctx, x, y, len, ph + 1.4 * tau, Math.cos(ph2 + 3.2 * tau), f.col, a);
       }
     }
     // ---------- the ending: every flower releases its petals into a swirl as the receding edge passes it
-    if (t > 9.0) {
+    if (t > T_END - 0.1) {
       const V = [C, 470];
       for (const f of FL) {
         const R = HG.rng(101 + f.i), n = f.i === CROWN ? 12 : 6;
@@ -640,11 +800,13 @@ HG.start({
     const fallU = (t - 0.12) / (LAND - 0.12);
     const seedAt = u => [ROOT[0] + 16 * Math.sin(u * Math.PI * 2.2) * (1 - u), lerp(-20, ROOT[1], 0.18 * u + 0.82 * u * u)];
     if (fallU > 0 && fallU < 1) {
-      for (let j = 7; j >= 0; j--) {
-        const u = fallU - j * 0.022; if (u <= 0) continue;
-        const [x, y] = seedAt(u);
-        HG.dot(ctx, j ? GOLD : WARM, x, y, (j ? 22 - j * 1.8 : 30), (j ? 0.55 * (1 - j / 8) : 1) * smooth(0, 0.12, fallU));
+      // one continuous tapered streak: many overlapping samples along the path, thinning and fading behind the seed
+      for (let j = 40; j >= 1; j--) {
+        const u = fallU - j * 0.0042; if (u <= 0) continue;
+        const [x, y] = seedAt(u), q = 1 - j / 41;
+        HG.dot(ctx, GOLD, x, y, 5 + 19 * q, 0.13 * q * smooth(0, 0.12, fallU));
       }
+      HG.dot(ctx, WARM, ...seedAt(fallU), 30, smooth(0, 0.12, fallU));
       const [x, y] = seedAt(fallU);
       HG.dot(ctx, GOLD, x, y, 120, 0.35 * smooth(0, 0.15, fallU));
       star(ctx, x, y, 70, 0.7 * smooth(0, 0.15, fallU), t * 2);

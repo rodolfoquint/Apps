@@ -302,6 +302,53 @@ function radialMask(c, x, y, rho, feather) {
   c.fillStyle = g; c.fillRect(0, 0, W, W);
   c.globalCompositeOperation = 'source-over';
 }
+// ---------- the title band (y > ~800 carries the name from ~2.2 s to ~9.8 s): kept calm.
+// Her bust dissolves into the dark below the top of the lace collar (always, so it never visibly dims),
+// and while the title is up the petals and embers fade as they drift into the band.
+const titleE = t => smooth(2.0, 3.0, t) * (1 - smooth(9.0, 9.9, t));
+function bustFade(c) {
+  c.globalCompositeOperation = 'destination-in';
+  const g = c.createLinearGradient(0, 730, 0, 930);
+  g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.3, 'rgba(0,0,0,0.68)'); g.addColorStop(0.6, 'rgba(0,0,0,0.3)'); g.addColorStop(1, 'rgba(0,0,0,0.13)');
+  c.fillStyle = g; c.fillRect(0, 0, W, W);
+  c.globalCompositeOperation = 'source-over';
+}
+function bandDim(c, k) {
+  if (k <= 0.003) return;
+  c.globalCompositeOperation = 'destination-in';
+  const g = c.createLinearGradient(0, 760, 0, 880);
+  g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, `rgba(0,0,0,${1 - k})`);
+  c.fillStyle = g; c.fillRect(0, 0, W, W);
+  c.globalCompositeOperation = 'source-over';
+}
+const bandK = (y, t) => 1 - 0.72 * titleE(t) * smooth(760, 880, y);
+// the designed line art, drawn from the light outward behind a ring of light (as HG.lineReveal, but into
+// a layer so that its collar dissolves with the bust)
+const LX = HG.layer();
+function lineArt(img, x, y, w, k, { alpha = 1, rotation = 0, color, cx, cy, feather = 90 } = {}) {
+  if (k <= 0 || alpha <= 0) return;
+  const h = w * img.height / img.width, lx = LX.ctx;
+  HG.reset(lx); lx.clearRect(0, 0, W, W);
+  lx.translate(x, y); lx.rotate(rotation);
+  lx.globalAlpha = 0.85; lx.filter = 'blur(6px)'; lx.drawImage(img, -w / 2, -h / 2, w, h);
+  lx.filter = 'none'; lx.globalAlpha = 1; lx.drawImage(img, -w / 2, -h / 2, w, h);
+  HG.reset(lx);
+  if (k < 1) {
+    const maxR = Math.hypot(w, h) / 2 + Math.hypot(cx - x, cy - y) + feather, rho = Math.max(1, k * maxR);
+    lx.globalCompositeOperation = 'destination-in';
+    const g = lx.createRadialGradient(cx, cy, 0, cx, cy, rho);
+    g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(Math.max(0, 1 - feather / rho), 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    lx.fillStyle = g; lx.fillRect(0, 0, W, W);
+    lx.globalCompositeOperation = 'source-atop';
+    const rg = lx.createRadialGradient(cx, cy, Math.max(0, rho - 40), cx, cy, rho);
+    rg.addColorStop(0, rgba(color, 0)); rg.addColorStop(0.8, rgba(color, 0.9)); rg.addColorStop(1, rgba(color, 0));
+    lx.fillStyle = rg; lx.fillRect(0, 0, W, W);
+    HG.reset(lx);
+  }
+  bustFade(lx);
+  HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha; ctx.drawImage(LX.cv, 0, 0); HG.reset(ctx);
+}
+
 // a layer composited with a soft additive bloom under it
 function composite(L, { alpha = 1, bloom = 0.4, blur = 10, op = 'source-over', soft = 0 } = {}) {
   HG.reset(ctx);
@@ -354,6 +401,7 @@ HG.start({
       const st = rainG(p, t); if (!st) continue;
       petal(p.front ? lf : lb, A, st, p, p.s * (st.sc ?? 1), st.al * pout * depthA(p) * (1 - 0.3 * fo));
     }
+    const bd = 0.72 * titleE(t); bandDim(lb, bd); bandDim(lf, bd);
     composite(LB, { bloom: 0.4, blur: 9, alpha: 0.85, soft: 1.4 });
 
     // ---- the return: light trails of the petals winding back into the light
@@ -379,6 +427,7 @@ HG.start({
         radialMask(lp, fx, fy, rp, 300);
         lw.drawImage(LP.cv, 0, 0);
       }
+      bustFade(lw);
       composite(LW, { bloom: 0.2 + 0.04 * fl, blur: 16, alpha: 1 - smooth(9.72, 10.05, t) });   // the last of her dissolves into the light
 
       // flickering candle light over her: screen, so it warms the darks and never clips the lace
@@ -388,7 +437,7 @@ HG.start({
         lw.globalCompositeOperation = 'destination-in';
         const g = lw.createRadialGradient(fx, fy + 120, 40, fx, fy + 120, 620);
         g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0.25)');
-        lw.fillStyle = g; lw.fillRect(0, 0, W, W); HG.reset(lw);
+        lw.fillStyle = g; lw.fillRect(0, 0, W, W); HG.reset(lw); bustFade(lw);
         HG.reset(ctx); ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = wash; ctx.drawImage(LW.cv, 0, 0); HG.reset(ctx);
       }
 
@@ -400,7 +449,7 @@ HG.start({
         const g = lp.createLinearGradient((pos - hw) * ux, (pos - hw) * uy, (pos + hw) * ux, (pos + hw) * uy);
         g.addColorStop(0, 'rgba(255,206,140,0)'); g.addColorStop(0.5, 'rgba(255,222,170,1)'); g.addColorStop(1, 'rgba(255,206,140,0)');
         lp.fillStyle = g; lp.fillRect(0, 0, W, W);
-        lp.globalCompositeOperation = 'destination-in'; applyPose(lp, t); lp.drawImage(A.photo, 0, 0, 1024, 1024); HG.reset(lp);
+        lp.globalCompositeOperation = 'destination-in'; applyPose(lp, t); lp.drawImage(A.photo, 0, 0, 1024, 1024); HG.reset(lp); bustFade(lp);
         HG.reset(ctx); ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = 0.42 * Math.sin(Math.PI * sw); ctx.drawImage(LP.cv, 0, 0);
         ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.07 * Math.sin(Math.PI * sw); ctx.filter = 'blur(10px)'; ctx.drawImage(LP.cv, 0, 0); HG.reset(ctx);
       }
@@ -422,7 +471,7 @@ HG.start({
 
     // ---- line art, drawn from the light outward (and folded back at the end)
     const k = lineK(t);
-    if (k > 0) HG.lineReveal(A.lines, cx, cy, SIZE * f.s / SC, k, { rotation: f.r, color: [255, 176, 90], cx: fx, cy: fy, feather: 130,
+    if (k > 0) lineArt(A.lines, cx, cy, SIZE * f.s / SC, k, { rotation: f.r, color: [255, 176, 90], cx: fx, cy: fy, feather: 130,
       alpha: lineA(t) * (0.92 + 0.08 * fl * gl) });
 
     // ---- the ember the path leads to, and the one light the walking light becomes
@@ -448,6 +497,7 @@ HG.start({
       }
       lu.globalCompositeOperation = 'source-over';
       for (const p of BURST) { const st = burstG(p, t); if (st) petal(lu, A, st, p, p.s * st.sc, st.al * pout); }
+      bandDim(lu, 0.72 * titleE(t));
       composite(LU, { bloom: 0.8, blur: 8 });
       HG.reset(ctx); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.3; ctx.drawImage(LU.cv, 0, 0); HG.reset(ctx);
     }
@@ -472,7 +522,7 @@ HG.start({
         const y = W - ((ph * 20 + sp * t) % 760) - 40, x = x0 + 22 * Math.sin(t * 0.8 + tw);
         const life = Math.sin(Math.PI * clamp((W - 40 - y) / 760));
         if (Math.hypot(x - C, y - C) > 500) continue;
-        HG.dot(ctx, col, x, y, s, eA * life * (0.45 + 0.25 * Math.sin(t * 2.2 + tw)));
+        HG.dot(ctx, col, x, y, s, eA * life * bandK(y, t) * (0.45 + 0.25 * Math.sin(t * 2.2 + tw)));
       }
       ctx.restore();
     }
@@ -499,7 +549,7 @@ HG.start({
     // ---- a few large petals drifting past close to the lens (defocused), in the side margins
     const ln = LN.ctx; HG.reset(ln); ln.clearRect(0, 0, W, W); let anyN = false;
     for (const p of NEAR) { const st = fallAt(p, t); if (st) { anyN = true; petal(ln, A, st, p, p.s, 0.85 * (1 - smooth(9.4, 10.2, t))); } }
-    if (anyN) { HG.reset(ctx); ctx.filter = 'blur(4px)'; ctx.globalAlpha = 1; ctx.drawImage(LN.cv, 0, 0); ctx.filter = 'none'; ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.3; ctx.filter = 'blur(12px)'; ctx.drawImage(LN.cv, 0, 0); HG.reset(ctx); }
+    if (anyN) { HG.reset(ln); bandDim(ln, 0.72 * titleE(t)); HG.reset(ctx); ctx.filter = 'blur(4px)'; ctx.globalAlpha = 1; ctx.drawImage(LN.cv, 0, 0); ctx.filter = 'none'; ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.3; ctx.filter = 'blur(12px)'; ctx.drawImage(LN.cv, 0, 0); HG.reset(ctx); }
   },
 });
 </script></body></html>

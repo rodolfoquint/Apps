@@ -276,7 +276,7 @@ function drawEagle(c, t, A) {
     if (fade <= 0) continue;
     const tw = Math.pow(0.5 + 0.5 * Math.sin(f.ph + t * (8 + 7 * f.h)), 3);
     const [x, y] = eaglePos(f, t);
-    HG.dot(c, f.h < 0.55 ? GOLD : WARM, x, y, 8.5, smooth(0, 0.15, age) * (0.2 + 0.6 * tw) * fade * swell * A);
+    HG.dot(c, f.h < 0.55 ? GOLD : WARM, x, y, 8.5, smooth(0, 0.15, age) * (0.28 + 0.6 * tw) * fade * swell * A);
   }
   for (let i = 0; i < EPTS.length; i++) {
     const p = EPTS[i], age = t - p.rt;
@@ -312,7 +312,7 @@ function drawEagle(c, t, A) {
     if (on > 0.01) {
       const h = headAt(t, dir);
       HG.dot(c, GOLD, h[0], h[1], 70, 0.3 * on);
-      HG.dot(c, WARM, h[0], h[1], 30, 0.95 * on);
+      HG.dot(c, WARM, h[0], h[1], 30, 0.82 * on);
     }
     const dk = 0.012;
     for (let k = Math.max(0, Math.ceil((t - T_TRACE - 0.32) / dk)); k * dk <= Math.min(t - T_TRACE, D_TRACE); k++) {
@@ -345,39 +345,40 @@ const pair = (tb, xo, y, a, b) => {
   if (b.fromDx !== undefined) r.from = [C + b.fromDx, 1120];
   shell(l); shell(r);
 };
-const PEONY = { R: 240, n: 175, pistil: SIL, pistilN: 50, life: 2.0, rise: 0.72 };
+const PEONY = { R: 240, n: 190, pistil: SIL, pistilN: 50, life: 2.0, rise: 0.72 };
 // Each pair sits at a different height and spread from the one before, so no two stack into columns.
 // Act I: green + red open together as the portal clears (their comets climb from the centre, inside the portal)
 pair(0.9, 178, 440, Object.assign({ color: GRN, fromDx: 40, cometSize: 1.25 }, PEONY), Object.assign({ color: RED, fromDx: 40, cometSize: 1.25 }, PEONY));
 // a pair of low, wide silver brocade crowns: long gold tails droop into the lower half
 const BRO = { color: SIL, R: 240, n: 160, tau: 0.6, k: 3.6, g: 250, flick: 0.5, life: 2.35, trailA: 0.62, width: 2.8, size: 13,
               tailColor: BROCADE, hazeColor: BROCADE, rise: 0.58, gain: 0.85, fan: 1.0, haze: 0.08 };
-pair(1.72, 258, 680, BRO, BRO);
+pair(1.72, 258, 645, BRO, BRO);
 // red + green high and close
-const HI = { R: 205, n: 150, pistil: SIL, pistilN: 40, life: 1.95, rise: 0.6, fan: 0.4 };
+const HI = { R: 205, n: 160, pistil: SIL, pistilN: 40, life: 1.95, rise: 0.6, fan: 0.4 };
 pair(2.55, 160, 290, Object.assign({ color: RED }, HI), Object.assign({ color: GRN }, HI));
 // Act II: pairs on a 0.55 s beat. Crossettes wide at mid height: silver comets break straight into crosses
 const X = { kind: 'crossette', color: SIL, n: 20, R: 150, R2: 104, k: 3.4, g: 220, split: 0.42, life2: 1.25, size: 15, size2: 15,
             tau: 0.24, trailA: 0.72, width: 3.0, rise: 0.55, haze: 0.06, flash: 0.7 };
 pair(3.25, 285, 515, Object.assign({ color2: GRN, hazeColor: GRN }, X), Object.assign({ color2: RED, hazeColor: RED }, X));
-// low and close: short comets, so nothing climbs through the shells above
-const LO = { R: 195, n: 135, pistil: SIL, pistilN: 36, life: 1.9, rise: 0.45, fan: 1.0 };
-pair(3.8, 128, 775, Object.assign({ color: GRN }, LO), Object.assign({ color: RED }, LO));
+// low and close (just above the title band): short comets, so nothing climbs through the shells above
+const LO = { R: 180, n: 135, pistil: SIL, pistilN: 36, life: 1.9, rise: 0.45, fan: 1.0 };
+pair(3.48, 140, 640, Object.assign({ color: GRN }, LO), Object.assign({ color: RED }, LO));
 // white glitter shells high and wide, staggered (softer: they were the hottest white outside the climax)
-const GL = { color: SIL, R: 195, n: 120, tau: 0.3, k: 4.0, flick: 0.7, life: 1.85, rise: 0.5, glitter: 0.22, glitterColor: SIL, gain: 0.8,
+const GL = { color: SIL, R: 205, n: 132, tau: 0.3, k: 4.0, flick: 0.7, life: 1.85, rise: 0.5, glitter: 0.22, glitterColor: SIL, gain: 0.8,
              glitterGain: 0.85, fan: 1.15 };
-shell(Object.assign({ tb: 4.35, x: C - 255, y: 330 }, GL));
-shell(Object.assign({ tb: 4.47, x: C + 255, y: 355 }, GL));
+shell(Object.assign({ tb: 4.2, x: C - 255, y: 330 }, GL));
+shell(Object.assign({ tb: 4.32, x: C + 255, y: 355 }, GL));
 // Act III: crescendo. Wave A sweeps over the top with gold glitter...
 [[162, GRN], [126, RED], [90, SIL], [54, GRN], [18, RED]].forEach(([deg, col], i) => {
   const a = deg * Math.PI / 180;
-  shell({ tb: 4.95 + i * 0.09, x: C + 300 * Math.cos(a), y: 575 - 300 * Math.sin(a), R: 190, n: 125, color: col, life: 1.5,
+  shell({ tb: 4.86 + i * 0.09, x: C + 300 * Math.cos(a), y: 575 - 300 * Math.sin(a), R: 190, n: 125, color: col, life: 1.5,
           rise: 0.5, from: [C + Math.cos(a) * 320, 1120], haze: 0.07, flash: 0.8, size: 14, glitter: 0.16, glitterColor: GOLD, glitterLife: 0.6,
           gain: col === SIL ? 0.85 : 1 });
 });
-// ...wave B: seven large crackling shells fill the lower half, so a dozen burst together...
-[[540, 850, SIL, 5.6], [330, 772, GRN, 5.68], [750, 772, RED, 5.68], [215, 588, RED, 5.76], [865, 588, GRN, 5.76],
- [415, 622, GRN, 5.86], [665, 622, RED, 5.86]].forEach(([x, y, col, tb], i) => {
+// ...wave B: seven large crackling shells fill the lower half (green, white, red along the bottom row,
+// hung just above the title band) and the hollow of wave A's arc, so a dozen burst together...
+[[540, 688, SIL, 5.6], [335, 655, GRN, 5.68], [745, 655, RED, 5.68], [200, 548, RED, 5.76], [880, 548, GRN, 5.76],
+ [438, 515, GRN, 5.86], [642, 515, RED, 5.86]].forEach(([x, y, col, tb], i) => {
   const inner = i >= 5;
   shell({ tb, x, y, R: inner ? 180 : 210, n: inner ? 105 : 130, color: col, life: inner ? 1.35 : 1.75, fo: 0.72, crackle: 0.6,
           rise: 0.5, from: [C + (x - C) * 0.35, 1120], haze: 0.08, flash: 0.75, size: 14, gain: col === SIL ? 0.8 : 1 });
@@ -389,12 +390,24 @@ shell(Object.assign({ tb: 4.47, x: C + 255, y: 355 }, GL));
 });
 // the great tricolour shell opens through their crackle; its white band opens softer
 // it hangs (low gravity, long life) so the gold eagle is traced over a fading flag
-shell({ tb: 7.0, rise: 0.75, kind: 'tricolor', x: 540, y: 490, R: 345, n: 300, k: 4.2, g: 190, tau: 0.24, life: 2.6, size: 16,
-        fo: 0.48, flick: 0.3, flickW: 16, from: [540, 1120], hazeColor: SIL, haze: 0.06, cometSize: 1.2, wGain0: 0.72, wTrail: 0.55 });
+shell({ tb: 7.0, rise: 0.75, kind: 'tricolor', x: 540, y: 478, R: 340, n: 300, k: 4.2, g: 190, tau: 0.24, life: 2.9, size: 16,
+        fo: 0.58, flick: 0.3, flickW: 16, from: [540, 1120], hazeColor: SIL, haze: 0.06, cometSize: 1.2, wGain0: 0.72, wTrail: 0.55 });
 // Finale: one heavy comet climbs into the eagle's heart and it bursts into a gold-white willow with glitter
 shell({ tb: T_BOOM, rise: 0.7, kind: 'willow', x: BOOM[0], y: BOOM[1], R: 385, n: 240, k: 2.9, g: 400, tau: 0.8, life: 2.45, size: 15, width: 3.2,
         trailA: 0.62, color: GOLD, pistil: WARM, pistilN: 70, pistilR: 0.55, glitter: 0.3, glitterLife: 0.75, flick: 0.35, flickW: 18,
         from: [540, 1120], hazeColor: GOLD, haze: 0.1, cometSize: 1.6, flash: 1.0 });
+
+// ---------- the title band (y > ~800) stays calm while the assembled title is up (2.2 s .. 9.8 s):
+// sparks and comets that drop into it burn down, so the bursts hang above the lettering and nothing
+// bright plays behind it. Outside that window (the opening and the willow) the whole circle is used.
+const titleEnv = t => smooth(1.9, 2.8, t) * (1 - smooth(9.15, 9.85, t));
+function calmBand(c, t, op) {
+  const k = titleEnv(t);
+  if (k < 0.005) return;
+  const g = c.createLinearGradient(0, 775, 0, 935);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.45, `rgba(0,0,0,${0.45 * k})`); g.addColorStop(1, `rgba(0,0,0,${0.8 * k})`);
+  c.save(); c.globalCompositeOperation = op; c.globalAlpha = 1; c.fillStyle = g; c.fillRect(0, 775, W, W - 775); c.restore();
+}
 
 // ---------- bloom compositing
 const L = HG.layer();
@@ -418,11 +431,13 @@ HG.start({
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     for (const sh of P) drawHaze(sh, t, A);
     ctx.restore();
+    calmBand(ctx, t, 'source-over');      // the main canvas is black + haze here: darken it
     const c = L.ctx; HG.reset(c); c.clearRect(0, 0, W, W); c.globalCompositeOperation = 'lighter';
     for (const sh of P) { drawComet(c, sh, t, A); drawShell(c, sh, t, A); }
     drawEagle(c, t, A);
     drawStrobes(c, t, A);
     HG.reset(c);
+    calmBand(c, t, 'destination-out');    // the star layer is transparent: remove that much of it
     compose();
   },
 });

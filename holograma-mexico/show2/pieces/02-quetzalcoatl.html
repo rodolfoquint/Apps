@@ -13,8 +13,8 @@
 // collar — a single ring of broad carved feather petals — fans open behind it like a sunrise.
 // Molten gold cools into carved stone from the eye outward, a narrow rim of dawn light rings the
 // medallion, the coil's plumes flare into a sun of feathers, the obsidian eye glints. Then the
-// spirit of light lifts off the stone and rises out of the sky; the stone flares at its edges and
-// is gone, and the coil dissolves into a turning ring of gold sparks (the calendar wheel that the
+// spirit of light rises from behind the carved collar and up out of the sky; the stone glows gold,
+// burns away from the centre behind a gold edge (about 0.3 s), and the coil dissolves into a turning ring of gold sparks (the calendar wheel that the
 // next piece, the Piedra del Sol, gathers into).
 // Composition keeps the lower band (y > ~780) calm from ~2 s to ~9.7 s for the shared title.
 // The body follows its own path (every point of the body travels the curve the head drew), so the
@@ -647,6 +647,18 @@ function render(t, A) {
   bloom(ctx, LB, 9, 0.7);
   HG.drawLayer(ctx, LB);
 
+  // the spirit of light leaves the stone: it is drawn BEHIND the medallion, so it rises out from
+  // behind the carved collar like the sun from behind a hill (no double exposure over the carving)
+  if (t > T_GO - 0.05) {
+    const hc = LH.ctx; HG.reset(hc); hc.clearRect(0, 0, W, W);
+    // its crown plumes grow back as it leaves (they would stick out past the collar at rest)
+    drawHead(hc, H[0], H[1], H[2], H[3], lightK, 1, t, smooth(S_REST + 40, S_REST + 240, sh));
+    HG.reset(hc);
+    const sa = smooth(T_GO - 0.05, T_GO + 0.25, t);
+    bloom(ctx, LH, 14, 0.75 * sa);
+    HG.drawLayer(ctx, LH, { alpha: sa });
+  }
+
   if (stoneOn) {
     // carved petals (stone), then the carved head resolving from the eye outward
     const pc = LP.ctx; HG.reset(pc); pc.clearRect(0, 0, W, W);
@@ -665,12 +677,12 @@ function render(t, A) {
         sl.fillStyle = g; sl.fillRect(0, 0, W, W);
       }
       HG.reset(sl); burn(sl, t);
-      const texA = stoneOut * (1 - 0.5 * exitHeat(t));
+      const texA = stoneOut * (1 - 0.3 * exitHeat(t));
       bloom(ctx, LS, 12, 0.18 * texA);
       HG.drawLayer(ctx, LS, { alpha: texA });
       // just after it resolves the carving is still molten-hot, then it cools (and heats again to leave)
-      const hot = Math.max(0.85 * (1 - smooth(T_GOLD + 0.12, T_GOLD + 0.8, t)), 0.45 * exitHeat(t));
-      if (hot > 0.01) { HG.drawLayer(ctx, LS, { alpha: hot * stoneOut, op: 'lighter' }); bloom(ctx, LS, 20, 0.5 * hot * stoneOut); }
+      const hot = Math.max(0.5 * (1 - smooth(T_GOLD + 0.12, T_GOLD + 0.8, t)), 0.22 * exitHeat(t));
+      if (hot > 0.01) { HG.drawLayer(ctx, LS, { alpha: hot * stoneOut, op: 'lighter' }); bloom(ctx, LS, 20, 0.6 * hot * stoneOut); }
       // warm key light of the sunrise from the upper left (keeps the carved texture)
       const keyA = 0.24 * stoneOut * smooth(T_GOLD + 0.5, T_GOLD + 0.9, t) * (1 - exitHeat(t));
       if (keyA > 0.01) {
@@ -700,7 +712,7 @@ function render(t, A) {
     const gc = LG.ctx; HG.reset(gc); gc.clearRect(0, 0, W, W);
     let any = false;
     const ex = exitHeat(t);
-    if (ex > 0.003) { gc.globalAlpha = 0.55 * ex; stoneImage(gc, A.sil); HG.reset(gc); any = true; }
+    if (ex > 0.003) { gc.globalAlpha = 0.4 * ex; stoneImage(gc, A.sil); HG.reset(gc); any = true; }
     else if (silA > 0.003 && front < 430 + FEA) {
       gc.globalAlpha = silA; stoneImage(gc, A.sil); HG.reset(gc);
       if (front > 1) {
@@ -712,11 +724,11 @@ function render(t, A) {
       any = true;
     }
     gc.translate(CX, CY); gc.scale(stoneSc, stoneSc); gc.translate(-CX, -CY);
-    drawPetalsFlat(gc, t, 'fill', P => (1 - P.carve) * smooth(0, 0.25, P.p) * 0.95);
+    drawPetalsFlat(gc, t, 'fill', P => (1 - P.carve) * smooth(0, 0.25, P.p) * (0.95 - 0.4 * ex));
     HG.reset(gc); burn(gc, t);
     if (any || t < T_GOLD + 1.4 || ex > 0.003) {
-      tint(gc, [255, 222, 146], [255, 168, 58], EYE[0], EYE[1], 330);
-      bloom(ctx, LG, 24, 0.55 * stoneOut);
+      tint(gc, [255, 210, 120], [250, 150, 46], EYE[0], EYE[1], 330);
+      bloom(ctx, LG, 24, 0.42 * stoneOut);
       HG.drawLayer(ctx, LG, { alpha: stoneOut });
       bloom(ctx, LG, 7, 0.3 * stoneOut);
       // the burning edge: the gold just outside the front flares
@@ -727,8 +739,8 @@ function render(t, A) {
         g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.3, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
         gc.fillStyle = g; gc.fillRect(0, 0, W, W); HG.reset(gc);
         tint(gc, GOLD, [255, 150, 50]);
-        bloom(ctx, LG, 14, 0.55 * stoneOut);
-        HG.drawLayer(ctx, LG, { alpha: 0.4 * stoneOut, op: 'lighter' });
+        bloom(ctx, LG, 14, 0.45 * stoneOut);
+        HG.drawLayer(ctx, LG, { alpha: 0.28 * stoneOut, op: 'lighter' });
       }
     }
 
@@ -769,17 +781,6 @@ function render(t, A) {
     HG.reset(hc);
     bloom(ctx, LH, 9, 0.7 + 0.25 * smooth(T_ARR - 0.4, T_GOLD, t));
     HG.drawLayer(ctx, LH);
-  } else if (t > T_GO - 0.4) {
-    const hc = LH.ctx; HG.reset(hc); hc.clearRect(0, 0, W, W);
-    drawHead(hc, H[0], H[1], H[2], H[3], lightK, 1, t, 1);
-    HG.reset(hc);
-    // additive ghost of light over the stone, solid only once it has cleared the medallion
-    const ghost = smooth(T_GO - 0.4, T_GO - 0.05, t);
-    const solid = smooth(S_REST + 150, S_REST + 300, sh);
-    bloom(ctx, LH, 22, ghost * (0.42 - 0.15 * solid));
-    bloom(ctx, LH, 8, ghost * 0.25);
-    HG.drawLayer(ctx, LH, { alpha: ghost * 0.3 * (1 - solid), op: 'lighter' });
-    HG.drawLayer(ctx, LH, { alpha: solid });
   }
 
   // gold sparks: the coil dissolving tail first, the collar's petals, the head's trail
@@ -828,9 +829,9 @@ function render(t, A) {
     const ang = ph + rot * a + 0.5 * Math.sin(a * 3 + ph);
     // all additive: a fading feather dims as light instead of turning into a dark smudge
     ctx.filter = HG.blur(5);
-    feather(ctx, gold ? SPR.shineGold : SPR.shine, x, y, Math.cos(ang), Math.sin(ang), sz, sz * 0.36, env * 0.55);
+    feather(ctx, gold ? SPR.shineGold : SPR.shine, x, y, Math.cos(ang), Math.sin(ang), sz, sz * 0.36, env * 0.65);
     ctx.filter = 'none';
-    feather(ctx, gold ? SPR.gold : SPR.body, x, y, Math.cos(ang), Math.sin(ang), sz, sz * 0.36, env);
+    feather(ctx, gold ? SPR.gold : SPR.body, x, y, Math.cos(ang), Math.sin(ang), sz, sz * 0.36, Math.pow(env, 2.2));
   }
   const RM = HG.rng(41);
   for (let i = 0; i < 70; i++) {

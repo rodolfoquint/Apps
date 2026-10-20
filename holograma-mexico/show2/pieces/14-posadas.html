@@ -4,51 +4,50 @@
 <script src="../engine.js"></script>
 <script>
 // Las Posadas: a candle-lit procession on a dark plaza, seen in perspective (a real 3D ground plane:
-// every lantern is placed in the world and projected through a slowly craning, orbiting camera).
-// In the dark the leading pair's candles are lit and the flame passes hand to hand back along the
-// line and up the hill, while small farolitos light the route: ten pairs of paper-cup candles (papel
-// china in posada colours) walk two by two down a winding path from the top of the circle and along
-// the plaza, bobbing with their steps and pooling light on the ground. The double line then unzips
-// into a circle (front walkers step forward, back walkers step back) and each pair sets its candles
-// down. Every candle sends a spark of light to the centre; the sparks gather into a bud that rises
-// and unfurls into a nochebuena (cuetlaxochitl), its red bracts unwinding from a twist around the
-// small yellow flowers, and a wreath of nochebuenas blooms between the candles in a wave from the
-// back. At the end each flame leaves its candle and rises to become a star while the camera tilts
-// up to the sky; the nochebuena dissolves into red and gold sparks and its golden heart rises as
-// the brightest star; the stars twinkle and fade.
-// Assets: prepare.py on out-show2/images/vela-1.png and nochebuena-1/-2.png, then derive.py
-// (scratchpad/work/14-posadas): flame painted out of the lantern (drawn live here), paper lit from
-// inside and re-dyed, bracts graded for the LEDs.
+// every candle is placed in the world and projected through a slowly craning, orbiting camera).
+// The peregrinos lead it: Joseph walking with his staff, leading the donkey that carries Mary, drawn
+// as glowing gold line art, escorted by the first pair of candles. The flame passes hand to hand back
+// along the line and up the hill while small farolitos light the road: ten pairs of thin white velitas
+// in pleated, fringed collars of papel china walk two by two down the winding road and across the
+// plaza, bobbing with their steps. The peregrinos stop at the door to ask for shelter while the double
+// line opens like an eye into a ring (front walkers step forward, back walkers step back) and each
+// pair sets its candles down; the peregrinos are let in and walk to the centre, and the plaza inside
+// the ring glows warm: the posada is granted. Every candle sends a ribbon of light to them, the light
+// gathers into a bud that rises and opens into a nochebuena (cuetlaxochitl) around its small yellow
+// flowers, and a wreath of nochebuenas blooms between the candles. At the end each flame leaves its
+// candle and rises to become a star while the camera tilts up to the sky; the nochebuena breaks up
+// from the tips into red and gold sparks and its golden heart rises as the brightest star.
+// Assets: prepare.py on out-show2/images/vela-1.png (no longer used) and nochebuena-1/-2.png, then
+// derive.py (scratchpad/work/14-posadas) and leaves.py (scratchpad/cont/14-posadas/tools: the hero
+// flower's leaves graded to a clean green). The candles and the peregrinos are drawn in code.
 const { W, C, ctx, clamp, lerp, smooth, ease, rgba } = HG;
 const TAU = Math.PI * 2;
 const bump = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
 const mix = (a, b, k) => [0, 1, 2].map(i => Math.round(lerp(a[i], b[i], k)));
-const GOLD = [255, 196, 90], FLAME = [255, 170, 60], NIGHT = [16, 26, 86];
+const GOLD = [255, 196, 90], FLAME = [255, 170, 60], NIGHT = [20, 34, 112];
 
-// ---------- the procession: ten pairs walk two by two down a winding path from the hill (top of the
-// circle), turn along the plaza, and then the double line opens like an eye into a circle: the
-// front walkers step forward, the back walkers step back, to their places on the ring
-const NP = 10, N = 2 * NP, R = 370, DEL = TAU / N;  // pairs, lanterns, ring radius, angular spacing
-const SPM = 81, OFF = 34;                           // spacing between pairs along the path; half the pair's width
-const H = 96, LS = 98;                              // lantern height above the ground while walking, lantern size (world)
-const PAPER = ['pink', 'yellow', 'turq', 'orange', 'purple', 'red', 'green'];
-const PAPER_RGB = { pink: [255, 70, 150], yellow: [255, 220, 60], turq: [60, 230, 220], orange: [255, 140, 40], purple: [180, 90, 255], red: [255, 60, 60], green: [70, 230, 110] };
+// ---------- the procession: the peregrinos and ten pairs walk two by two down a winding road from the
+// hill (top of the circle) and across the plaza; at the door the double line opens like an eye into a
+// circle: the front walkers step forward, the back walkers step back, to their places on the ring
+const NP = 10, N = 2 * NP, R = 360, DEL = TAU / N;  // pairs, candles, ring radius, angular spacing
+const SPM = 134, OFF = 34, OFF0 = 74, ZIG = 28;     // pair spacing; half a pair's width (the leading pair walks
+                                                    // wider, either side of the peregrinos); front walker's lag
+const H = 96, LSW = 70, LSD = 86;                   // hand height; candle size walking / set down (world units)
+const PAPER_RGB = { pink: [255, 60, 150], yellow: [255, 212, 50], turq: [40, 220, 215], orange: [255, 130, 30], purple: [170, 80, 255], red: [255, 50, 55], green: [60, 225, 100] };
 const LCOL = ['pink', 'yellow', 'orange', 'turq', 'red', 'purple', 'yellow', 'pink', 'green', 'orange', 'red', 'yellow', 'turq', 'pink', 'orange', 'red', 'yellow', 'purple', 'orange', 'pink'];
-const T_LIGHT = 0.3, DT_LIGHT = 0.04;               // the leading pair is lit, then the flame passes back, zig-zag
-const TG = 2.2, DG = 1.75, WG = 0.15;               // the line unzips into the circle, leading pair first
-const TDOWN = 1.45;                                 // ...and each pair sets its candles down on the ground
-// walking: they stand while the candles are lit, set off, and slow as they reach their places
-const VMAX = 150;
-const speed = t => VMAX * smooth(0.5, 1.6, t) * (1 - smooth(3.4, 5.2, t));
+const T_LIGHT = 0.35, DT_LIGHT = 0.045;             // the leading pair is lit, then the flame passes back, zig-zag
+const TG = 2.6, WG = 0.12, DG = 1.55;               // the line opens into the circle, leading pair first
+const TDOWN = DG - 0.25;                            // ...and each pair sets its candles down as it arrives
+const VMAX = 250;
+const speed = t => VMAX * smooth(0.45, 1.3, t) * (1 - smooth(3.3, 4.9, t));
 const travel = t => {                                // distance walked by time t (Simpson; a pure function of t)
-  const T = clamp(t, 0, 5.2), n = 96, h = T / n; let a = speed(0) + speed(T);
+  const T = clamp(t, 0, 5), n = 96, h = T / n; let a = speed(0) + speed(T);
   for (let i = 1; i < n; i++) a += (i & 1 ? 4 : 2) * speed(i * h);
   return a * h / 3;
 };
-const S_END = 0;                                    // the leading pair's column position when the line opens
-const lead = t => S_END - travel(3.0) + travel(t);
-// the path, from the hill top down to the plaza and across it (Catmull-Rom, tabulated by arc length)
-const JP = [[160, 760, 1550], [60, 620, 1300], [-120, 420, 900], [-300, 230, 560], [-390, 80, 250], [-330, 0, 40], [-170, 0, -70], [0, 0, -50], [190, 0, 40], [370, 0, 60], [700, 0, 60]];
+// the road, from the hill top down to the plaza and across it to the door (Catmull-Rom, tabulated by arc length)
+const JP = [[110, 380, 1700], [-40, 280, 1380], [90, 186, 1080], [-90, 104, 800], [-280, 40, 520], [-400, 0, 270],
+  [-400, 0, 70], [-260, 0, -80], [-50, 0, -80], [140, 0, 30], [290, 0, 40], [R + 20, 0, 0], [560, 0, -40], [800, 0, -80]];
 const PATH = (() => {
   const pts = []; let len = 0, prev = null;
   for (let i = 0; i < JP.length - 1; i++) {
@@ -62,8 +61,8 @@ const PATH = (() => {
   }
   return pts;
 })();
-const A_PLAZA = (() => { let best = 0, bd = 1e9; for (const p of PATH) { const d = Math.hypot(p[0] - 370, p[2] - 60); if (d < bd) { bd = d; best = p[3]; } } return best; })();
-const A_EDGE = (() => { let best = 0, bd = 1e9; for (const p of PATH) { const d = Math.hypot(p[0] + 330, p[2] - 40); if (d < bd) { bd = d; best = p[3]; } } return best; })();
+const arcNear = (x, z) => { let best = 0, bd = 1e9; for (const p of PATH) { const d = Math.hypot(p[0] - x, p[2] - z); if (d < bd) { bd = d; best = p[3]; } } return best; };
+const A_DOOR = arcNear(R + 20, 0), A_FOOT = arcNear(-400, 270);
 function pathAt(a) {                                 // point and unit tangent at arc length a
   const p = PATH; let lo = 0, hi = p.length - 1;
   a = clamp(a, 0, p[hi][3] - 0.01);
@@ -73,18 +72,28 @@ function pathAt(a) {                                 // point and unit tangent a
   const tx = p[hi][0] - p[lo][0], tz = p[hi][2] - p[lo][2], tl = Math.hypot(tx, tz) || 1;
   return [q, tx / tl, tz / tl];
 }
-// column position s (0 = the plaza's right end, negative = further back) -> arc length; up the hill they walk faster
-function arcOf(s) {
-  const a = A_PLAZA + s;
-  if (a >= A_EDGE) return a;
-  const e = A_EDGE - a;
-  return A_EDGE - e * (1 + e / 330);
-}
-function columnXYZ(s, b) {                           // b = -1: the walker on the back side, +1: the front side
-  const [q, tx, tz] = pathAt(arcOf(s));
-  return [q[0] + b * OFF * tz, q[1], q[2] - b * OFF * tx];
+const S_END = A_DOOR - 70;                           // the leading pair's place on the road when the line opens
+const lead = t => S_END - travel(TG) + travel(t);
+function columnXYZ(s, b, off) {                      // b = -1: the walker on the back side, +1: the front side
+  const [q, tx, tz] = pathAt(s);
+  return [q[0] + b * off * tz, q[1], q[2] - b * off * tx];
 }
 const slotTheta = (m, b) => (b < 0 ? 1 : -1) * (m + 0.5) * DEL;
+
+// the peregrinos: at the head of the line until they stop at the door; then they are let in and walk
+// round (a U-turn through the back of the ring) to the centre
+const IN0 = 3.45, IN1 = 4.95;
+const softMin = (a, b, k) => { const x = (b - a) / k; return b - k * (x > 30 ? x : Math.log1p(Math.exp(x))); };
+const bez = (p, u) => { const w = 1 - u; return [0, 2].map(i => w * w * w * p[0][i] + 3 * w * w * u * p[1][i] + 3 * w * u * u * p[2][i] + u * u * u * p[3][i]); };
+function peregPos(t) {
+  const aS = softMin(lead(t) + 34, A_DOOR, 26);
+  const [q] = pathAt(aS);
+  const w = ease.inOut3((t - IN0) / (IN1 - IN0));
+  if (w <= 0) return { X: q[0], Z: q[2], d: aS };
+  const [x, z] = bez([[q[0], q[2]], [q[0] + 30, q[2] + 210], [170, 230], [0, 30]], w);
+  return { X: x, Z: z, d: aS + w * 640 };
+}
+
 // where the flames end up as stars: an even (sunflower) scatter over the sky, handed out left to right
 const LEAD = [C, 150];
 const STARS = Array.from({ length: N }, (_, i) => {
@@ -98,27 +107,28 @@ const RANK = (() => {
   const r = []; ks.forEach((k, i) => r[k] = i); return r;
 })();
 
-// farolitos: small paper-bag lights on both edges of the route, from the plaza up the hill
+// farolitos: small paper-bag lights on both edges of the road, from the plaza up the hill
 const FAROL = (() => {
-  const out = [], a0 = A_PLAZA - 40, step = 80, R_ = HG.rng(23);
-  for (let i = 0; a0 - i * step > 140; i++) {
+  const out = [], a0 = A_FOOT + 160, step = 78, R_ = HG.rng(23);
+  for (let i = 0; a0 - i * step > 90; i++) {
     for (const side of [-1, 1]) {
-      const a = a0 - i * step + (R_() - 0.5) * 34, [q, tx, tz] = pathAt(a), w = 86 + (R_() - 0.5) * 22;
+      const a = a0 - i * step + (R_() - 0.5) * 34, [q, tx, tz] = pathAt(a), w = 92 + (R_() - 0.5) * 22;
       out.push({ a, i, side, X: q[0] + side * w * tz, Y: q[1], Z: q[2] - side * w * tx, br: 0.7 + 0.3 * R_() });
     }
   }
   return out;
 })();
 
-// ---------- camera: a pinhole looking at the plaza centre; cranes up a little, orbits slowly, tilts to the sky at the end
+// ---------- camera: a pinhole looking at the plaza centre. It opens high (38°) so the pairs and the
+// winding road separate, cranes down to 25° as the ring forms, orbits slowly and tilts to the sky at the end
 const F = 1500;
+const UP0 = 9.3;
 function camera(t) {
-  const up = ease.inOut3((t - 9.1) / 2.7);
-  const ph = (lerp(15, 25, ease.inOut3(t / 7.5)) - 9 * up) * Math.PI / 180;
-  const ps = -0.06 + 0.34 * ease.inOut3((t - 3) / 9);
-  const D = lerp(1420, 1560, ease.inOut3(t / 8));
-  const down = 1 - ease.inOut3((t - 0.2) / 3.6);      // opening: tilting down a little with the procession
-  return { sp: Math.sin(ph), cp: Math.cos(ph), sy: Math.sin(ps), cy: Math.cos(ps), D, yT: 520 + 70 * down + 380 * up };
+  const up = ease.inOut3((t - UP0) / 2.6), dn = ease.inOut3((t - 0.3) / 3.4);
+  const ph = (lerp(38, 25, dn) + 2 * smooth(4, 9, t) - 9 * up) * Math.PI / 180;
+  const ps = -0.04 + 0.26 * ease.inOut3((t - 3) / 9);
+  const D = lerp(1450, 1560, ease.inOut3(t / 8.5));
+  return { sp: Math.sin(ph), cp: Math.cos(ph), sy: Math.sin(ps), cy: Math.cos(ps), D, yT: lerp(585, 528, dn) + 380 * up };
 }
 function proj(K, X, Y, Z) {
   const dx = X + K.sy * K.cp * K.D, dy = Y - K.sp * K.D, dz = Z + K.cy * K.cp * K.D;
@@ -157,10 +167,12 @@ function flame(g, x, y, h, lean, a) {
     g.bezierCurveTo(w * 0.4, h * 0.1, -w * 0.4, h * 0.1, -w * 0.5, -h * 0.08); g.bezierCurveTo(-w * 0.62, -h * 0.28, -w * 0.35, -h * 0.62, 0, -h); };
   const gr = g.createRadialGradient(0, -h * 0.22, 0, 0, -h * 0.35, h * 0.75);
   gr.addColorStop(0, 'rgba(255,255,245,1)'); gr.addColorStop(0.3, 'rgba(255,236,160,0.95)'); gr.addColorStop(0.7, 'rgba(255,160,50,0.75)'); gr.addColorStop(1, 'rgba(255,90,20,0.2)');
-  g.globalAlpha = a; g.fillStyle = gr; body(); g.fill();
+  g.globalAlpha = Math.min(1, a); g.fillStyle = gr; body(); g.fill();
   g.restore();
 }
-// bloom a layer onto c: pixel-aligned like HG.drawLayer, with a resolution-scaled blur
+// Bloom a layer onto c with a resolution-scaled blur. This cannot use HG.drawLayer, which forces
+// filter = 'none'; instead it resets with HG.reset (the engine's scale transform) and draws the layer
+// over the 1080-unit frame, which maps it 1:1 onto the canvas pixels at any ?size=.
 function bloom(c, L, px, alpha) {
   if (alpha <= 0.003) return;
   c.save(); HG.reset(c); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, alpha); c.filter = HG.blur(px);
@@ -178,50 +190,194 @@ function glint(g, x, y, s, a, rot = 0, col = GOLD) {
 // flicker of candle j at time t (smooth, deterministic)
 const flick = (t, j) => 1 + 0.07 * Math.sin(t * 11.3 + j * 1.7) + 0.05 * Math.sin(t * 17.9 + j * 2.3) + 0.04 * Math.sin(t * 6.1 + j * 0.9);
 
-// the nochebuena drawn as concentric bands that unwind from a twist while the bloom opens from the centre
-const NB = 56;
-function bloomFlower(g, img, cx0, cy0, x, y, Rpx, b, rot, { twist = 1.5, alpha = 1 } = {}) {
-  if (alpha <= 0.003 || b <= 0) return;
-  const Rs = 520;                                   // source radius covered
-  const eb = ease.inOut3(b), sc = lerp(0.18, 1, ease.out3(b)), gam = lerp(0.62, 1, eb);
-  const rho = x_ => Rpx * sc * Math.pow(x_, gam);
-  for (let i = NB - 1; i >= 0; i--) {
-    const xa = i / NB, xb = (i + 1) / NB, xm = (i + 0.5) / NB;
-    const a = alpha * Math.pow(smooth(xm - 0.32, xm + 0.06, b * 1.3), 1.3);
-    if (a <= 0.003) continue;
-    const ra = rho(xa), rb = rho(xb), k = rho(xm) / (xm * Rs);
-    g.save();
-    g.beginPath(); g.arc(x, y, rb + 0.7, 0, TAU); if (ra > 0.7) g.arc(x, y, ra - 0.7, 0, TAU, true); g.clip();
-    g.globalAlpha = a; g.translate(x, y); g.rotate(rot + twist * (1 - eb) * Math.pow(xm, 1.1)); g.scale(k, k);
-    g.drawImage(img, -cx0, -cy0);
-    g.restore();
-  }
+// a posada candle: a thin white velita through a pleated, fringed collar of papel china, lit from the
+// flame above. Origin = where the hand holds it (the bottom of the collar), upright, size hp (px);
+// e = sin(camera elevation), ph = the fringe's turn. Returns the wick's height (negative y).
+const NZ = 11;
+function velita(g, col, hp, e, ph) {
+  const pc = PAPER_RGB[col], rx = 0.27 * hp, ry = rx * (0.25 + 0.75 * e), y0 = -0.2 * hp, yb = 0.02 * hp, bw = 0.045 * hp;
+  const rim = (i, sgn) => {                         // fringe point i on the rim (teeth stand up a little)
+    const ang = sgn * i * Math.PI / NZ, tooth = i & 1 ? 0.84 : 1 + 0.05 * Math.sin(i * 2.3 + ph);
+    return [Math.cos(ang) * rx * tooth, y0 + Math.sin(ang) * ry * tooth - (i & 1 ? 0 : 0.035 * hp)];
+  };
+  // inside of the cup, lit by the flame
+  g.beginPath(); g.moveTo(...rim(0, -1));
+  for (let i = 1; i <= 2 * NZ; i++) g.lineTo(...rim(i, -1));
+  g.closePath();
+  const gi = g.createRadialGradient(0, y0 - ry * 0.3, 0, 0, y0, rx * 1.1);
+  gi.addColorStop(0, rgba(mix(pc, [255, 250, 235], 0.62), 1)); gi.addColorStop(1, rgba(mix(pc, [0, 0, 0], 0.15), 1));
+  g.fillStyle = gi; g.fill();
+  // the candle
+  const cw = 0.085 * hp, yt = -0.68 * hp, ycb = y0 + 0.25 * ry;
+  const gc = g.createLinearGradient(-cw / 2, 0, cw / 2, 0);
+  gc.addColorStop(0, 'rgb(200,184,158)'); gc.addColorStop(0.45, 'rgb(255,250,236)'); gc.addColorStop(1, 'rgb(226,212,188)');
+  g.fillStyle = gc; g.beginPath(); g.moveTo(-cw / 2, ycb); g.lineTo(-cw / 2, yt + cw * 0.15); g.quadraticCurveTo(0, yt - cw * 0.25, cw / 2, yt + cw * 0.15); g.lineTo(cw / 2, ycb); g.closePath(); g.fill();
+  // the front of the collar: pleated, with a fringed rim
+  g.beginPath(); g.moveTo(...rim(0, 1));
+  for (let i = 1; i <= NZ; i++) g.lineTo(...rim(i, 1));
+  g.lineTo(-bw, yb); g.lineTo(bw, yb); g.closePath();
+  const gf = g.createLinearGradient(0, y0, 0, yb);
+  gf.addColorStop(0, rgba(mix(pc, [255, 245, 220], 0.35), 1)); gf.addColorStop(0.55, rgba(pc, 1)); gf.addColorStop(1, rgba(mix(pc, [0, 0, 0], 0.45), 1));
+  g.fillStyle = gf; g.fill();
+  g.strokeStyle = rgba(mix(pc, [0, 0, 0], 0.5), 0.45); g.lineWidth = Math.max(0.6, 0.014 * hp);
+  g.beginPath();
+  for (let i = 1; i < NZ; i += 2) { const [px, py] = rim(i, 1); g.moveTo(px, py); g.lineTo(px * 0.17, yb); }
+  g.stroke();
+  g.strokeStyle = rgba(mix(pc, [255, 250, 235], 0.55), 0.9); g.lineWidth = Math.max(0.8, 0.02 * hp);
+  g.beginPath(); g.moveTo(...rim(0, 1)); for (let i = 1; i <= NZ; i++) g.lineTo(...rim(i, 1)); g.stroke();
+  return yt;
 }
+
+// the peregrinos as glowing gold line art: Joseph with his staff leads the donkey that carries Mary
+// (in a blue mantle). Local units = world units, ground at y = 0, facing right.
+const PEREG = (() => {
+  const P = s => new Path2D(s);
+  return {
+    donkey: P('M -96 -96 C -70 -108 -20 -108 10 -102 C 20 -116 30 -130 42 -138 C 52 -142 64 -128 74 -114 C 78 -106 72 -99 62 -101 C 54 -103 48 -100 42 -90 C 38 -82 36 -74 34 -66 C 10 -58 -54 -58 -82 -64 C -100 -68 -106 -86 -96 -96 Z'),
+    ears: P('M 38 -136 C 33 -150 28 -164 20 -174 C 30 -170 40 -156 45 -139 M 45 -138 C 46 -153 47 -166 46 -178 C 53 -170 56 -154 52 -139'),
+    tail: P('M -98 -90 C -108 -82 -111 -70 -109 -54 M -109 -54 L -113 -44 M -109 -54 L -106 -44'),
+    mary: P('M -34 -192 C -46 -192 -54 -182 -55 -168 C -56 -152 -62 -134 -66 -116 C -66 -104 -60 -94 -50 -88 C -40 -84 -26 -84 -14 -88 C -10 -96 -8 -104 -8 -110 C -8 -116 -14 -118 -20 -120 C -22 -132 -22 -144 -24 -154 C -22 -160 -20 -164 -21 -170 C -20 -184 -26 -192 -34 -192 Z'),
+    maryFace: P('M -26 -186 C -33 -182 -36 -172 -33 -161 C -30 -156 -27 -156 -24 -157'),
+    maryArm: P('M -42 -150 C -36 -136 -28 -127 -17 -122'),
+    joseph: P('M 92 -158 C 84 -148 80 -128 80 -104 L 76 -36 C 88 -32 106 -32 120 -38 C 116 -72 114 -112 110 -148 C 108 -156 100 -160 92 -158 Z'),
+    sash: P('M 81 -104 C 92 -99 106 -99 115 -103'),
+    hood: P('M 112 -181 C 108 -195 88 -195 86 -179 C 84 -167 84 -159 82 -149'),
+    beard: P('M 111 -168 C 113 -158 107 -152 99 -155'),
+    armF: P('M 108 -148 C 114 -136 120 -127 124 -119'),
+    armB: P('M 92 -148 C 86 -138 82 -127 79 -119'),
+    rope: P('M 79 -119 C 74 -110 68 -105 63 -101'),
+    head: (() => { const p = new Path2D(); p.arc(102, -172, 11, 0, TAU); return p; })(),
+  };
+})();
+function peregrinos(g, x, y, s, face, gait, move, a, reveal) {
+  if (a <= 0.003 || s <= 0) return;
+  const GL = [255, 206, 128];
+  g.save(); g.translate(x, y); g.scale(s * face, s); g.translate(-10, 0);
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  const line = pts => { const p = new Path2D(); p.moveTo(...pts[0]); for (let i = 1; i < pts.length; i++) p.lineTo(...pts[i]); return p; };
+  const leg = (x0, ph, L) => {                      // a donkey leg: swings from the body, lifts the hoof
+    const c = TAU * (gait + ph), w = Math.sin(c) * 0.3 * move, lift = Math.max(0, Math.cos(c)) * 10 * move;
+    const fx = x0 + Math.sin(w) * L, fy = -lift, kx = (x0 + fx) / 2 + 3 + 4 * Math.max(0, Math.cos(c)) * move, ky = (-L + fy) / 2;
+    return line([[x0, -L], [kx, ky], [fx, fy], [fx + 7, fy]]);
+  };
+  const jleg = (x0, ph) => { const c = TAU * (gait + ph), w = Math.sin(c) * move, lift = Math.max(0, Math.cos(c)) * 7 * move;
+    return line([[x0, -36], [x0 + 7 * w + 2, -18], [x0 + 16 * w, -lift], [x0 + 16 * w + 9, -lift]]); };
+  const farD = [leg(-72, 0.5, 66), leg(14, 0.75, 66)], nearD = [leg(-80, 0, 66), leg(24, 0.25, 66)];
+  const farJ = jleg(94, 0.5), nearJ = jleg(102, 0);
+  const sw = 0.05 * Math.sin(TAU * gait) * move;
+  const staff = line([[124 - Math.sin(sw) * 94, -213], [124 + Math.sin(sw) * 119, 0]]);
+  const st = (p, w, al) => { g.lineWidth = w; g.globalAlpha = a * al; g.stroke(p); };
+  const f = clamp(reveal * 1.6 - 0.6);
+  const solid = (p, fill) => {                      // mostly hide what is behind, then a soft tinted fill
+    g.globalAlpha = a * 0.8; g.fillStyle = '#000'; g.fill(p); g.globalAlpha = a * f; g.fillStyle = fill; g.fill(p);
+  };
+  if (reveal < 1) g.setLineDash([520 * reveal, 520]);   // the lines trace themselves in
+  const pass = glow => {
+    const w = glow ? 9 : 4.4, k = glow ? 0.6 : 1;
+    g.strokeStyle = rgba(GL, 1);
+    for (const p of farD) st(p, w * 0.85, k * 0.5);
+    st(farJ, w * 0.85, k * 0.5);
+    if (!glow) solid(PEREG.donkey, 'rgba(255,185,105,0.16)');
+    st(PEREG.donkey, w, k); st(PEREG.ears, w * 0.85, k); st(PEREG.tail, w * 0.8, k);
+    for (const p of nearD) st(p, w, k);
+    if (!glow) solid(PEREG.mary, 'rgba(70,135,255,0.36)');
+    st(PEREG.mary, w, k); st(PEREG.maryFace, w * 0.7, k); st(PEREG.maryArm, w * 0.8, k);
+    st(PEREG.rope, w * 0.55, k); st(PEREG.armB, w * 0.85, k);
+    if (!glow) solid(PEREG.joseph, 'rgba(255,150,70,0.22)');
+    st(PEREG.joseph, w, k); st(PEREG.sash, w * 0.6, k); st(nearJ, w, k);
+    if (!glow) solid(PEREG.head, 'rgba(255,190,120,0.18)');
+    st(PEREG.head, w, k); st(PEREG.hood, w * 0.9, k); st(PEREG.beard, w * 0.7, k);
+    st(PEREG.armF, w * 0.85, k); st(staff, w * 0.9, k);
+    if (!glow) { g.globalAlpha = a * f; g.fillStyle = rgba(GL, 1); g.beginPath(); g.arc(56, -125, 2.6, 0, TAU); g.fill(); }
+  };
+  g.save(); g.globalCompositeOperation = 'lighter'; g.filter = HG.blur(6 * s); pass(true); g.restore();
+  pass(false);
+  g.restore();
+}
+
+// a ribbon of light along pts (tail first): tapers from nothing to width w at the head
+function ribbon(c, pts, w, col, a) {
+  const n = pts.length; if (n < 2 || a <= 0.003) return;
+  const Lf = [], Rt = [];
+  for (let i = 0; i < n; i++) {
+    const p = pts[i], q = pts[Math.min(n - 1, i + 1)], o = pts[Math.max(0, i - 1)];
+    let dx = q[0] - o[0], dy = q[1] - o[1]; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
+    const ww = w * Math.pow(i / (n - 1), 0.7);
+    Lf.push([p[0] - dy * ww, p[1] + dx * ww]); Rt.push([p[0] + dy * ww, p[1] - dx * ww]);
+  }
+  c.beginPath(); c.moveTo(...Lf[0]);
+  for (let i = 1; i < n; i++) c.lineTo(...Lf[i]);
+  for (let i = n - 1; i >= 0; i--) c.lineTo(...Rt[i]);
+  c.closePath();
+  const gr = c.createLinearGradient(pts[0][0], pts[0][1], pts[n - 1][0], pts[n - 1][1]);
+  gr.addColorStop(0, rgba(col, 0)); gr.addColorStop(0.55, rgba(col, 0.45 * a)); gr.addColorStop(1, rgba(col, a));
+  c.fillStyle = gr; c.fill();
+}
+
+// the nochebuena: the crisp photo revealed through a soft pinwheel mask that opens from the heart as the
+// flower turns and grows (open 0..1), and later closes from the tips inward (close 0..1); no image is
+// ever cut into bands or sheared. Draws into the layer fg.
+const NB_SRC = [495, 469], NB_RS = 520, NB_ARMS = 6, NB_A = 0.5;
+const pinR = (th, rho, ph) => { const u = ((th * NB_ARMS / TAU + ph) % 1 + 1) % 1; return rho * (1 - NB_A * Math.pow(u, 1.3)); };
+function nochebuena(fg, img, x, y, Rpx, rot, sy, open, close) {
+  HG.reset(fg); fg.clearRect(0, 0, W, W);
+  if (open <= 0 || close >= 1) return null;
+  const k = Rpx / NB_RS * lerp(0.42, 1, ease.out3(open));
+  const r = rot - 0.85 * Math.pow(1 - ease.out3(open), 1.5);
+  const frame = () => { HG.reset(fg); fg.translate(x, y); fg.scale(1, sy); fg.rotate(r); fg.scale(k, k); };
+  frame(); fg.drawImage(img, -NB_SRC[0], -NB_SRC[1]);
+  const rho = 2.15 * NB_RS * (close > 0 ? 1 - close : open), ph = close > 0 ? 0.15 : 0.15 + 0.8 * (1 - open);
+  if (rho < 2.15 * NB_RS * 0.999) {
+    const path = new Path2D();
+    for (let i = 0; i <= 240; i++) {
+      const th = i / 240 * TAU, rr = pinR(th, rho, ph);
+      i ? path.lineTo(Math.cos(th) * rr, Math.sin(th) * rr) : path.moveTo(Math.cos(th) * rr, Math.sin(th) * rr);
+    }
+    path.closePath();
+    frame(); fg.globalCompositeOperation = 'destination-in'; fg.filter = HG.blur(8); fg.fillStyle = '#000'; fg.fill(path);
+    // light runs along the opening (or breaking) edge of the bracts
+    frame(); fg.globalCompositeOperation = 'source-atop'; fg.filter = HG.blur(7);
+    fg.strokeStyle = close > 0 ? 'rgba(255,200,120,0.85)' : 'rgba(255,215,150,0.7)'; fg.lineWidth = 22 / k; fg.stroke(path);
+  }
+  HG.reset(fg);
+  return { k, r, ph };
+}
+
+// sparks the nochebuena breaks into: each is born where the closing edge passes it
+const NB_C0 = 9.55, NB_C1 = 10.5;
+const BREAK = (() => {
+  const Rb = HG.rng(19), out = [];
+  for (let i = 0; i < 190; i++) {
+    const th = Rb() * TAU, rr = (0.1 + 0.85 * Math.sqrt(Rb())) * NB_RS;
+    const c = 1 - rr / pinR(th, 2.15 * NB_RS, 0.15);         // close progress when the edge reaches it
+    if (c <= 0 || c >= 1) continue;
+    out.push({ th, rr, tb: lerp(NB_C0, NB_C1, c), red: Rb() < 0.6, sz: 25 + Rb() * 15, sp: 60 + Rb() * 130, up: 50 + Rb() * 110, life: 0.65 + Rb() * 0.4, tw: Rb() * 6 });
+  }
+  return out;
+})();
 
 HG.start({
   duration: 12,
-  assets: Object.assign({
-    flor: '../assets/14-posadas-flor1_glow.png', florS: '../assets/14-posadas-flor2_small.png', florS1: '../assets/14-posadas-flor1_small.png',
-  }, Object.fromEntries(PAPER.map(p => ['v_' + p, `../assets/14-posadas-vela_${p}.png`]))),
+  assets: { flor: '../assets/14-posadas-flor1_hero.png', florS: '../assets/14-posadas-flor2_small.png', florS1: '../assets/14-posadas-flor1_small.png' },
   render(t, A) {
     const K = camera(t);
     const end = 1 - smooth(11.15, 11.9, t);
     const g = M.ctx; HG.reset(g); g.clearRect(0, 0, W, W);
 
     // ---------- night: a deep blue sky haze behind the plaza
-    const sky = smooth(0.2, 2.5, t) * (1 - smooth(10.4, 11.9, t));
+    const sky = smooth(0.2, 2.5, t) * (1 - smooth(10.6, 11.9, t));
     if (sky > 0) {
-      const hy = 400 + 0.5 * (K.yT - 545);
-      const hg = ctx.createRadialGradient(C, hy, 30, C, hy, 560);
-      hg.addColorStop(0, rgba(NIGHT, 0.4 * sky)); hg.addColorStop(0.55, rgba([10, 16, 60], 0.2 * sky)); hg.addColorStop(1, 'rgba(0,0,0,0)');
+      const hy = 360 + 0.5 * (K.yT - 545);
+      const hg = ctx.createRadialGradient(C, hy, 30, C, hy, 600);
+      hg.addColorStop(0, rgba(NIGHT, 0.62 * sky)); hg.addColorStop(0.55, rgba([12, 20, 74], 0.36 * sky)); hg.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = hg; ctx.fillRect(0, 0, W, W);
     }
 
-    // ---------- lanterns: where everyone is
-    const s0 = lead(t), walk = clamp(speed(t) / 140 + bump(t, TG, TG + 0.5, TG + WG * 9 + DG - 0.4, TG + WG * 9 + DG + 0.3));
-    const where = (k, t_, s_) => {                   // world position of lantern k (column, then its place on the ring)
+    // ---------- candles: where everyone is
+    const s0 = lead(t), walk = clamp(speed(t) / 150 + bump(t, TG, TG + 0.5, TG + WG * 9 + DG - 0.4, TG + WG * 9 + DG + 0.3));
+    const where = (k, t_, s_) => {                   // world position of candle k (column, then its place on the ring)
       const m = k >> 1, b = k & 1 ? 1 : -1;
-      const [cx, cy, cz] = columnXYZ(s_ - m * SPM - (b > 0 ? 30 : 0), b);   // the front walker half a step behind
+      const [cx, cy, cz] = columnXYZ(s_ - m * SPM - (b > 0 ? ZIG : 0), b, m ? OFF : OFF0);
       const g_ = ease.inOut3((t_ - (TG + WG * m)) / DG);
       const th = slotTheta(m, b);
       return [lerp(cx, R * Math.cos(th), g_), cy * (1 - g_), lerp(cz, R * Math.sin(th), g_)];
@@ -231,17 +387,19 @@ HG.start({
       const m = k >> 1, b = k & 1 ? 1 : -1;
       const [X, Y, Z] = where(k, t, s0);
       const ph = k * 2.1 + (b > 0 ? 1.4 : 0);
-      const bob = 8 * walk * (0.5 - 0.5 * Math.cos(TAU * 1.6 * t + ph));
-      const sway = 0.06 * walk * Math.sin(Math.PI * 1.6 * t + ph);
-      const down = ease.inOut3((t - (TG + WG * m + TDOWN)) / 0.75);   // set down on the ground
-      const hh = lerp(H, LS * 0.47, down);
+      const bob = 14 * walk * (0.5 - 0.5 * Math.cos(TAU * 1.7 * t + ph));
+      const sway = 0.07 * walk * Math.sin(Math.PI * 1.7 * t + ph);
+      const down = ease.inOut3((t - (TG + WG * m + TDOWN)) / 0.7);   // set down on the ground
+      const ls = lerp(LSW, LSD, down), hh = lerp(H, 0.03 * LSD, down);
       const tl = T_LIGHT + k * DT_LIGHT;
       const lit = smooth(tl, tl + 0.3, t);
       const ord = (k * 7) % N;                                   // order in which the flames leave (end)
-      const lift = smooth(9.1 + 0.035 * ord, 9.1 + 0.035 * ord + 1.35, t);
+      const lift = smooth(UP0 + 0.045 * ord, UP0 + 0.045 * ord + 1.35, t);
       const P = proj(K, X, Y + hh + bob, Z), G = proj(K, X, Y, Z);
       const [X2, Y2, Z2] = where(k, t - 0.08, lead(t - 0.08)), P2 = proj(K, X2, Y2 + hh, Z2);
-      L.push({ j: k, k, m, b, X, Y, Z, P, G, tl, lit, lift, ord, sway, hh, vx: (P.x - P2.x) / 0.08, col: LCOL[k] });
+      const hp = ls * P.s, yt = -0.68 * hp;
+      const wx = P.x - yt * Math.sin(sway), wy = P.y + yt * Math.cos(sway);
+      L.push({ j: k, k, m, b, X, Y, Z, P, G, tl, lit, lift, ord, sway, hh, hp, wx, wy, vx: (P.x - P2.x) / 0.08, col: LCOL[k] });
     }
 
     // ---------- light on the ground
@@ -254,12 +412,12 @@ HG.start({
       g.drawImage(tinted(mix(FLAME, PAPER_RGB[l.col], 0.35)), l.G.x - rx, l.G.y - ry, 2 * rx, 2 * ry);
     }
     g.restore();
-    // farolitos along the route: lit as the flame runs back up the line, gone once the circle has formed
+    // farolitos along the road: lit as the flame runs back up the line, gone once the circle has formed
     const farA = (1 - smooth(3.6, 4.8, t)) * end;
     if (farA > 0) {
       g.save(); g.globalCompositeOperation = 'lighter';
       for (const f of FAROL) {
-        const tl = T_LIGHT + 0.12 + f.i * 0.055, a = farA * smooth(tl, tl + 0.25, t);
+        const tl = T_LIGHT + 0.15 + f.i * 0.05, a = farA * smooth(tl, tl + 0.25, t);
         if (a <= 0.003) continue;
         const G = proj(K, f.X, f.Y, f.Z), B = proj(K, f.X, f.Y + 16, f.Z), fk = 0.85 + 0.15 * Math.sin(t * 9 + f.i * 1.7 + f.side);
         const rx = 46 * G.s, ry = rx * K.sp * 1.2;
@@ -269,33 +427,43 @@ HG.start({
       }
       g.restore();
     }
-    // the plaza glows warm inside the ring once it is complete
-    const plaza = smooth(4.6, 6.5, t) * (1 - smooth(9.3, 10.6, t));
+    // the posada is granted: the plaza inside the ring glows warm around the peregrinos
+    const plaza = smooth(4.4, 5.8, t) * (1 - smooth(9.2, 10.2, t));
     if (plaza > 0) {
-      const O = proj(K, 0, 0, 0), rx = R * 1.1 * O.s, ry = rx * K.sp * 1.1;
-      g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.2 * plaza;
-      g.drawImage(tinted([255, 120, 60]), O.x - rx, O.y - ry, 2 * rx, 2 * ry); g.restore();
+      const O = proj(K, 0, 0, 20), rx = R * 1.1 * O.s, ry = rx * K.sp * 1.1;
+      g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.24 * plaza;
+      g.drawImage(tinted([255, 125, 60]), O.x - rx, O.y - ry, 2 * rx, 2 * ry);
+      const wa = bump(t, 4.6, 5.4, 5.8, 6.8);
+      g.globalAlpha = 0.3 * wa; g.drawImage(tinted([255, 190, 110]), O.x - rx * 0.45, O.y - ry * 0.45, rx * 0.9, ry * 0.9);
+      g.restore();
     }
 
-    // ---------- the nochebuena's place: a bud of gathered light rises from the plaza and unfurls
-    const HB = smooth(5.75, 7.9, t);
-    const GONE = smooth(9.7, 10.35, t);                                            // at the end it dissolves into light
-    const Hh = lerp(40, 215, ease.inOut3((t - 5.5) / 2.3));
+    // ---------- the bud of gathered light rises from the centre and opens into the nochebuena
+    const Hh = lerp(95, 215, ease.inOut3((t - 6.0) / 2.1));
     const HP = proj(K, 0, Hh, 0);
+    const OPEN = clamp((t - 6.05) / 1.9), CLOSE = clamp((t - NB_C0) / (NB_C1 - NB_C0));
+    const SY = lerp(1, 0.9, smooth(6.0, 8.0, t));
+    const rotF = 0.05 * t - 0.3, RPX = 250 * HP.s * (1 + 0.015 * Math.sin(t * 1.4));
 
-    // ---------- depth-sorted scene: wreath flowers on the ground, lanterns, the hero
+    // ---------- the peregrinos
+    const pr = peregPos(t), pr1 = peregPos(t + 0.04), pr0 = peregPos(t - 0.04);
+    const PG = proj(K, pr.X, 0, pr.Z);
+    const pv = Math.hypot(pr1.X - pr0.X, pr1.Z - pr0.Z) / 0.08;
+    const turn = smooth(3.62, 3.92, t), face = Math.cos(Math.PI * turn);
+    const pa = smooth(0.3, 0.9, t) * (1 - smooth(5.7, 6.5, t)) * end;
+
+    // ---------- depth-sorted scene: wreath flowers on the ground, candles, the peregrinos, the hero
     const items = [];
-    const NW = N, RW = R - 6;
-    for (let i = 0; i < NW; i++) {
-      const th0 = i * DEL;                                   // between the candles
-      const X = RW * Math.cos(th0), Z = RW * Math.sin(th0);
+    for (let i = 0; i < N; i++) {
+      const th0 = i * DEL, RW = R - 6;                      // between the candles
       // bloom wave: starts at the back (behind the nochebuena), runs down both sides to the front
       const back = Math.abs(Math.atan2(Math.sin(th0 - Math.PI / 2), Math.cos(th0 - Math.PI / 2))) / Math.PI;
-      const u = (t - (6.9 + 1.1 * back)) / 0.9;
-      const G = proj(K, X, 0, Z);
+      const u = (t - (7.0 + 1.1 * back)) / 0.9;
+      const G = proj(K, RW * Math.cos(th0), 0, RW * Math.sin(th0));
       items.push({ kind: 'w', z: G.z, i, G, u });
     }
     for (const l of L) items.push({ kind: 'l', z: l.P.z, l });
+    if (pa > 0.003) items.push({ kind: 'p', z: PG.z });
     items.push({ kind: 'h', z: HP.z - 1 });
     items.sort((p, q) => q.z - p.z);
 
@@ -303,58 +471,53 @@ HG.start({
       if (it.kind === 'w') {
         const { G, u, i } = it;
         if (u <= 0) continue;
-        const e = ease.outBack(u), a = smooth(0, 0.35, u) * (1 - smooth(9.75, 10.45, t)) * end;
+        const e = ease.outBack(u), a = smooth(0, 0.35, u) * (1 - smooth(9.45, 10.15, t)) * end;
         if (a <= 0.003) continue;
-        const sz = 132 * G.s * e * (1 + 0.03 * Math.sin(t * 1.3 + i));
+        const sz = 128 * G.s * e * (1 + 0.03 * Math.sin(t * 1.3 + i));
         g.save(); g.translate(G.x, G.y); g.scale(1, K.sp * 1.4); g.rotate(i * 1.3 - 1.4 * (1 - ease.out3(u)) + 0.04 * t);
         g.globalAlpha = a;
         g.drawImage(i % 2 ? A.florS : A.florS1, -sz / 2, -sz / 2, sz, sz);
         g.restore();
       } else if (it.kind === 'l') {
-        const l = it.l, P = l.P;
+        const l = it.l, P = l.P, hp = l.hp;
         const a = l.lit * end * (1 - smooth(0.05, 0.5, l.lift));
         if (a <= 0.003) continue;
-        const hp = LS * P.s;
-        const glowK = flick(t, l.j);
-        g.save(); g.translate(P.x, P.y + hp * 0.5); g.rotate(l.sway); g.translate(0, -hp * 0.5);
-        // paper lit from inside: brightness follows the candle
-        g.globalAlpha = a * clamp(0.3 + 0.7 * glowK);
-        g.drawImage(A['v_' + l.col], -hp / 2, -hp / 2, hp, hp);
-        // candlelight on the inner paper
+        const glowK = flick(t, l.j), pc = PAPER_RGB[l.col];
+        g.save(); g.translate(P.x, P.y); g.rotate(l.sway);
+        g.globalAlpha = a * clamp(0.55 + 0.45 * l.lit);
+        velita(g, l.col, hp, K.sp, l.k * 1.7);
+        // candlelight through the paper
         g.globalCompositeOperation = 'lighter';
-        g.globalAlpha = 0.45 * a * glowK;
-        const gs = hp * 0.95;
-        g.drawImage(HG.sprite(mix(FLAME, PAPER_RGB[l.col], 0.5)), -gs / 2, -hp * 0.2 - gs / 2, gs, gs);
+        g.globalAlpha = 0.4 * a * glowK;
+        g.drawImage(HG.sprite(mix(FLAME, pc, 0.55)), -hp * 0.5, -hp * 0.62, hp, hp);
         g.restore();
         // the flame (stays on the wick until it lifts away at the end)
         if (l.lift <= 0) {
-          const wx = P.x + Math.sin(l.sway) * hp * 0.72, wy = P.y - hp * 0.21;
           const ig = ease.outBack(clamp((t - l.tl) / 0.35));
-          const t0 = 5.0 + 0.03 * l.ord, give = bump(t, t0 - 0.2, t0, t0 + 0.1, t0 + 0.6);
-          const fh = hp * 0.22 * ig * flick(t, l.j) * (1 + 0.4 * give);
+          const t0 = 5.25 + 0.025 * l.ord, give = bump(t, t0 - 0.2, t0, t0 + 0.1, t0 + 0.6);
+          const fh = hp * 0.3 * ig * flick(t, l.j) * (1 + 0.35 * give);
           const lean = -0.0009 * l.vx + 0.07 * Math.sin(t * 3.1 + l.j) + 0.04 * Math.sin(t * 8.3 + 2 * l.j) + l.sway;
           g.save(); g.globalCompositeOperation = 'lighter';
-          HG.dot(g, FLAME, wx, wy - fh * 0.4, hp * 1.05, 0.32 * a * flick(t, l.j) * (1 + 0.5 * give));
-          HG.dot(g, [255, 220, 150], wx, wy - fh * 0.35, hp * 0.32, 0.55 * a);
+          HG.dot(g, FLAME, l.wx, l.wy - fh * 0.4, hp * 1.05, 0.34 * a * glowK * (1 + 0.5 * give));
+          HG.dot(g, [255, 220, 150], l.wx, l.wy - fh * 0.35, hp * 0.32, 0.55 * a);
+          // ignition flash (smaller for the later candles, so the tail does not haze over)
+          const fl = bump(t, l.tl - 0.02, l.tl + 0.06, l.tl + 0.1, l.tl + 0.4);
+          if (fl > 0) HG.dot(g, [255, 210, 140], l.wx, l.wy - fh * 0.4, hp * 1.2, 0.42 * fl * (1 - 0.55 * l.k / N));
           g.restore();
-          flame(g, wx, wy, fh, lean, a);
-          // ignition flash
-          const fl = bump(t, l.tl - 0.02, l.tl + 0.06, l.tl + 0.1, l.tl + 0.45);
-          if (fl > 0) { g.save(); g.globalCompositeOperation = 'lighter'; HG.dot(g, [255, 210, 140], wx, wy - fh * 0.4, hp * 1.6, 0.5 * fl); g.restore(); }
+          flame(g, l.wx, l.wy, fh, lean, a);
         }
+      } else if (it.kind === 'p') {
+        const move = clamp(pv / 120);
+        const sx = Math.abs(face) < 0.07 ? 0.07 * Math.sign(face || 1) : face;
+        peregrinos(g, PG.x, PG.y - 2 * move * Math.abs(Math.sin(TAU * pr.d / 150)), PG.s, sx, pr.d / 150, move, pa, smooth(0.3, 1.5, t));
       } else {
-        const fade = 1;
-        if (HB > 0 && fade * end > 0.003) {
-          const fg = FL.ctx; HG.reset(fg); fg.clearRect(0, 0, W, W);
-          const Rpx = 250 * HP.s * (1 + 0.015 * Math.sin(t * 1.4)) * (1 + 0.07 * smooth(9.55, 10.4, t));
-          const rot = 0.05 * t - 0.3;
-          bloomFlower(fg, A.flor, 495, 469, HP.x, HP.y, Rpx, HB, rot, { twist: 1.6, alpha: 1 });
-          HG.reset(fg);
-          HG.drawLayer(g, FL, { alpha: fade * end * (1 - GONE) });
-          bloom(g, FL, 22, (0.34 + 0.45 * smooth(9.5, 9.95, t)) * (1 - smooth(9.95, 10.55, t)) * fade * end * smooth(0.1, 0.6, HB));
+        if (OPEN > 0 && CLOSE < 1 && end > 0.003) {
+          nochebuena(FL.ctx, A.flor, HP.x, HP.y, RPX, rotF, SY, OPEN, CLOSE);
+          HG.drawLayer(g, FL, { alpha: end * smooth(0, 0.12, OPEN) });
+          bloom(g, FL, 18, 0.32 * end);
         }
-        // the bud of light (sparks arriving) before the bracts open
-        const bud = bump(t, 5.45, 5.85, 5.95, 6.8);
+        // the bud of light (the gathered sparks) before the bracts open
+        const bud = bump(t, 5.7, 6.05, 6.2, 6.9);
         if (bud > 0) {
           g.save(); g.globalCompositeOperation = 'lighter';
           HG.dot(g, [255, 110, 60], HP.x, HP.y, 240 * HP.s * (0.6 + 0.4 * bud), 0.5 * bud);
@@ -368,27 +531,28 @@ HG.start({
     bloom(ctx, M, 16, 0.3);
     HG.drawLayer(ctx, M);
 
-    // ---------- every candle sends a spark of its light to the centre
+    // ---------- every candle sends a ribbon of its light to the peregrinos; it gathers into the bud
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     for (const l of L) {
-      const t0 = 5.0 + 0.03 * l.ord, u = (t - t0) / 0.8;
-      if (u <= 0 || u >= 1.2) continue;
-      const P = l.P, hp = LS * P.s;
-      const x0 = P.x, y0 = P.y - hp * 0.3;
-      // arc that swirls in (all the same way round), rising above the plaza first
+      const t0 = 5.25 + 0.025 * l.ord, u = (t - t0) / 0.85;
+      if (u <= 0 || u >= 1.25) continue;
+      const x0 = l.wx, y0 = l.wy - l.hp * 0.12;
       const dx = HP.x - x0, dy = HP.y - y0;
-      const cx = x0 + dx * 0.5 - dy * 0.45, cy = y0 + dy * 0.5 + dx * 0.25 - 140;
-      for (let q = 0; q < 14; q++) {
-        const uu = clamp(ease.inOut3(clamp(u)) - q * 0.022);
-        const w = 1 - uu, x = w * w * x0 + 2 * w * uu * cx + uu * uu * HP.x, y = w * w * y0 + 2 * w * uu * cy + uu * uu * HP.y;
-        const a = (1 - q / 14) * smooth(0, 0.08, u) * (1 - smooth(0.92, 1.15, u));
-        HG.dot(ctx, q ? GOLD : [255, 240, 205], x, y, (q ? 26 : 40) * (1 - q / 18), a);
-      }
+      const cx = x0 + dx * 0.5 - dy * 0.45, cy = y0 + dy * 0.5 + dx * 0.25 - 150;   // all swirl the same way round, rising first
+      const at = q => { const w = 1 - q; return [w * w * x0 + 2 * w * q * cx + q * q * HP.x, w * w * y0 + 2 * w * q * cy + q * q * HP.y]; };
+      const uh = ease.inOut3(clamp(u)), ut = Math.max(0, uh - 0.34) + 0.34 * smooth(0.9, 1.25, u);
+      const fa = smooth(0, 0.08, u) * (1 - smooth(0.95, 1.2, u));
+      const pts = []; for (let q = 0; q <= 18; q++) pts.push(at(lerp(ut, uh, q / 18)));
+      ctx.filter = HG.blur(5); ribbon(ctx, pts, 9, GOLD, 0.55 * fa); ctx.filter = 'none';
+      ribbon(ctx, pts, 3.2, [255, 232, 180], 0.95 * fa);
+      const [hx, hy] = at(uh);
+      HG.dot(ctx, GOLD, hx, hy, 62, 0.75 * fa * (1 - smooth(0.85, 1.05, u)));
+      HG.dot(ctx, [255, 244, 220], hx, hy, 20, 0.9 * fa * (1 - smooth(0.85, 1.05, u)));
     }
     ctx.restore();
 
     // ---------- golden sparks drifting up from the ring
-    const dustA = smooth(6.0, 7.4, t) * (1 - smooth(9.2, 10.2, t));
+    const dustA = smooth(6.2, 7.6, t) * (1 - smooth(9.2, 10.2, t));
     if (dustA > 0) {
       const Rr = HG.rng(41);
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
@@ -397,71 +561,74 @@ HG.start({
         const u = ((t / per + ph) % 1);
         const G = proj(K, rr * Math.cos(th + 0.06 * t), 30 + u * 420, rr * Math.sin(th + 0.06 * t));
         const x = G.x + Math.sin(t * 1.3 + sw) * 10;
-        if (G.y > 760) continue;
+        if (G.y > 740) continue;
         HG.dot(ctx, GOLD, x, G.y, sz * G.s, dustA * Math.sin(Math.PI * u) * (0.55 + 0.45 * Math.sin(t * 5 + sw)));
       }
       ctx.restore();
     }
 
     // ---------- glints on the bracts once it has opened
-    for (const [t0, n, off] of [[8.1, 5, 0.1], [8.7, 5, 0.6]]) {
+    for (const [t0, n, off] of [[8.3, 5, 0.1], [8.9, 5, 0.6]]) {
       const u = (t - t0) / 0.8; if (u <= 0 || u >= 1) continue;
-      const rot = 0.05 * t - 0.3;
       for (let i = 0; i < n; i++) {
-        const th = rot + (i + off) * TAU / n - Math.PI / 2, rr = 200 * HP.s;
-        glint(ctx, HP.x + Math.cos(th) * rr, HP.y + Math.sin(th) * rr, 80 * Math.sin(Math.PI * u), 0.75 * Math.sin(Math.PI * u), u * 0.5);
+        const th = rotF + (i + off) * TAU / n - Math.PI / 2, rr = 200 * HP.s;
+        glint(ctx, HP.x + Math.cos(th) * rr, HP.y + Math.sin(th) * rr * SY, 80 * Math.sin(Math.PI * u), 0.75 * Math.sin(Math.PI * u), u * 0.5);
       }
     }
 
-    // ---------- the nochebuena dissolves into rising sparks of red and gold
-    if (t > 9.6 && t < 11.6) {
-      const Rd = HG.rng(19), Rpx = 250 * HP.s;
+    // ---------- the nochebuena breaks up from the tips: each bract edge bursts into red and gold sparks
+    if (t > NB_C0 && t < NB_C1 + 1.2) {
+      const k = RPX / NB_RS;
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
-      for (let i = 0; i < 90; i++) {
-        const a = Rd() * TAU, r = Math.sqrt(0.04 + 0.96 * Rd()) * Rpx * 0.92, t0 = 9.7 + Rd() * 0.55, life = 0.9 + Rd() * 0.6;
-        const col = Rd() < 0.62 ? [255, 70, 55] : GOLD, sz = 9 + Rd() * 12, dr = 30 + Rd() * 70, up = 120 + Rd() * 200, tw = Rd() * 6;
-        const u = (t - t0) / life; if (u <= 0 || u >= 1) continue;
-        const e = ease.out3(u);
-        const x = HP.x + Math.cos(a) * (r + dr * e) + Math.sin(u * 4 + tw) * 8, y = HP.y + Math.sin(a) * (r + dr * e) - up * e;
-        HG.dot(ctx, col, x, y, sz * (1 - 0.5 * u), Math.sin(Math.PI * Math.min(1, u * 1.6 + 0.0)) * (1 - u) * 1.3 * (0.7 + 0.3 * Math.sin(t * 9 + tw)));
+      for (const s of BREAK) {
+        const u = (t - s.tb) / s.life; if (u <= 0 || u >= 1) continue;
+        const r = 0.05 * s.tb - 0.3, th = s.th + r;
+        const bx = HP.x + Math.cos(th) * s.rr * k, by = HP.y + Math.sin(th) * s.rr * k * SY;
+        const ox = Math.cos(th), oy = Math.sin(th) * SY, e = ease.out3(u);
+        const x = bx + ox * s.sp * e + Math.sin(u * 5 + s.tw) * 6, y = by + oy * s.sp * e - s.up * e;
+        const a = Math.min(1, u * 6) * Math.pow(1 - u, 1.4) * (0.75 + 0.25 * Math.sin(t * 11 + s.tw)) * end;
+        HG.dot(ctx, s.red ? [255, 64, 50] : GOLD, x, y, s.sz * (1 - 0.45 * u), 0.85 * a);
       }
       ctx.restore();
     }
 
     // ---------- the flames rise and become stars; the nochebuena's golden heart becomes the brightest
     const Rs = HG.rng(77);
-    const fadeS = 1 - smooth(11.05, 11.85, t);
+    const fadeS = 1 - smooth(11.1, 11.85, t);
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     for (const l of L) {
       const tw = Rs() * 6;
       if (l.lift <= 0) continue;
-      const u = l.lift, e = ease.inOut3(u);
-      const hp = LS * l.P.s, wx = l.P.x + Math.sin(l.sway) * hp * 0.72, wy = l.P.y - hp * 0.21;
-      // each flame rises (straight up first, then drifting aside) to its own place in the sky
+      const u = l.lift, e = ease.inOut3(u), hp = l.hp;
+      // each flame rises (straight up first, then drifting aside) to its own place in the sky; it keeps
+      // its shape (a little larger) for the first half of the climb before it turns into a star
       const [tx, ty] = STARS[RANK[l.k]];
-      const x = lerp(wx, tx, smooth(0.12, 1, u)) + Math.sin(u * 5 + l.j) * 14 * Math.sin(Math.PI * u), y = lerp(wy, ty, e);
-      const fh = hp * 0.22 * flick(t, l.j) * (1 - smooth(0.05, 0.55, u));
-      flame(ctx, x, y + fh * 0.25, fh, 0.12 * Math.sin(u * 7 + l.j), fadeS);
-      const star = smooth(0.25, 0.85, u) * fadeS * (0.75 + 0.25 * Math.sin(t * 6 + tw));
-      HG.dot(ctx, [255, 220, 160], x, y, lerp(hp * 0.9, 34, smooth(0, 0.8, u)), 0.55 * fadeS);
-      HG.dot(ctx, [255, 245, 225], x, y, lerp(hp * 0.3, 12, smooth(0, 0.8, u)), 0.9 * fadeS);
+      const x = lerp(l.wx, tx, smooth(0.15, 1, u)) + Math.sin(u * 5 + l.j) * 14 * Math.sin(Math.PI * u), y = lerp(l.wy, ty, e);
+      const fh = hp * 0.3 * flick(t, l.j) * lerp(1, 1.5, smooth(0, 0.2, u)) * (1 - smooth(0.45, 0.8, u));
+      HG.dot(ctx, FLAME, x, y - fh * 0.4, hp * 1.0 * (1 - smooth(0.4, 0.8, u)), 0.32 * fadeS);
+      flame(ctx, x, y + fh * 0.1, fh, 0.12 * Math.sin(u * 7 + l.j), fadeS);
+      const star = smooth(0.4, 0.9, u) * fadeS * (0.75 + 0.25 * Math.sin(t * 6 + tw));
+      HG.dot(ctx, [255, 220, 160], x, y, lerp(hp * 0.8, 34, smooth(0.3, 0.85, u)), 0.5 * fadeS * smooth(0.3, 0.6, u));
+      HG.dot(ctx, [255, 245, 225], x, y, 12, 0.9 * fadeS * smooth(0.35, 0.6, u));
       glint(ctx, x, y, 64 * star, 0.75 * star, 0.25 * Math.sin(t * 0.8 + tw), [255, 230, 190]);
     }
-    // the heart of the nochebuena
-    const hu = ease.inOut3((t - 9.95) / 1.3);
-    if (hu > 0 && fadeS > 0) {
+    // the heart of the nochebuena: it rises as the Christmas star, slowly turning and breathing
+    const hu = ease.inOut3((t - 10.15) / 1.2), hb = smooth(10.0, 10.4, t);
+    if (hb > 0 && fadeS > 0) {
       const x = lerp(HP.x, C, hu), y = lerp(HP.y, LEAD[1], hu);
-      const st = smooth(0.3, 1, hu) * fadeS;
-      HG.dot(ctx, [255, 200, 90], x, y, lerp(110, 60, hu), 0.7 * fadeS * smooth(0, 0.2, hu));
-      HG.dot(ctx, [255, 245, 220], x, y, 22, 0.95 * fadeS * smooth(0, 0.2, hu));
-      glint(ctx, x, y, 150 * st * (0.9 + 0.1 * Math.sin(t * 5)), 0.85 * st, 0.15 * Math.sin(t * 0.7), [255, 225, 160]);
+      const st = smooth(0.2, 1, hu) * fadeS, br = 1 + 0.12 * Math.sin(t * 2.6);
+      HG.dot(ctx, [255, 200, 90], x, y, lerp(120, 70, hu) * br, 0.7 * fadeS * hb);
+      HG.dot(ctx, [255, 245, 220], x, y, 22, 0.95 * fadeS * hb);
+      glint(ctx, x, y, 160 * st * br, 0.85 * st, 0.35 * t);
+      glint(ctx, x, y, 95 * st * br, 0.5 * st, 0.35 * t + Math.PI / 4, [255, 225, 160]);
     }
-    // a sky of fainter stars joins them
+    // a sky of fainter stars joins them, drifting gently
     const sk = smooth(9.9, 10.9, t) * fadeS;
     if (sk > 0) {
       const Rb = HG.rng(5);
-      for (let i = 0; i < 40; i++) {
-        const a = Rb() * TAU, r = Math.sqrt(Rb()) * 450, x = C + Math.cos(a) * r, y = C - 70 + Math.sin(a) * r * 0.8, tw = Rb() * 6, sz = 9 + Rb() * 9, d = Rb();
+      for (let i = 0; i < 44; i++) {
+        const a = Rb() * TAU, r = Math.sqrt(Rb()) * 450, tw = Rb() * 6, sz = 9 + Rb() * 9, d = Rb(), dr = 4 + Rb() * 7;
+        const x = C + Math.cos(a) * r + Math.sin(t * 0.5 + tw) * dr, y = C - 70 + Math.sin(a) * r * 0.8 - (t - 10) * dr;
         if (y > 690) continue;
         HG.dot(ctx, [200, 210, 255], x, y, sz, 0.6 * smooth(d * 0.5, d * 0.5 + 0.5, sk) * (0.5 + 0.5 * Math.sin(t * 4 + tw)));
       }
