@@ -161,15 +161,18 @@ function branchShape(p, k, wScale, dEnd, cap = 99, cut = null) {
     break;
   }
   if (pts.length < 2) return null;
+  // while the light is drawn back at the end, the cut ends are blunt and rounded (no needle tips)
+  const blunt = cut !== null && k < dEnd, tl = blunt ? 0.012 : 0.06;
   const L = [], R = [];
   for (let j = 0; j < pts.length; j++) {
     const a = pts[Math.max(0, j - 1)], b = pts[Math.min(pts.length - 1, j + 1)];
     let dx = b[0] - a[0], dy = b[1] - a[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
-    const taper = Math.min(smooth(0, 0.06, k - pts[j][3]), 0.55 + 0.45 * smooth(0, 0.09, dEnd - pts[j][3]));
+    const taper = Math.min(smooth(0, tl, k - pts[j][3]), 0.55 + 0.45 * smooth(0, 0.09, dEnd - pts[j][3]));
     const hw = Math.min(cap, pts[j][2] * K * wScale) * taper + 0.5;
     L.push([pts[j][0] - dy * hw, pts[j][1] + dx * hw]); R.push([pts[j][0] + dy * hw, pts[j][1] - dx * hw]);
   }
-  return { pts, L, R, tip: pts[pts.length - 1] };
+  const tip = pts[pts.length - 1];
+  return { pts, L, R, tip, blunt, capR: Math.min(cap, tip[2] * K * wScale) * 0.8 + 0.5 };
 }
 function smoothLine(g, P, move = true) {
   if (move) g.moveTo(P[0][0], P[0][1]); else g.lineTo(P[0][0], P[0][1]);
@@ -184,7 +187,9 @@ function drawBranches(g, k, cut = null) {
     g.globalAlpha = al; g.fillStyle = rgba(col, 1);
     DATA.paths.forEach((p, i) => {
       const s = branchShape(p, warpK(p, k), wOf(p) * ws, PEND[i], cap, cut); if (!s) return;
-      g.beginPath(); smoothLine(g, s.L); smoothLine(g, s.R.slice().reverse(), false); g.closePath(); g.fill();
+      g.beginPath(); smoothLine(g, s.L); smoothLine(g, s.R.slice().reverse(), false); g.closePath();
+      if (s.blunt) { g.moveTo(s.tip[0] + s.capR, s.tip[1]); g.arc(s.tip[0], s.tip[1], s.capR, 0, TAU); }
+      g.fill('nonzero');
     });
   }
   g.globalAlpha = 0.85; g.strokeStyle = rgba(WHITE, 1); g.lineWidth = 1.6;
@@ -543,7 +548,7 @@ HG.start({
 
     // ---------- midday sun: a faint warm halo behind the crown while the tree grows; when the crown flower opens
     // it swells (about 70/255 around the crown, settling to about 45) and the Metepec sun blooms behind the crown
-    const sunOut = 1 - smooth(T_END, 9.9, t);
+    const sunOut = 1 - smooth(T_END, 9.55, t);
     const halo = (0.07 * smooth(3.0, 5.2, t) + 0.23 * smooth(T_CROWN, T_CROWN + 0.45, t) + 0.12 * bump(t, T_CROWN, T_CROWN + 0.45, T_CROWN + 0.7, T_CROWN + 2.2)) * sunOut;
     if (halo > 0.002) {
       const hg = ctx.createRadialGradient(SUN_X, SUN_Y, 0, SUN_X, SUN_Y, 350);
@@ -556,7 +561,7 @@ HG.start({
       if (su > 0) {
         const k = ease.outBack(su) * (1 + 0.025 * Math.sin(1.6 * t)), a = smooth(0, 0.25, su) * sunOut;
         sunRays(ctx, 0.45 + 0.55 * ease.out3(su), a * (0.55 + 0.45 * bump(t, T_CROWN, T_CROWN + 0.4, T_CROWN + 0.8, T_CROWN + 2.4)), -0.03 * t);
-        sunRosette(ctx, 0.3 + 0.7 * k, a, 0.06 * (t - T_CROWN));
+        sunRosette(ctx, (0.3 + 0.7 * k) * (1 - 0.3 * smooth(T_END, 9.55, t)), a, 0.06 * (t - T_CROWN));
       }
     }
 
@@ -690,6 +695,15 @@ HG.start({
           star(ctx, x, y, 58, 0.8 * live * smooth(2.45, 2.8, t), 0.4 * t + i);
         });
         ctx.restore();
+      } else if (cut !== null && cut < 720) {
+        // the rounded ends glow softly as the light is drawn back into the seed
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        DATA.paths.forEach((p, i) => {
+          const kc = kAtCut(p, cut); if (kc >= PEND[i] - 0.004 || kc <= p.d[0] + 0.01) return;
+          const s = branchShape(p, 9, 1, PEND[i], 99, cut); if (!s) return;
+          HG.dot(ctx, WARM, s.tip[0], s.tip[1], 30, 0.55 * smooth(p.d[0] + 0.01, p.d[0] + 0.04, kc));
+        });
+        ctx.restore();
       }
     }
 
@@ -804,7 +818,7 @@ HG.start({
       for (let j = 40; j >= 1; j--) {
         const u = fallU - j * 0.0042; if (u <= 0) continue;
         const [x, y] = seedAt(u), q = 1 - j / 41;
-        HG.dot(ctx, GOLD, x, y, 5 + 19 * q, 0.13 * q * smooth(0, 0.12, fallU));
+        HG.dot(ctx, GOLD, x, y, 6 + 22 * q, 0.2 * q * smooth(0, 0.12, fallU));
       }
       HG.dot(ctx, WARM, ...seedAt(fallU), 30, smooth(0, 0.12, fallU));
       const [x, y] = seedAt(fallU);

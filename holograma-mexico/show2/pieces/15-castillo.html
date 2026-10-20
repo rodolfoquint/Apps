@@ -130,7 +130,7 @@ const PITCH_END = EL_END + Math.atan((ENDY - 540) / focalAt(20));
 const LEAN = 0.045;
 const pitchAt = t => A0 + LEAN * sstep((t - 6.7) / 3.0) + (PITCH_END - A0 - LEAN) * sstep((t - 9.4) / 1.95);
 // the crown tilts toward us in flight, so that it ends facing us
-const tiltAt = t => (Math.PI / 2 - EL_END) * smooth(LIFT + 0.25, LIFT + 2.0, t);
+const tiltAt = t => (Math.PI / 2 - EL_END) * smooth(LIFT + 0.1, LIFT + 1.05, t);   // face-on early: never an oblique ring over one arm
 let V = null, SUBA = 1, STRUCTA = 1;                       // SUBA: alpha share of a motion-blur sub-sample
 function view(t) {
   const a = pitchAt(t), psi = yawAt(t);
