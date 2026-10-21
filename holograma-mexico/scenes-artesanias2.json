@@ -1,0 +1,115 @@
+{
+  "image_style": "Full scene composed for a round display: the main action is centered, everything important sits well inside a central circle, and the picture fades smoothly into pure black toward the edges and corners, like a glowing round window floating in darkness. Joyful festive mood, vivid saturated colors, warm glowing light, rich detail, cinematic photorealistic illustration. People have natural happy faces and correct hands.",
+  "image_negative": "text, letters, words, signs with writing, watermark, logo, signature, frame, border, hard square edges, dull colors, low contrast, blurry, deformed faces, extra fingers, extra limbs, distorted bodies, creepy, scary, caricature, stereotype, merged horses, extra horse legs, conjoined animals, extra hands, mangled hands, floating tools",
+  "video_style": "Natural, lively, realistic movement with correct anatomy: every person and animal keeps the same face, costume, body and number of limbs; nothing merges or morphs. The camera moves gently. The edges of the picture stay dark. No cuts, no text.",
+  "scenes": [
+    {
+      "id": "talavera",
+      "title": "Talavera",
+      "subject": "A Talavera pottery workshop in Puebla, Mexico, medium shot: a smiling Mexican woman artisan in a simple apron sits at a wooden worktable and hand-paints a large round white tin-glazed plate with a fine brush, drawing an intricate cobalt-blue floral pattern with touches of yellow and orange; behind her, wooden shelves full of finished Talavera plates, tiles, jars and vases in cobalt blue, yellow, orange and green on glossy white glaze. Warm daylight from a window.",
+      "motion": "The artisan paints steady blue brushstrokes on the plate, dips her brush in the cobalt paint and turns the plate on the table to keep painting; she smiles; the camera slowly pushes in.",
+      "video_model": "kling3pro",
+      "style_key": "video_style",
+      "loop": false
+    },
+    {
+      "id": "barro-negro",
+      "title": "Barro Negro",
+      "subject": "A barro negro pottery workshop in San Bartolo Coyotepec, Oaxaca, medium shot: an older Zapotec woman artisan with grey braids, a white embroidered blouse and an apron sits on a low stool and polishes a round unfired grey clay pot (cántaro) held on her lap by rubbing it with a smooth quartz stone; beside her on a table stand finished barro negro pieces, glossy jet-black clay pots, jars and openwork lamps with a metallic shine, lit by warm light.",
+      "motion": "The artisan rubs the quartz stone over the pot in steady circles, turning the pot slowly on her lap as its surface begins to shine; she looks up and smiles.",
+      "video_model": "kling3pro",
+      "style_key": "video_style",
+      "loop": false
+    },
+    {
+      "id": "arbol-de-la-vida",
+      "title": "Árbol de la Vida",
+      "subject": "A clay workshop in Metepec, State of Mexico, medium shot: a smiling Mexican artisan carefully paints a large Árbol de la Vida (tree of life) clay sculpture, a candelabra-shaped tree densely covered with small clay flowers, leaves, doves and little figures, painted in vivid pink, yellow, turquoise, green, orange and red; pots of bright paint and brushes on the table; other painted trees of life on shelves behind.",
+      "motion": "The artisan paints small clay flowers on the tree of life with a fine brush, dipping it in the paint pots and dabbing colour onto one flower after another; she smiles and leans in. The tree of life stays completely still and unchanged in place; nobody turns or moves it; only the artisan's hands and brush move. Only one person in the scene.",
+      "video_model": "kling3pro",
+      "style_key": "video_style",
+      "loop": false
+    },
+    {
+      "id": "alebrijes",
+      "title": "Alebrijes",
+      "subject": "An alebrije workshop in San Martín Tilcajete, Oaxaca, medium shot: a smiling Zapotec artisan paints fine patterns of dots and lines in vivid colours onto a hand-carved copal-wood alebrije, a fantastical jaguar-dragon with wings; finished brightly patterned alebrijes (a fox, a cat, a winged lizard) stand on the table around jars of paint; his partner carves a new figure with a machete-like knife in the background.",
+      "motion": "The artisan dots bright colours onto the alebrije's wing with a fine brush, dipping the brush in the paint jars and adding dot after dot; the alebrije stays still on the table and is never lifted or turned; in the background his partner shaves curls of wood from a new figure with a knife.",
+      "video_model": "kling3pro",
+      "style_key": "video_style",
+      "loop": false
+    },
+    {
+      "id": "tapetes-teotitlan",
+      "title": "Tapetes Zapotecos",
+      "subject": "A weaving workshop in Teotitlán del Valle, Oaxaca, medium shot: a smiling Zapotec weaver works at a large wooden pedal (treadle) loom, weaving a wool rug with a bold geometric Zapotec step-fret (greca) design in cochineal red, indigo blue, marigold yellow and natural cream; baskets of naturally dyed wool yarn balls and hanging skeins in red, blue, yellow and brown beside the loom.",
+      "motion": "The weaver presses the pedals, passes the wooden shuttle through the threads with one hand and pulls the beater toward him to pack the row, again and again in a steady rhythm; the loom's threads move up and down.",
+      "video_model": "kling3pro",
+      "style_key": "video_style",
+      "loop": false
+    },
+    {
+      "id": "arte-huichol",
+      "title": "Arte Huichol",
+      "subject": "A Wixárika (Huichol) artisan from the Sierra Madre in Jalisco, medium close shot: a smiling young woman wearing a white cotton blouse embroidered with colourful Huichol motifs and many beaded bracelets presses tiny colourful glass beads one by one into a layer of beeswax covering a carved wooden jaguar head, creating a dazzling pattern of flowers, deer and peyote motifs in bright turquoise, yellow, red, magenta and blue; small bowls of loose beads on the table.",
+      "motion": "With a fine needle the artisan picks up tiny beads and presses them into the wax one after another, adding to the bright pattern; she turns the beaded jaguar head to show it and smiles.",
+      "video_model": "kling3pro",
+      "style_key": "video_style",
+      "loop": false
+    },
+    {
+      "id": "papel-picado",
+      "title": "Papel Picado",
+      "subject": "A papel picado workshop in San Salvador Huixcolotla, Puebla, medium shot: a smiling Mexican artisan cuts a thick stack of brightly coloured tissue paper with a small hammer and a metal chisel, tapping out an intricate pattern; strings of finished papel picado banners in pink, orange, green, purple, yellow and turquoise with cut-out flowers and birds hang across the workshop behind him.",
+      "motion": "The artisan taps the chisel with the hammer in quick strikes, moving along the pattern; then he lifts the top sheet and it unfolds into a lacy pink banner; the hanging banners flutter in a breeze.",
+      "video_model": "kling3pro",
+      "style_key": "video_style",
+      "loop": false
+    },
+    {
+      "id": "pinatas",
+      "title": "Piñatas",
+      "subject": "A piñata workshop in Acolman, State of Mexico, medium shot: a smiling Mexican woman artisan decorates a large seven-point star piñata, gluing frills of brightly coloured fringed tissue paper onto its cones; finished star piñatas in pink, orange, purple, silver and gold with long tissue-paper streamers hang from the ceiling behind her.",
+      "motion": "The artisan wraps and presses a strip of fringed tissue paper around a cone, fluffs the fringe with her fingers and turns the piñata to the next cone; the hanging piñatas sway gently and their streamers flutter.",
+      "video_model": "kling3pro",
+      "style_key": "video_style",
+      "loop": false
+    },
+    {
+      "id": "cartoneria",
+      "title": "Cartonería",
+      "subject": "A cartonería (papier-mâché) workshop in Mexico City, medium shot: a smiling Mexican artisan paints a tall papier-mâché La Catrina figure, an elegant skeleton lady with a wide flowered hat and a long colourful dress, adding bright flower details to her painted skull face; colourful cartonería alebrijes and Judas figures stand around the workshop.",
+      "motion": "The artisan paints a flower on the Catrina's hat with careful brushstrokes, dips his brush and adds bright dots to her dress, then steps back a little and smiles at his work. The Catrina figure stays completely still and unchanged in place; nobody turns or moves it.",
+      "video_model": "kling3pro",
+      "style_key": "video_style",
+      "loop": false
+    },
+    {
+      "id": "plata-taxco",
+      "title": "Plata de Taxco",
+      "subject": "A silversmith's workshop in Taxco, Guerrero, medium close shot: a Mexican silversmith in a leather apron hammers a gleaming sterling silver cuff bracelet on a small steel mandrel at his workbench, giving it a hammered texture; finished shining silver jewellery (necklaces, earrings, bracelets with turquoise) lies on a velvet cloth; through the window the white houses and red roofs of hillside Taxco.",
+      "motion": "The silversmith taps the silver bracelet with a small hammer in a quick steady rhythm, turning it on the mandrel; the silver glints and flashes with each strike; he holds it up to the light and smiles.",
+      "video_model": "kling3pro",
+      "style_key": "video_style",
+      "loop": false
+    },
+    {
+      "id": "cobre",
+      "title": "Cobre Martillado",
+      "subject": "A coppersmith workshop in Santa Clara del Cobre, Michoacán, medium shot: two Purépecha coppersmiths in work clothes hammer a large glowing orange-hot copper vessel on an anvil, a forge with burning coals behind them; finished hammered copper pots, vases and plates with shining reddish-gold surfaces line the walls.",
+      "motion": "The two coppersmiths strike the glowing copper vessel with their hammers in turn, a steady alternating rhythm, rotating it on the anvil; sparks fly and the forge's coals glow and flicker.",
+      "video_model": "kling3pro",
+      "style_key": "video_style",
+      "loop": false
+    },
+    {
+      "id": "vidrio-soplado",
+      "title": "Vidrio Soplado",
+      "subject": "A hand-blown glass workshop in Tlaquepaque, Jalisco, medium shot: a Mexican glassblower turns a long metal blowpipe with a glowing orange gather of molten glass at its end in front of a roaring furnace, blowing into it to shape a bubble; finished hand-blown glasses, jugs and vases with bright cobalt-blue rims and small bubbles in the glass stand on shelves.",
+      "motion": "The glassblower blows into the pipe while rolling it, and the glowing glass bubble swells; he turns it in the fire and shapes it with a wet wooden paddle as it glows brighter; the furnace roars.",
+      "video_model": "kling3pro",
+      "style_key": "video_style",
+      "loop": false
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "title": "Artesanías de México",
+  "slug": "artesanias-de-mexico",
+  "out": "out-artesanias2",
+  "size": 1080,
+  "transition": {
+    "page": "show/transitions/portal.html",
+    "seconds": 1.8
+  },
+  "titles": {
+    "page": "shows/titles/title.html"
+  },
+  "pieces": [
+    {
+      "clip": "out-artesanias2/videos/talavera-1.mp4",
+      "duration": 10,
+      "name": "Talavera",
+      "place": "Puebla"
+    },
+    {
+      "clip": "out-artesanias2/videos/barro-negro-1.mp4",
+      "duration": 10,
+      "name": "Barro Negro",
+      "place": "San Bartolo Coyotepec, Oaxaca"
+    },
+    {
+      "clip": "out-artesanias2/videos/arbol-de-la-vida-2.mp4",
+      "duration": 10,
+      "name": "Árbol de la Vida",
+      "place": "Metepec, Estado de México"
+    },
+    {
+      "clip": "out-artesanias2/videos/alebrijes-2.mp4",
+      "duration": 10,
+      "name": "Alebrijes",
+      "place": "San Martín Tilcajete, Oaxaca"
+    },
+    {
+      "clip": "out-artesanias2/videos/tapetes-teotitlan-1.mp4",
+      "duration": 10,
+      "name": "Tapetes Zapotecos",
+      "place": "Teotitlán del Valle, Oaxaca"
+    },
+    {
+      "clip": "out-artesanias2/videos/arte-huichol-1.mp4",
+      "duration": 10,
+      "name": "Arte Huichol",
+      "place": "Wixárika · Jalisco y Nayarit"
+    },
+    {
+      "clip": "out-artesanias2/videos/papel-picado-1.mp4",
+      "duration": 10,
+      "name": "Papel Picado",
+      "place": "San Salvador Huixcolotla, Puebla"
+    },
+    {
+      "clip": "out-artesanias2/videos/pinatas-1.mp4",
+      "duration": 10,
+      "name": "Piñatas",
+      "place": "Acolman, Estado de México"
+    },
+    {
+      "clip": "out-artesanias2/videos/cartoneria-2.mp4",
+      "duration": 10,
+      "name": "Cartonería",
+      "place": "Ciudad de México"
+    },
+    {
+      "clip": "out-artesanias2/videos/plata-taxco-1.mp4",
+      "duration": 10,
+      "name": "Plata de Taxco",
+      "place": "Taxco, Guerrero"
+    },
+    {
+      "clip": "out-artesanias2/videos/cobre-1.mp4",
+      "duration": 10,
+      "name": "Cobre Martillado",
+      "place": "Santa Clara del Cobre, Michoacán"
+    },
+    {
+      "clip": "out-artesanias2/videos/vidrio-soplado-1.mp4",
+      "duration": 10,
+      "name": "Vidrio Soplado",
+      "place": "Tlaquepaque, Jalisco"
+    }
+  ]
+}
