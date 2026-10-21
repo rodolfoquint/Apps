@@ -1,0 +1,21 @@
+# Artesanías de México: real-life references
+
+The 12 scenes in `shows/artesanias-de-mexico.json` were remade after studying real
+photos of each craft. The photos below were used only as visual reference for the
+prompts (`scenes-artesanias2.json`); none of them appears in the video. All are on
+Wikimedia Commons (`https://commons.wikimedia.org/wiki/File:<name>`) unless noted.
+
+| Craft | What changed after the research | Reference photos (author, licence) |
+|---|---|---|
+| Talavera, Puebla | Painted on chalky, matte, unfired glaze on a banding wheel with a long-hair brush; shelves of white unpainted ware | LaTrinidadPuebla034/037/038/041/043/053.jpg (Thelmadatter, CC BY-SA 4.0); PorSiempreUriate61/74.JPG (CC BY-SA 3.0); VasesStagesUriarte.JPG (AlejandroLinaresGarcia, GFDL / CC BY-SA) |
+| Barro negro, San Bartolo Coyotepec | Burnished as unfired brownish-grey clay with a small quartz pebble; finished pieces unglazed with a pewter sheen | Elaboración del barro negro 10/15/20/30 (inakiherrasti, CC BY-SA 3.0); Acabado brillante del barro negro.JPG (CC BY-SA 4.0); Barro negro de Oaxaca.JPG (CC BY 3.0) |
+| Árbol de la Vida, Metepec | Stylised candelabra with Adam and Eve, serpent and sun, painted cold over fired terracotta, half done | Arbol de la Vida - Metepec Estado de Mexico.jpg (CC BY-SA 4.0); Tree of Life by Adrián Luis González (CC BY 2.0); facts from the IMPI declaration (DOF 2026) and an UNAM thesis (viewed only) |
+| Alebrijes, San Martín Tilcajete | Solid base coat, then orderly fine dots, lines and Zapotec step-frets with a liner brush; family-home patio | AngelesTilcajete053.JPG, Arrazola041/055.jpg, AlebrijesTilcajete3.JPG (AlejandroLinaresGarcia, CC BY-SA 4.0); MesaTrabajoAlebrijes.JPG (DavidConFran, CC BY-SA 3.0); Isaias Jiménez pintando.jpg (JimArt1, CC BY-SA 4.0) |
+| Tapetes zapotecos, Teotitlán del Valle | Treadle box loom with horizontal warp, rug lying flat, hanging beater, cane bobbins, natural-dye palette, step-fret and diamond design | Tejedor de Teotitlán.jpg (Elgabilove, CC BY-SA 4.0); GutierrezWorkshopTeotitlan038/108/114.jpg (Thelmadatter, CC BY-SA 4.0); Telar y tapetes-Teotitlán del Valle (Gengiskanhg, GFDL / CC BY-SA) |
+| Arte huichol (Wixárika) | Uniform seed beads pressed in contour rows into beeswax on a carved jaguar head; Wixárika dress | Huichol Trabajando 2–5.JPG, Arte Huichol A.JPG (Kaixodude, GFDL / CC BY-SA 3.0); Huichol Woman artisans.jpg (Jupagame, CC BY-SA 3.0) |
+| Papel picado, San Salvador Huixcolotla | Chisel and small hammer through a squared stack on a lead plate, following a drawn pattern | Artesano trabajando el papel picado.jpg (Juanscott, CC BY-SA 4.0); Papel Picado Taller 2MAP.jpg (Museo de Arte Popular, CC BY 3.0); Herramientas.gif (CC BY-SA 3.0) |
+| Piñatas, Acolman | Round body with seven foil cones and fringed tissue rings; clay pots in the workshop | Mexican traditional piñata materials' detail.jpg, Traditional Mexican Piñata.jpg (Paricutina, CC BY 4.0 / CC0); Piñata Artesanal Navideña, Acolman.jpg (CC BY-SA 4.0); Ollas piñateras.JPG (Slevinr, CC BY 3.0) |
+| Cartonería, Mexico City | Linares-style painted papier-mâché alebrije; paste, kraft paper and raw pieces in the workshop | FLinaresWorkshop001/003/005/007/009/010/011.JPG (AlejandroLinaresGarcia, CC BY-SA 4.0); Alebrije by Ricardo Linares García (Gallina x, CC BY-SA 4.0) |
+| Plata de Taxco | Small jeweller's hammer on a bracelet mandrel, rolling mill, torch on firebricks, obsidian and malachite inlays | Artesanía con plata.jpg (Aline Livier, CC BY-SA 4.0); Silver Mexican Bracelet.jpg (Calipso03, CC BY-SA 4.0); OchoRegiones064/065.JPG (AlejandroLinaresGarcia, CC BY-SA 4.0) |
+| Cobre martillado, Santa Clara del Cobre | Raised cold over a curved stake in a stump (copper does not glow while hammered); sooty shed, fire on the floor | Martilleros del Cobre.jpg (Miguel Ángel Mandujano Contreras, CC BY-SA 4.0); PunzoWorkshop04/33/42/45/56.JPG (AlejandroLinaresGarcia, CC BY-SA 3.0); Sacando a relucir el cobre.jpg (CC BY-SA 4.0) |
+| Vidrio soplado, Tlaquepaque | Small glowing bubble on the blowpipe, steel-clad furnace, thick bubbly glass with cobalt rims | Cristacolor01/13/24/34/44.JPG (AlejandroLinaresGarcia, CC BY-SA 3.0, Tonalá); GlasswareCristalucTlaquepaque 01/05.jpg (CC BY-SA 4.0) |
