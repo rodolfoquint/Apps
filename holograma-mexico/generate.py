@@ -47,13 +47,22 @@ VIDEO_MODELS = {
     # Higgsfield's own director model: the still is a reference (<<<image_1>>>),
     # with camera and pacing presets from the scene's "cinema" settings.
     "cinema4": "higgsfield/cinema-studio/4.0",
+    # ByteDance Seedance 2.5: won our model test for craft methods (tools that really
+    # cut, brushes that really leave paint). Billed per video token.
+    "seedance25": "bytedance/seedance-2.5/image-to-video",
 }
+SEEDANCE_PIXELS = {"480p": 640 * 640, "720p": 960 * 960, "1080p": 1440 * 1440}  # square output
 # Models whose estimate endpoint returns only a pricing description: cost from
 # their published token formula (720p square = 720x720, 24 fps, $0.0214 per 1k tokens).
 MOTION_MODEL = "higgsfield/genjutsu/motion-transfer/v1.0"
 # Genjutsu motion transfer bills each (rounded-up) second of the source video.
 MOTION_RATE = {"480p": 0.318, "720p": 0.681, "1080p": 1.632}
-TOKEN_PRICED = {"higgsfield/cinema-studio/4.0": lambda body: math.ceil(body["duration"] * 720 * 720 * 24 / 1024) * 0.0214 / 1000}
+TOKEN_PRICED = {
+    "higgsfield/cinema-studio/4.0": lambda body: math.ceil(body["duration"] * 720 * 720 * 24 / 1024) * 0.0214 / 1000,
+    "bytedance/seedance-2.5/image-to-video": lambda body: math.ceil(
+        SEEDANCE_PIXELS[body.get("resolution", "720p")] * body["duration"] * 24 / 1024)
+        * (0.0234 if body.get("resolution") == "1080p" else 0.0214) / 1000,
+}
 VIDEO_MODE = "pro"
 VIDEO_SECONDS = 15
 FAN_SIZE = 1080
@@ -319,6 +328,9 @@ def video_body(cfg, scene, image_url, extra=None, duration=VIDEO_SECONDS):
                 "duration": scene.get("video_seconds", duration), "resolution": "720p",
                 "aspect_ratio": "1:1", "generate_audio": False, **scene.get("cinema", {})}
         return body
+    if video_model(cfg, scene) == VIDEO_MODELS["seedance25"]:
+        return {"prompt": " ".join(parts), "image_url": image_url, "duration": duration,
+                "resolution": scene.get("resolution", "720p"), "generate_audio": False}
     if video_model(cfg, scene) == VIDEO_MODELS["kling3pro"]:
         body = {"prompt": " ".join(parts), "image_url": image_url, "duration": duration, "sound": "off"}
         if loop:
