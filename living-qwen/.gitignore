@@ -1,0 +1,7 @@
+# a mind's state is personal: weights, journal and notes stay out of git
+life/
+lives/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
